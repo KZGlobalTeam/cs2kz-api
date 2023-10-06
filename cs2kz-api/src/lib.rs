@@ -1,7 +1,8 @@
 use {
 	crate::state::State as AppState,
-	axum::{extract::State as StateExtractor, routing, Router},
+	axum::{extract::State as StateExtractor, http::Method, routing, Router},
 	std::sync::Arc,
+	tower_http::{cors, cors::CorsLayer},
 	utoipa::OpenApi,
 	utoipa_swagger_ui::SwaggerUi,
 };
@@ -66,8 +67,11 @@ impl API {
 			.with_state(state);
 
 		let swagger_ui = Self::swagger_ui();
+		let cors = CorsLayer::new()
+			.allow_methods([Method::GET])
+			.allow_origin(cors::Any);
 
-		router.merge(swagger_ui)
+		router.merge(swagger_ui).layer(cors)
 	}
 
 	/// Creates an iterator over all of the API's routes.

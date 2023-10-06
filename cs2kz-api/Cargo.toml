@@ -20,6 +20,10 @@ version = "0.6.20"
 default-features = false
 features = ["http1", "query", "tokio", "tracing", "macros"]
 
+[dependencies.tower-http]
+version = "0.4.4"
+features = ["cors"]
+
 [dependencies.utoipa]
 version = "3.5.0"
 features = ["chrono", "axum_extras"]
