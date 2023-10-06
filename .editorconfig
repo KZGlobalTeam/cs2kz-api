@@ -1,0 +1,17 @@
+# Editor-agnostic settings.
+#
+# See <https://editorconfig.org/> for more information.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = tab
+
+[*.rs]
+indent_size = 8
+
+[{*.nix,*.toml,*.yml}]
+indent_style = space
+indent_size = 2

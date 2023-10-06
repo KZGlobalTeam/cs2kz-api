@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  cs2kz-database:
+    image: mariadb:10.10
+    restart: 'no'
+    environment:
+      MARIADB_USER: kz
+      MARIADB_PASSWORD: csgo-kz-is-dead-boys
+      MARIADB_DATABASE: cs2kz-api
+      MARIADB_ROOT_PASSWORD: csgo-kz-is-dead-boys
+    ports:
+      - 8070:3306
+    volumes:
+      - ./database/volumes:/var/lib/mysql
+
+  cs2kz-api:
+    restart: 'no'
+    build:
+      context: .
+      dockerfile: ./cs2kz-api/Dockerfile
+    ports:
+      - 42069:42069
+    depends_on:
+      - cs2kz-database

@@ -1,0 +1,9 @@
+# Example of the API's configuration file (for docker).
+#
+# The actual file is called `api.docker.toml` and is gitignored by default.
+# All of the values in here have default values. See the `Config` struct in the `cs2kz-api` crate.
+
+address = "0.0.0.0"
+port = 42069
+enable_logging = true
+database_url = "mysql://kz:csgo-kz-is-dead-boys@cs2kz-database:3306/cs2kz-api"

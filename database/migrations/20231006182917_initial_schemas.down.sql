@@ -1,0 +1,10 @@
+DROP TABLE RecordsCheated;
+DROP TABLE RecordsToCheck;
+DROP TABLE Records;
+DROP TABLE Servers;
+DROP TABLE Filters;
+DROP TABLE Courses;
+DROP TABLE Maps;
+DROP TABLE Styles;
+DROP TABLE Modes;
+DROP TABLE Players;

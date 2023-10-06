@@ -1,0 +1,29 @@
+[package]
+name = "cs2kz-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+color-eyre = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde_toml = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+sqlx = { workspace = true }
+
+[dependencies.axum]
+version = "0.6.20"
+default-features = false
+features = ["http1", "query", "tokio", "tracing", "macros"]
+
+[dependencies.utoipa]
+version = "3.5.0"
+features = ["chrono", "axum_extras"]
+
+[dependencies.utoipa-swagger-ui]
+version = "3.1.5"
+features = ["axum"]
