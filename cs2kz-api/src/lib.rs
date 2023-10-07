@@ -62,8 +62,8 @@ pub struct API;
 impl API {
 	/// Creates an [`axum::Router`] which can be served as a tower service.
 	pub fn router(state: Arc<AppState>) -> Router {
-		let router = Router::new()
-			.route("/", routing::get(routes::health))
+		let api_router = Router::new()
+			.route("/health", routing::get(routes::health))
 			.with_state(state);
 
 		let swagger_ui = Self::swagger_ui();
@@ -71,7 +71,10 @@ impl API {
 			.allow_methods([Method::GET])
 			.allow_origin(cors::Any);
 
-		router.merge(swagger_ui).layer(cors)
+		Router::new()
+			.nest("/api/v1", api_router)
+			.layer(cors)
+			.merge(swagger_ui)
 	}
 
 	/// Creates an iterator over all of the API's routes.
