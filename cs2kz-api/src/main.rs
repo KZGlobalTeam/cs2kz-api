@@ -31,7 +31,7 @@ async fn main() -> color_eyre::Result<()> {
 	info!("Listening on {addr}.");
 
 	let routes = API::routes().fold(String::from("Registering routes:\n"), |mut routes, route| {
-		write!(&mut routes, "\t\t\t\t\t• `{route}`").expect("This never fails.");
+		writeln!(&mut routes, "\t\t\t\t\t• `{route}`").expect("This never fails.");
 		routes
 	});
 
