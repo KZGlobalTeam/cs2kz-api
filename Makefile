@@ -47,5 +47,3 @@ lint:
 
 format:
 	cargo +nightly fmt --all
-
-balls:
