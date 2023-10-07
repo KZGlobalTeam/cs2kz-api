@@ -12,7 +12,7 @@ services:
     ports:
       - 8070:3306
     volumes:
-      - ./database/volumes:/var/lib/mysql
+      - ./database/volumes/cs2kz-database:/var/lib/mysql
 
   cs2kz-api:
     restart: 'no'
