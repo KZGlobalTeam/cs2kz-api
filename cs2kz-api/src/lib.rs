@@ -1,5 +1,5 @@
 use {
-	crate::state::State as AppState,
+	crate::state::AppState,
 	axum::{extract::State as StateExtractor, http::Method, routing, Router},
 	std::sync::Arc,
 	tower_http::{cors, cors::CorsLayer},

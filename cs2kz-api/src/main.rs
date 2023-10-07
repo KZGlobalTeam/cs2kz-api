@@ -2,7 +2,7 @@ use {
 	crate::{args::Args, config::Config},
 	axum::Server,
 	color_eyre::eyre::Context,
-	cs2kz_api::{state::State, API},
+	cs2kz_api::{state::AppState, API},
 	std::fmt::Write,
 	tracing::info,
 };
@@ -23,7 +23,7 @@ async fn main() -> color_eyre::Result<()> {
 		cs2kz_api::logging::init();
 	}
 
-	let state = State::new(&config.database_url).await?;
+	let state = AppState::new(&config.database_url).await?;
 	let router = API::router(state);
 	let server = Server::bind(&config.socket_addr()).serve(router.into_make_service());
 	let addr = server.local_addr();
