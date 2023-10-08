@@ -1,3 +1,12 @@
+-- Copyright (C) AlphaKeks <alphakeks@dawn.sh>
+--
+-- This is free software. You can redistribute it and / or modify it under the terms of the
+-- GNU General Public License as published by the Free Software Foundation, either version 3
+-- of the License, or (at your option) any later version.
+--
+-- You should have received a copy of the GNU General Public License along with this repository.
+-- If not, see <https://www.gnu.org/licenses/>.
+
 CREATE TABLE IF NOT EXISTS Players (
 	-- Steam32 ID of the player
 	id        INT4 UNSIGNED NOT NULL,
@@ -18,7 +27,7 @@ CREATE TABLE IF NOT EXISTS Maps (
 	workshop_id INT4 UNSIGNED,
 	-- The player who owns the map
 	owned_by    INT4 UNSIGNED NOT NULL,
-	created_on  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+	created_on  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
 	PRIMARY KEY (id),
 	FOREIGN KEY (owned_by) REFERENCES Players(id)
@@ -52,7 +61,7 @@ CREATE TABLE IF NOT EXISTS Courses (
 CREATE TABLE IF NOT EXISTS Modes (
 	id         INT1 UNSIGNED NOT NULL AUTO_INCREMENT,
 	name       VARCHAR(16)   NOT NULL,
-	created_on TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+	created_on TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
 	PRIMARY KEY (id),
 
@@ -91,7 +100,7 @@ CREATE TABLE IF NOT EXISTS Servers (
 CREATE TABLE IF NOT EXISTS Styles (
 	id         INT1 UNSIGNED NOT NULL AUTO_INCREMENT,
 	name       VARCHAR(16)   NOT NULL,
-	created_on TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+	created_on TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
 	PRIMARY KEY (id)
 );
@@ -162,7 +171,7 @@ CREATE TABLE IF NOT EXISTS RecordsCheated (
 CREATE TABLE IF NOT EXISTS JumpstatsTypes (
 	id         INT1 UNSIGNED NOT NULL AUTO_INCREMENT,
 	name       VARCHAR(16)   NOT NULL,
-	created_on TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+	created_on TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
 	PRIMARY KEY (id)
 );
@@ -194,7 +203,7 @@ CREATE TABLE IF NOT EXISTS Bans (
 	reason     VARCHAR(2048) NOT NULL,
 	-- Will be NULL if the player was banned by the Anti-Cheat
 	banned_by  INT4 UNSIGNED,
-	created_on TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+	created_on TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	expires_on TIMESTAMP,
 
 	PRIMARY KEY (id),
@@ -210,7 +219,7 @@ CREATE TABLE IF NOT EXISTS Unbans (
 	reason      VARCHAR(2048),
 	-- The admin who lifted this ban
 	unbanned_by INT4 UNSIGNED NOT NULL,
-	created_on  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+	created_on  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
 	PRIMARY KEY (id),
 	FOREIGN KEY (ban_id)      REFERENCES Bans(id),
