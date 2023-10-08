@@ -52,7 +52,7 @@ CREATE TABLE IF NOT EXISTS Courses (
 	FOREIGN KEY (created_by) REFERENCES Players (id),
 
 	CONSTRAINT valid_id
-		CHECK(id / 100 = map_id AND id % 100 = stage),
+		CHECK(id = map_id * 100 + stage),
 
 	CONSTRAINT valid_difficulty
 		CHECK(difficulty BETWEEN 1 AND 10)
