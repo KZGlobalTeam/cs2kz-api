@@ -10,7 +10,6 @@
 use {
 	crate::state::AppState,
 	axum::{extract::State as StateExtractor, http::Method, routing, Router},
-	std::sync::Arc,
 	tower_http::{cors, cors::CorsLayer},
 	utoipa::OpenApi,
 	utoipa_swagger_ui::SwaggerUi,
@@ -28,11 +27,10 @@ pub mod state;
 /// Usually you would write a handler function like this:
 ///
 /// ```rust
-/// use std::sync::Arc;
-/// use crate::state::State as AppState;
+/// use crate::State as AppState;
 /// use axum::extract::State;
 ///
-/// async fn handler(State(state): State<Arc<AppState>>) {
+/// async fn handler(State(state): State<&'static AppState>) {
 ///     let db = state.database();
 ///     // ...
 /// }
@@ -48,7 +46,7 @@ pub mod state;
 ///     // ...
 /// }
 /// ```
-pub type State = StateExtractor<Arc<AppState>>;
+pub type State = StateExtractor<&'static AppState>;
 
 #[rustfmt::skip]
 #[derive(OpenApi)]
@@ -70,7 +68,9 @@ pub struct API;
 
 impl API {
 	/// Creates an [`axum::Router`] which can be served as a tower service.
-	pub fn router(state: Arc<AppState>) -> Router {
+	pub fn router(state: AppState) -> Router {
+		let state: &'static AppState = Box::leak(Box::new(state));
+
 		let api_router = Router::new()
 			.route("/health", routing::get(routes::health))
 			.with_state(state);

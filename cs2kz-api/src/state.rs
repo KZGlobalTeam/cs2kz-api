@@ -10,7 +10,7 @@
 use {
 	color_eyre::{eyre::Context, Result},
 	sqlx::{mysql::MySqlPoolOptions, MySqlPool},
-	std::{fmt::Debug, sync::Arc},
+	std::fmt::Debug,
 };
 
 pub struct AppState {
@@ -18,13 +18,13 @@ pub struct AppState {
 }
 
 impl AppState {
-	pub async fn new(database_url: &str) -> Result<Arc<Self>> {
+	pub async fn new(database_url: &str) -> Result<Self> {
 		let database = MySqlPoolOptions::new()
 			.connect(database_url)
 			.await
 			.context("Failed to establish database connection.")?;
 
-		Ok(Arc::new(Self { database }))
+		Ok(Self { database })
 	}
 
 	pub const fn database(&self) -> &MySqlPool {
