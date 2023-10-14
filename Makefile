@@ -1,49 +1,34 @@
-build:
-	# Setting up database...
-	@make db
-
-	# Running database migrations...
-	@make migrations
-
-	# Setting up API...
-	@make api
-
-	# Finished setup. Use \`make run\` to run the API.
+default:
+	make db
+	make migrations
+	make api
+	@echo ""
+	@echo "Finished setting up. You can run the API container via \`make run\`."
+	@echo ""
 
 clean:
-	# Stopping containers...
-	docker-compose down
+	docker compose down --rmi all
 
-	# Removing containers...
-	docker container prune
-
-	# Removing images...
-	docker image prune
-
-wipe:
-	# Cleaning up...
-	@make clean
-
-	# !!! Deleting database !!!
-	sudo rm -rf ./database/volumes
+db-clean:
+	sudo rm -rf ./database/volumes/cs2kz-database/
 
 db:
-	docker-compose up -d cs2kz-database
+	docker compose up -d --wait cs2kz-database
 
 migrations:
-	sqlx migrate run --source database/migrations/
+	sqlx migrate run --source ./database/migrations/
 
 api:
-	docker-compose build cs2kz-api
+	docker compose build cs2kz-api
 
 run:
-	docker-compose up
+	docker compose up
 
 dev:
 	cargo run
 
-lint:
-	cargo clippy --all-features --workspace -- -D warnings
-
 format:
 	cargo +nightly fmt --all
+
+lint:
+	cargo clippy --all-features --workspace -- -D warnings
