@@ -9,9 +9,6 @@ charset = utf-8
 end_of_line = lf
 indent_style = tab
 
-[*.rs]
-indent_size = 8
-
-[{*.nix,*.toml,*.yml}]
+[*.{nix,toml,yml}]
 indent_style = space
 indent_size = 2
