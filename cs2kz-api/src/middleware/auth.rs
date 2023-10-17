@@ -111,5 +111,19 @@ async fn verify_server_inner(
 		.extensions_mut()
 		.insert(ServerData { id, ip, port, plugin_version, token });
 
+	sqlx::query! {
+		r#"
+		UPDATE
+			Servers
+		SET
+			last_token_usage = CURRENT_TIMESTAMP()
+		WHERE
+			id = ?
+		"#,
+		id,
+	}
+	.execute(state.database())
+	.await?;
+
 	Ok(request)
 }
