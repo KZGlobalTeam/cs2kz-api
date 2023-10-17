@@ -47,7 +47,7 @@ features = ["rt-multi-thread", "sync", "tracing", "macros"]
 [workspace.dependencies.sqlx]
 version = "0.7.2"
 default-features = false
-features = ["macros", "uuid", "rust_decimal", "chrono", "runtime-tokio", "tls-rustls", "mysql"]
+features = ["macros", "rust_decimal", "chrono", "runtime-tokio", "tls-rustls", "mysql"]
 
 [workspace.dependencies.utoipa]
 version = "3.5.0"

@@ -18,7 +18,6 @@ use {
 		response::{IntoResponse, Response},
 	},
 	serde_json::Value as JsonValue,
-	sqlx::types::Uuid,
 	std::net::Ipv4Addr,
 };
 
@@ -27,7 +26,7 @@ pub struct ServerData {
 	pub id: u16,
 	pub ip: Ipv4Addr,
 	pub port: u16,
-	pub token: Uuid,
+	pub token: u32,
 	pub plugin_version: u32,
 }
 
@@ -66,7 +65,7 @@ async fn verify_server_inner(
 		.ok_or(Error::MissingToken)?
 		.to_str()
 		.map_err(|_| Error::InvalidToken)?
-		.parse::<Uuid>()
+		.parse::<u32>()
 		.map_err(|_| Error::InvalidToken)?;
 
 	// extract request body
