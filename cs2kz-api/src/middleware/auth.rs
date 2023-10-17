@@ -28,6 +28,7 @@ pub struct ServerData {
 	pub ip: Ipv4Addr,
 	pub port: u16,
 	pub token: Uuid,
+	pub plugin_version: u32,
 }
 
 #[tracing::instrument(
@@ -77,22 +78,24 @@ async fn verify_server_inner(
 	// reconstruct request
 	let mut request = Request::from_parts(parts, body);
 
-	// extract server port from the json
+	// extract server port and plugin version from the json
 	let port = serde_json::from_value::<u16>(json["port"].take())
 		.map_err(|_| Error::InvalidRequestBody)?;
 
+	let plugin_version = serde_json::from_value::<u32>(json["plugin_version"].take())
+		.map_err(|_| Error::InvalidRequestBody)?;
+
 	// find server that matches the token, ip and port and get its ID
-	let server = sqlx::query! {
+	let id = sqlx::query! {
 		r#"
 		SELECT
 			id
 		FROM
-			Servers s
-			JOIN ServerOwners so ON so.server_id = s.id
+			Servers
 		WHERE
-			so.token = ?
-			AND s.ip_address = ?
-			AND s.port = ?
+			token = ?
+			AND ip_address = ?
+			AND port = ?
 		"#,
 		token,
 		ip.to_string(),
@@ -100,12 +103,13 @@ async fn verify_server_inner(
 	}
 	.fetch_one(state.database())
 	.await
-	.map_err(|_| Error::Unauthorized)?;
+	.map_err(|_| Error::Unauthorized)?
+	.id;
 
 	// make sure handlers have access to the verified data
 	request
 		.extensions_mut()
-		.insert(ServerData { id: server.id, ip, port, token });
+		.insert(ServerData { id, ip, port, plugin_version, token });
 
 	Ok(request)
 }

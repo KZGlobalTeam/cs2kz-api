@@ -12,7 +12,6 @@ use {
 	axum::{http::StatusCode, Extension, Json},
 	cs2kz::{Jumpstat, Mode, SteamID, Style},
 	serde::Deserialize,
-	sqlx::types::chrono::Utc,
 	utoipa::ToSchema,
 };
 
@@ -37,8 +36,6 @@ pub async fn create(
 	Extension(server_data): Extension<auth::ServerData>,
 	Json(JumpstatRequest { r#type, distance, mode, style, steam_id }): Json<JumpstatRequest>,
 ) -> Result<StatusCode> {
-	let now = Utc::now();
-
 	sqlx::query! {
 		r#"
 		INSERT INTO
@@ -48,11 +45,10 @@ pub async fn create(
 				mode_id,
 				style_id,
 				player_id,
-				server_id,
-				created_on
+				server_id
 			)
 		VALUES
-			(?, ?, ?, ?, ?, ?, ?)
+			(?, ?, ?, ?, ?, ?)
 		"#,
 		r#type as u8,
 		distance,
@@ -60,7 +56,6 @@ pub async fn create(
 		style as u8,
 		steam_id.as_u32(),
 		server_data.id,
-		now,
 	}
 	.execute(state.database())
 	.await?;

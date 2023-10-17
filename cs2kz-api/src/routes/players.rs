@@ -8,8 +8,8 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 use {
-	crate::{responses, Result, State},
-	axum::{http::StatusCode, Json},
+	crate::{middleware::auth, responses, Result, State},
+	axum::{http::StatusCode, Extension, Json},
 	cs2kz::SteamID,
 	serde::Deserialize,
 	utoipa::ToSchema,
@@ -53,6 +53,7 @@ pub struct UpdatePlayer {
 	#[serde(flatten)]
 	player: CreatePlayer,
 	additional_playtime: u32,
+	additional_afktime: u32,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -64,21 +65,47 @@ pub struct UpdatePlayer {
 ))]
 pub async fn update(
 	state: State,
-	Json(UpdatePlayer { player, additional_playtime }): Json<UpdatePlayer>,
+	Extension(server_data): Extension<auth::ServerData>,
+	Json(UpdatePlayer { player, additional_playtime, additional_afktime }): Json<UpdatePlayer>,
 ) -> Result<StatusCode> {
 	sqlx::query! {
 		r#"
 		UPDATE
 			Players
 		SET
-			name = ?,
-			playtime = playtime + ?
+			name = ?
 		WHERE
 			id = ?
 		"#,
 		player.name,
-		additional_playtime,
 		player.steam_id.as_u32(),
+	}
+	.execute(state.database())
+	.await?;
+
+	sqlx::query! {
+		r#"
+		INSERT INTO
+			Playtimes (
+				player_id,
+				server_id,
+				playtime,
+				afktime,
+				plugin_version
+			)
+		VALUES
+			(?, ?, ?, ?, ?) ON DUPLICATE KEY
+		UPDATE
+			playtime = playtime + ?,
+			afktime = afktime + ?
+		"#,
+		player.steam_id.as_u32(),
+		server_data.id,
+		additional_playtime,
+		additional_afktime,
+		server_data.plugin_version,
+		additional_playtime,
+		additional_afktime,
 	}
 	.execute(state.database())
 	.await?;

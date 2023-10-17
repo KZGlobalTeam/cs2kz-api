@@ -40,6 +40,9 @@ pub enum Error {
 
 	#[error("Submitted map is invalid.")]
 	InvalidMap,
+
+	#[error("Submitted record does not have a matching filter.")]
+	InvalidFilter,
 }
 
 impl IntoResponse for Error {
@@ -48,9 +51,10 @@ impl IntoResponse for Error {
 		let code = match self {
 			Self::Database => StatusCode::INTERNAL_SERVER_ERROR,
 			Self::MissingToken | Self::Unauthorized => StatusCode::UNAUTHORIZED,
-			Self::InvalidToken | Self::InvalidRequestBody | Self::InvalidMap => {
-				StatusCode::BAD_REQUEST
-			}
+			Self::InvalidToken
+			| Self::InvalidRequestBody
+			| Self::InvalidMap
+			| Self::InvalidFilter => StatusCode::BAD_REQUEST,
 		};
 
 		(code, Json(message)).into_response()

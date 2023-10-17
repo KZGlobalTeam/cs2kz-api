@@ -13,8 +13,6 @@ CREATE TABLE IF NOT EXISTS Players (
 	name VARCHAR(32) NOT NULL,
 	-- Whether the player is allowed to play on global servers and submit records
 	is_banned BOOLEAN NOT NULL DEFAULT false,
-	-- How many seconds the player has spent on global servers
-	playtime INT4 UNSIGNED NOT NULL DEFAULT 0,
 	PRIMARY KEY (id)
 );
 
@@ -33,8 +31,7 @@ CREATE TABLE IF NOT EXISTS Maps (
 );
 
 CREATE TABLE IF NOT EXISTS Courses (
-	-- `map_id` * 100 + `stage`
-	id INT4 UNSIGNED NOT NULL,
+	id INT4 UNSIGNED NOT NULL AUTO_INCREMENT,
 	-- The map this course belongs to
 	map_id INT2 UNSIGNED NOT NULL,
 	-- The stage this course represents
@@ -48,7 +45,6 @@ CREATE TABLE IF NOT EXISTS Courses (
 	PRIMARY KEY (id),
 	FOREIGN KEY (map_id) REFERENCES Maps (id),
 	FOREIGN KEY (created_by) REFERENCES Players (id),
-	CONSTRAINT valid_id CHECK(id = map_id * 100 + stage),
 	CONSTRAINT valid_difficulty CHECK(difficulty BETWEEN 1 AND 10)
 );
 
@@ -60,12 +56,22 @@ CREATE TABLE IF NOT EXISTS Modes (
 	CONSTRAINT valid_name CHECK(name LIKE "kz_%")
 );
 
+CREATE TABLE IF NOT EXISTS Styles (
+	id INT1 UNSIGNED NOT NULL AUTO_INCREMENT,
+	name VARCHAR(16) NOT NULL,
+	created_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id)
+);
+
 CREATE TABLE IF NOT EXISTS Filters (
+	id INT4 UNSIGNED NOT NULL,
 	course_id INT4 UNSIGNED NOT NULL,
 	mode_id INT1 UNSIGNED NOT NULL,
-	PRIMARY KEY (course_id, mode_id),
+	style_id INT1 UNSIGNED NOT NULL,
+	PRIMARY KEY (id),
 	FOREIGN KEY (course_id) REFERENCES Courses(id),
-	FOREIGN KEY (mode_id) REFERENCES Modes(id)
+	FOREIGN KEY (mode_id) REFERENCES Modes(id),
+	FOREIGN KEY (style_id) REFERENCES Styles(id)
 );
 
 CREATE TABLE IF NOT EXISTS Servers (
@@ -75,45 +81,71 @@ CREATE TABLE IF NOT EXISTS Servers (
 	port INT2 NOT NULL,
 	-- The player who registered this server
 	owned_by INT4 UNSIGNED NOT NULL,
+	-- If a server has a token it counts as "approved"
+	token INT4 UNSIGNED,
 	-- The admin who approved this server
 	approved_by INT4 UNSIGNED NOT NULL,
 	approved_on TIMESTAMP NOT NULL,
+	-- When the server's `token` was last used (if at all)
+	last_token_usage TIMESTAMP,
 	PRIMARY KEY (id),
 	FOREIGN KEY (owned_by) REFERENCES Players(id),
 	FOREIGN KEY (approved_by) REFERENCES Players(id),
 	CONSTRAINT valid_port CHECK(port > 0)
 );
 
-CREATE TABLE IF NOT EXISTS ServerOwners (
-	server_id INT2 UNSIGNED NOT NULL,
+CREATE TABLE IF NOT EXISTS Playtimes (
+	id INT4 UNSIGNED NOT NULL,
 	player_id INT4 UNSIGNED NOT NULL,
-	token UUID NOT NULL DEFAULT UUID(),
-	PRIMARY KEY (server_id, player_id)
+	server_id INT2 UNSIGNED NOT NULL,
+	playtime TIME NOT NULL,
+	afktime TIME NOT NULL,
+	plugin_version INT2 UNSIGNED NOT NULL,
+	created_on DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id),
+	FOREIGN KEY (player_id) REFERENCES Players(id),
+	FOREIGN KEY (server_id) REFERENCES Servers(id),
+	UNIQUE (player_id, server_id, created_on)
 );
 
-CREATE TABLE IF NOT EXISTS Styles (
-	id INT1 UNSIGNED NOT NULL AUTO_INCREMENT,
-	name VARCHAR(16) NOT NULL,
-	created_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	PRIMARY KEY (id)
+CREATE TABLE IF NOT EXISTS CourseStats (
+	id INT4 UNSIGNED NOT NULL,
+	filter_id INT4 UNSIGNED NOT NULL,
+	player_id INT4 UNSIGNED NOT NULL,
+	server_id INT2 UNSIGNED NOT NULL,
+	playtime TIME NOT NULL,
+	attempted_runs INT2 UNSIGNED NOT NULL,
+	finished_runs INT2 UNSIGNED NOT NULL,
+	perfs INT2 UNSIGNED NOT NULL,
+	bhops_tick0 INT2 UNSIGNED NOT NULL,
+	bhops_tick1 INT2 UNSIGNED NOT NULL,
+	bhops_tick2 INT2 UNSIGNED NOT NULL,
+	bhops_tick3 INT2 UNSIGNED NOT NULL,
+	bhops_tick4 INT2 UNSIGNED NOT NULL,
+	bhops_tick5 INT2 UNSIGNED NOT NULL,
+	bhops_tick6 INT2 UNSIGNED NOT NULL,
+	bhops_tick7 INT2 UNSIGNED NOT NULL,
+	bhops_tick8 INT2 UNSIGNED NOT NULL,
+	plugin_version INT2 UNSIGNED NOT NULL,
+	created_on DATE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id),
+	FOREIGN KEY (player_id) REFERENCES Players(id),
+	FOREIGN KEY (server_id) REFERENCES Servers(id),
+	UNIQUE (filter_id, player_id, server_id, created_on)
 );
 
 -- Records the Anti-Cheat has determined to be "legit".
 CREATE TABLE IF NOT EXISTS Records (
 	id INT8 UNSIGNED NOT NULL AUTO_INCREMENT,
-	course_id INT4 UNSIGNED NOT NULL,
-	mode_id INT1 UNSIGNED NOT NULL,
-	style_id INT1 UNSIGNED NOT NULL,
+	filter_id INT4 UNSIGNED NOT NULL,
 	player_id INT4 UNSIGNED NOT NULL,
 	server_id INT2 UNSIGNED NOT NULL,
 	teleports INT2 UNSIGNED NOT NULL,
-	-- How many ingame ticks passed during this run
-	ticks INT4 UNSIGNED NOT NULL,
-	created_on TIMESTAMP NOT NULL,
+	time FLOAT8 NOT NULL,
+	plugin_version INT2 UNSIGNED NOT NULL,
+	created_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (id),
-	FOREIGN KEY (course_id) REFERENCES Courses(id),
-	FOREIGN KEY (mode_id) REFERENCES Modes(id),
-	FOREIGN KEY (style_id) REFERENCES Styles(id),
+	FOREIGN KEY (filter_id) REFERENCES Filters(id),
 	FOREIGN KEY (player_id) REFERENCES Players(id),
 	FOREIGN KEY (server_id) REFERENCES Servers(id)
 );
@@ -129,7 +161,8 @@ CREATE TABLE IF NOT EXISTS RecordsToCheck (
 	teleports INT2 UNSIGNED NOT NULL,
 	-- How many ingame ticks passed during this run
 	ticks INT4 UNSIGNED NOT NULL,
-	created_on TIMESTAMP NOT NULL,
+	plugin_version INT2 UNSIGNED NOT NULL,
+	created_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (id),
 	FOREIGN KEY (course_id) REFERENCES Courses(id),
 	FOREIGN KEY (mode_id) REFERENCES Modes(id),
@@ -149,7 +182,8 @@ CREATE TABLE IF NOT EXISTS RecordsCheated (
 	teleports INT2 UNSIGNED NOT NULL,
 	-- How many ingame ticks passed during this run
 	ticks INT4 UNSIGNED NOT NULL,
-	created_on TIMESTAMP NOT NULL,
+	plugin_version INT2 UNSIGNED NOT NULL,
+	created_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (id),
 	FOREIGN KEY (course_id) REFERENCES Courses(id),
 	FOREIGN KEY (mode_id) REFERENCES Modes(id),
@@ -168,12 +202,13 @@ CREATE TABLE IF NOT EXISTS JumpstatsTypes (
 CREATE TABLE IF NOT EXISTS Jumpstats (
 	id INT4 UNSIGNED NOT NULL AUTO_INCREMENT,
 	`type` INT1 UNSIGNED NOT NULL,
-	distance DECIMAL(8, 5) UNSIGNED NOT NULL,
+	distance FLOAT8 NOT NULL,
 	mode_id INT1 UNSIGNED NOT NULL,
 	style_id INT1 UNSIGNED NOT NULL,
 	player_id INT4 UNSIGNED NOT NULL,
 	server_id INT2 UNSIGNED NOT NULL,
-	created_on TIMESTAMP NOT NULL,
+	plugin_version INT2 UNSIGNED NOT NULL,
+	created_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (id),
 	FOREIGN KEY (`type`) REFERENCES JumpstatsTypes(id),
 	FOREIGN KEY (mode_id) REFERENCES Modes(id),
@@ -192,6 +227,7 @@ CREATE TABLE IF NOT EXISTS Bans (
 	reason VARCHAR(2048) NOT NULL,
 	-- Will be NULL if the player was banned by the Anti-Cheat
 	banned_by INT4 UNSIGNED,
+	plugin_version INT2 UNSIGNED NOT NULL,
 	created_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	expires_on TIMESTAMP,
 	PRIMARY KEY (id),

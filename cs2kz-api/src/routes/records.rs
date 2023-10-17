@@ -12,7 +12,6 @@ use {
 	axum::{http::StatusCode, Extension, Json},
 	cs2kz::{Mode, SteamID, Style},
 	serde::Deserialize,
-	sqlx::types::chrono::Utc,
 	utoipa::ToSchema,
 };
 
@@ -59,32 +58,44 @@ pub async fn create(
 	.map_err(|_| Error::InvalidMap)?
 	.id;
 
-	let now = Utc::now();
+	let filter_id = sqlx::query! {
+		r#"
+		SELECT
+			id
+		FROM
+			Filters
+		WHERE
+			course_id = ?
+			AND mode_id = ?
+			AND style_id = ?
+		"#,
+		course_id,
+		record.mode as u8,
+		record.style as u8,
+	}
+	.fetch_one(state.database())
+	.await
+	.map_err(|_| Error::InvalidFilter)?
+	.id;
 
 	sqlx::query! {
 		r#"
 		INSERT INTO
 			Records (
-				course_id,
-				mode_id,
-				style_id,
+				filter_id,
 				player_id,
 				server_id,
 				teleports,
-				ticks,
-				created_on
+				time
 			)
 		VALUES
-			(?, ?, ?, ?, ?, ?, ?, ?)
+			(?, ?, ?, ?, ?)
 		"#,
-		course_id,
-		record.mode as u8,
-		record.style as u8,
+		filter_id,
 		record.steam_id.as_u32(),
 		server_data.id,
 		record.teleports,
 		record.ticks,
-		now,
 	}
 	.execute(state.database())
 	.await?;
