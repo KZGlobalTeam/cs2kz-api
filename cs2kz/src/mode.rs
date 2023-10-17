@@ -1,3 +1,12 @@
+// Copyright (C) AlphaKeks <alphakeks@dawn.sh>
+//
+// This is free software. You can redistribute it and / or modify it under the terms of the
+// GNU General Public License as published by the Free Software Foundation, either version 3
+// of the License, or (at your option) any later version.
+//
+// You should have received a copy of the GNU General Public License along with this repository.
+// If not, see <https://www.gnu.org/licenses/>.
+
 use {
 	crate::{Error, Result},
 	std::{fmt::Display, str::FromStr},
@@ -7,7 +16,9 @@ use {
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ToSchema)]
 pub enum Mode {
 	#[default]
+	#[schema(rename = "kz_normal")]
 	Normal = 1,
+	#[schema(rename = "kz_vanilla")]
 	Vanilla = 2,
 }
 

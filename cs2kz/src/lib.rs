@@ -24,6 +24,9 @@ pub use mode::Mode;
 pub mod style;
 pub use style::Style;
 
+pub mod jumpstat;
+pub use jumpstat::Jumpstat;
+
 #[cfg(test)]
 mod test_setup {
 	#[ctor::ctor]

@@ -27,3 +27,38 @@ INSERT INTO
 	Styles (name)
 VALUES
 	("w_only");
+
+INSERT INTO
+	JumpstatsTypes (name)
+VALUES
+	("longjump");
+
+INSERT INTO
+	JumpstatsTypes (name)
+VALUES
+	("bhop");
+
+INSERT INTO
+	JumpstatsTypes (name)
+VALUES
+	("multi_bhop");
+
+INSERT INTO
+	JumpstatsTypes (name)
+VALUES
+	("drop_bhop");
+
+INSERT INTO
+	JumpstatsTypes (name)
+VALUES
+	("weird_jump");
+
+INSERT INTO
+	JumpstatsTypes (name)
+VALUES
+	("ladder_jump");
+
+INSERT INTO
+	JumpstatsTypes (name)
+VALUES
+	("ladder_hop");

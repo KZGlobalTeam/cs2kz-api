@@ -90,7 +90,7 @@ async fn verify_server_inner(
 			Servers s
 			JOIN ServerOwners so ON so.server_id = s.id
 		WHERE
-		so.token = ?
+			so.token = ?
 			AND s.ip_address = ?
 			AND s.port = ?
 		"#,

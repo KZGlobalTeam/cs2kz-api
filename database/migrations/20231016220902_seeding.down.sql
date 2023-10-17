@@ -3,3 +3,6 @@ DELETE FROM
 
 DELETE FROM
 	Styles;
+
+DELETE FROM
+	JumpstatsTypes;

@@ -22,6 +22,7 @@ pub mod logging;
 pub mod routes;
 pub mod state;
 pub mod middleware;
+pub mod responses;
 
 /// Type alias for easy use in function signatures.
 ///
@@ -66,7 +67,10 @@ pub type State = StateExtractor<&'static AppState>;
 
 	paths(
 		routes::health::health,
-		routes::records::submit,
+		routes::players::create,
+		routes::players::update,
+		routes::records::create,
+		routes::jumpstats::create,
 	),
 
 	components(
@@ -75,7 +79,17 @@ pub type State = StateExtractor<&'static AppState>;
 			cs2kz::SteamID,
 			cs2kz::Mode,
 			cs2kz::Style,
-			routes::records::Record,
+			cs2kz::Jumpstat,
+			routes::players::CreatePlayer,
+			routes::players::UpdatePlayer,
+			routes::records::RecordRequest,
+			routes::jumpstats::JumpstatRequest,
+		),
+
+		responses(
+			responses::BadRequest,
+			responses::Unauthorized,
+			responses::Database,
 		),
 	),
 )]
@@ -90,7 +104,10 @@ impl API {
 			axum::middleware::from_fn_with_state(state, middleware::auth::verify_server);
 
 		let cs_server_router = Router::new()
-			.route("/records", routing::post(routes::records::submit))
+			.route("/players", routing::post(routes::players::create))
+			.route("/players", routing::put(routes::players::update))
+			.route("/records", routing::post(routes::records::create))
+			.route("/jumpstats", routing::post(routes::jumpstats::create))
 			.layer(cs_server_auth)
 			.with_state(state);
 

@@ -10,5 +10,6 @@
 pub mod health;
 pub use health::health;
 
+pub mod players;
 pub mod records;
-pub use records::submit;
+pub mod jumpstats;

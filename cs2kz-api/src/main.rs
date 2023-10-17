@@ -12,7 +12,7 @@ use {
 	axum::Server,
 	color_eyre::eyre::Context,
 	cs2kz_api::{state::AppState, API},
-	std::fmt::Write,
+	std::{fmt::Write, net::SocketAddr},
 	tracing::info,
 };
 
@@ -34,7 +34,9 @@ async fn main() -> color_eyre::Result<()> {
 
 	let state = AppState::new(&config.database_url).await?;
 	let router = API::router(state);
-	let server = Server::bind(&config.socket_addr()).serve(router.into_make_service());
+	let server = Server::bind(&config.socket_addr())
+		.serve(router.into_make_service_with_connect_info::<SocketAddr>());
+
 	let addr = server.local_addr();
 
 	info!("Listening on {addr}.");

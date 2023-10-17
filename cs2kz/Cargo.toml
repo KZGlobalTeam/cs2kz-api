@@ -15,6 +15,7 @@ edition = "2021"
 [dependencies]
 thiserror = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 utoipa = { workspace = true }
 lazy-regex = "3.0.2"
 
