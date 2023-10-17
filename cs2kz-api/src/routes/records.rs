@@ -8,7 +8,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 use {
-	crate::{middleware::auth, responses, Result, State},
+	crate::{middleware::auth, responses, Error, Result, State},
 	axum::{http::StatusCode, Extension, Json},
 	cs2kz::{Mode, SteamID, Style},
 	serde::Deserialize,
@@ -55,7 +55,8 @@ pub async fn create(
 		record.map_stage,
 	}
 	.fetch_one(state.database())
-	.await?
+	.await
+	.map_err(|_| Error::InvalidMap)?
 	.id;
 
 	let now = Utc::now();
