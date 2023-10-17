@@ -37,7 +37,7 @@ You can run migrations using the `sqlx-cli`:
 make migrations
 ```
 
-- You can delete the data volume for the database by deleting `./database/volumes/`.
+- You can delete the data volume for the database by deleting `./database/volumes/cs2kz-database/`.
 - You can connect to the database using `./scripts/connect_to_db.sh`.
 
 ## Running the API
