@@ -1,16 +1,16 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t\tid\n\t\tFROM\n\t\t\tServers s\n\t\t\tJOIN ServerOwners so ON so.server_id = s.id\n\t\tWHERE\n\t\t\tso.token = ?\n\t\t\tAND s.ip_address = ?\n\t\t\tAND s.port = ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t\tc.id\n\t\tFROM\n\t\t\tCourses c\n\t\t\tJOIN Maps m ON m.id = c.map_id\n\t\tWHERE\n\t\t\tm.name = ?\n\t\t\tAND m.filesize = ?\n\t\t\tAND c.stage = ?\n\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "id",
         "type_info": {
-          "type": "Short",
+          "type": "Long",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
           "char_set": 63,
-          "max_size": 5
+          "max_size": 10
         }
       }
     ],
@@ -21,5 +21,5 @@
       false
     ]
   },
-  "hash": "abfa17079d6b19f77a09d9fce3127a634a9ea91694eb990413e63fb7ac1cfcb1"
+  "hash": "7c7ce219cca4aebee31b55350bdf3064cd535e7e3b82c3d69814ddbc42c5b08e"
 }

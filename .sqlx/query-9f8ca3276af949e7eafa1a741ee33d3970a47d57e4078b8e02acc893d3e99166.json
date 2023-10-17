@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t\tc.id\n\t\tFROM\n\t\t\tCourses c\n\t\t\tJOIN Maps m ON m.name = ?\n\t\t\tAND m.filesize = ?\n\t\t\tAND c.stage = ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t\tid\n\t\tFROM\n\t\t\tFilters\n\t\tWHERE\n\t\t\tcourse_id = ?\n\t\t\tAND mode_id = ?\n\t\t\tAND style_id = ?\n\t\t",
   "describe": {
     "columns": [
       {
@@ -21,5 +21,5 @@
       false
     ]
   },
-  "hash": "2b7d96c88079a7c5825a3639485ffc761aa7d99c1cf090599721b9b9fd5ad3e6"
+  "hash": "9f8ca3276af949e7eafa1a741ee33d3970a47d57e4078b8e02acc893d3e99166"
 }

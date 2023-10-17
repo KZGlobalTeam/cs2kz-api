@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t\tid\n\t\tFROM\n\t\t\tServers\n\t\tWHERE\n\t\t\ttoken = ?\n\t\t\tAND ip_address = ?\n\t\t\tAND port = ?\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 5
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0eae6fba136c501d9d47f5ac63822cf0654b3ab3ea76d0c94bfb740f138dd449"
+}
