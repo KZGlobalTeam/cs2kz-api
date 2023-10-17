@@ -24,7 +24,7 @@ pub struct RecordRequest {
 	style: Style,
 	steam_id: SteamID,
 	teleports: u16,
-	ticks: u32,
+	time: f64,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -45,7 +45,9 @@ pub async fn create(
 			c.id
 		FROM
 			Courses c
-			JOIN Maps m ON m.name = ?
+			JOIN Maps m ON m.id = c.map_id
+		WHERE
+			m.name = ?
 			AND m.filesize = ?
 			AND c.stage = ?
 		"#,
@@ -95,7 +97,7 @@ pub async fn create(
 		record.steam_id.as_u32(),
 		server_data.id,
 		record.teleports,
-		record.ticks,
+		record.time,
 	}
 	.execute(state.database())
 	.await?;
