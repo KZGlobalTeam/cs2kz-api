@@ -5,6 +5,8 @@ WORKDIR /kz
 # Compile and cache dependencies
 FROM chef AS planner
 COPY Cargo.toml .
+COPY .sqlx .sqlx
+COPY cs2kz cs2kz
 COPY cs2kz-api cs2kz-api
 RUN cargo chef prepare --recipe-path recipe.json
 
@@ -14,6 +16,8 @@ FROM chef AS builder
 COPY --from=planner /kz/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 COPY Cargo.toml .
+COPY .sqlx .sqlx
+COPY cs2kz cs2kz
 COPY cs2kz-api cs2kz-api
 RUN cargo build --release --bin cs2kz-api
 

@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t\tid\n\t\tFROM\n\t\t\tServers s\n\t\t\tJOIN ServerOwners so ON so.server_id = s.id\n\t\tWHERE\n\t\t\tso.token = ?\n\t\t\tAND s.ip_address = ?\n\t\t\tAND s.port = ?\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 5
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "abfa17079d6b19f77a09d9fce3127a634a9ea91694eb990413e63fb7ac1cfcb1"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tUPDATE\n\t\t\tPlayers\n\t\tSET\n\t\t\tname = ?,\n\t\t\tplaytime = playtime + ?\n\t\tWHERE\n\t\t\tid = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "dce3bbd316f99a8baaab47d8ce626e01c9ca4361e60c1c4dd056489ee978b800"
+}

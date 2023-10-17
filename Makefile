@@ -18,6 +18,9 @@ db:
 migrations:
 	sqlx migrate run --source ./database/migrations/
 
+sqlx-data:
+	cargo sqlx prepare --workspace
+
 api:
 	docker compose build cs2kz-api
 
