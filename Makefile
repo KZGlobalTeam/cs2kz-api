@@ -16,7 +16,9 @@ db:
 	docker compose up -d --wait cs2kz-database
 
 migrations:
-	sqlx migrate run --source ./database/migrations/
+	sqlx migrate run \
+		--source ./database/migrations/ \
+		--database-url mysql://kz:csgo-kz-is-dead-boys@127.0.0.1:8070/cs2kz-api
 
 sqlx-data:
 	cargo sqlx prepare --workspace
@@ -28,7 +30,7 @@ run:
 	docker compose up
 
 dev:
-	cargo run
+	DATABASE_URL=mysql://kz:csgo-kz-is-dead-boys@127.0.0.1:8070/cs2kz-api cargo run
 
 format:
 	cargo +nightly fmt --all

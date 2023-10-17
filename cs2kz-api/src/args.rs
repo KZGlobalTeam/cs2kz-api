@@ -15,14 +15,6 @@ use {
 
 #[derive(Parser)]
 pub struct Args {
-	/// Which config file to use.
-	///
-	/// An example config file is located in `@/configs/api.example.toml`.
-	/// See [`Config`] for more information.
-	#[arg(short, long = "config")]
-	#[clap(default_value = "./configs/api.toml")]
-	pub config_path: PathBuf,
-
 	/// The IP address to run the API on.
 	#[arg(short, long)]
 	pub address: Option<Ipv4Addr>,

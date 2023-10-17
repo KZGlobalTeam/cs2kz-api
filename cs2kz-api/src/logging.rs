@@ -29,13 +29,13 @@ pub fn init() {
 	let level = env_filter.to_string();
 
 	// Which [`tracing::instrument`] events to log.
-	let span_events = FmtSpan::ENTER;
+	let span_events = FmtSpan::ACTIVE;
 
 	tracing_subscriber::fmt()
 		.pretty()
 		.with_writer(writer)
-		.with_env_filter(env_filter)
 		.with_span_events(span_events)
+		.with_env_filter(env_filter)
 		.init();
 
 	info!(%level, "Initialized logging");

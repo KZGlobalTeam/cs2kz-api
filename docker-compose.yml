@@ -19,6 +19,7 @@ services:
     build:
       context: .
       dockerfile: ./cs2kz-api/Dockerfile
+    env_file: .env
     ports:
       - 42069:42069
     depends_on:

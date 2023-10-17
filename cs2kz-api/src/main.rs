@@ -8,35 +8,33 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 use {
-	crate::{args::Args, config::Config},
+	crate::config::Config,
 	axum::Server,
 	color_eyre::eyre::Context,
 	cs2kz_api::{state::AppState, API},
 	std::{fmt::Write, net::SocketAddr},
-	tracing::info,
+	tracing::{info, warn},
 };
 
-mod args;
 mod config;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
 	color_eyre::install()?;
 
-	let cli_args = Args::get();
-	let mut config = Config::from_path(&cli_args.config_path)?;
+	if dotenvy::dotenv().is_err() {
+		warn!("Failed to load `.env` file");
+	}
 
-	cli_args.override_config(&mut config);
+	let config = Config::load()?;
 
 	if config.enable_logging {
 		cs2kz_api::logging::init();
 	}
 
 	let state = AppState::new(&config.database_url).await?;
-	let router = API::router(state);
-	let server = Server::bind(&config.socket_addr())
-		.serve(router.into_make_service_with_connect_info::<SocketAddr>());
-
+	let router = API::router(state).into_make_service_with_connect_info::<SocketAddr>();
+	let server = Server::bind(&config.socket_addr()).serve(router);
 	let addr = server.local_addr();
 
 	info!("Listening on {addr}.");

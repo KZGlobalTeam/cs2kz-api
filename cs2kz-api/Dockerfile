@@ -24,9 +24,8 @@ RUN cargo build --release --bin cs2kz-api
 
 # Prepare runtime environment
 FROM debian:bookworm-slim AS runtime
-COPY configs/api.docker.toml /etc/cs2kz-api.toml
 COPY --from=builder /kz/target/release/cs2kz-api /bin/cs2kz-api
 ENV RUST_LOG=WARN,cs2kz_api=TRACE
 
 # Launch API
-ENTRYPOINT ["/bin/cs2kz-api", "--config", "/etc/cs2kz-api.toml"]
+ENTRYPOINT ["/bin/cs2kz-api"]
