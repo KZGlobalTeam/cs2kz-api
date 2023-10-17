@@ -27,6 +27,7 @@ utoipa = { workspace = true }
 
 [dependencies.cs2kz]
 path = "../cs2kz/"
+features = ["serde", "utoipa"]
 
 [dependencies.axum]
 version = "0.6.20"

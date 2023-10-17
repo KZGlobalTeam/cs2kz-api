@@ -12,12 +12,16 @@ name = "cs2kz"
 version = "0.0.0"
 edition = "2021"
 
+[features]
+serde = ["dep:serde", "dep:serde_json"]
+utoipa = ["dep:utoipa", "serde"]
+
 [dependencies]
-thiserror = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-utoipa = { workspace = true }
-lazy-regex = "3.0.2"
+thiserror = { version = "1" }
+serde = { version = "1", optional = true }
+serde_json = { version = "1", optional = true }
+utoipa = { version = "3.5", optional = true }
+lazy-regex = "3"
 
 [dev-dependencies]
 color-eyre = "0.6.2"

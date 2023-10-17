@@ -9,26 +9,25 @@
 
 use {
 	crate::{Error, Result},
-	serde::{Deserialize, Deserializer, Serialize, Serializer},
 	std::{fmt::Display, str::FromStr},
-	utoipa::ToSchema,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum Jumpstat {
-	#[schema(rename = "longjump")]
+	#[cfg_attr(feature = "utoipa", schema(rename = "longjump"))]
 	LongJump = 1,
-	#[schema(rename = "bhop")]
+	#[cfg_attr(feature = "utoipa", schema(rename = "bhop"))]
 	BunnyHop = 2,
-	#[schema(rename = "multi_bhop")]
+	#[cfg_attr(feature = "utoipa", schema(rename = "multi_bhop"))]
 	MultiBunnyHop = 3,
-	#[schema(rename = "drop_bhop")]
+	#[cfg_attr(feature = "utoipa", schema(rename = "drop_bhop"))]
 	DropBunnyHop = 4,
-	#[schema(rename = "weird_jump")]
+	#[cfg_attr(feature = "utoipa", schema(rename = "weird_jump"))]
 	WeirdJump = 5,
-	#[schema(rename = "ladder_jump")]
+	#[cfg_attr(feature = "utoipa", schema(rename = "ladder_jump"))]
 	LadderJump = 6,
-	#[schema(rename = "ladder_hop")]
+	#[cfg_attr(feature = "utoipa", schema(rename = "ladder_hop"))]
 	LadderHop = 7,
 }
 
@@ -111,20 +110,28 @@ impl FromStr for Jumpstat {
 	}
 }
 
-impl Serialize for Jumpstat {
-	fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-	where
-		S: Serializer, {
-		self.api().serialize(serializer)
-	}
-}
+#[cfg(feature = "serde")]
+mod serde_impls {
+	use {
+		super::Jumpstat,
+		serde::{Deserialize, Deserializer, Serialize, Serializer},
+	};
 
-impl<'de> Deserialize<'de> for Jumpstat {
-	fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-	where
-		D: Deserializer<'de>, {
-		String::deserialize(deserializer)?
-			.parse()
-			.map_err(serde::de::Error::custom)
+	impl Serialize for Jumpstat {
+		fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+		where
+			S: Serializer, {
+			self.api().serialize(serializer)
+		}
+	}
+
+	impl<'de> Deserialize<'de> for Jumpstat {
+		fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+		where
+			D: Deserializer<'de>, {
+			String::deserialize(deserializer)?
+				.parse()
+				.map_err(serde::de::Error::custom)
+		}
 	}
 }

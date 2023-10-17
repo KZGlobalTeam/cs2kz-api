@@ -10,11 +10,11 @@
 use {
 	crate::{Error, Result},
 	std::{fmt::Display, str::FromStr},
-	utoipa::ToSchema,
 };
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ToSchema)]
-#[schema(rename_all = "snake_case")]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "utoipa", schema(rename_all = "snake_case"))]
 pub enum Style {
 	#[default]
 	Normal = 1,
@@ -93,6 +93,7 @@ impl FromStr for Style {
 	}
 }
 
+#[cfg(feature = "serde")]
 mod serde_impls {
 	use {
 		super::Style,

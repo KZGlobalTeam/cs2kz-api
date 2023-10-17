@@ -18,7 +18,6 @@ use {
 		ops::Deref,
 		str::FromStr,
 	},
-	utoipa::ToSchema,
 };
 
 /// A regex to match [`SteamID`]s in the format of `STEAM_1:1:161178172`.
@@ -28,7 +27,8 @@ pub static STANDARD_REGEX: &Lazy<Regex> = regex!(r"^STEAM_[01]:[01]:\d+$");
 pub static STEAM3_ID_REGEX: &Lazy<Regex> = regex!(r"^(\[U:1:\d+\]|U:1:\d+)$");
 
 #[repr(transparent)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct SteamID(u64);
 
 #[rustfmt::skip]
@@ -402,6 +402,7 @@ impl Display for SteamID {
 	}
 }
 
+#[cfg(feature = "serde")]
 mod serde_impls {
 	use {
 		super::SteamID,

@@ -10,15 +10,15 @@
 use {
 	crate::{Error, Result},
 	std::{fmt::Display, str::FromStr},
-	utoipa::ToSchema,
 };
 
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ToSchema)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum Mode {
 	#[default]
-	#[schema(rename = "kz_normal")]
+	#[cfg_attr(feature = "utoipa", schema(rename = "kz_normal"))]
 	Normal = 1,
-	#[schema(rename = "kz_vanilla")]
+	#[cfg_attr(feature = "utoipa", schema(rename = "kz_vanilla"))]
 	Vanilla = 2,
 }
 
@@ -86,6 +86,7 @@ impl FromStr for Mode {
 	}
 }
 
+#[cfg(feature = "serde")]
 mod serde_impls {
 	use {
 		super::Mode,

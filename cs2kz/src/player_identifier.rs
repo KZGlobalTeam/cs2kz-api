@@ -10,10 +10,10 @@
 use {
 	crate::SteamID,
 	std::{borrow::Cow, fmt::Display},
-	utoipa::ToSchema,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum PlayerIdentifier<'a> {
 	SteamID(SteamID),
 	Name(Cow<'a, str>),
@@ -52,6 +52,7 @@ impl Display for PlayerIdentifier<'_> {
 	}
 }
 
+#[cfg(feature = "serde")]
 mod serde_impls {
 	use {
 		super::{PlayerIdentifier, SteamID},
