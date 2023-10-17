@@ -15,9 +15,13 @@ use {
 	utoipa_swagger_ui::SwaggerUi,
 };
 
+pub mod error;
+pub use error::{Error, Result};
+
 pub mod logging;
 pub mod routes;
 pub mod state;
+pub mod middleware;
 
 /// Type alias for easy use in function signatures.
 ///
@@ -62,6 +66,17 @@ pub type State = StateExtractor<&'static AppState>;
 
 	paths(
 		routes::health::health,
+		routes::records::submit,
+	),
+
+	components(
+		schemas(
+			crate::Error,
+			cs2kz::SteamID,
+			cs2kz::Mode,
+			cs2kz::Style,
+			routes::records::Record,
+		),
 	),
 )]
 pub struct API;
@@ -71,9 +86,17 @@ impl API {
 	pub fn router(state: AppState) -> Router {
 		let state: &'static AppState = Box::leak(Box::new(state));
 
-		let api_router = Router::new()
-			.route("/health", routing::get(routes::health))
+		let cs_server_auth =
+			axum::middleware::from_fn_with_state(state, middleware::auth::verify_server);
+
+		let cs_server_router = Router::new()
+			.route("/records", routing::post(routes::records::submit))
+			.layer(cs_server_auth)
 			.with_state(state);
+
+		let public_api_router = Router::new().route("/health", routing::get(routes::health));
+
+		let api_router = cs_server_router.merge(public_api_router);
 
 		let swagger_ui = Self::swagger_ui();
 		let cors = CorsLayer::new()
@@ -81,7 +104,7 @@ impl API {
 			.allow_origin(cors::Any);
 
 		Router::new()
-			.nest("/api/v1", api_router)
+			.nest("/api/v0", api_router)
 			.layer(cors)
 			.merge(swagger_ui)
 	}

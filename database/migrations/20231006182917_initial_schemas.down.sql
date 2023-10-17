@@ -6,18 +6,30 @@
 --
 -- You should have received a copy of the GNU General Public License along with this repository.
 -- If not, see <https://www.gnu.org/licenses/>.
-
 DROP TABLE Unbans;
+
 DROP TABLE Bans;
+
 DROP TABLE Jumpstats;
+
 DROP TABLE JumpstatsTypes;
+
 DROP TABLE RecordsCheated;
+
 DROP TABLE RecordsToCheck;
+
 DROP TABLE Records;
+
 DROP TABLE Styles;
+
 DROP TABLE Servers;
+
 DROP TABLE Filters;
+
 DROP TABLE Modes;
+
 DROP TABLE Courses;
+
 DROP TABLE Maps;
+
 DROP TABLE Players;

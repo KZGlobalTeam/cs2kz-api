@@ -7,8 +7,27 @@
 // You should have received a copy of the GNU General Public License along with this repository.
 // If not, see <https://www.gnu.org/licenses/>.
 
-pub mod health;
-pub use health::health;
+//! CS2KZ
 
-pub mod records;
-pub use records::submit;
+mod error;
+pub use error::{Error, Result};
+
+pub mod steam_id;
+pub use steam_id::SteamID;
+
+pub mod player_identifier;
+pub use player_identifier::PlayerIdentifier;
+
+pub mod mode;
+pub use mode::Mode;
+
+pub mod style;
+pub use style::Style;
+
+#[cfg(test)]
+mod test_setup {
+	#[ctor::ctor]
+	fn test_setup() {
+		color_eyre::install().expect("Failed to setup color-eyre.");
+	}
+}

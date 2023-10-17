@@ -9,7 +9,7 @@
 
 [workspace]
 resolver = "2"
-members = ["cs2kz-api"]
+members = ["cs2kz", "cs2kz-api"]
 
 [workspace.dependencies.color-eyre]
 version = "0.6.2"
@@ -47,4 +47,8 @@ features = ["rt-multi-thread", "sync", "tracing", "macros"]
 [workspace.dependencies.sqlx]
 version = "0.7.2"
 default-features = false
-features = ["macros", "chrono", "runtime-tokio", "tls-rustls", "mysql"]
+features = ["macros", "uuid", "chrono", "runtime-tokio", "tls-rustls", "mysql"]
+
+[workspace.dependencies.utoipa]
+version = "3.5.0"
+features = ["chrono", "axum_extras"]

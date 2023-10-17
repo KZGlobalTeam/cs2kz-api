@@ -7,8 +7,5 @@
 // You should have received a copy of the GNU General Public License along with this repository.
 // If not, see <https://www.gnu.org/licenses/>.
 
-pub mod health;
-pub use health::health;
-
-pub mod records;
-pub use records::submit;
+mod helpers;
+pub mod auth;

@@ -9,7 +9,7 @@
 
 [package]
 name = "cs2kz-api"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2021"
 
 [dependencies]
@@ -23,19 +23,22 @@ serde_toml = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }
 sqlx = { workspace = true }
+utoipa = { workspace = true }
+
+[dependencies.cs2kz]
+path = "../cs2kz/"
 
 [dependencies.axum]
 version = "0.6.20"
 default-features = false
 features = ["http1", "query", "tokio", "tracing", "macros"]
 
+[dependencies.hyper]
+version = "0.14.27"
+
 [dependencies.tower-http]
 version = "0.4.4"
 features = ["cors"]
-
-[dependencies.utoipa]
-version = "3.5.0"
-features = ["chrono", "axum_extras"]
 
 [dependencies.utoipa-swagger-ui]
 version = "3.1.5"

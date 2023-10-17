@@ -7,8 +7,18 @@
 // You should have received a copy of the GNU General Public License along with this repository.
 // If not, see <https://www.gnu.org/licenses/>.
 
-pub mod health;
-pub use health::health;
+use {
+	crate::{Error, Result},
+	axum::body::Body,
+	serde::de::DeserializeOwned,
+};
 
-pub mod records;
-pub use records::submit;
+pub async fn deserialize_body<T>(body: Body) -> Result<(T, Body)>
+where
+	T: DeserializeOwned, {
+	let bytes = hyper::body::to_bytes(body).await?;
+	let json = serde_json::from_slice::<T>(&bytes).map_err(|_| Error::InvalidRequestBody)?;
+	let body = Body::from(bytes);
+
+	Ok((json, body))
+}
