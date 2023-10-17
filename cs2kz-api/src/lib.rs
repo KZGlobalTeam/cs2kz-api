@@ -112,9 +112,7 @@ impl API {
 			.with_state(state);
 
 		let public_api_router = Router::new().route("/health", routing::get(routes::health));
-
 		let api_router = cs_server_router.merge(public_api_router);
-
 		let swagger_ui = Self::swagger_ui();
 		let cors = CorsLayer::new()
 			.allow_methods([Method::GET])

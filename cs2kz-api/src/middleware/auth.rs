@@ -51,17 +51,17 @@ pub async fn verify_server(
 	}
 }
 
+pub const TOKEN_HEADER: &str = "api-token";
+
 async fn verify_server_inner(
 	state: &AppState,
 	ip: Ipv4Addr,
 	request: Request<Body>,
 ) -> Result<Request<Body>> {
-	let header = "api-token";
-
-	// Extract API token from the request headers
+	// extract API token from the request headers
 	let token = request
 		.headers()
-		.get(header)
+		.get(TOKEN_HEADER)
 		.ok_or(Error::MissingToken)?
 		.to_str()
 		.map_err(|_| Error::InvalidToken)?
@@ -74,7 +74,7 @@ async fn verify_server_inner(
 	// deserialize body as json
 	let (mut json, body) = helpers::deserialize_body::<JsonValue>(body).await?;
 
-	// reconstruct request body
+	// reconstruct request
 	let mut request = Request::from_parts(parts, body);
 
 	// extract server port from the json

@@ -8,6 +8,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 use {
+	crate::middleware::auth::TOKEN_HEADER,
 	axum::{
 		http::StatusCode,
 		response::{IntoResponse, Response as AxumResponse},
@@ -25,10 +26,10 @@ pub enum Error {
 	#[error("Database error.")]
 	Database,
 
-	#[error("Missing `api-token` header.")]
+	#[error("Missing `{}` header.", TOKEN_HEADER)]
 	MissingToken,
 
-	#[error("Invalid `api-token` header.")]
+	#[error("Invalid `{}` header.", TOKEN_HEADER)]
 	InvalidToken,
 
 	#[error("Failed to parse request body.")]
