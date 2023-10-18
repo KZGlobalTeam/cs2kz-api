@@ -31,8 +31,7 @@ pub async fn refresh_token(
 		UPDATE
 			Servers
 		SET
-			next_token = ?,
-			token_expires_at = DATE_ADD(CURRENT_TIMESTAMP(), INTERVAL 1 HOUR)
+			next_token = ?
 		WHERE
 			id = ?
 		"#,

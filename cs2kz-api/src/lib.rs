@@ -101,16 +101,20 @@ impl API {
 	pub fn router(state: AppState) -> Router {
 		let state: &'static AppState = Box::leak(Box::new(state));
 
-		let cs_server_auth =
-			axum::middleware::from_fn_with_state(state, middleware::server_auth::verify_server);
+		let cs_server_key_auth =
+			axum::middleware::from_fn_with_state(state, middleware::server_auth::verify_api_key);
+
+		let cs_server_token_auth =
+			axum::middleware::from_fn_with_state(state, middleware::server_auth::verify_api_token);
 
 		let cs_server_router = Router::new()
+			.route("/servers/refresh_token", routing::post(routes::servers::refresh_token))
+			.layer(cs_server_key_auth)
 			.route("/players", routing::post(routes::players::create))
 			.route("/players", routing::put(routes::players::update))
 			.route("/records", routing::post(routes::records::create))
 			.route("/jumpstats", routing::post(routes::jumpstats::create))
-			.route("/servers/refresh_token", routing::post(routes::servers::refresh_token))
-			.layer(cs_server_auth)
+			.layer(cs_server_token_auth)
 			.with_state(state);
 
 		let public_api_router = Router::new().route("/health", routing::get(routes::health));
