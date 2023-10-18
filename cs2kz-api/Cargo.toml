@@ -20,6 +20,7 @@ tracing-subscriber = { workspace = true }
 dotenvy = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+rand = { workspace = true }
 tokio = { workspace = true }
 sqlx = { workspace = true }
 utoipa = { workspace = true }

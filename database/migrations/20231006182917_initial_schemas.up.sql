@@ -81,13 +81,14 @@ CREATE TABLE IF NOT EXISTS Servers (
 	port INT2 NOT NULL,
 	-- The player who registered this server
 	owned_by INT4 UNSIGNED NOT NULL,
-	-- If a server has a token it counts as "approved"
-	token INT4 UNSIGNED,
 	-- The admin who approved this server
 	approved_by INT4 UNSIGNED NOT NULL,
 	approved_on TIMESTAMP NOT NULL,
-	-- When the server's `token` was last used (if at all)
-	last_token_usage TIMESTAMP,
+	api_key INT4 UNSIGNED,
+	current_token INT4 UNSIGNED,
+	next_token INT4 UNSIGNED,
+	token_expires_at TIMESTAMP,
+	token_last_used_at TIMESTAMP,
 	PRIMARY KEY (id),
 	FOREIGN KEY (owned_by) REFERENCES Players(id),
 	FOREIGN KEY (approved_by) REFERENCES Players(id),
@@ -248,4 +249,12 @@ CREATE TABLE IF NOT EXISTS Unbans (
 	FOREIGN KEY (ban_id) REFERENCES Bans(id),
 	FOREIGN KEY (player_id) REFERENCES Players(id),
 	FOREIGN KEY (unbanned_by) REFERENCES Players(id)
+);
+
+CREATE TABLE IF NOT EXISTS PluginVersions (
+	id INT2 UNSIGNED NOT NULL AUTO_INCREMENT,
+	semver VARCHAR(14) NOT NULL,
+	git_rev VARCHAR(255) NOT NULL,
+	created_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id)
 );

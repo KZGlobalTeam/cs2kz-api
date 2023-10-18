@@ -8,7 +8,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 use {
-	crate::{middleware::auth, responses, Error, Result, State},
+	crate::{middleware::server_auth, responses, Error, Result, State},
 	axum::{http::StatusCode, Extension, Json},
 	cs2kz::{Mode, SteamID, Style},
 	serde::Deserialize,
@@ -36,7 +36,7 @@ pub struct RecordRequest {
 ))]
 pub async fn create(
 	state: State,
-	Extension(server_data): Extension<auth::ServerData>,
+	Extension(server_data): Extension<server_auth::ServerData>,
 	Json(record): Json<RecordRequest>,
 ) -> Result<StatusCode> {
 	let course_id = sqlx::query! {

@@ -34,6 +34,9 @@ features = ["derive"]
 [workspace.dependencies.serde_json]
 version = "1.0.107"
 
+[workspace.dependencies.rand]
+version = "0.8.5"
+
 [workspace.dependencies.tokio]
 version = "1.32.0"
 default-features = false

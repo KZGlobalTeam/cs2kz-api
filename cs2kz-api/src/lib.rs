@@ -71,6 +71,7 @@ pub type State = StateExtractor<&'static AppState>;
 		routes::players::update,
 		routes::records::create,
 		routes::jumpstats::create,
+		routes::servers::refresh_token,
 	),
 
 	components(
@@ -101,13 +102,14 @@ impl API {
 		let state: &'static AppState = Box::leak(Box::new(state));
 
 		let cs_server_auth =
-			axum::middleware::from_fn_with_state(state, middleware::auth::verify_server);
+			axum::middleware::from_fn_with_state(state, middleware::server_auth::verify_server);
 
 		let cs_server_router = Router::new()
 			.route("/players", routing::post(routes::players::create))
 			.route("/players", routing::put(routes::players::update))
 			.route("/records", routing::post(routes::records::create))
 			.route("/jumpstats", routing::post(routes::jumpstats::create))
+			.route("/servers/refresh_token", routing::post(routes::servers::refresh_token))
 			.layer(cs_server_auth)
 			.with_state(state);
 

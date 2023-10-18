@@ -9,56 +9,40 @@
 
 use {
 	crate::{middleware::server_auth, responses, Result, State},
-	axum::{http::StatusCode, Extension, Json},
-	cs2kz::{Jumpstat, Mode, SteamID, Style},
-	serde::Deserialize,
-	utoipa::ToSchema,
+	axum::{http::StatusCode, Extension},
+	rand::Rng,
 };
 
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct JumpstatRequest {
-	r#type: Jumpstat,
-	distance: f32,
-	mode: Mode,
-	style: Style,
-	steam_id: SteamID,
-}
-
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(post, tag = "Jumpstats", context_path = "/api/v0", path = "/jumpstats", request_body = JumpstatRequest, responses(
-	(status = 201, description = "Jumpstat has been inserted into the database."),
+#[utoipa::path(post, tag = "Servers", context_path = "/api/v0", path = "/servers/refresh_token", responses(
+	(status = 201, description = "New token has been generated."),
 	(status = 400, response = responses::BadRequest),
 	(status = 401, response = responses::Unauthorized),
 	(status = 500, response = responses::Database),
 ))]
-pub async fn create(
+pub async fn refresh_token(
 	state: State,
 	Extension(server_data): Extension<server_auth::ServerData>,
-	Json(JumpstatRequest { r#type, distance, mode, style, steam_id }): Json<JumpstatRequest>,
 ) -> Result<StatusCode> {
+	let next_token = rand::thread_rng().gen::<u32>();
+
 	sqlx::query! {
 		r#"
-		INSERT INTO
-			Jumpstats (
-				`type`,
-				distance,
-				mode_id,
-				style_id,
-				player_id,
-				server_id
-			)
-		VALUES
-			(?, ?, ?, ?, ?, ?)
+		UPDATE
+			Servers
+		SET
+			next_token = ?,
+			token_expires_at = DATE_ADD(CURRENT_TIMESTAMP(), INTERVAL 1 HOUR)
+		WHERE
+			id = ?
 		"#,
-		r#type as u8,
-		distance,
-		mode as u8,
-		style as u8,
-		steam_id.as_u32(),
+		next_token,
 		server_data.id,
 	}
 	.execute(state.database())
 	.await?;
+
+	// TODO: send UDP request to server to inform it about its new token
 
 	Ok(StatusCode::CREATED)
 }

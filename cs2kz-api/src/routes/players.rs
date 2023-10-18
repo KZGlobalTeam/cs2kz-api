@@ -8,7 +8,7 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 use {
-	crate::{middleware::auth, responses, Result, State},
+	crate::{middleware::server_auth, responses, Result, State},
 	axum::{http::StatusCode, Extension, Json},
 	cs2kz::SteamID,
 	serde::Deserialize,
@@ -65,7 +65,7 @@ pub struct UpdatePlayer {
 ))]
 pub async fn update(
 	state: State,
-	Extension(server_data): Extension<auth::ServerData>,
+	Extension(server_data): Extension<server_auth::ServerData>,
 	Json(UpdatePlayer { player, additional_playtime, additional_afktime }): Json<UpdatePlayer>,
 ) -> Result<StatusCode> {
 	sqlx::query! {

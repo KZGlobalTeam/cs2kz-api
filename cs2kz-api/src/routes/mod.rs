@@ -13,3 +13,4 @@ pub use health::health;
 pub mod players;
 pub mod records;
 pub mod jumpstats;
+pub mod servers;

@@ -465,6 +465,7 @@ dependencies = [
  "cs2kz",
  "dotenvy",
  "hyper",
+ "rand",
  "serde",
  "serde_json",
  "sqlx",

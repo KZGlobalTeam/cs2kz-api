@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tUPDATE\n\t\t\tServers\n\t\tSET\n\t\t\tcurrent_token = ?,\n\t\t\ttoken_last_used_at = CURRENT_TIMESTAMP()\n\t\tWHERE\n\t\t\tid = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "d1df36551e6f73ece5a421e8d6cdc2cff3e300e872907edea564490476bc365e"
+}

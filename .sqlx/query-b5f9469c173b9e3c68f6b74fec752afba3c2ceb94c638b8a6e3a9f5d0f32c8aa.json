@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t\tid\n\t\tFROM\n\t\t\tServers\n\t\tWHERE\n\t\t\ttoken = ?\n\t\t\tAND ip_address = ?\n\t\t\tAND port = ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t\tid\n\t\tFROM\n\t\t\tServers\n\t\tWHERE\n\t\t\tapi_key = ?\n\t\t\tAND ip_address = ?\n\t\t\tAND (\n\t\t\t\tcurrent_token = ?\n\t\t\t\tOR next_token = ?\n\t\t\t)\n\t\t\tAND CURRENT_TIMESTAMP() < token_expires_at\n\t\t",
   "describe": {
     "columns": [
       {
@@ -15,11 +15,11 @@
       }
     ],
     "parameters": {
-      "Right": 3
+      "Right": 4
     },
     "nullable": [
       false
     ]
   },
-  "hash": "0eae6fba136c501d9d47f5ac63822cf0654b3ab3ea76d0c94bfb740f138dd449"
+  "hash": "b5f9469c173b9e3c68f6b74fec752afba3c2ceb94c638b8a6e3a9f5d0f32c8aa"
 }

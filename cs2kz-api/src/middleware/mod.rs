@@ -8,4 +8,5 @@
 // If not, see <https://www.gnu.org/licenses/>.
 
 mod helpers;
-pub mod auth;
+
+pub mod server_auth;
