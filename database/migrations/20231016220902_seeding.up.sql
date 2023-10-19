@@ -1,7 +1,7 @@
 INSERT INTO
 	Modes (name)
 VALUES
-	("kz_normal");
+	("kz_modded");
 
 INSERT INTO
 	Modes (name)

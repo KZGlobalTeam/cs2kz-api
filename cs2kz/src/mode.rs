@@ -16,8 +16,8 @@ use {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum Mode {
 	#[default]
-	#[cfg_attr(feature = "utoipa", schema(rename = "kz_normal"))]
-	Normal = 1,
+	#[cfg_attr(feature = "utoipa", schema(rename = "kz_modded"))]
+	Modded = 1,
 	#[cfg_attr(feature = "utoipa", schema(rename = "kz_vanilla"))]
 	Vanilla = 2,
 }
@@ -25,7 +25,7 @@ pub enum Mode {
 impl Mode {
 	pub const fn api(&self) -> &'static str {
 		match self {
-			Mode::Normal => "kz_normal",
+			Mode::Modded => "kz_modded",
 			Mode::Vanilla => "kz_vanilla",
 		}
 	}
@@ -44,7 +44,7 @@ macro_rules! try_from {
 
 			fn try_from(value: $t) -> $crate::Result<Self> {
 				match value {
-					1 => Ok(Self::Normal),
+					1 => Ok(Self::Modded),
 					2 => Ok(Self::Vanilla),
 					_ => Err($crate::Error::InvalidMode {
 						input: value.to_string(),
@@ -79,7 +79,7 @@ impl FromStr for Mode {
 
 	fn from_str(input: &str) -> Result<Self> {
 		match input {
-			"kz_normal" | "normal" => Ok(Self::Normal),
+			"kz_modded" | "modded" | "mod" => Ok(Self::Modded),
 			"kz_vanilla" | "vanilla" | "vnl" => Ok(Self::Vanilla),
 			_ => Err(Error::InvalidMode { input: input.to_owned(), reason: None }),
 		}
