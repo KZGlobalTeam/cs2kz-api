@@ -6,6 +6,8 @@
     - `name` (string)
     - `playtime` (u32)
     - `is_banned` (bool)
+    - `offset` (u64)
+    - `limit` (u64)
   - [ ] `/{ident}` (GET) (Player)
   - [ ] `/` (POST)
     - `steam_id` (SteamID)
