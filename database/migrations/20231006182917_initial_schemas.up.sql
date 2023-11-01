@@ -3,6 +3,8 @@ CREATE TABLE IF NOT EXISTS Players (
 	id INT4 UNSIGNED NOT NULL,
 	-- Steam username of the player
 	name VARCHAR(32) NOT NULL,
+	-- The player's last known IP address
+	ip INET4 NOT NULL,
 	-- Whether the player is allowed to play on global servers and submit records
 	is_banned BOOLEAN NOT NULL DEFAULT false,
 	PRIMARY KEY (id)

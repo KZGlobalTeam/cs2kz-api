@@ -386,6 +386,7 @@ dependencies = [
  "android-tzdata",
  "iana-time-zone",
  "num-traits",
+ "serde",
  "windows-targets",
 ]
 
@@ -555,6 +556,7 @@ name = "cs2kz-api"
 version = "0.0.0"
 dependencies = [
  "axum",
+ "chrono",
  "clap",
  "color-eyre",
  "cs2kz",

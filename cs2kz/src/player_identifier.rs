@@ -5,6 +5,8 @@ use {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(untagged))]
 pub enum PlayerIdentifier<'a> {
 	SteamID(SteamID),
 	Name(Cow<'a, str>),
@@ -46,9 +48,8 @@ impl Display for PlayerIdentifier<'_> {
 #[cfg(feature = "serde")]
 mod serde_impls {
 	use {
-		super::{PlayerIdentifier, SteamID},
-		serde::{Deserialize, Deserializer, Serialize, Serializer},
-		std::borrow::Cow,
+		super::PlayerIdentifier,
+		serde::{Serialize, Serializer},
 	};
 
 	impl Serialize for PlayerIdentifier<'_> {
@@ -58,24 +59,6 @@ mod serde_impls {
 			match self {
 				PlayerIdentifier::SteamID(steam_id) => steam_id.serialize(serializer),
 				PlayerIdentifier::Name(name) => name.serialize(serializer),
-			}
-		}
-	}
-
-	#[derive(Deserialize)]
-	#[serde(untagged)]
-	enum Deserializable<'a> {
-		SteamID(SteamID),
-		Name(&'a str),
-	}
-
-	impl<'de> Deserialize<'de> for PlayerIdentifier<'de> {
-		fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-		where
-			D: Deserializer<'de>, {
-			match Deserializable::deserialize(deserializer)? {
-				Deserializable::SteamID(steam_id) => Ok(Self::SteamID(steam_id)),
-				Deserializable::Name(name) => Ok(Self::Name(Cow::Borrowed(name))),
 			}
 		}
 	}

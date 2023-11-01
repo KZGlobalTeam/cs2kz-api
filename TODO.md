@@ -1,22 +1,22 @@
 # Routes
 
-- [ ] `/health` (GET) -> Healthcheck
-- [ ] `/players`
-  - [ ] `/` (GET)
+- [x] `/health` (GET) -> Healthcheck
+- [~] `/players`
+  - [x] `/` (GET)
     - `name` (string)
     - `playtime` (u32)
     - `is_banned` (bool)
     - `offset` (u64)
     - `limit` (u64)
-  - [ ] `/{ident}` (GET) (Player)
-  - [ ] `/` (POST)
+  - [x] `/{ident}` (GET) (Player)
+  - [x] `/` (POST)
     - `steam_id` (SteamID)
     - `name` (string)
     - `ip` (IpAddr)
-  - [ ] `/{steam_id}` (PUT) (SteamID)
-    - `name` (string)
-    - `playtime` (u32)
-    - `ip` (IpAddr)
+  - [~] `/{steam_id}` (PUT) (SteamID)
+    - [x] `name` (string)
+    - [ ] `playtime` (u32)
+    - [x] `ip` (IpAddr)
 - [ ] `/bans`
   - [ ] `/` (GET)
     - `player` (Player)

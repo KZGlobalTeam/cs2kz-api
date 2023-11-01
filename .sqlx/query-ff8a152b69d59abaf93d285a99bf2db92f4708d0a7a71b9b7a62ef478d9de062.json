@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tUPDATE\n\t\t\tPlayers\n\t\tSET\n\t\t\tname = ?,\n\t\t\tip = ?\n\t\tWHERE\n\t\t\tid = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "ff8a152b69d59abaf93d285a99bf2db92f4708d0a7a71b9b7a62ef478d9de062"
+}

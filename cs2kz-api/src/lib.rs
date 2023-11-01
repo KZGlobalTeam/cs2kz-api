@@ -8,10 +8,13 @@ use {
 pub mod error;
 pub use error::{Error, Result};
 
+pub mod util;
+pub mod database;
+
 pub mod logging;
 pub mod routes;
 pub mod state;
-pub mod responses;
+pub mod res;
 
 /// Type alias for easy use in function signatures.
 ///
@@ -21,8 +24,8 @@ pub mod responses;
 /// Usually you would write a handler function like this:
 ///
 /// ```rust
-/// use crate::State as AppState;
 /// use axum::extract::State;
+/// use crate::State as AppState;
 ///
 /// async fn handler(State(state): State<&'static AppState>) {
 ///     let db = state.database();
@@ -42,6 +45,8 @@ pub mod responses;
 /// ```
 pub type State = StateExtractor<&'static AppState>;
 
+pub type Response<T> = Result<axum::Json<T>>;
+
 #[rustfmt::skip]
 #[derive(OpenApi)]
 #[openapi(
@@ -56,15 +61,29 @@ pub type State = StateExtractor<&'static AppState>;
 
 	paths(
 		routes::health::health,
+		routes::players::get::root,
+		routes::players::get::ident,
+		routes::players::post::root,
+		routes::players::put::steam_id,
 	),
 
 	components(
 		schemas(
 			crate::Error,
 			cs2kz::SteamID,
+			cs2kz::PlayerIdentifier,
 			cs2kz::Mode,
 			cs2kz::Style,
 			cs2kz::Jumpstat,
+
+			res::player::Player,
+
+			routes::players::post::NewPlayer,
+			routes::players::put::PlayerUpdate,
+		),
+
+		responses(
+			res::BadRequest,
 		),
 	),
 )]
@@ -75,9 +94,18 @@ impl API {
 	pub fn router(state: AppState) -> Router {
 		let state: &'static AppState = Box::leak(Box::new(state));
 
-		let public_api_router = Router::new().route("/health", routing::get(routes::health));
+		let public_api_router = Router::new()
+			.route("/health", routing::get(routes::health))
+			.route("/players", routing::get(routes::players::get::root))
+			.route("/players/:ident", routing::get(routes::players::get::ident))
+			.with_state(state);
 
-		let api_router = public_api_router;
+		let game_server_router = Router::new()
+			.route("/players", routing::post(routes::players::post::root))
+			.route("/players/:ident", routing::put(routes::players::put::steam_id))
+			.with_state(state);
+
+		let api_router = game_server_router.merge(public_api_router);
 
 		let swagger_ui = Self::swagger_ui();
 

@@ -1,8 +1,4 @@
-use {
-	crate::config::Config,
-	clap::Parser,
-	std::net::Ipv4Addr,
-};
+use {crate::config::Config, clap::Parser, std::net::Ipv4Addr};
 
 #[derive(Parser)]
 pub struct Args {
