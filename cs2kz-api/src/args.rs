@@ -1,16 +1,7 @@
-// Copyright (C) AlphaKeks <alphakeks@dawn.sh>
-//
-// This is free software. You can redistribute it and / or modify it under the terms of the
-// GNU General Public License as published by the Free Software Foundation, either version 3
-// of the License, or (at your option) any later version.
-//
-// You should have received a copy of the GNU General Public License along with this repository.
-// If not, see <https://www.gnu.org/licenses/>.
-
 use {
 	crate::config::Config,
 	clap::Parser,
-	std::{net::Ipv4Addr, path::PathBuf},
+	std::net::Ipv4Addr,
 };
 
 #[derive(Parser)]
@@ -23,6 +14,12 @@ pub struct Args {
 	#[arg(short, long)]
 	pub port: Option<u16>,
 
+	/// Enable logging.
+	///
+	/// The log level is controlled by the `RUST_LOG` environment variable.
+	#[arg(long = "logs")]
+	pub enable_logging: bool,
+
 	/// Custom database URL.
 	///
 	/// Should be a MySQL connection string following this format:
@@ -30,19 +27,12 @@ pub struct Args {
 	/// mysql://user:password@host:port/database
 	#[arg(long)]
 	pub database_url: Option<String>,
-
-	/// Enable logging.
-	///
-	/// The log level is controlled by the `RUST_LOG` environment variable.
-	#[arg(long = "logs")]
-	pub enable_logging: bool,
 }
 
 impl Args {
 	/// Gets the CLI arguments for the current process.
-	pub fn get() -> Args {
-		// `Args::parse` requires `clap::Parser` to be in scope, hence this wrapper function.
-		Args::parse()
+	pub fn get() -> Self {
+		Self::parse()
 	}
 
 	/// Overrides any [`Config`] values with specified CLI arguments.
@@ -55,12 +45,12 @@ impl Args {
 			config.port = port;
 		}
 
-		if let Some(ref database_url) = self.database_url {
-			config.database_url = database_url.clone();
-		}
-
 		if self.enable_logging {
 			config.enable_logging = true;
+		}
+
+		if let Some(ref database_url) = self.database_url {
+			config.database_url = database_url.clone();
 		}
 	}
 }

@@ -1,32 +1,27 @@
-// Copyright (C) AlphaKeks <alphakeks@dawn.sh>
-//
-// This is free software. You can redistribute it and / or modify it under the terms of the
-// GNU General Public License as published by the Free Software Foundation, either version 3
-// of the License, or (at your option) any later version.
-//
-// You should have received a copy of the GNU General Public License along with this repository.
-// If not, see <https://www.gnu.org/licenses/>.
-
 use {
-	crate::config::Config,
+	crate::{args::Args, config::Config},
 	axum::Server,
 	color_eyre::eyre::Context,
 	cs2kz_api::{state::AppState, API},
 	std::{fmt::Write, net::SocketAddr},
-	tracing::{info, warn},
+	tracing::info,
 };
 
 mod config;
+mod args;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
 	color_eyre::install()?;
 
-	if dotenvy::dotenv().is_err() {
-		warn!("Failed to load `.env` file");
+	if let Err(error) = dotenvy::dotenv() {
+		eprintln!("Failed to load `.env` file: {error:?}");
 	}
 
-	let config = Config::load()?;
+	let mut config = Config::load()?;
+	let args = Args::get();
+
+	args.override_config(&mut config);
 
 	if config.enable_logging {
 		cs2kz_api::logging::init();

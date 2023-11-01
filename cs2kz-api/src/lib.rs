@@ -1,16 +1,6 @@
-// Copyright (C) AlphaKeks <alphakeks@dawn.sh>
-//
-// This is free software. You can redistribute it and / or modify it under the terms of the
-// GNU General Public License as published by the Free Software Foundation, either version 3
-// of the License, or (at your option) any later version.
-//
-// You should have received a copy of the GNU General Public License along with this repository.
-// If not, see <https://www.gnu.org/licenses/>.
-
 use {
 	crate::state::AppState,
-	axum::{extract::State as StateExtractor, http::Method, routing, Router},
-	tower_http::{cors, cors::CorsLayer},
+	axum::{extract::State as StateExtractor, routing, Router},
 	utoipa::OpenApi,
 	utoipa_swagger_ui::SwaggerUi,
 };
@@ -21,7 +11,6 @@ pub use error::{Error, Result};
 pub mod logging;
 pub mod routes;
 pub mod state;
-pub mod middleware;
 pub mod responses;
 
 /// Type alias for easy use in function signatures.
@@ -67,11 +56,6 @@ pub type State = StateExtractor<&'static AppState>;
 
 	paths(
 		routes::health::health,
-		routes::players::create,
-		routes::players::update,
-		routes::records::create,
-		routes::jumpstats::create,
-		routes::servers::refresh_token,
 	),
 
 	components(
@@ -81,16 +65,6 @@ pub type State = StateExtractor<&'static AppState>;
 			cs2kz::Mode,
 			cs2kz::Style,
 			cs2kz::Jumpstat,
-			routes::players::CreatePlayer,
-			routes::players::UpdatePlayer,
-			routes::records::RecordRequest,
-			routes::jumpstats::JumpstatRequest,
-		),
-
-		responses(
-			responses::BadRequest,
-			responses::Unauthorized,
-			responses::Database,
 		),
 	),
 )]
@@ -101,32 +75,14 @@ impl API {
 	pub fn router(state: AppState) -> Router {
 		let state: &'static AppState = Box::leak(Box::new(state));
 
-		let cs_server_key_auth =
-			axum::middleware::from_fn_with_state(state, middleware::server_auth::verify_api_key);
-
-		let cs_server_token_auth =
-			axum::middleware::from_fn_with_state(state, middleware::server_auth::verify_api_token);
-
-		let cs_server_router = Router::new()
-			.route("/servers/refresh_token", routing::post(routes::servers::refresh_token))
-			.layer(cs_server_key_auth)
-			.route("/players", routing::post(routes::players::create))
-			.route("/players", routing::put(routes::players::update))
-			.route("/records", routing::post(routes::records::create))
-			.route("/jumpstats", routing::post(routes::jumpstats::create))
-			.layer(cs_server_token_auth)
-			.with_state(state);
-
 		let public_api_router = Router::new().route("/health", routing::get(routes::health));
-		let api_router = cs_server_router.merge(public_api_router);
+
+		let api_router = public_api_router;
+
 		let swagger_ui = Self::swagger_ui();
-		let cors = CorsLayer::new()
-			.allow_methods([Method::GET])
-			.allow_origin(cors::Any);
 
 		Router::new()
 			.nest("/api/v0", api_router)
-			.layer(cors)
 			.merge(swagger_ui)
 	}
 
