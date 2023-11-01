@@ -9,6 +9,6 @@ charset = utf-8
 end_of_line = lf
 indent_style = tab
 
-[*.{nix,toml,yml}]
+[*.{nix,toml,yml,md}]
 indent_style = space
 indent_size = 2
