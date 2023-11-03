@@ -61,10 +61,10 @@ pub type Response<T> = Result<axum::Json<T>>;
 
 	paths(
 		routes::health::health,
-		routes::players::get::root,
-		routes::players::get::ident,
-		routes::players::post::root,
-		routes::players::put::steam_id,
+		routes::players::get_players,
+		routes::players::get_player,
+		routes::players::create_player,
+		routes::players::update_player,
 	),
 
 	components(
@@ -78,8 +78,8 @@ pub type Response<T> = Result<axum::Json<T>>;
 
 			res::player::Player,
 
-			routes::players::post::NewPlayer,
-			routes::players::put::PlayerUpdate,
+			routes::players::NewPlayer,
+			routes::players::PlayerUpdate,
 		),
 
 		responses(
@@ -96,13 +96,13 @@ impl API {
 
 		let public_api_router = Router::new()
 			.route("/health", routing::get(routes::health))
-			.route("/players", routing::get(routes::players::get::root))
-			.route("/players/:ident", routing::get(routes::players::get::ident))
+			.route("/players", routing::get(routes::players::get_players))
+			.route("/players/:ident", routing::get(routes::players::get_player))
 			.with_state(state);
 
 		let game_server_router = Router::new()
-			.route("/players", routing::post(routes::players::post::root))
-			.route("/players/:ident", routing::put(routes::players::put::steam_id))
+			.route("/players", routing::post(routes::players::create_player))
+			.route("/players/:ident", routing::put(routes::players::update_player))
 			.with_state(state);
 
 		let api_router = game_server_router.merge(public_api_router);
