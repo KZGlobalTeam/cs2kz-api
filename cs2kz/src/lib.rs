@@ -9,6 +9,9 @@ pub use steam_id::SteamID;
 pub mod player_identifier;
 pub use player_identifier::PlayerIdentifier;
 
+pub mod server_identifier;
+pub use server_identifier::ServerIdentifier;
+
 pub mod mode;
 pub use mode::Mode;
 
