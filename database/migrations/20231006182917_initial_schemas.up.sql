@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS Players (
 CREATE TABLE IF NOT EXISTS Maps (
 	id INT2 UNSIGNED NOT NULL AUTO_INCREMENT,
 	name VARCHAR(32) NOT NULL,
-	-- Steam Workshop ID if the map was uploaded there
-	workshop_id INT4 UNSIGNED,
+	-- Steam Workshop ID
+	workshop_id INT4 UNSIGNED NOT NULL,
 	-- Size of the map's `.bsp` file
 	filesize BIGINT UNSIGNED NOT NULL,
 	-- The player who owns the map

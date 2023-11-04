@@ -56,7 +56,7 @@ pub async fn get_map(state: State, Path(ident): Path<MapIdentifier<'_>>) -> Resp
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewMap {
 	name: String,
-	workshop_id: Option<u32>,
+	workshop_id: u32,
 	filters: Vec<Filter>,
 	created_by: SteamID,
 	approved_by: SteamID,

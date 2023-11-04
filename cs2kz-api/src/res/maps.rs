@@ -9,7 +9,7 @@ use {
 pub struct KZMap {
 	pub id: u16,
 	pub name: String,
-	pub workshop_id: Option<u32>,
+	pub workshop_id: u32,
 	pub courses: Vec<Course>,
 	pub filesize: u64,
 	pub owned_by: Mapper,

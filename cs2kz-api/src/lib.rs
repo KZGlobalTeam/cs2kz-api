@@ -77,6 +77,7 @@ pub type Response<T> = Result<axum::Json<T>>;
 			crate::Error,
 			cs2kz::SteamID,
 			cs2kz::PlayerIdentifier,
+			cs2kz::MapIdentifier,
 			cs2kz::ServerIdentifier,
 			cs2kz::Mode,
 			cs2kz::Style,
@@ -123,10 +124,10 @@ impl API {
 		// TODO(AlphaKeks): implement auth
 		let game_server_router = Router::new()
 			.route("/players", routing::post(routes::players::create_player))
-			.route("/players/:steam_id", routing::put(routes::players::update_player))
+			.route("/players/:ident", routing::put(routes::players::update_player))
 			.route("/bans", routing::post(routes::bans::create_ban))
 			.route("/maps", routing::post(routes::maps::create_map))
-			.route("/maps/:id", routing::put(routes::maps::update_map))
+			.route("/maps/:ident", routing::put(routes::maps::update_map))
 			.with_state(state);
 
 		let api_router = game_server_router.merge(public_api_router);
