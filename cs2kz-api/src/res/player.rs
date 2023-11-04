@@ -19,22 +19,22 @@ pub struct Player {
 }
 
 impl Player {
-	pub fn new(
-		steam_id: SteamID,
+	pub const fn new(
 		name: String,
+		steam_id: SteamID,
 		playtime: NaiveTime,
 		afktime: NaiveTime,
 		is_banned: bool,
 	) -> Self {
-		Self { steam_id, name, playtime, afktime, is_banned }
+		Self { name, steam_id, playtime, afktime, is_banned }
 	}
 }
 
 impl From<database::PlayerWithPlaytime> for Player {
 	fn from(row: database::PlayerWithPlaytime) -> Self {
 		Self::new(
-			row.player.steam_id,
 			row.player.name,
+			row.player.steam_id,
 			row.playtime,
 			row.afktime,
 			row.player.is_banned,

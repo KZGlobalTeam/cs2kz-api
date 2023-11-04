@@ -2,12 +2,11 @@ use {
 	crate::{
 		database,
 		res::{player as res, BadRequest},
-		util::Filter,
+		util::{Created, Filter},
 		Error, Response, Result, State,
 	},
 	axum::{
 		extract::{Path, Query},
-		http::StatusCode,
 		Json,
 	},
 	chrono::NaiveTime,
@@ -46,6 +45,7 @@ pub struct RootGetParams {
 #[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(get, tag = "Players", context_path = "/api/v0", path = "/players", params(RootGetParams), responses(
 	(status = 200, body = Vec<Player>),
+	(status = 204),
 	(status = 400, response = BadRequest),
 	(status = 500, body = Error),
 ))]
@@ -112,6 +112,7 @@ pub async fn get_players(
 	("ident" = PlayerIdentifier, Path, description = "The player's SteamID or name")
 ), responses(
 	(status = 200, body = Player),
+	(status = 204),
 	(status = 400, response = BadRequest),
 	(status = 500, body = Error),
 ))]
@@ -165,7 +166,7 @@ pub struct NewPlayer {
 pub async fn create_player(
 	state: State,
 	Json(NewPlayer { steam_id, name, ip }): Json<NewPlayer>,
-) -> Result<(StatusCode, Json<NewPlayer>)> {
+) -> Result<Created<Json<NewPlayer>>> {
 	sqlx::query! {
 		r#"
 		INSERT INTO
@@ -180,7 +181,7 @@ pub async fn create_player(
 	.execute(state.database())
 	.await?;
 
-	Ok((StatusCode::CREATED, Json(NewPlayer { steam_id, name, ip })))
+	Ok(Created(Json(NewPlayer { steam_id, name, ip })))
 }
 
 #[rustfmt::skip]

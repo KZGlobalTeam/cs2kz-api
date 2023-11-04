@@ -1,7 +1,7 @@
 # Routes
 
 - [x] `/health` (GET) -> Healthcheck
-- [~] `/players`
+- [ ] `/players`
   - [x] `/` (GET)
     - `name` (string)
     - `playtime` (u32)
@@ -13,12 +13,12 @@
     - `steam_id` (SteamID)
     - `name` (string)
     - `ip` (IpAddr)
-  - [~] `/{steam_id}` (PUT) (SteamID)
+  - [ ] `/{steam_id}` (PUT) (SteamID)
     - [x] `name` (string)
     - [ ] `playtime` (u32)
     - [x] `ip` (IpAddr)
 - [ ] `/bans`
-  - [ ] `/` (GET)
+  - [x] `/` (GET)
     - `player` (Player)
     - `reason` (BanReason)
     - `server` (Server)
@@ -26,10 +26,15 @@
     - `created_after` (date)
     - `created_before` (date)
   - [ ] `/` (POST)
-    - JSON body:
+    - [x] JSON body:
       - `steam_id` (SteamID)
+      - `ip` (IpAddr)
+      - `server_id` (u16)
       - `reason` (BanReason)
-    - BLOB multipart data:
+      - `banned_by` (SteamID)
+      - `plugin_version` (u16)
+      - `expires_on` (Option<DateTime>)
+    - [ ] BLOB multipart data:
       - replay
 - [ ] `/maps`
   - [ ] `/` (GET)

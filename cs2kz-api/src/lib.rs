@@ -61,10 +61,14 @@ pub type Response<T> = Result<axum::Json<T>>;
 
 	paths(
 		routes::health::health,
+
 		routes::players::get_players,
 		routes::players::get_player,
 		routes::players::create_player,
 		routes::players::update_player,
+
+		routes::bans::get_bans,
+		routes::bans::create_ban,
 	),
 
 	components(
@@ -72,14 +76,18 @@ pub type Response<T> = Result<axum::Json<T>>;
 			crate::Error,
 			cs2kz::SteamID,
 			cs2kz::PlayerIdentifier,
+			cs2kz::ServerIdentifier,
 			cs2kz::Mode,
 			cs2kz::Style,
 			cs2kz::Jumpstat,
 
 			res::player::Player,
+			res::bans::Ban,
 
 			routes::players::NewPlayer,
 			routes::players::PlayerUpdate,
+
+			routes::bans::NewBan,
 		),
 
 		responses(
@@ -98,11 +106,16 @@ impl API {
 			.route("/health", routing::get(routes::health))
 			.route("/players", routing::get(routes::players::get_players))
 			.route("/players/:ident", routing::get(routes::players::get_player))
+			.route("/bans", routing::get(routes::bans::get_bans))
 			.with_state(state);
 
+		// Routes to be used by cs2kz servers (require auth).
+		//
+		// TODO(AlphaKeks): implement auth
 		let game_server_router = Router::new()
 			.route("/players", routing::post(routes::players::create_player))
 			.route("/players/:ident", routing::put(routes::players::update_player))
+			.route("/bans", routing::post(routes::bans::create_ban))
 			.with_state(state);
 
 		let api_router = game_server_router.merge(public_api_router);
