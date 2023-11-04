@@ -3,11 +3,16 @@
 mod error;
 pub use error::{Error, Result};
 
+mod id_or_name;
+
 pub mod steam_id;
 pub use steam_id::SteamID;
 
 pub mod player_identifier;
 pub use player_identifier::PlayerIdentifier;
+
+pub mod map_identifier;
+pub use map_identifier::MapIdentifier;
 
 pub mod server_identifier;
 pub use server_identifier::ServerIdentifier;

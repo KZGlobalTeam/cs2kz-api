@@ -17,7 +17,7 @@ use {
 };
 
 #[derive(Debug, Deserialize, IntoParams)]
-pub struct BanGetParams<'a> {
+pub struct GetBansParams<'a> {
 	player: Option<PlayerIdentifier<'a>>,
 	reason: Option<String>,
 	server: Option<ServerIdentifier<'a>>,
@@ -27,7 +27,7 @@ pub struct BanGetParams<'a> {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(get, tag = "Bans", context_path = "/api/v0", path = "/bans", params(BanGetParams), responses(
+#[utoipa::path(get, tag = "Bans", context_path = "/api/v0", path = "/bans", params(GetBansParams), responses(
 	(status = 200, body = Vec<Ban>),
 	(status = 204),
 	(status = 400, response = BadRequest),
@@ -35,8 +35,8 @@ pub struct BanGetParams<'a> {
 ))]
 pub async fn get_bans(
 	state: State,
-	Query(BanGetParams { player, reason, server, expired, created_after, created_before }): Query<
-		BanGetParams<'_>,
+	Query(GetBansParams { player, reason, server, expired, created_after, created_before }): Query<
+		GetBansParams<'_>,
 	>,
 ) -> Response<Vec<res::Ban>> {
 	let mut query = QueryBuilder::new(
