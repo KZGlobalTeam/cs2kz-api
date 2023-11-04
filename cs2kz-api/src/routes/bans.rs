@@ -4,7 +4,10 @@ use {
 		util::{Created, Filter},
 		Error, Response, Result, State,
 	},
-	axum::{extract::Query, Json},
+	axum::{
+		extract::{Path, Query},
+		Json,
+	},
 	chrono::{DateTime, Utc},
 	cs2kz::{PlayerIdentifier, ServerIdentifier, SteamID},
 	serde::{Deserialize, Serialize},
@@ -39,7 +42,8 @@ pub async fn get_bans(
 	let mut query = QueryBuilder::new(
 		r#"
 		SELECT
-			p.id,
+			b.id,
+			p.id steam_id,
 			p.name,
 			b.reason,
 			b.created_on
@@ -140,10 +144,26 @@ pub async fn get_bans(
 	Ok(Json(bans))
 }
 
+#[tracing::instrument(level = "DEBUG")]
+#[utoipa::path(get, tag = "Bans", context_path = "/api/v0", path = "/bans/{id}/replay", params(
+	("id" = u32, Path, description = "The ban's ID"),
+), responses(
+	(status = 200, body = ()),
+	(status = 204),
+	(status = 400, response = BadRequest),
+	(status = 500, body = Error),
+))]
+pub async fn get_replay(state: State, Path(ban_id): Path<u32>) -> Response<()> {
+	todo!();
+}
+
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewBan {
 	steam_id: SteamID,
+
+	#[schema(value_type = String)]
 	ip: Ipv4Addr,
+
 	server_id: Option<u16>,
 	reason: String,
 	banned_by: Option<SteamID>,
@@ -151,9 +171,17 @@ pub struct NewBan {
 	expires_on: Option<DateTime<Utc>>,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct NewBanWithId {
+	id: u32,
+
+	#[serde(flatten)]
+	ban: NewBan,
+}
+
 #[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(post, tag = "Bans", context_path = "/api/v0", path = "/bans", request_body = NewBan, responses(
-	(status = 201, body = NewBan),
+	(status = 201, body = NewBanWithId),
 	(status = 400, response = BadRequest),
 	(status = 401, body = Error),
 	(status = 500, body = Error),
@@ -163,7 +191,9 @@ pub async fn create_ban(
 	Query(NewBan { steam_id, ip, server_id, reason, banned_by, plugin_version, expires_on }): Query<
 		NewBan,
 	>,
-) -> Result<Created<Json<NewBan>>> {
+) -> Result<Created<Json<NewBanWithId>>> {
+	// TODO(AlphaKeks): handle these two in a transaction so we don't return an incorrect ID
+
 	sqlx::query! {
 		r#"
 		INSERT INTO
@@ -190,13 +220,14 @@ pub async fn create_ban(
 	.execute(state.database())
 	.await?;
 
-	Ok(Created(Json(NewBan {
-		steam_id,
-		ip,
-		server_id,
-		reason,
-		banned_by,
-		plugin_version,
-		expires_on,
+	let id = sqlx::query!("SELECT MAX(id) id FROM Bans")
+		.fetch_one(state.database())
+		.await?
+		.id
+		.expect("ban was just inserted");
+
+	Ok(Created(Json(NewBanWithId {
+		id,
+		ban: NewBan { steam_id, ip, server_id, reason, banned_by, plugin_version, expires_on },
 	})))
 }

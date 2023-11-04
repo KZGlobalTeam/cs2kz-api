@@ -23,7 +23,7 @@ const ROOT_GET_BASE_QUERY: &str = r#"
 		p2.playtime,
 		p2.afktime
 	FROM
-		players AS p1
+		players p1
 		JOIN playtimes p2 ON p2.player_id = p1.id
 "#;
 

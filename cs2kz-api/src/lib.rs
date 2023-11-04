@@ -69,6 +69,7 @@ pub type Response<T> = Result<axum::Json<T>>;
 
 		routes::bans::get_bans,
 		routes::bans::create_ban,
+		routes::bans::get_replay,
 	),
 
 	components(
@@ -88,6 +89,7 @@ pub type Response<T> = Result<axum::Json<T>>;
 			routes::players::PlayerUpdate,
 
 			routes::bans::NewBan,
+			routes::bans::NewBanWithId,
 		),
 
 		responses(
@@ -107,6 +109,7 @@ impl API {
 			.route("/players", routing::get(routes::players::get_players))
 			.route("/players/:ident", routing::get(routes::players::get_player))
 			.route("/bans", routing::get(routes::bans::get_bans))
+			.route("/bans/:id/replay", routing::get(routes::bans::get_replay))
 			.with_state(state);
 
 		// Routes to be used by cs2kz servers (require auth).

@@ -36,6 +36,7 @@
       - `expires_on` (Option<DateTime>)
     - [ ] BLOB multipart data:
       - replay
+  - [x] `/{id}/replay` (u32) (GET)
 - [ ] `/maps`
   - [ ] `/` (GET)
     - `name` (string)
@@ -106,6 +107,7 @@
     - BLOB multipart data:
       - replay
   - [ ] `/{id}` (GET) (u32)
+  - [ ] `/{id}/replay` (GET) (u32)
 - [ ] `/auth`
   - [ ] `/refresh` (GET) # for game servers
 - [ ] `/events` (GET) # websocket for event pub-sub
