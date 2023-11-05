@@ -96,7 +96,9 @@ pub struct MapUpdate {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(put, tag = "Maps", context_path = "/api/v0", path = "/maps/{id}", request_body = MapUpdate, responses(
+#[utoipa::path(put, tag = "Maps", context_path = "/api/v0", path = "/maps/{id}", request_body = MapUpdate, params(
+	("id" = u16, Path, description = "The map's ID")
+), responses(
 	(status = 200),
 	(status = 400, response = BadRequest),
 	(status = 401, body = Error),
@@ -104,6 +106,7 @@ pub struct MapUpdate {
 ))]
 pub async fn update_map(
 	state: State,
+	Path(map_id): Path<u16>,
 	Json(MapUpdate { name, workshop_id, filters_added, filters_removed }): Json<MapUpdate>,
 ) -> Response<()> {
 	todo!();

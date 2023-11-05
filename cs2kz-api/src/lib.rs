@@ -83,9 +83,11 @@ pub type Response<T> = Result<axum::Json<T>>;
 			cs2kz::Style,
 			cs2kz::Jumpstat,
 
+			res::PlayerInfo,
 			res::player::Player,
 			res::bans::Ban,
 			res::maps::KZMap,
+			res::servers::Server,
 
 			routes::players::NewPlayer,
 			routes::players::PlayerUpdate,
@@ -94,7 +96,12 @@ pub type Response<T> = Result<axum::Json<T>>;
 			routes::bans::NewBanWithId,
 
 			routes::maps::NewMap,
+			routes::maps::NewMapWithId,
 			routes::maps::MapUpdate,
+
+			routes::servers::NewServer,
+			routes::servers::NewServerWithId,
+			routes::servers::ServerUpdate,
 		),
 
 		responses(
@@ -117,6 +124,8 @@ impl API {
 			.route("/bans/:id/replay", routing::get(routes::bans::get_replay))
 			.route("/maps", routing::get(routes::maps::get_maps))
 			.route("/maps/:ident", routing::get(routes::maps::get_map))
+			.route("/servers", routing::get(routes::servers::get_servers))
+			.route("/servers/:ident", routing::get(routes::servers::get_server))
 			.with_state(state);
 
 		// Routes to be used by cs2kz servers (require auth).
@@ -128,6 +137,8 @@ impl API {
 			.route("/bans", routing::post(routes::bans::create_ban))
 			.route("/maps", routing::post(routes::maps::create_map))
 			.route("/maps/:ident", routing::put(routes::maps::update_map))
+			.route("/servers", routing::post(routes::servers::create_server))
+			.route("/servers/:ident", routing::put(routes::servers::update_server))
 			.with_state(state);
 
 		let api_router = game_server_router.merge(public_api_router);

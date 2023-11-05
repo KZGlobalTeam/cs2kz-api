@@ -1,6 +1,6 @@
 use {
+	super::PlayerInfo,
 	chrono::{DateTime, Utc},
-	cs2kz::SteamID,
 	serde::Serialize,
 	utoipa::ToSchema,
 };
@@ -12,7 +12,7 @@ pub struct KZMap {
 	pub workshop_id: u32,
 	pub courses: Vec<Course>,
 	pub filesize: u64,
-	pub owned_by: Mapper,
+	pub owned_by: PlayerInfo,
 	pub created_on: DateTime<Utc>,
 }
 
@@ -22,11 +22,5 @@ pub struct Course {
 	pub stage: u8,
 	// TODO(AlphaKeks): enum this
 	pub difficulty: u8,
-	pub created_by: Mapper,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct Mapper {
-	pub name: String,
-	pub steam_id: SteamID,
+	pub created_by: PlayerInfo,
 }
