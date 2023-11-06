@@ -17,6 +17,9 @@ use {
 	utoipa::{IntoParams, ToSchema},
 };
 
+const LIMIT_DEFAULT: u64 = 100;
+const LIMIT_MAX: u64 = 500;
+
 const ROOT_GET_BASE_QUERY: &str = r#"
 	SELECT
 		p1.*,
@@ -38,7 +41,8 @@ pub struct RootGetParams {
 	/// Whether the player is banned.
 	is_banned: Option<bool>,
 
-	offset: Option<u64>,
+	#[serde(default)]
+	offset: u64,
 	limit: Option<u64>,
 }
 
@@ -83,8 +87,7 @@ pub async fn get_players(
 		filter.switch();
 	}
 
-	let offset = offset.unwrap_or(0);
-	let limit = limit.map_or(100, |limit| limit.min(500));
+	let limit = limit.map_or(LIMIT_DEFAULT, |limit| std::cmp::min(limit, LIMIT_MAX));
 
 	query
 		.push(" LIMIT ")

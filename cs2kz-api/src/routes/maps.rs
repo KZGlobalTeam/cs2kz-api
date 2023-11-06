@@ -20,7 +20,9 @@ pub struct GetMapsParams<'a> {
 	pub created_by: Option<PlayerIdentifier<'a>>,
 	pub created_after: Option<DateTime<Utc>>,
 	pub created_before: Option<DateTime<Utc>>,
-	pub offset: Option<u64>,
+
+	#[serde(default)]
+	pub offset: u64,
 	pub limit: Option<u64>,
 }
 

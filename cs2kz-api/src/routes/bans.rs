@@ -16,6 +16,9 @@ use {
 	utoipa::{IntoParams, ToSchema},
 };
 
+const LIMIT_DEFAULT: u64 = 100;
+const LIMIT_MAX: u64 = 500;
+
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetBansParams<'a> {
 	player: Option<PlayerIdentifier<'a>>,
@@ -24,6 +27,10 @@ pub struct GetBansParams<'a> {
 	expired: Option<bool>,
 	created_after: Option<DateTime<Utc>>,
 	created_before: Option<DateTime<Utc>>,
+
+	#[serde(default)]
+	offset: u64,
+	limit: Option<u64>,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -35,9 +42,16 @@ pub struct GetBansParams<'a> {
 ))]
 pub async fn get_bans(
 	state: State,
-	Query(GetBansParams { player, reason, server, expired, created_after, created_before }): Query<
-		GetBansParams<'_>,
-	>,
+	Query(GetBansParams {
+		player,
+		reason,
+		server,
+		expired,
+		created_after,
+		created_before,
+		offset,
+		limit,
+	}): Query<GetBansParams<'_>>,
 ) -> Response<Vec<res::Ban>> {
 	let mut query = QueryBuilder::new(
 		r#"
@@ -131,6 +145,14 @@ pub async fn get_bans(
 
 		filter.switch();
 	}
+
+	let limit = limit.map_or(LIMIT_DEFAULT, |limit| std::cmp::min(limit, LIMIT_MAX));
+
+	query
+		.push(" LIMIT ")
+		.push_bind(offset)
+		.push(",")
+		.push_bind(limit);
 
 	let bans = query
 		.build_query_as::<res::Ban>()
