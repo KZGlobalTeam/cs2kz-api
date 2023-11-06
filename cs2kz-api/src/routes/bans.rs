@@ -192,7 +192,7 @@ pub async fn create_ban(
 		NewBan,
 	>,
 ) -> Result<Created<Json<NewBanWithId>>> {
-	// TODO(AlphaKeks): handle these two in a transaction so we don't return an incorrect ID
+	let mut transaction = state.database().begin().await?;
 
 	sqlx::query! {
 		r#"
@@ -217,14 +217,16 @@ pub async fn create_ban(
 		plugin_version,
 		expires_on,
 	}
-	.execute(state.database())
+	.execute(&mut *transaction)
 	.await?;
 
 	let id = sqlx::query!("SELECT MAX(id) id FROM Bans")
-		.fetch_one(state.database())
+		.fetch_one(&mut *transaction)
 		.await?
 		.id
 		.expect("ban was just inserted");
+
+	transaction.commit().await?;
 
 	Ok(Created(Json(NewBanWithId {
 		id,
