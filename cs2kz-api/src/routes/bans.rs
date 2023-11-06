@@ -188,7 +188,7 @@ pub struct NewBanWithId {
 ))]
 pub async fn create_ban(
 	state: State,
-	Query(NewBan { steam_id, ip, server_id, reason, banned_by, plugin_version, expires_on }): Query<
+	Json(NewBan { steam_id, ip, server_id, reason, banned_by, plugin_version, expires_on }): Json<
 		NewBan,
 	>,
 ) -> Result<Created<Json<NewBanWithId>>> {

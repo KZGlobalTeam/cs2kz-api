@@ -1,6 +1,7 @@
 use {
 	super::PlayerInfo,
 	chrono::{DateTime, Utc},
+	cs2kz::Tier,
 	serde::Serialize,
 	utoipa::ToSchema,
 };
@@ -20,7 +21,6 @@ pub struct KZMap {
 pub struct Course {
 	pub id: u32,
 	pub stage: u8,
-	// TODO(AlphaKeks): enum this
-	pub difficulty: u8,
+	pub tier: Tier,
 	pub created_by: PlayerInfo,
 }

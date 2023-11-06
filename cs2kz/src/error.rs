@@ -28,4 +28,16 @@ pub enum Error {
 		Some(reason) => format!(" ({reason})"),
 	})]
 	InvalidJumpstat { input: String, reason: Option<String> },
+
+	#[error("`{}` is not a valid Tier.{}", input, match reason {
+		None => String::new(),
+		Some(reason) => format!(" ({reason})"),
+	})]
+	InvalidTier { input: String, reason: Option<String> },
+
+	#[error("`{}` is not a valid Runtype.{}", input, match reason {
+		None => String::new(),
+		Some(reason) => format!(" ({reason})"),
+	})]
+	InvalidRuntype { input: String, reason: Option<String> },
 }

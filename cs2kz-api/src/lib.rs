@@ -80,6 +80,8 @@ pub type Response<T> = Result<axum::Json<T>>;
 			cs2kz::MapIdentifier,
 			cs2kz::ServerIdentifier,
 			cs2kz::Mode,
+			cs2kz::Tier,
+			cs2kz::Runtype,
 			cs2kz::Style,
 			cs2kz::Jumpstat,
 
@@ -88,6 +90,7 @@ pub type Response<T> = Result<axum::Json<T>>;
 			res::bans::Ban,
 			res::maps::KZMap,
 			res::servers::Server,
+			res::records::Record,
 
 			routes::players::NewPlayer,
 			routes::players::PlayerUpdate,

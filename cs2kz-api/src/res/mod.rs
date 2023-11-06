@@ -8,6 +8,7 @@ pub mod player;
 pub mod bans;
 pub mod maps;
 pub mod servers;
+pub mod records;
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct PlayerInfo {

@@ -1,3 +1,4 @@
+
 CREATE TABLE IF NOT EXISTS Players (
 	-- Steam32 ID of the player
 	id INT4 UNSIGNED NOT NULL,
