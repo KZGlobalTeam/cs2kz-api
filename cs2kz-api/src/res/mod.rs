@@ -1,6 +1,7 @@
 use {
 	cs2kz::SteamID,
 	serde::Serialize,
+	sqlx::FromRow,
 	utoipa::{ToResponse, ToSchema},
 };
 
@@ -10,7 +11,7 @@ pub mod maps;
 pub mod servers;
 pub mod records;
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct PlayerInfo {
 	pub name: String,
 	pub steam_id: SteamID,

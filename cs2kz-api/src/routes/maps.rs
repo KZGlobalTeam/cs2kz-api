@@ -1,8 +1,8 @@
 use {
 	crate::{
 		res::{maps as res, BadRequest},
-		util::Created,
-		Response, Result, State,
+		util::{self, Created},
+		Error, Response, Result, State,
 	},
 	axum::{
 		extract::{Path, Query},
@@ -11,8 +11,34 @@ use {
 	chrono::{DateTime, Utc},
 	cs2kz::{MapIdentifier, PlayerIdentifier, SteamID},
 	serde::{Deserialize, Serialize},
+	sqlx::QueryBuilder,
 	utoipa::{IntoParams, ToSchema},
 };
+
+const LIMIT_DEFAULT: u64 = 100;
+const LIMIT_MAX: u64 = 1000;
+
+// FIXME(AlphaKeks): this does not include the courses yet
+const ROOT_GET_BASE_QUERY: &str = r#"
+	SELECT
+		m.id,
+		m.name,
+		m.workshop_id,
+		m.filesize,
+		p1.name player_name,
+		p1.id steam_id,
+		m.created_on,
+		c.id course_id,
+		c.stage course_stage,
+		c.difficulty course_tier,
+		p2.id course_created_by_id,
+		p2.name course_created_by_name
+	FROM
+		Maps m
+		JOIN Players p1 ON p1.id = m.owned_by
+		JOIN Courses c ON c.map_id = m.id
+		JOIN Players p2 ON p2.id = c.created_by
+"#;
 
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetMapsParams<'a> {
@@ -39,7 +65,87 @@ pub async fn get_maps(
 		GetMapsParams<'_>,
 	>,
 ) -> Response<Vec<res::KZMap>> {
-	todo!();
+	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
+	let mut filter = util::Filter::new();
+
+	if let Some(ref name) = name {
+		query
+			.push(filter)
+			.push(" m.name LIKE ")
+			.push_bind(format!("%{name}%"));
+
+		filter.switch();
+	}
+
+	if let Some(player) = created_by {
+		let steam32_id = match player {
+			PlayerIdentifier::SteamID(steam_id) => steam_id.as_u32(),
+			PlayerIdentifier::Name(name) => {
+				sqlx::query!("SELECT id FROM Players WHERE name LIKE ?", name)
+					.fetch_one(state.database())
+					.await?
+					.id
+			}
+		};
+
+		query
+			.push(filter)
+			.push(" p1.id = ")
+			.push_bind(steam32_id);
+
+		filter.switch();
+	}
+
+	if let Some(created_after) = created_after {
+		query
+			.push(filter)
+			.push(" m.created_on > ")
+			.push_bind(created_after);
+
+		filter.switch();
+	}
+
+	if let Some(created_before) = created_before {
+		query
+			.push(filter)
+			.push(" m.created_on < ")
+			.push_bind(created_before);
+
+		filter.switch();
+	}
+
+	query.push(" GROUP BY m.id ");
+
+	let limit = limit.map_or(LIMIT_DEFAULT, |limit| std::cmp::min(limit, LIMIT_MAX));
+
+	query
+		.push(" LIMIT ")
+		.push_bind(offset)
+		.push(",")
+		.push_bind(limit);
+
+	let maps = query
+		.build_query_as::<res::KZMap>()
+		.fetch_all(state.database())
+		.await?
+		.into_iter()
+		.fold(Vec::<res::KZMap>::new(), |mut maps, mut map| {
+			if let Some(last_map) = maps.last_mut() {
+				if last_map.id == map.id {
+					last_map.courses.append(&mut map.courses);
+					return maps;
+				}
+			};
+
+			maps.push(map);
+			maps
+		});
+
+	if maps.is_empty() {
+		return Err(Error::NoContent);
+	}
+
+	Ok(Json(maps))
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -52,7 +158,33 @@ pub async fn get_maps(
 	(status = 500, body = Error),
 ))]
 pub async fn get_map(state: State, Path(ident): Path<MapIdentifier<'_>>) -> Response<res::KZMap> {
-	todo!();
+	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
+
+	query.push(" WHERE ");
+
+	match ident {
+		MapIdentifier::ID(id) => {
+			query.push(" m.id = ").push_bind(id);
+		}
+		MapIdentifier::Name(name) => {
+			query
+				.push(" m.name LIKE ")
+				.push_bind(format!("%{name}%"));
+		}
+	};
+
+	let map = query
+		.build_query_as::<res::KZMap>()
+		.fetch_all(state.database())
+		.await?
+		.into_iter()
+		.reduce(|mut acc, mut row| {
+			acc.courses.append(&mut row.courses);
+			acc
+		})
+		.ok_or(Error::NoContent)?;
+
+	Ok(Json(map))
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

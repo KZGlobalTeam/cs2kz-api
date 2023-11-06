@@ -1,22 +1,17 @@
-use axum::Json;
-use cs2kz::SteamID;
-use serde::Serialize;
-use utoipa::ToSchema;
-
-use crate::util::Created;
-
-use super::maps::Filter;
-
 use {
+	super::maps::Filter,
 	crate::{
-		Result,
 		res::{records as res, BadRequest},
-		Response, State,
+		util::Created,
+		Response, Result, State,
 	},
-	axum::extract::{Path, Query},
-	cs2kz::{MapIdentifier, Mode, PlayerIdentifier, Runtype, ServerIdentifier},
-	serde::Deserialize,
-	utoipa::IntoParams,
+	axum::{
+		extract::{Path, Query},
+		Json,
+	},
+	cs2kz::{MapIdentifier, Mode, PlayerIdentifier, Runtype, ServerIdentifier, SteamID},
+	serde::{Deserialize, Serialize},
+	utoipa::{IntoParams, ToSchema},
 };
 
 #[derive(Debug, Deserialize, IntoParams)]
@@ -31,7 +26,9 @@ pub struct GetRecordsParams<'a> {
 	top_only: Option<bool>,
 	allow_banned: Option<bool>,
 	allow_non_ranked: Option<bool>,
-	offset: Option<u64>,
+
+	#[serde(default)]
+	offset: u64,
 	limit: Option<u64>,
 }
 

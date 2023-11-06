@@ -239,11 +239,11 @@ pub async fn create_ban(
 		plugin_version,
 		expires_on,
 	}
-	.execute(&mut *transaction)
+	.execute(transaction.as_mut())
 	.await?;
 
 	let id = sqlx::query!("SELECT MAX(id) id FROM Bans")
-		.fetch_one(&mut *transaction)
+		.fetch_one(transaction.as_mut())
 		.await?
 		.id
 		.expect("ban was just inserted");
