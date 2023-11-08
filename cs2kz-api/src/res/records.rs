@@ -7,7 +7,7 @@ use {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Record {
-	pub id: u32,
+	pub id: u64,
 	pub map_id: u16,
 	pub map_name: String,
 	pub map_stage: u8,

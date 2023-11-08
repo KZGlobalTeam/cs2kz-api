@@ -2,7 +2,7 @@ use {
 	crate::{
 		res::{records as res, BadRequest},
 		util::Created,
-		Response, Result, State,
+		Error, Response, Result, State,
 	},
 	axum::{
 		extract::{Path, Query},
@@ -65,14 +65,75 @@ pub async fn get_records(
 #[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records/{id}",
 	params(("id" = u32, Path, description = "The records's ID")),
 	responses(
-		(status = 200, body = Vec<Record>),
+		(status = 200, body = Record),
 		(status = 204),
 		(status = 400, response = BadRequest),
 		(status = 500, body = Error),
 	),
 )]
-pub async fn get_record(state: State, Path(record_id): Path<u32>) -> Response<Vec<res::Record>> {
-	todo!();
+pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Response<res::Record> {
+	sqlx::query! {
+		r#"
+		SELECT
+			r.id,
+			m.id map_id,
+			m.name map_name,
+			c.stage map_stage,
+			c.id course_id,
+			c.difficulty course_tier,
+			f.mode_id,
+			r.teleports > 0 `runtype: bool`,
+			f.style_id,
+			p.name player_name,
+			p.id steam_id,
+			s.id server_id,
+			s.name server_name,
+			r.teleports,
+			r.time,
+			r.created_on
+		FROM
+			Records r
+			JOIN Filters f ON f.id = r.filter_id
+			JOIN Courses c ON c.id = f.course_id
+			JOIN Maps m ON m.id = c.map_id
+			JOIN Players p ON p.id = r.player_id
+			JOIN Servers s ON s.id = r.server_id
+		WHERE
+			r.id = ?
+		"#,
+		record_id,
+	}
+	.fetch_optional(state.database())
+	.await?
+	.map(|record| res::Record {
+		id: record.id,
+		map_id: record.map_id,
+		map_name: record.map_name,
+		map_stage: record.map_stage,
+		course_id: record.course_id,
+		course_tier: record
+			.course_tier
+			.try_into()
+			.expect("found invalid tier"),
+		mode: record
+			.mode_id
+			.try_into()
+			.expect("found invalid mode"),
+		runtype: record.runtype.into(),
+		style: record
+			.style_id
+			.try_into()
+			.expect("found invalid style"),
+		player_name: record.player_name,
+		steam_id: SteamID::from_id32(record.steam_id).expect("found invalid SteamID"),
+		server_id: record.server_id,
+		server_name: record.server_name,
+		teleports: record.teleports,
+		time: record.time,
+		created_on: record.created_on,
+	})
+	.map(Json)
+	.ok_or(Error::NoContent)
 }
 
 #[tracing::instrument(level = "DEBUG")]
