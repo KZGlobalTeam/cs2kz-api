@@ -1,5 +1,4 @@
 use {
-	super::maps::Filter,
 	crate::{
 		res::{records as res, BadRequest},
 		util::Created,
@@ -92,16 +91,16 @@ pub async fn get_replay(state: State, Path(record_id): Path<u32>) -> Response<()
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewRecord {
-	course_id: u16,
+	course_id: u32,
 	steam_id: SteamID,
-	filter: Filter,
+	filter_id: u32,
 	time: f64,
 	teleports: u16,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewRecordWithId {
-	id: u32,
+	id: u64,
 
 	#[serde(flatten)]
 	record: NewRecord,
@@ -119,7 +118,48 @@ pub struct NewRecordWithId {
 )]
 pub async fn create_record(
 	state: State,
-	Json(NewRecord { course_id, steam_id, filter, time, teleports }): Json<NewRecord>,
+	Json(NewRecord { course_id, steam_id, filter_id, time, teleports }): Json<NewRecord>,
 ) -> Result<Created<Json<NewRecordWithId>>> {
-	todo!();
+	// TODO(AlphaKeks): delete this once we have middleware
+	let server_id = 0;
+	let plugin_version = 0;
+
+	let mut transaction = state.database().begin().await?;
+
+	sqlx::query! {
+		r#"
+		INSERT INTO
+			Records (
+				filter_id,
+				player_id,
+				server_id,
+				teleports,
+				time,
+				plugin_version
+			)
+		VALUES
+			(?, ?, ?, ?, ?, ?)
+		"#,
+		filter_id,
+		steam_id.as_u32(),
+		server_id,
+		teleports,
+		time,
+		plugin_version,
+	}
+	.execute(transaction.as_mut())
+	.await?;
+
+	let record_id = sqlx::query!("SELECT MAX(id) id FROM Records")
+		.fetch_one(transaction.as_mut())
+		.await?
+		.id
+		.expect("we just inserted a record");
+
+	transaction.commit().await?;
+
+	Ok(Created(Json(NewRecordWithId {
+		id: record_id,
+		record: NewRecord { course_id, steam_id, filter_id, time, teleports },
+	})))
 }
