@@ -260,21 +260,7 @@ pub async fn create_map(
 		NewMap,
 	>,
 ) -> Result<Created<Json<NewMapWithId>>> {
-	let course_has_stage = |stage: u8| courses.iter().any(|course| course.stage == stage);
-
-	// Make sure courses have no gaps in their stages
-	for stage in 0..courses.len() as u8 {
-		if !course_has_stage(stage) {
-			return Err(Error::MissingCourse { stage });
-		}
-	}
-
-	// Make sure each filter actually refers to an existing course
-	for stage in filters.iter().map(|filter| filter.stage) {
-		if !course_has_stage(stage) {
-			return Err(Error::InvalidFilter { stage });
-		}
-	}
+	validate_courses_and_filters(&courses, &filters)?;
 
 	let mut transaction = state.database().begin().await?;
 
@@ -395,6 +381,45 @@ pub async fn create_map(
 		owned_by,
 		approved_by,
 	})))
+}
+
+fn validate_courses_and_filters(courses: &[Course], filters: &[Filter]) -> Result<()> {
+	let mut stage_counters = vec![0; courses.len()];
+	let course_has_stage = |stage: u8| courses.iter().any(|course| course.stage == stage);
+
+	// Make sure courses have no gaps in their stages
+	for stage in 0..courses.len() as u8 {
+		if !course_has_stage(stage) {
+			return Err(Error::MissingCourse { stage });
+		}
+
+		stage_counters[stage as usize] += 1;
+	}
+
+	// Make sure each stage was only submitted once
+	for (stage, &count) in stage_counters.iter().enumerate() {
+		if count > 1 {
+			return Err(Error::DuplicateCourse { stage: stage as u8 });
+		}
+	}
+
+	// Make sure each filter actually refers to an existing course
+	for stage in filters.iter().map(|filter| filter.stage) {
+		if !course_has_stage(stage) {
+			return Err(Error::InvalidFilter { stage });
+		}
+
+		stage_counters[stage as usize] += 1;
+	}
+
+	// Make sure each filter was only submitted once
+	for (stage, &count) in stage_counters.iter().enumerate() {
+		if count > 2 {
+			return Err(Error::DuplicateFilter { stage: stage as u8 });
+		}
+	}
+
+	Ok(())
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]

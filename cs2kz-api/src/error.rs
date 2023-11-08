@@ -24,6 +24,12 @@ pub enum Error {
 
 	#[error("Filter for stage {stage} is invalid as stage {stage} does not exist.")]
 	InvalidFilter { stage: u8 },
+
+	#[error("Cannot create duplicate course for stage {stage}.")]
+	DuplicateCourse { stage: u8 },
+
+	#[error("Cannot create duplicate filter for stage {stage}.")]
+	DuplicateFilter { stage: u8 },
 }
 
 impl IntoResponse for Error {
@@ -32,7 +38,10 @@ impl IntoResponse for Error {
 		let code = match self {
 			Self::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
 			Self::NoContent => StatusCode::NO_CONTENT,
-			Self::MissingCourse { .. } | Self::InvalidFilter { .. } => StatusCode::BAD_REQUEST,
+			Self::MissingCourse { .. }
+			| Self::InvalidFilter { .. }
+			| Self::DuplicateCourse { .. }
+			| Self::DuplicateFilter { .. } => StatusCode::BAD_REQUEST,
 		};
 
 		(code, Json(message)).into_response()
