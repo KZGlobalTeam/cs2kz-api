@@ -356,8 +356,11 @@ pub async fn create_map(
 		.map(|course| CourseWithId {
 			id: course.id,
 			stage: course.stage,
-			difficulty: course.difficulty.try_into().unwrap(),
-			created_by: SteamID::from_id32(course.created_by).unwrap(),
+			difficulty: course
+				.difficulty
+				.try_into()
+				.expect("found invalid tier"),
+			created_by: SteamID::from_id32(course.created_by).expect("found invalid SteamID"),
 		})
 		.collect::<Vec<_>>();
 
@@ -369,9 +372,15 @@ pub async fn create_map(
 				.iter()
 				.find(|course| course.id == filter.course_id)
 				.map(|course| course.stage)
-				.unwrap(),
-			mode: filter.mode_id.try_into().unwrap(),
-			style: filter.style_id.try_into().unwrap(),
+				.expect("we just inserted these courses"),
+			mode: filter
+				.mode_id
+				.try_into()
+				.expect("found invalid mode ID"),
+			style: filter
+				.style_id
+				.try_into()
+				.expect("found invalid style ID"),
 		})
 		.collect::<Vec<_>>();
 
