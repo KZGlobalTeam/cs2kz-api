@@ -263,22 +263,17 @@ pub async fn create_map(
 	let course_has_stage = |stage: u8| courses.iter().any(|course| course.stage == stage);
 
 	// Make sure courses have no gaps in their stages
-	let valid_courses = courses
-		.iter()
-		.enumerate()
-		.all(|(x, _)| course_has_stage(x as u8));
-
-	if !valid_courses {
-		todo!();
+	for stage in 0..courses.len() as u8 {
+		if !course_has_stage(stage) {
+			return Err(Error::MissingCourse { stage });
+		}
 	}
 
 	// Make sure each filter actually refers to an existing course
-	let valid_filters = filters
-		.iter()
-		.all(|filter| course_has_stage(filter.stage));
-
-	if !valid_filters {
-		todo!();
+	for stage in filters.iter().map(|filter| filter.stage) {
+		if !course_has_stage(stage) {
+			return Err(Error::InvalidFilter { stage });
+		}
 	}
 
 	let mut transaction = state.database().begin().await?;
