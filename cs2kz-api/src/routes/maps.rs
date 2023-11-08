@@ -399,8 +399,15 @@ pub async fn create_map(
 pub struct MapUpdate {
 	name: Option<String>,
 	workshop_id: Option<u32>,
-	filters_added: Option<Vec<Filter>>,
-	filters_removed: Option<Vec<u16>>,
+	filters_added: Option<Vec<FilterWithCourseId>>,
+	filters_removed: Option<Vec<u32>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct FilterWithCourseId {
+	course_id: u32,
+	mode: Mode,
+	style: Style,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -416,6 +423,47 @@ pub async fn update_map(
 	state: State,
 	Path(map_id): Path<u16>,
 	Json(MapUpdate { name, workshop_id, filters_added, filters_removed }): Json<MapUpdate>,
-) -> Response<()> {
-	todo!();
+) -> Result<()> {
+	let mut transaction = state.database().begin().await?;
+
+	if let Some(name) = name {
+		sqlx::query!("UPDATE Maps SET name = ? WHERE id = ?", name, map_id)
+			.execute(transaction.as_mut())
+			.await?;
+	}
+
+	if let Some(workshop_id) = workshop_id {
+		sqlx::query!("UPDATE Maps SET workshop_id = ? WHERE id = ?", workshop_id, map_id)
+			.execute(transaction.as_mut())
+			.await?;
+	}
+
+	if let Some(filters) = filters_added {
+		let mut create_filters =
+			QueryBuilder::new("INSERT INTO Filters (course_id, mode_id, style_id)");
+
+		create_filters.push_values(filters, |mut query, filter| {
+			query
+				.push_bind(filter.course_id)
+				.push_bind(filter.mode as u8)
+				.push_bind(filter.style as u8);
+		});
+
+		create_filters
+			.build()
+			.execute(transaction.as_mut())
+			.await?;
+	}
+
+	if let Some(filters) = filters_removed {
+		for filter_id in filters {
+			sqlx::query!("DELETE FROM Filters WHERE id = ?", filter_id)
+				.execute(transaction.as_mut())
+				.await?;
+		}
+	}
+
+	transaction.commit().await?;
+
+	Ok(())
 }
