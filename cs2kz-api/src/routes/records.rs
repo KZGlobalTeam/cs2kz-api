@@ -33,12 +33,15 @@ pub struct GetRecordsParams<'a> {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records", params(GetRecordsParams), responses(
-	(status = 200, body = Vec<Record>),
-	(status = 204),
-	(status = 400, response = BadRequest),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records",
+	params(GetRecordsParams),
+	responses(
+		(status = 200, body = Vec<Record>),
+		(status = 204),
+		(status = 400, response = BadRequest),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn get_records(
 	state: State,
 	Query(GetRecordsParams {
@@ -60,27 +63,29 @@ pub async fn get_records(
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records/{id}", params(
-	("id" = u32, Path, description = "The records's ID")
-), responses(
-	(status = 200, body = Vec<Record>),
-	(status = 204),
-	(status = 400, response = BadRequest),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records/{id}",
+	params(("id" = u32, Path, description = "The records's ID")),
+	responses(
+		(status = 200, body = Vec<Record>),
+		(status = 204),
+		(status = 400, response = BadRequest),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn get_record(state: State, Path(record_id): Path<u32>) -> Response<Vec<res::Record>> {
 	todo!();
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records/{id}/replay", params(
-	("id" = u32, Path, description = "The records's ID")
-), responses(
-	(status = 200, body = ()),
-	(status = 204),
-	(status = 400, response = BadRequest),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records/{id}/replay",
+	params(("id" = u32, Path, description = "The records's ID")),
+	responses(
+		(status = 200, body = ()),
+		(status = 204),
+		(status = 400, response = BadRequest),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn get_replay(state: State, Path(record_id): Path<u32>) -> Response<()> {
 	todo!();
 }
@@ -103,12 +108,15 @@ pub struct NewRecordWithId {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(post, tag = "Records", context_path = "/api/v0", path = "/records", request_body = NewRecord, responses(
-	(status = 201, body = NewRecordWithId),
-	(status = 400, response = BadRequest),
-	(status = 401, body = Error),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(post, tag = "Records", context_path = "/api/v0", path = "/records",
+	request_body = NewRecord,
+	responses(
+		(status = 201, body = NewRecordWithId),
+		(status = 400, response = BadRequest),
+		(status = 401, body = Error),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn create_record(
 	state: State,
 	Json(NewRecord { course_id, steam_id, filter, time, teleports }): Json<NewRecord>,

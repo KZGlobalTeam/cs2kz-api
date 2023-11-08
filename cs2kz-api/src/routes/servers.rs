@@ -45,12 +45,15 @@ pub struct GetServersParams<'a> {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(get, tag = "Servers", context_path = "/api/v0", path = "/servers", params(GetServersParams), responses(
-	(status = 200, body = Vec<Server>),
-	(status = 204),
-	(status = 400, response = BadRequest),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(get, tag = "Servers", context_path = "/api/v0", path = "/servers",
+	params(GetServersParams),
+	responses(
+		(status = 200, body = Vec<Server>),
+		(status = 204),
+		(status = 400, response = BadRequest),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn get_servers(
 	state: State,
 	Query(GetServersParams { name, owned_by, created_after, created_before, offset, limit }): Query<
@@ -127,14 +130,15 @@ pub async fn get_servers(
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(get, tag = "Servers", context_path = "/api/v0", path = "/servers/{ident}", params(
-	("ident" = ServerIdentifier, Path, description = "The servers's ID or name")
-), responses(
-	(status = 200, body = Server),
-	(status = 204),
-	(status = 400, response = BadRequest),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(get, tag = "Servers", context_path = "/api/v0", path = "/servers/{ident}",
+	params(("ident" = ServerIdentifier, Path, description = "The servers's ID or name")),
+	responses(
+		(status = 200, body = Server),
+		(status = 204),
+		(status = 400, response = BadRequest),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn get_server(
 	state: State,
 	Path(ident): Path<ServerIdentifier<'_>>,
@@ -184,12 +188,15 @@ pub struct NewServerWithId {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(post, tag = "Servers", context_path = "/api/v0", path = "/servers", request_body = NewServer, responses(
-	(status = 201, body = NewServerWithId),
-	(status = 400, response = BadRequest),
-	(status = 401, body = Error),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(post, tag = "Servers", context_path = "/api/v0", path = "/servers",
+	request_body = NewServer,
+	responses(
+		(status = 201, body = NewServerWithId),
+		(status = 400, response = BadRequest),
+		(status = 401, body = Error),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn create_server(
 	state: State,
 	Json(NewServer { name, owned_by, ip, port, approved_by }): Json<NewServer>,
@@ -239,14 +246,16 @@ pub struct ServerUpdate {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(put, tag = "Servers", context_path = "/api/v0", path = "/servers/{id}", request_body = ServerUpdate, params(
-	("id" = u16, Path, description = "The server's ID")
-), responses(
-	(status = 200),
-	(status = 400, response = BadRequest),
-	(status = 401, body = Error),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(put, tag = "Servers", context_path = "/api/v0", path = "/servers/{id}",
+	params(("id" = u16, Path, description = "The server's ID")),
+	request_body = ServerUpdate,
+	responses(
+		(status = 200),
+		(status = 400, response = BadRequest),
+		(status = 401, body = Error),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn update_server(
 	state: State,
 	Path(server_id): Path<u16>,

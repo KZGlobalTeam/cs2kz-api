@@ -34,12 +34,15 @@ pub struct GetBansParams<'a> {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(get, tag = "Bans", context_path = "/api/v0", path = "/bans", params(GetBansParams), responses(
-	(status = 200, body = Vec<Ban>),
-	(status = 204),
-	(status = 400, response = BadRequest),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(get, tag = "Bans", context_path = "/api/v0", path = "/bans",
+	params(GetBansParams),
+	responses(
+		(status = 200, body = Vec<Ban>),
+		(status = 204),
+		(status = 400, response = BadRequest),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn get_bans(
 	state: State,
 	Query(GetBansParams {
@@ -167,14 +170,15 @@ pub async fn get_bans(
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(get, tag = "Bans", context_path = "/api/v0", path = "/bans/{id}/replay", params(
-	("id" = u32, Path, description = "The ban's ID"),
-), responses(
-	(status = 200, body = ()),
-	(status = 204),
-	(status = 400, response = BadRequest),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(get, tag = "Bans", context_path = "/api/v0", path = "/bans/{id}/replay",
+	params(("id" = u32, Path, description = "The ban's ID")),
+	responses(
+		(status = 200, body = ()),
+		(status = 204),
+		(status = 400, response = BadRequest),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn get_replay(state: State, Path(ban_id): Path<u32>) -> Response<()> {
 	todo!();
 }
@@ -202,12 +206,15 @@ pub struct NewBanWithId {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(post, tag = "Bans", context_path = "/api/v0", path = "/bans", request_body = NewBan, responses(
-	(status = 201, body = NewBanWithId),
-	(status = 400, response = BadRequest),
-	(status = 401, body = Error),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(post, tag = "Bans", context_path = "/api/v0", path = "/bans",
+	request_body = NewBan,
+	responses(
+		(status = 201, body = NewBanWithId),
+		(status = 400, response = BadRequest),
+		(status = 401, body = Error),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn create_ban(
 	state: State,
 	Json(NewBan { steam_id, ip, server_id, reason, banned_by, plugin_version, expires_on }): Json<

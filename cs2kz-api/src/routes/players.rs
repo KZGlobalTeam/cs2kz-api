@@ -47,12 +47,15 @@ pub struct RootGetParams {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(get, tag = "Players", context_path = "/api/v0", path = "/players", params(RootGetParams), responses(
-	(status = 200, body = Vec<Player>),
-	(status = 204),
-	(status = 400, response = BadRequest),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(get, tag = "Players", context_path = "/api/v0", path = "/players",
+	params(RootGetParams),
+	responses(
+		(status = 200, body = Vec<Player>),
+		(status = 204),
+		(status = 400, response = BadRequest),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn get_players(
 	state: State,
 	Query(RootGetParams { name, playtime, is_banned, offset, limit }): Query<RootGetParams>,
@@ -111,14 +114,15 @@ pub async fn get_players(
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(get, tag = "Players", context_path = "/api/v0", path = "/players/{ident}", params(
-	("ident" = PlayerIdentifier, Path, description = "The player's SteamID or name")
-), responses(
-	(status = 200, body = Player),
-	(status = 204),
-	(status = 400, response = BadRequest),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(get, tag = "Players", context_path = "/api/v0", path = "/players/{ident}",
+	params(("ident" = PlayerIdentifier, Path, description = "The player's SteamID or name")),
+	responses(
+		(status = 200, body = Player),
+		(status = 204),
+		(status = 400, response = BadRequest),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn get_player(
 	state: State,
 	Path(ident): Path<PlayerIdentifier<'_>>,
@@ -160,12 +164,15 @@ pub struct NewPlayer {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(post, tag = "Players", context_path = "/api/v0", path = "/players", request_body = NewPlayer, responses(
-	(status = 201, body = NewPlayer),
-	(status = 400, response = BadRequest),
-	(status = 401, body = Error),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(post, tag = "Players", context_path = "/api/v0", path = "/players",
+	request_body = NewPlayer,
+	responses(
+		(status = 201, body = NewPlayer),
+		(status = 400, response = BadRequest),
+		(status = 401, body = Error),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn create_player(
 	state: State,
 	Json(NewPlayer { steam_id, name, ip }): Json<NewPlayer>,
@@ -207,14 +214,16 @@ pub struct PlayerUpdate {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(put, tag = "Players", context_path = "/api/v0", path = "/players/{steam_id}", request_body = PlayerUpdate, params(
-	("steam_id" = SteamID, Path, description = "The player's SteamID or name")
-), responses(
-	(status = 200),
-	(status = 400, response = BadRequest),
-	(status = 401, body = Error),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(put, tag = "Players", context_path = "/api/v0", path = "/players/{steam_id}",
+	params(("steam_id" = SteamID, Path, description = "The player's SteamID or name")),
+	request_body = PlayerUpdate,
+	responses(
+		(status = 200),
+		(status = 400, response = BadRequest),
+		(status = 401, body = Error),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn update_player(
 	state: State,
 	Path(steam_id): Path<SteamID>,

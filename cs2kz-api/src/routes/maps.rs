@@ -54,12 +54,15 @@ pub struct GetMapsParams<'a> {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(get, tag = "Maps", context_path = "/api/v0", path = "/maps", params(GetMapsParams), responses(
-	(status = 200, body = Vec<KZMap>),
-	(status = 204),
-	(status = 400, response = BadRequest),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(get, tag = "Maps", context_path = "/api/v0", path = "/maps",
+	params(GetMapsParams),
+	responses(
+		(status = 200, body = Vec<KZMap>),
+		(status = 204),
+		(status = 400, response = BadRequest),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn get_maps(
 	state: State,
 	Query(GetMapsParams { name, created_by, created_after, created_before, offset, limit }): Query<
@@ -150,14 +153,15 @@ pub async fn get_maps(
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(get, tag = "Maps", context_path = "/api/v0", path = "/maps/{ident}", params(
-	("ident" = MapIdentifier, Path, description = "The map's ID or name")
-), responses(
-	(status = 200, body = KZMap),
-	(status = 204),
-	(status = 400, response = BadRequest),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(get, tag = "Maps", context_path = "/api/v0", path = "/maps/{ident}",
+	params(("ident" = MapIdentifier, Path, description = "The map's ID or name")),
+	responses(
+		(status = 200, body = KZMap),
+		(status = 204),
+		(status = 400, response = BadRequest),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn get_map(state: State, Path(ident): Path<MapIdentifier<'_>>) -> Response<res::KZMap> {
 	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
 
@@ -241,12 +245,15 @@ pub struct FilterWithId {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(post, tag = "Maps", context_path = "/api/v0", path = "/maps", request_body = NewMap, responses(
-	(status = 201, body = NewMapWithId),
-	(status = 400, response = BadRequest),
-	(status = 401, body = Error),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(post, tag = "Maps", context_path = "/api/v0", path = "/maps",
+	request_body = NewMap,
+	responses(
+		(status = 201, body = NewMapWithId),
+		(status = 400, response = BadRequest),
+		(status = 401, body = Error),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn create_map(
 	state: State,
 	Json(NewMap { name, workshop_id, courses, filters, filesize, owned_by, approved_by }): Json<
@@ -411,14 +418,16 @@ pub struct FilterWithCourseId {
 }
 
 #[tracing::instrument(level = "DEBUG")]
-#[utoipa::path(put, tag = "Maps", context_path = "/api/v0", path = "/maps/{id}", request_body = MapUpdate, params(
-	("id" = u16, Path, description = "The map's ID")
-), responses(
-	(status = 200),
-	(status = 400, response = BadRequest),
-	(status = 401, body = Error),
-	(status = 500, body = Error),
-))]
+#[utoipa::path(put, tag = "Maps", context_path = "/api/v0", path = "/maps/{id}",
+	params(("id" = u16, Path, description = "The map's ID")),
+	request_body = MapUpdate,
+	responses(
+		(status = 200),
+		(status = 400, response = BadRequest),
+		(status = 401, body = Error),
+		(status = 500, body = Error),
+	),
+)]
 pub async fn update_map(
 	state: State,
 	Path(map_id): Path<u16>,
