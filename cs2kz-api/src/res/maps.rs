@@ -12,14 +12,14 @@ pub struct KZMap {
 	pub id: u16,
 	pub name: String,
 	pub workshop_id: u32,
-	pub courses: Vec<Course>,
+	pub courses: Vec<MapCourse>,
 	pub filesize: u64,
 	pub owned_by: PlayerInfo,
 	pub created_on: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
-pub struct Course {
+pub struct MapCourse {
 	pub id: u32,
 	pub stage: u8,
 	pub tier: Tier,
@@ -52,7 +52,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 		let course_created_by_steam_id = SteamID::from_id32(course_created_by_id)
 			.map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
-		let courses = vec![Course {
+		let courses = vec![MapCourse {
 			id: course_id,
 			stage: course_stage,
 			tier: course_tier,

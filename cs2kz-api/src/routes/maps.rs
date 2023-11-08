@@ -19,7 +19,6 @@ use {
 const LIMIT_DEFAULT: u64 = 100;
 const LIMIT_MAX: u64 = 1000;
 
-// FIXME(AlphaKeks): this does not include the courses yet
 const ROOT_GET_BASE_QUERY: &str = r#"
 	SELECT
 		m.id,

@@ -1,12 +1,12 @@
 INSERT INTO
 	Modes (name)
 VALUES
-	("kz_modded");
+	("kz_vanilla");
 
 INSERT INTO
 	Modes (name)
 VALUES
-	("kz_vanilla");
+	("kz_modded");
 
 INSERT INTO
 	Styles (name)

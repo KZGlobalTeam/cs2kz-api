@@ -30,6 +30,9 @@ pub enum Error {
 
 	#[error("Cannot create duplicate filter for stage {stage}.")]
 	DuplicateFilter { stage: u8 },
+
+	#[error("Filter for this record does not exist.")]
+	MissingFilter,
 }
 
 impl IntoResponse for Error {
@@ -41,7 +44,8 @@ impl IntoResponse for Error {
 			Self::MissingCourse { .. }
 			| Self::InvalidFilter { .. }
 			| Self::DuplicateCourse { .. }
-			| Self::DuplicateFilter { .. } => StatusCode::BAD_REQUEST,
+			| Self::DuplicateFilter { .. }
+			| Self::MissingFilter => StatusCode::BAD_REQUEST,
 		};
 
 		(code, Json(message)).into_response()

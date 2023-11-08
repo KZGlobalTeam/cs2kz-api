@@ -8,7 +8,7 @@ use {
 		extract::{Path, Query},
 		Json,
 	},
-	cs2kz::{MapIdentifier, Mode, PlayerIdentifier, Runtype, ServerIdentifier, SteamID},
+	cs2kz::{MapIdentifier, Mode, PlayerIdentifier, Runtype, ServerIdentifier, SteamID, Style},
 	serde::{Deserialize, Serialize},
 	utoipa::{IntoParams, ToSchema},
 };
@@ -78,8 +78,8 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Response<re
 			r.id,
 			m.id map_id,
 			m.name map_name,
-			c.stage map_stage,
 			c.id course_id,
+			c.stage course_stage,
 			c.difficulty course_tier,
 			f.mode_id,
 			r.teleports > 0 `runtype: bool`,
@@ -107,14 +107,15 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Response<re
 	.await?
 	.map(|record| res::Record {
 		id: record.id,
-		map_id: record.map_id,
-		map_name: record.map_name,
-		map_stage: record.map_stage,
-		course_id: record.course_id,
-		course_tier: record
-			.course_tier
-			.try_into()
-			.expect("found invalid tier"),
+		map: res::RecordMap { id: record.map_id, name: record.map_name },
+		course: res::RecordCourse {
+			id: record.course_id,
+			stage: record.course_stage,
+			tier: record
+				.course_tier
+				.try_into()
+				.expect("found invalid tier"),
+		},
 		mode: record
 			.mode_id
 			.try_into()
@@ -124,10 +125,11 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Response<re
 			.style_id
 			.try_into()
 			.expect("found invalid style"),
-		player_name: record.player_name,
-		steam_id: SteamID::from_id32(record.steam_id).expect("found invalid SteamID"),
-		server_id: record.server_id,
-		server_name: record.server_name,
+		player: res::RecordPlayer {
+			name: record.player_name,
+			steam_id: SteamID::from_id32(record.steam_id).expect("found invalid SteamID"),
+		},
+		server: res::RecordServer { id: record.server_id, name: record.server_name },
 		teleports: record.teleports,
 		time: record.time,
 		created_on: record.created_on,
@@ -153,8 +155,9 @@ pub async fn get_replay(state: State, Path(record_id): Path<u32>) -> Response<()
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewRecord {
 	course_id: u32,
+	mode: Mode,
+	style: Style,
 	steam_id: SteamID,
-	filter_id: u32,
 	time: f64,
 	teleports: u16,
 }
@@ -179,11 +182,31 @@ pub struct NewRecordWithId {
 )]
 pub async fn create_record(
 	state: State,
-	Json(NewRecord { course_id, steam_id, filter_id, time, teleports }): Json<NewRecord>,
+	Json(NewRecord { course_id, mode, style, steam_id, time, teleports }): Json<NewRecord>,
 ) -> Result<Created<Json<NewRecordWithId>>> {
 	// TODO(AlphaKeks): delete this once we have middleware
 	let server_id = 0;
 	let plugin_version = 0;
+
+	let filter_id = sqlx::query! {
+		r#"
+		SELECT
+			id
+		FROM
+			Filters
+		WHERE
+			course_id = ?
+			AND mode_id = ?
+			AND style_id = ?
+		"#,
+		course_id,
+		mode as u8,
+		style as u8,
+	}
+	.fetch_optional(state.database())
+	.await?
+	.map(|row| row.id)
+	.ok_or(Error::MissingFilter)?;
 
 	let mut transaction = state.database().begin().await?;
 
@@ -221,6 +244,6 @@ pub async fn create_record(
 
 	Ok(Created(Json(NewRecordWithId {
 		id: record_id,
-		record: NewRecord { course_id, steam_id, filter_id, time, teleports },
+		record: NewRecord { course_id, mode, style, steam_id, time, teleports },
 	})))
 }

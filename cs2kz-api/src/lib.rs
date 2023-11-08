@@ -23,7 +23,7 @@ pub mod res;
 ///
 /// Usually you would write a handler function like this:
 ///
-/// ```rust
+/// ```ignore
 /// use axum::extract::State;
 /// use crate::State as AppState;
 ///
@@ -35,7 +35,7 @@ pub mod res;
 ///
 /// To avoid all that type "boilerplate", you can use this type alias instead:
 ///
-/// ```rust
+/// ```ignore
 /// use crate::State;
 ///
 /// async fn handler(state: State) {
@@ -68,43 +68,72 @@ pub type Response<T> = Result<axum::Json<T>>;
 		routes::players::update_player,
 
 		routes::bans::get_bans,
-		routes::bans::create_ban,
 		routes::bans::get_replay,
+		routes::bans::create_ban,
+
+		routes::maps::get_maps,
+		routes::maps::get_map,
+		routes::maps::create_map,
+		routes::maps::update_map,
+
+		routes::servers::get_servers,
+		routes::servers::get_server,
+		routes::servers::create_server,
+		routes::servers::update_server,
+
+		routes::records::get_records,
+		routes::records::get_record,
+		routes::records::get_replay,
+		routes::records::create_record,
 	),
 
 	components(
 		schemas(
-			crate::Error,
 			cs2kz::SteamID,
 			cs2kz::PlayerIdentifier,
 			cs2kz::MapIdentifier,
 			cs2kz::ServerIdentifier,
 			cs2kz::Mode,
-			cs2kz::Tier,
-			cs2kz::Runtype,
 			cs2kz::Style,
 			cs2kz::Jumpstat,
+			cs2kz::Tier,
+			cs2kz::Runtype,
 
-			res::PlayerInfo,
-			res::player::Player,
-			res::bans::Ban,
-			res::maps::KZMap,
-			res::servers::Server,
-			res::records::Record,
+			crate::Error,
 
-			routes::players::NewPlayer,
-			routes::players::PlayerUpdate,
+			crate::res::PlayerInfo,
 
-			routes::bans::NewBan,
-			routes::bans::NewBanWithId,
+			crate::res::player::Player,
+			crate::routes::players::NewPlayer,
+			crate::routes::players::PlayerUpdate,
 
-			routes::maps::NewMap,
-			routes::maps::NewMapWithId,
-			routes::maps::MapUpdate,
+			crate::res::bans::Ban,
+			crate::routes::bans::NewBan,
+			crate::routes::bans::NewBanWithId,
 
-			routes::servers::NewServer,
-			routes::servers::NewServerWithId,
-			routes::servers::ServerUpdate,
+			crate::res::maps::KZMap,
+			crate::res::maps::MapCourse,
+			crate::routes::maps::NewMap,
+			crate::routes::maps::Course,
+			crate::routes::maps::Filter,
+			crate::routes::maps::NewMapWithId,
+			crate::routes::maps::CourseWithId,
+			crate::routes::maps::FilterWithId,
+			crate::routes::maps::MapUpdate,
+			crate::routes::maps::FilterWithCourseId,
+
+			crate::res::servers::Server,
+			crate::routes::servers::NewServer,
+			crate::routes::servers::NewServerWithId,
+			crate::routes::servers::ServerUpdate,
+
+			crate::res::records::Record,
+			crate::res::records::RecordMap,
+			crate::res::records::RecordCourse,
+			crate::res::records::RecordPlayer,
+			crate::res::records::RecordServer,
+			crate::routes::records::NewRecord,
+			crate::routes::records::NewRecordWithId,
 		),
 
 		responses(
@@ -120,7 +149,7 @@ impl API {
 		let state: &'static AppState = Box::leak(Box::new(state));
 
 		let public_api_router = Router::new()
-			.route("/health", routing::get(routes::health))
+			.route("/health", routing::get(routes::health::health))
 			.route("/players", routing::get(routes::players::get_players))
 			.route("/players/:ident", routing::get(routes::players::get_player))
 			.route("/bans", routing::get(routes::bans::get_bans))

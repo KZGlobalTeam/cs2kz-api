@@ -215,7 +215,7 @@ pub struct PlayerUpdate {
 
 #[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(put, tag = "Players", context_path = "/api/v0", path = "/players/{steam_id}",
-	params(("steam_id" = SteamID, Path, description = "The player's SteamID or name")),
+	params(("steam_id" = SteamID, Path, description = "The player's SteamID")),
 	request_body = PlayerUpdate,
 	responses(
 		(status = 200),

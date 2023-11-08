@@ -20,6 +20,7 @@ pub static STEAM3_ID_REGEX: &Lazy<Regex> = regex!(r"^(\[U:1:\d+\]|U:1:\d+)$");
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "utoipa", schema(value_type = String))]
 pub struct SteamID(u64);
 
 #[rustfmt::skip]
@@ -526,7 +527,7 @@ mod tests {
 	mod min {
 		use super::*;
 
-		case!(MIN from_u64, SteamID::try_from(76561197960265728_u64));
+		case!(MIN from_u64, SteamID::try_from(76561197960265729_u64));
 		case!(MIN from_u32, SteamID::try_from(1_u32));
 		case!(MIN from_standard_0, SteamID::new("STEAM_0:1:0"));
 		case!(MIN from_standard_1, SteamID::new("STEAM_1:1:0"));
