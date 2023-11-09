@@ -167,20 +167,30 @@ pub async fn get_server(
 	Ok(Json(server))
 }
 
+/// Information about a new KZ server.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewServer {
+	/// The name of the server.
 	name: String,
+
+	/// The `SteamID` of the player who owns this server.
 	owned_by: SteamID,
 
+	/// The IP address of this server.
 	#[schema(value_type = String)]
-	ip: Ipv4Addr,
+	ip_address: Ipv4Addr,
 
+	/// The port of this server.
 	port: u16,
+
+	/// The `SteamID` of the admin who approved this server.
 	approved_by: SteamID,
 }
 
+/// Information about a newly created KZ server.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreatedServer {
+	/// The ID of the server.
 	id: u16,
 }
 
@@ -196,7 +206,7 @@ pub struct CreatedServer {
 )]
 pub async fn create_server(
 	state: State,
-	Json(NewServer { name, owned_by, ip, port, approved_by }): Json<NewServer>,
+	Json(NewServer { name, owned_by, ip_address, port, approved_by }): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
 	let api_key = rand::random::<u32>();
 	let mut transaction = state.database().begin().await?;
@@ -209,7 +219,7 @@ pub async fn create_server(
 			(?, ?, ?, ?, ?)
 		"#,
 		name,
-		ip.to_string(),
+		ip_address.to_string(),
 		port,
 		owned_by.as_u32(),
 		api_key,
@@ -228,15 +238,21 @@ pub async fn create_server(
 	Ok(Created(Json(CreatedServer { id })))
 }
 
+/// Updated information about a KZ server.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct ServerUpdate {
-	name: String,
-	owned_by: SteamID,
+	/// The new name of the server.
+	name: Option<String>,
 
-	#[schema(value_type = String)]
-	ip: Ipv4Addr,
+	/// The `SteamID` of the new server owner.
+	owned_by: Option<SteamID>,
 
-	port: u16,
+	/// The new IP address of the server.
+	#[schema(value_type = Option<String>)]
+	ip_address: Option<Ipv4Addr>,
+
+	/// The new port of the server.
+	port: Option<u16>,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -253,28 +269,35 @@ pub struct ServerUpdate {
 pub async fn update_server(
 	state: State,
 	Path(server_id): Path<u16>,
-	Json(ServerUpdate { name, owned_by, ip, port }): Json<ServerUpdate>,
+	Json(ServerUpdate { name, owned_by, ip_address, port }): Json<ServerUpdate>,
 ) -> Result<()> {
-	sqlx::query! {
-		r#"
-		UPDATE
-			Servers
-		SET
-			name = ?,
-			owned_by = ?,
-			ip_address = ?,
-			port = ?
-		WHERE
-			id = ?
-		"#,
-		name,
-		owned_by.as_u32(),
-		ip.to_string(),
-		port,
-		server_id,
+	let mut transaction = state.database().begin().await?;
+
+	if let Some(name) = name {
+		sqlx::query!("UPDATE Servers SET name = ? WHERE id = ?", name, server_id)
+			.execute(transaction.as_mut())
+			.await?;
 	}
-	.execute(state.database())
-	.await?;
+
+	if let Some(steam_id) = owned_by {
+		sqlx::query!("UPDATE Servers SET owned_by = ? WHERE id = ?", steam_id.as_u32(), server_id)
+			.execute(transaction.as_mut())
+			.await?;
+	}
+
+	if let Some(ip_address) = ip_address.map(|ip| ip.to_string()) {
+		sqlx::query!("UPDATE Servers SET ip_address = ? WHERE id = ?", ip_address, server_id)
+			.execute(transaction.as_mut())
+			.await?;
+	}
+
+	if let Some(port) = port {
+		sqlx::query!("UPDATE Servers SET port = ? WHERE id = ?", port, server_id)
+			.execute(transaction.as_mut())
+			.await?;
+	}
+
+	transaction.commit().await?;
 
 	Ok(())
 }

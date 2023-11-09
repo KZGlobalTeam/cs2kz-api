@@ -80,7 +80,7 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Response<re
 			m.name map_name,
 			c.id course_id,
 			c.stage course_stage,
-			c.difficulty course_tier,
+			f.tier course_tier,
 			f.mode_id,
 			r.teleports > 0 `runtype: bool`,
 			f.style_id,
@@ -107,20 +107,22 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Response<re
 	.await?
 	.map(|record| res::Record {
 		id: record.id,
-		map: res::RecordMap { id: record.map_id, name: record.map_name },
-		course: res::RecordCourse {
-			id: record.course_id,
-			stage: record.course_stage,
-			tier: record
-				.course_tier
-				.try_into()
-				.expect("found invalid tier"),
+		map: res::RecordMap {
+			id: record.map_id,
+			name: record.map_name,
+			course: res::RecordCourse {
+				id: record.course_id,
+				stage: record.course_stage,
+				tier: record
+					.course_tier
+					.try_into()
+					.expect("found invalid tier"),
+			},
 		},
 		mode: record
 			.mode_id
 			.try_into()
 			.expect("found invalid mode"),
-		runtype: record.runtype.into(),
 		style: record
 			.style_id
 			.try_into()
@@ -152,18 +154,32 @@ pub async fn get_replay(state: State, Path(record_id): Path<u32>) -> Response<()
 	todo!();
 }
 
+/// A newly submitted KZ record.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewRecord {
+	/// The ID of the course this record was performed on.
 	course_id: u32,
+
+	/// The mode this record was performed in.
 	mode: Mode,
+
+	/// The style this record was performed in.
 	style: Style,
+
+	/// The `SteamID` of the player who performed this record.
 	steam_id: SteamID,
+
+	/// The time it took to finish this run (in seconds).
 	time: f64,
+
+	/// The amount of teleports used in this run.
 	teleports: u16,
 }
 
+/// A newly created KZ record.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreatedRecord {
+	/// The record's ID.
 	id: u64,
 }
 

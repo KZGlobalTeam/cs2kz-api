@@ -7,15 +7,23 @@ use {
 	utoipa::ToSchema,
 };
 
+/// A KZ server.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Server {
+	/// The ID of the server.
 	pub id: u16,
+
+	/// The name of the server.
 	pub name: String,
+
+	/// The player who owns this server.
 	pub owned_by: PlayerInfo,
 
+	/// The IP address of this server.
 	#[schema(value_type = String)]
-	pub ip: Ipv4Addr,
+	pub ip_address: Ipv4Addr,
 
+	/// The port of this server.
 	pub port: u16,
 }
 
@@ -33,13 +41,13 @@ impl FromRow<'_, MySqlRow> for Server {
 		let steam_id =
 			SteamID::from_id32(steam32_id).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
-		let ip = row
+		let ip_address = row
 			.try_get::<&str, _>("ip_address")?
 			.parse::<Ipv4Addr>()
 			.map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
 		let owned_by = PlayerInfo { name: player_name, steam_id };
 
-		Ok(Self { id, name, owned_by, ip, port })
+		Ok(Self { id, name, owned_by, ip_address, port })
 	}
 }

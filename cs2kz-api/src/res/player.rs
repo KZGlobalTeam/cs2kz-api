@@ -1,12 +1,13 @@
 use {crate::database, chrono::NaiveTime, cs2kz::SteamID, serde::Serialize, utoipa::ToSchema};
 
+/// A KZ player.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Player {
-	/// The player's SteamID.
-	pub steam_id: SteamID,
-
 	/// The player's Steam name.
 	pub name: String,
+
+	/// The player's `SteamID`.
+	pub steam_id: SteamID,
 
 	/// The player's total active time spent on verified servers.
 	pub playtime: NaiveTime,
@@ -18,26 +19,14 @@ pub struct Player {
 	pub is_banned: bool,
 }
 
-impl Player {
-	pub const fn new(
-		name: String,
-		steam_id: SteamID,
-		playtime: NaiveTime,
-		afktime: NaiveTime,
-		is_banned: bool,
-	) -> Self {
-		Self { name, steam_id, playtime, afktime, is_banned }
-	}
-}
-
 impl From<database::PlayerWithPlaytime> for Player {
 	fn from(row: database::PlayerWithPlaytime) -> Self {
-		Self::new(
-			row.player.name,
-			row.player.steam_id,
-			row.playtime,
-			row.afktime,
-			row.player.is_banned,
-		)
+		Self {
+			name: row.player.name,
+			steam_id: row.player.steam_id,
+			playtime: row.playtime,
+			afktime: row.afktime,
+			is_banned: row.player.is_banned,
+		}
 	}
 }

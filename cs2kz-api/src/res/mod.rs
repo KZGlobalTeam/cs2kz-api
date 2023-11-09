@@ -11,9 +11,13 @@ pub mod maps;
 pub mod servers;
 pub mod records;
 
+/// Information about a player.
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct PlayerInfo {
+	/// The player's Steam name.
 	pub name: String,
+
+	/// The player's `SteamID`.
 	pub steam_id: SteamID,
 }
 

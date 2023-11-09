@@ -7,22 +7,44 @@ use {
 	utoipa::ToSchema,
 };
 
+/// A KZ map.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct KZMap {
+	/// The map's ID.
 	pub id: u16,
+
+	/// The map's name.
 	pub name: String,
+
+	/// The map's Steam workshop ID.
 	pub workshop_id: u32,
+
+	/// A list of the courses on this map.
 	pub courses: Vec<MapCourse>,
+
+	/// The filesize of the map.
 	pub filesize: u64,
+
+	/// The player who owns this map.
 	pub owned_by: PlayerInfo,
+
+	/// Timestamp of when this map was globalled.
 	pub created_on: DateTime<Utc>,
 }
 
+/// A course on a KZ map.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct MapCourse {
+	/// The ID of the course.
 	pub id: u32,
+
+	/// The stage this course corresponds to.
 	pub stage: u8,
+
+	/// The difficulty of the course.
 	pub tier: Tier,
+
+	/// The player who created this course.
 	pub created_by: PlayerInfo,
 }
 

@@ -154,13 +154,18 @@ pub async fn get_player(
 	Ok(Json(player))
 }
 
+/// Information about a new KZ player.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewPlayer {
-	steam_id: SteamID,
+	/// The player's Steam name.
 	name: String,
 
+	/// The player's `SteamID`.
+	steam_id: SteamID,
+
+	/// The player's IP address.
 	#[schema(value_type = String)]
-	ip: Ipv4Addr,
+	ip_address: Ipv4Addr,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -175,18 +180,18 @@ pub struct NewPlayer {
 )]
 pub async fn create_player(
 	state: State,
-	Json(NewPlayer { steam_id, name, ip }): Json<NewPlayer>,
+	Json(NewPlayer { steam_id, name, ip_address }): Json<NewPlayer>,
 ) -> Result<Created<()>> {
 	sqlx::query! {
 		r#"
 		INSERT INTO
-			Players (id, name, ip)
+			Players (id, name, ip_address)
 		VALUES
 			(?, ?, ?)
 		"#,
 		steam_id.as_u32(),
 		name,
-		ip.to_string(),
+		ip_address.to_string(),
 	}
 	.execute(state.database())
 	.await?;
@@ -194,15 +199,16 @@ pub async fn create_player(
 	Ok(Created(()))
 }
 
+/// Updated information about a KZ player.
 #[rustfmt::skip]
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct PlayerUpdate {
 	/// The player's new name.
-	name: String,
+	name: Option<String>,
 
 	/// The player's new IP address.
 	#[schema(value_type = String)]
-	ip: Ipv4Addr,
+	ip_address: Option<Ipv4Addr>,
 
 	/* TODO(AlphaKeks): figure out what to take here. Probably a `course_id` as well? Maybe
 	 * a `course_info` struct?
@@ -227,25 +233,26 @@ pub struct PlayerUpdate {
 pub async fn update_player(
 	state: State,
 	Path(steam_id): Path<SteamID>,
-	Json(PlayerUpdate { name, ip }): Json<PlayerUpdate>,
+	Json(PlayerUpdate { name, ip_address }): Json<PlayerUpdate>,
 ) -> Result<()> {
 	// TODO(AlphaKeks): update playtimes as well
-	sqlx::query! {
-		r#"
-		UPDATE
-			Players
-		SET
-			name = ?,
-			ip = ?
-		WHERE
-			id = ?
-		"#,
-		name,
-		ip.to_string(),
-		steam_id.as_u32(),
+
+	let id = steam_id.as_u32();
+	let mut transaction = state.database().begin().await?;
+
+	if let Some(name) = name {
+		sqlx::query!("UPDATE Players SET name = ? WHERE id = ?", name, id)
+			.execute(transaction.as_mut())
+			.await?;
 	}
-	.execute(state.database())
-	.await?;
+
+	if let Some(ip_address) = ip_address.map(|ip| ip.to_string()) {
+		sqlx::query!("UPDATE Players SET ip_address = ? WHERE id = ?", ip_address, id)
+			.execute(transaction.as_mut())
+			.await?;
+	}
+
+	transaction.commit().await?;
 
 	Ok(())
 }

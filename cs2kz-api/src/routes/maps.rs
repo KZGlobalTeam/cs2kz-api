@@ -332,20 +332,26 @@ pub async fn create_map(
 	let mut create_filters =
 		QueryBuilder::new("INSERT INTO Filters (course_id, mode_id, style_id)");
 
-	let filters = courses.iter().flat_map(|course| {
-		course.filters.iter().map(|filter| {
-			let course = db_courses
-				.iter()
-				.find(|c| c.stage == course.stage)
-				.expect("we just inserted all the courses");
+	// FIXME(AlphaKeks): this seems to break axum if it's not a closure...?
+	//
+	// This will not compile unless it's either a closure or inlined into where it's used.
+	// Don't ask me why.
+	let filters = || {
+		courses.iter().flat_map(|course| {
+			course.filters.iter().map(|filter| {
+				let course = db_courses
+					.iter()
+					.find(|c| c.stage == course.stage)
+					.expect("we just inserted all the courses");
 
-			(course, filter)
+				(course.id, filter)
+			})
 		})
-	});
+	};
 
-	create_filters.push_values(filters, |mut query, (course, filter)| {
+	create_filters.push_values(filters(), |mut query, (course_id, filter)| {
 		query
-			.push_bind(course.id)
+			.push_bind(course_id)
 			.push_bind(filter.mode as u8)
 			.push_bind(filter.style as u8);
 	});
@@ -427,18 +433,32 @@ fn validate_courses(courses: &[Course]) -> Result<()> {
 	Ok(())
 }
 
+/// Updated information about a KZ map.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct MapUpdate {
+	/// The new name of the map.
 	name: Option<String>,
+
+	/// The new Steam workshop ID of the map.
 	workshop_id: Option<u32>,
+
+	/// A list of new additional filters.
 	filters_added: Option<Vec<FilterWithCourseId>>,
+
+	/// A list of IDs for filters that should be removed.
 	filters_removed: Option<Vec<u32>>,
 }
 
+/// Information about a filter.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct FilterWithCourseId {
+	/// The ID of the course this filter belongs to.
 	course_id: u32,
+
+	/// A KZ mode.
 	mode: Mode,
+
+	/// A KZ style.
 	style: Style,
 }
 

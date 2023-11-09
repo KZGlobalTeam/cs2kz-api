@@ -183,22 +183,44 @@ pub async fn get_replay(state: State, Path(ban_id): Path<u32>) -> Response<()> {
 	todo!();
 }
 
+/// Submissions for a player ban.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewBan {
+	/// The player's `SteamID`.
 	steam_id: SteamID,
 
+	/// The player's IP address at the time of the ban.
 	#[schema(value_type = String)]
-	ip: Ipv4Addr,
+	ip_address: Option<Ipv4Addr>,
 
-	server_id: Option<u16>,
+	// TODO(AlphaKeks): enum this
+	/// The reason for the ban.
 	reason: String,
+
+	/// The `SteamID` of the admin who issued this ban.
 	banned_by: Option<SteamID>,
-	plugin_version: u16,
+
+	/// Information about the server this ban occurred on.
+	server_info: Option<BanServerInfo>,
+
+	/// Timestamp of when this ban expires.
 	expires_on: Option<DateTime<Utc>>,
 }
 
+/// Information about the server this ban occurred on.
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct BanServerInfo {
+	/// The ID of the server.
+	id: u16,
+
+	/// The cs2kz plugin version.
+	plugin_version: u16,
+}
+
+/// Information about a newly created ban.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreatedBan {
+	/// The ban's ID.
 	id: u32,
 }
 
@@ -214,9 +236,7 @@ pub struct CreatedBan {
 )]
 pub async fn create_ban(
 	state: State,
-	Json(NewBan { steam_id, ip, server_id, reason, banned_by, plugin_version, expires_on }): Json<
-		NewBan,
-	>,
+	Json(NewBan { steam_id, ip_address, reason, banned_by, server_info, expires_on }): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
 	let mut transaction = state.database().begin().await?;
 
@@ -236,11 +256,11 @@ pub async fn create_ban(
 			(?, ?, ?, ?, ?, ?, ?)
 		"#,
 		steam_id.as_u32(),
-		ip.to_string(),
-		server_id,
+		ip_address.map(|ip| ip.to_string()),
+		server_info.as_ref().map(|info| info.id),
 		reason,
 		banned_by.map(|steam_id| steam_id.as_u32()),
-		plugin_version,
+		server_info.as_ref().map(|info| info.plugin_version),
 		expires_on,
 	}
 	.execute(transaction.as_mut())
