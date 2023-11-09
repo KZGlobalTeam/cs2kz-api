@@ -12,7 +12,6 @@ use {
 	cs2kz::{MapIdentifier, Mode, PlayerIdentifier, SteamID, Style, Tier},
 	serde::{Deserialize, Serialize},
 	sqlx::QueryBuilder,
-	std::collections::HashMap,
 	utoipa::{IntoParams, ToSchema},
 };
 
@@ -191,46 +190,84 @@ pub async fn get_map(state: State, Path(ident): Path<MapIdentifier<'_>>) -> Resp
 	Ok(Json(map))
 }
 
+/// Information about a new KZ map.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewMap {
+	/// The name of the map.
 	name: String,
+
+	/// The Steam workshop ID of the map.
 	workshop_id: u32,
+
+	/// A list of the map's courses.
 	courses: Vec<Course>,
-	filters: Vec<Filter>,
+
+	/// The filesize of the map.
 	filesize: u64,
+
+	/// The `SteamID` of the player who owns this map.
 	owned_by: SteamID,
+
+	/// The `SteamID` of the admin who approved this map to be globalled.
 	approved_by: SteamID,
 }
 
+/// A course on a KZ map.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Course {
+	/// The stage this course corresponds to.
 	stage: u8,
-	difficulty: Tier,
+
+	/// The `SteamID` of the player who created this course.
 	created_by: SteamID,
+
+	/// List of filters on this course.
+	filters: Vec<Filter>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+/// A filter for a KZ map course.
+///
+/// It describes which combination of mode and style are allowed to submit records, and how
+/// difficult it is to complete a course with that combination.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct Filter {
-	stage: u8,
+	/// A KZ mode.
 	mode: Mode,
+
+	/// A KZ style.
 	style: Style,
+
+	/// A difficulty rating.
+	tier: Tier,
 }
 
+/// Information about a newly created KZ map.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreatedMap {
+	/// The ID of the map.
 	id: u16,
+
+	/// List of courses.
 	courses: Vec<CreatedCourse>,
+}
+
+/// A newly created course on a KZ map.
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct CreatedCourse {
+	/// The ID of the course.
+	id: u32,
+
+	/// The stage this course corresponds to.
+	stage: u8,
+
+	/// A list of filters on this course.
 	filters: Vec<CreatedFilter>,
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct CreatedCourse {
-	id: u32,
-	stage: u8,
-}
-
+/// A newly created filter on a KZ map course.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreatedFilter {
+	/// The ID of the filter.
 	id: u32,
 
 	#[serde(flatten)]
@@ -249,11 +286,9 @@ pub struct CreatedFilter {
 )]
 pub async fn create_map(
 	state: State,
-	Json(NewMap { name, workshop_id, courses, filters, filesize, owned_by, approved_by }): Json<
-		NewMap,
-	>,
+	Json(NewMap { name, workshop_id, courses, filesize, owned_by, approved_by }): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {
-	validate_courses_and_filters(&courses, &filters)?;
+	validate_courses(&courses)?;
 
 	let mut transaction = state.database().begin().await?;
 
@@ -276,14 +311,12 @@ pub async fn create_map(
 		.fetch_one(transaction.as_mut())
 		.await?;
 
-	let mut create_courses =
-		QueryBuilder::new("INSERT INTO Courses (map_id, stage, difficulty, created_by)");
+	let mut create_courses = QueryBuilder::new("INSERT INTO Courses (map_id, stage, created_by)");
 
 	create_courses.push_values(&courses, |mut query, course| {
 		query
 			.push_bind(map.id)
 			.push_bind(course.stage)
-			.push_bind(course.difficulty as u8)
 			.push_bind(course.created_by.as_u32());
 	});
 
@@ -292,27 +325,27 @@ pub async fn create_map(
 		.execute(transaction.as_mut())
 		.await?;
 
-	let courses = sqlx::query!("SELECT * FROM Courses WHERE map_id = ?", map.id)
+	let db_courses = sqlx::query!("SELECT * FROM Courses WHERE map_id = ? ORDER BY id ASC", map.id)
 		.fetch_all(transaction.as_mut())
-		.await?
-		.into_iter()
-		.map(|course| (course.stage, course))
-		.collect::<HashMap<_, _>>();
-
-	let min_course_id = courses.values().map(|course| course.id).min();
-	let max_course_id = courses.values().map(|course| course.id).max();
+		.await?;
 
 	let mut create_filters =
 		QueryBuilder::new("INSERT INTO Filters (course_id, mode_id, style_id)");
 
-	create_filters.push_values(&filters, |mut query, filter| {
-		let course_id = courses
-			.get(&filter.stage)
-			.map(|course| course.id)
-			.expect("we made sure filters refer to valid courses");
+	let filters = courses.iter().flat_map(|course| {
+		course.filters.iter().map(|filter| {
+			let course = db_courses
+				.iter()
+				.find(|c| c.stage == course.stage)
+				.expect("we just inserted all the courses");
 
+			(course, filter)
+		})
+	});
+
+	create_filters.push_values(filters, |mut query, (course, filter)| {
 		query
-			.push_bind(course_id)
+			.push_bind(course.id)
 			.push_bind(filter.mode as u8)
 			.push_bind(filter.style as u8);
 	});
@@ -324,77 +357,70 @@ pub async fn create_map(
 
 	transaction.commit().await?;
 
-	let filters = sqlx::query!(
-		"SELECT * FROM Filters where course_id < ? AND course_id > ?",
-		min_course_id,
-		max_course_id,
+	let db_filters = sqlx::query!(
+		r#"
+		SELECT
+			f.*
+		FROM
+			Filters f
+			JOIN Courses c ON c.id = f.course_id
+		WHERE
+			c.map_id = ?
+		"#,
+		map.id,
 	)
 	.fetch_all(state.database())
 	.await?;
 
-	let courses = courses
-		.into_values()
-		.map(|course| CreatedCourse { id: course.id, stage: course.stage })
-		.collect::<Vec<_>>();
-
-	let filters = filters
+	let courses = db_courses
 		.into_iter()
-		.map(|filter| CreatedFilter {
-			id: filter.id,
-			filter: Filter {
-				stage: courses
-					.iter()
-					.find(|course| course.id == filter.course_id)
-					.map(|course| course.stage)
-					.expect("we just inserted these courses"),
-				mode: filter
-					.mode_id
-					.try_into()
-					.expect("invalid mode in database"),
-				style: filter
-					.style_id
-					.try_into()
-					.expect("invalid filter in database"),
-			},
+		.map(|course| CreatedCourse {
+			id: course.id,
+			stage: course.stage,
+			filters: db_filters
+				.iter()
+				.filter(|filter| filter.course_id == course.id)
+				.map(|filter| CreatedFilter {
+					id: filter.id,
+					filter: Filter {
+						mode: filter
+							.mode_id
+							.try_into()
+							.expect("invalid mode in database"),
+						style: filter
+							.style_id
+							.try_into()
+							.expect("invalid filter in database"),
+						tier: filter
+							.tier
+							.try_into()
+							.expect("invalid tier in database"),
+					},
+				})
+				.collect(),
 		})
-		.collect::<Vec<_>>();
+		.collect();
 
-	Ok(Created(Json(CreatedMap { id: map.id, courses, filters })))
+	Ok(Created(Json(CreatedMap { id: map.id, courses })))
 }
 
-fn validate_courses_and_filters(courses: &[Course], filters: &[Filter]) -> Result<()> {
-	let mut stage_counters = vec![0; courses.len()];
-	let course_has_stage = |stage: u8| courses.iter().any(|course| course.stage == stage);
+/// Makes sure courses correspond to valid stages.
+fn validate_courses(courses: &[Course]) -> Result<()> {
+	let mut counters = vec![0_usize; courses.len()];
 
-	// Make sure courses have no gaps in their stages
-	for stage in 0..courses.len() as u8 {
-		if !course_has_stage(stage) {
+	for course in courses {
+		counters[course.stage as usize] += 1;
+	}
+
+	for (stage, &count) in counters.iter().enumerate() {
+		let stage = stage as u8;
+
+		if count == 0 {
 			return Err(Error::MissingCourse { stage });
 		}
 
-		stage_counters[stage as usize] += 1;
-	}
-
-	// Make sure each stage was only submitted once
-	for (stage, &count) in stage_counters.iter().enumerate() {
 		if count > 1 {
-			return Err(Error::DuplicateCourse { stage: stage as u8 });
-		}
-	}
-
-	// Make sure each filter actually refers to an existing course
-	for stage in filters.iter().map(|filter| filter.stage) {
-		if !course_has_stage(stage) {
-			return Err(Error::InvalidFilter { stage });
-		}
-
-		stage_counters[stage as usize] += 1;
-	}
-
-	// Make sure each filter was only submitted once
-	for (stage, &count) in stage_counters.iter().enumerate() {
-		if count > 2 {
-			return Err(Error::DuplicateFilter { stage: stage as u8 });
+			return Err(Error::DuplicateCourse { stage });
 		}
 	}
 

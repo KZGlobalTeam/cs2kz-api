@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS Players (
 	-- Steam username of the player
 	name VARCHAR(32) NOT NULL,
 	-- The player's last known IP address
-	ip INET4 NOT NULL,
+	ip_address INET4 NOT NULL,
 	-- Whether the player is allowed to play on global servers and submit records
 	is_banned BOOLEAN NOT NULL DEFAULT false,
 	PRIMARY KEY (id)
@@ -33,14 +33,11 @@ CREATE TABLE IF NOT EXISTS Courses (
 	--   0   => main course
 	--   1.. => bonus course
 	stage INT1 UNSIGNED NOT NULL,
-	-- The difficulty rating of this course, on a scale of 1-10
-	difficulty INT1 UNSIGNED NOT NULL,
 	-- The player who mapped this course
 	created_by INT4 UNSIGNED NOT NULL,
 	PRIMARY KEY (id),
 	FOREIGN KEY (map_id) REFERENCES Maps (id),
-	FOREIGN KEY (created_by) REFERENCES Players (id),
-	CONSTRAINT valid_difficulty CHECK(difficulty BETWEEN 1 AND 10)
+	FOREIGN KEY (created_by) REFERENCES Players (id)
 );
 
 CREATE TABLE IF NOT EXISTS Modes (
@@ -63,10 +60,13 @@ CREATE TABLE IF NOT EXISTS Filters (
 	course_id INT4 UNSIGNED NOT NULL,
 	mode_id INT1 UNSIGNED NOT NULL,
 	style_id INT1 UNSIGNED NOT NULL,
+	-- The difficulty rating of this course, on a scale of 1-10
+	tier INT1 UNSIGNED NOT NULL,
 	PRIMARY KEY (id),
 	FOREIGN KEY (course_id) REFERENCES Courses(id),
 	FOREIGN KEY (mode_id) REFERENCES Modes(id),
-	FOREIGN KEY (style_id) REFERENCES Styles(id)
+	FOREIGN KEY (style_id) REFERENCES Styles(id),
+	CONSTRAINT valid_tier CHECK(tier BETWEEN 1 AND 10)
 );
 
 CREATE TABLE IF NOT EXISTS Servers (
