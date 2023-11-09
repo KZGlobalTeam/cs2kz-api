@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tINSERT INTO\n\t\t\tMaps (name, workshop_id, filesize, owned_by)\n\t\tVALUES\n\t\t\t(?, ?, ?, ?)\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "c9a1186fbd2eb4016383b699c19cc05fd1d98bb0be59f43782ae02089574bdc0"
+}

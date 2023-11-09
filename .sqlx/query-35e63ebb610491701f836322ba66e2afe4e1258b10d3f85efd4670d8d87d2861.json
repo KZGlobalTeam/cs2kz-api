@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tINSERT INTO\n\t\t\tPlayers (id, name, ip_address)\n\t\tVALUES\n\t\t\t(?, ?, ?)\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "35e63ebb610491701f836322ba66e2afe4e1258b10d3f85efd4670d8d87d2861"
+}

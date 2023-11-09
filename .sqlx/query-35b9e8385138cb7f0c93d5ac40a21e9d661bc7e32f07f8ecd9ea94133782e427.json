@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE Servers SET owned_by = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "35b9e8385138cb7f0c93d5ac40a21e9d661bc7e32f07f8ecd9ea94133782e427"
+}

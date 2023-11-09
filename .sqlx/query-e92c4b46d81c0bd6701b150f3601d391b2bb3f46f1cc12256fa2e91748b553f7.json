@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE Maps SET workshop_id = ? WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "e92c4b46d81c0bd6701b150f3601d391b2bb3f46f1cc12256fa2e91748b553f7"
+}

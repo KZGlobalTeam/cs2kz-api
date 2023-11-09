@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tINSERT INTO\n\t\t\tRecords (\n\t\t\t\tfilter_id,\n\t\t\t\tplayer_id,\n\t\t\t\tserver_id,\n\t\t\t\tteleports,\n\t\t\t\ttime,\n\t\t\t\tplugin_version\n\t\t\t)\n\t\tVALUES\n\t\t\t(?, ?, ?, ?, ?, ?)\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "485f3005876c607f531a25869799da6eb7f6af533643d09d5e03086b69eb1339"
+}
