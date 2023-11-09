@@ -1,6 +1,6 @@
 use {
 	crate::{
-		res::{bans as res, BadRequest},
+		res::{bans as res, bans::BanReason, BadRequest},
 		util::{Created, Filter},
 		Error, Response, Result, State,
 	},
@@ -25,9 +25,8 @@ pub struct GetBansParams<'a> {
 	/// `SteamID` or name of a player.
 	player: Option<PlayerIdentifier<'a>>,
 
-	// TODO(AlphaKeks): enum this
 	/// A ban reason.
-	reason: Option<String>,
+	reason: Option<BanReason>,
 
 	/// The ID or name of a server.
 	server: Option<ServerIdentifier<'a>>,
@@ -206,9 +205,8 @@ pub struct NewBan {
 	#[schema(value_type = String)]
 	ip_address: Option<Ipv4Addr>,
 
-	// TODO(AlphaKeks): enum this
 	/// The reason for the ban.
-	reason: String,
+	reason: BanReason,
 
 	/// The `SteamID` of the admin who issued this ban.
 	banned_by: Option<SteamID>,

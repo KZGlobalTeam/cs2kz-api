@@ -108,6 +108,7 @@ pub type Response<T> = Result<axum::Json<T>>;
 			crate::routes::players::PlayerUpdate,
 
 			crate::res::bans::Ban,
+			crate::res::bans::BanReason,
 			crate::routes::bans::NewBan,
 			crate::routes::bans::CreatedBan,
 

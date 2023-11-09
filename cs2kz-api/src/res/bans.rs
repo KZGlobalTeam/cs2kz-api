@@ -1,7 +1,7 @@
 use {
 	chrono::{DateTime, Utc},
 	cs2kz::SteamID,
-	serde::Serialize,
+	serde::{Deserialize, Serialize},
 	sqlx::FromRow,
 	utoipa::ToSchema,
 };
@@ -19,10 +19,17 @@ pub struct Ban {
 	#[sqlx(try_from = "u64")]
 	pub steam_id: SteamID,
 
-	// TODO(AlphaKeks): enum this
 	/// The reason for the ban.
-	pub reason: String,
+	pub reason: BanReason,
 
 	/// Timestamp of when the player was banned.
 	pub date: DateTime<Utc>,
+}
+
+/// Reasons for a ban.
+#[derive(Debug, Serialize, Deserialize, sqlx::Type, ToSchema)]
+#[serde(rename_all = "snake_case")]
+#[sqlx(rename_all = "snake_case")]
+pub enum BanReason {
+	AutoBhop,
 }
