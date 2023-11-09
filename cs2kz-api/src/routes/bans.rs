@@ -198,18 +198,15 @@ pub struct NewBan {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct NewBanWithId {
+pub struct CreatedBan {
 	id: u32,
-
-	#[serde(flatten)]
-	ban: NewBan,
 }
 
 #[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(post, tag = "Bans", context_path = "/api/v0", path = "/bans",
 	request_body = NewBan,
 	responses(
-		(status = 201, body = NewBanWithId),
+		(status = 201, body = CreatedBan),
 		(status = 400, response = BadRequest),
 		(status = 401, body = Error),
 		(status = 500, body = Error),
@@ -220,7 +217,7 @@ pub async fn create_ban(
 	Json(NewBan { steam_id, ip, server_id, reason, banned_by, plugin_version, expires_on }): Json<
 		NewBan,
 	>,
-) -> Result<Created<Json<NewBanWithId>>> {
+) -> Result<Created<Json<CreatedBan>>> {
 	let mut transaction = state.database().begin().await?;
 
 	sqlx::query! {
@@ -257,8 +254,5 @@ pub async fn create_ban(
 
 	transaction.commit().await?;
 
-	Ok(Created(Json(NewBanWithId {
-		id,
-		ban: NewBan { steam_id, ip, server_id, reason, banned_by, plugin_version, expires_on },
-	})))
+	Ok(Created(Json(CreatedBan { id })))
 }

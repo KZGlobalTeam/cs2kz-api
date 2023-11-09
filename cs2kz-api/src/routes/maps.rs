@@ -217,37 +217,31 @@ pub struct Filter {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct NewMapWithId {
+pub struct CreatedMap {
 	id: u16,
-	workshop_id: u32,
-	courses: Vec<CourseWithId>,
-	filters: Vec<FilterWithId>,
-	filesize: u64,
-	owned_by: SteamID,
-	approved_by: SteamID,
+	courses: Vec<CreatedCourse>,
+	filters: Vec<CreatedFilter>,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct CourseWithId {
+pub struct CreatedCourse {
 	id: u32,
 	stage: u8,
-	difficulty: Tier,
-	created_by: SteamID,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct FilterWithId {
+pub struct CreatedFilter {
 	id: u32,
-	stage: u8,
-	mode: Mode,
-	style: Style,
+
+	#[serde(flatten)]
+	filter: Filter,
 }
 
 #[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(post, tag = "Maps", context_path = "/api/v0", path = "/maps",
 	request_body = NewMap,
 	responses(
-		(status = 201, body = NewMapWithId),
+		(status = 201, body = CreatedMap),
 		(status = 400, response = BadRequest),
 		(status = 401, body = Error),
 		(status = 500, body = Error),
@@ -258,7 +252,7 @@ pub async fn create_map(
 	Json(NewMap { name, workshop_id, courses, filters, filesize, owned_by, approved_by }): Json<
 		NewMap,
 	>,
-) -> Result<Created<Json<NewMapWithId>>> {
+) -> Result<Created<Json<CreatedMap>>> {
 	validate_courses_and_filters(&courses, &filters)?;
 
 	let mut transaction = state.database().begin().await?;
@@ -340,46 +334,32 @@ pub async fn create_map(
 
 	let courses = courses
 		.into_values()
-		.map(|course| CourseWithId {
-			id: course.id,
-			stage: course.stage,
-			difficulty: course
-				.difficulty
-				.try_into()
-				.expect("found invalid tier"),
-			created_by: SteamID::from_id32(course.created_by).expect("found invalid SteamID"),
-		})
+		.map(|course| CreatedCourse { id: course.id, stage: course.stage })
 		.collect::<Vec<_>>();
 
 	let filters = filters
 		.into_iter()
-		.map(|filter| FilterWithId {
+		.map(|filter| CreatedFilter {
 			id: filter.id,
-			stage: courses
-				.iter()
-				.find(|course| course.id == filter.course_id)
-				.map(|course| course.stage)
-				.expect("we just inserted these courses"),
-			mode: filter
-				.mode_id
-				.try_into()
-				.expect("found invalid mode ID"),
-			style: filter
-				.style_id
-				.try_into()
-				.expect("found invalid style ID"),
+			filter: Filter {
+				stage: courses
+					.iter()
+					.find(|course| course.id == filter.course_id)
+					.map(|course| course.stage)
+					.expect("we just inserted these courses"),
+				mode: filter
+					.mode_id
+					.try_into()
+					.expect("invalid mode in database"),
+				style: filter
+					.style_id
+					.try_into()
+					.expect("invalid filter in database"),
+			},
 		})
 		.collect::<Vec<_>>();
 
-	Ok(Created(Json(NewMapWithId {
-		id: map.id,
-		workshop_id,
-		courses,
-		filters,
-		filesize,
-		owned_by,
-		approved_by,
-	})))
+	Ok(Created(Json(CreatedMap { id: map.id, courses, filters })))
 }
 
 fn validate_courses_and_filters(courses: &[Course], filters: &[Filter]) -> Result<()> {

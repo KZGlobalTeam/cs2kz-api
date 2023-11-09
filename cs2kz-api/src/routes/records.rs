@@ -163,18 +163,15 @@ pub struct NewRecord {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct NewRecordWithId {
+pub struct CreatedRecord {
 	id: u64,
-
-	#[serde(flatten)]
-	record: NewRecord,
 }
 
 #[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(post, tag = "Records", context_path = "/api/v0", path = "/records",
 	request_body = NewRecord,
 	responses(
-		(status = 201, body = NewRecordWithId),
+		(status = 201, body = CreatedRecord),
 		(status = 400, response = BadRequest),
 		(status = 401, body = Error),
 		(status = 500, body = Error),
@@ -183,7 +180,7 @@ pub struct NewRecordWithId {
 pub async fn create_record(
 	state: State,
 	Json(NewRecord { course_id, mode, style, steam_id, time, teleports }): Json<NewRecord>,
-) -> Result<Created<Json<NewRecordWithId>>> {
+) -> Result<Created<Json<CreatedRecord>>> {
 	// TODO(AlphaKeks): delete this once we have middleware
 	let server_id = 0;
 	let plugin_version = 0;
@@ -242,8 +239,5 @@ pub async fn create_record(
 
 	transaction.commit().await?;
 
-	Ok(Created(Json(NewRecordWithId {
-		id: record_id,
-		record: NewRecord { course_id, mode, style, steam_id, time, teleports },
-	})))
+	Ok(Created(Json(CreatedRecord { id: record_id })))
 }

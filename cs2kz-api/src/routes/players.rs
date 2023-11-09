@@ -167,7 +167,7 @@ pub struct NewPlayer {
 #[utoipa::path(post, tag = "Players", context_path = "/api/v0", path = "/players",
 	request_body = NewPlayer,
 	responses(
-		(status = 201, body = NewPlayer),
+		(status = 201, body = ()),
 		(status = 400, response = BadRequest),
 		(status = 401, body = Error),
 		(status = 500, body = Error),
@@ -176,7 +176,7 @@ pub struct NewPlayer {
 pub async fn create_player(
 	state: State,
 	Json(NewPlayer { steam_id, name, ip }): Json<NewPlayer>,
-) -> Result<Created<Json<NewPlayer>>> {
+) -> Result<Created<()>> {
 	sqlx::query! {
 		r#"
 		INSERT INTO
@@ -191,7 +191,7 @@ pub async fn create_player(
 	.execute(state.database())
 	.await?;
 
-	Ok(Created(Json(NewPlayer { steam_id, name, ip })))
+	Ok(Created(()))
 }
 
 #[rustfmt::skip]

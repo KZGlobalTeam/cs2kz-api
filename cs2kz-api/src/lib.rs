@@ -109,22 +109,22 @@ pub type Response<T> = Result<axum::Json<T>>;
 
 			crate::res::bans::Ban,
 			crate::routes::bans::NewBan,
-			crate::routes::bans::NewBanWithId,
+			crate::routes::bans::CreatedBan,
 
 			crate::res::maps::KZMap,
 			crate::res::maps::MapCourse,
 			crate::routes::maps::NewMap,
 			crate::routes::maps::Course,
 			crate::routes::maps::Filter,
-			crate::routes::maps::NewMapWithId,
-			crate::routes::maps::CourseWithId,
-			crate::routes::maps::FilterWithId,
+			crate::routes::maps::CreatedMap,
+			crate::routes::maps::CreatedCourse,
+			crate::routes::maps::CreatedFilter,
 			crate::routes::maps::MapUpdate,
 			crate::routes::maps::FilterWithCourseId,
 
 			crate::res::servers::Server,
 			crate::routes::servers::NewServer,
-			crate::routes::servers::NewServerWithId,
+			crate::routes::servers::CreatedServer,
 			crate::routes::servers::ServerUpdate,
 
 			crate::res::records::Record,
@@ -133,7 +133,7 @@ pub type Response<T> = Result<axum::Json<T>>;
 			crate::res::records::RecordPlayer,
 			crate::res::records::RecordServer,
 			crate::routes::records::NewRecord,
-			crate::routes::records::NewRecordWithId,
+			crate::routes::records::CreatedRecord,
 		),
 
 		responses(

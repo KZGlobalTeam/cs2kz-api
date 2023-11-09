@@ -180,18 +180,15 @@ pub struct NewServer {
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct NewServerWithId {
+pub struct CreatedServer {
 	id: u16,
-
-	#[serde(flatten)]
-	server: NewServer,
 }
 
 #[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(post, tag = "Servers", context_path = "/api/v0", path = "/servers",
 	request_body = NewServer,
 	responses(
-		(status = 201, body = NewServerWithId),
+		(status = 201, body = CreatedServer),
 		(status = 400, response = BadRequest),
 		(status = 401, body = Error),
 		(status = 500, body = Error),
@@ -200,7 +197,7 @@ pub struct NewServerWithId {
 pub async fn create_server(
 	state: State,
 	Json(NewServer { name, owned_by, ip, port, approved_by }): Json<NewServer>,
-) -> Result<Created<Json<NewServerWithId>>> {
+) -> Result<Created<Json<CreatedServer>>> {
 	let api_key = rand::random::<u32>();
 	let mut transaction = state.database().begin().await?;
 
@@ -228,10 +225,7 @@ pub async fn create_server(
 
 	transaction.commit().await?;
 
-	Ok(Created(Json(NewServerWithId {
-		id,
-		server: NewServer { name, owned_by, ip, port, approved_by },
-	})))
+	Ok(Created(Json(CreatedServer { id })))
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
