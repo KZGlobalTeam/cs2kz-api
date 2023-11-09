@@ -121,12 +121,7 @@ pub async fn get_maps(
 	}
 
 	query.push(" GROUP BY m.id ");
-
-	query
-		.push(" LIMIT ")
-		.push_bind(offset.value)
-		.push(",")
-		.push_bind(limit.value);
+	util::push_limit(&mut query, offset, limit);
 
 	let maps = query
 		.build_query_as::<res::KZMap>()

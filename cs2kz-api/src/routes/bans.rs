@@ -1,7 +1,7 @@
 use {
 	crate::{
 		res::{bans as res, bans::BanReason, BadRequest},
-		util::{Created, Filter, Limit, Offset},
+		util::{self, Created, Filter, Limit, Offset},
 		Error, Response, Result, State,
 	},
 	axum::{
@@ -157,11 +157,7 @@ pub async fn get_bans(
 		filter.switch();
 	}
 
-	query
-		.push(" LIMIT ")
-		.push_bind(offset.value)
-		.push(",")
-		.push_bind(limit.value);
+	util::push_limit(&mut query, offset, limit);
 
 	let bans = query
 		.build_query_as::<res::Ban>()

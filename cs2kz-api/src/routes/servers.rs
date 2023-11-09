@@ -1,7 +1,7 @@
 use {
 	crate::{
 		res::{servers as res, BadRequest},
-		util::{Created, Filter, Limit, Offset},
+		util::{self, Created, Filter, Limit, Offset},
 		Error, Response, Result, State,
 	},
 	axum::{
@@ -113,11 +113,7 @@ pub async fn get_servers(
 		filter.switch();
 	}
 
-	query
-		.push(" LIMIT ")
-		.push_bind(offset.value)
-		.push(",")
-		.push_bind(limit.value);
+	util::push_limit(&mut query, offset, limit);
 
 	let servers = query
 		.build_query_as::<res::Server>()

@@ -2,7 +2,7 @@ use {
 	crate::{
 		database,
 		res::{player as res, BadRequest},
-		util::{Created, Filter, Limit, Offset},
+		util::{self, Created, Filter, Limit, Offset},
 		Error, Response, Result, State,
 	},
 	axum::{
@@ -87,11 +87,7 @@ pub async fn get_players(
 		filter.switch();
 	}
 
-	query
-		.push(" LIMIT ")
-		.push_bind(offset.value)
-		.push(",")
-		.push_bind(limit.value);
+	util::push_limit(&mut query, offset, limit);
 
 	let players = query
 		.build_query_as::<database::PlayerWithPlaytime>()

@@ -1,6 +1,7 @@
 use {
 	axum::{http::StatusCode, response::IntoResponse},
 	serde::{Deserialize, Deserializer, Serialize},
+	sqlx::{MySql, QueryBuilder},
 	std::fmt::Display,
 	utoipa::ToSchema,
 };
@@ -62,7 +63,7 @@ pub struct BoundedU64<const DEFAULT: u64 = 0, const MAX: u64 = { u64::MAX }, con
 }
 
 pub type Offset = BoundedU64;
-pub type Limit<const LIMIT: u64> = BoundedU64<100, LIMIT>;
+pub type Limit<const LIMIT_LIMIT: u64> = BoundedU64<100, LIMIT_LIMIT>;
 
 impl<'de, const DEFAULT: u64, const MAX: u64, const MIN: u64> Deserialize<'de>
 	for BoundedU64<DEFAULT, MAX, MIN>
@@ -85,4 +86,17 @@ impl<'de, const DEFAULT: u64, const MAX: u64, const MIN: u64> Deserialize<'de>
 
 		Ok(Self { value })
 	}
+}
+
+// Because I can never remember the order 🤤
+pub fn push_limit<const LIMIT_LIMIT: u64>(
+	query: &mut QueryBuilder<'_, MySql>,
+	offset: Offset,
+	limit: Limit<LIMIT_LIMIT>,
+) {
+	query
+		.push(" LIMIT ")
+		.push_bind(offset.value)
+		.push(",")
+		.push_bind(limit.value);
 }
