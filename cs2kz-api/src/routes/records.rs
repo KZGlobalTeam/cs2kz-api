@@ -13,17 +13,37 @@ use {
 	utoipa::{IntoParams, ToSchema},
 };
 
+/// Query parameters for fetching records.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetRecordsParams<'a> {
+	/// A map's ID or name.
 	map: Option<MapIdentifier<'a>>,
+
+	/// A map stage.
 	stage: Option<u8>,
-	course: Option<u8>,
+
+	/// A course ID.
+	course_id: Option<u8>,
+
+	/// A player's `SteamID` or name.
 	player: Option<PlayerIdentifier<'a>>,
+
+	/// A mode.
 	mode: Option<Mode>,
+
+	/// A runtype (Pro/TP).
 	runtype: Option<Runtype>,
+
+	/// A server's ID or name.
 	server: Option<ServerIdentifier<'a>>,
+
+	/// Only include personal bests.
 	top_only: Option<bool>,
+
+	/// Only include records from (non) banned players.
 	allow_banned: Option<bool>,
+
+	/// Only include records on (non) ranked courses.
 	allow_non_ranked: Option<bool>,
 
 	#[serde(default)]
@@ -46,7 +66,7 @@ pub async fn get_records(
 	Query(GetRecordsParams {
 		map,
 		stage,
-		course,
+		course_id,
 		player,
 		mode,
 		runtype,

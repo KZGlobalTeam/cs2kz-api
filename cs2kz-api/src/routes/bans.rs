@@ -19,13 +19,26 @@ use {
 const LIMIT_DEFAULT: u64 = 100;
 const LIMIT_MAX: u64 = 500;
 
+/// Query parameters for fetching bans.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetBansParams<'a> {
+	/// `SteamID` or name of a player.
 	player: Option<PlayerIdentifier<'a>>,
+
+	// TODO(AlphaKeks): enum this
+	/// A ban reason.
 	reason: Option<String>,
+
+	/// The ID or name of a server.
 	server: Option<ServerIdentifier<'a>>,
+
+	/// Only include (non) expired bans.
 	expired: Option<bool>,
+
+	/// Only include bans that were issued after a certain date.
 	created_after: Option<DateTime<Utc>>,
+
+	/// Only include bans that were issued before a certain date.
 	created_before: Option<DateTime<Utc>>,
 
 	#[serde(default)]

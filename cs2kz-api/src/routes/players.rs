@@ -30,15 +30,16 @@ const ROOT_GET_BASE_QUERY: &str = r#"
 		JOIN playtimes p2 ON p2.player_id = p1.id
 "#;
 
+/// Query parameters for fetching players.
 #[derive(Debug, Deserialize, IntoParams)]
-pub struct RootGetParams {
-	/// The Steam name of the player.
+pub struct GetPlayersParams {
+	/// Name of a player.
 	name: Option<String>,
 
-	/// The minimum amount of playtime.
+	/// A minimum amount of playtime.
 	playtime: Option<NaiveTime>,
 
-	/// Whether the player is banned.
+	/// Only include (not) banned players.
 	is_banned: Option<bool>,
 
 	#[serde(default)]
@@ -48,7 +49,7 @@ pub struct RootGetParams {
 
 #[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(get, tag = "Players", context_path = "/api/v0", path = "/players",
-	params(RootGetParams),
+	params(GetPlayersParams),
 	responses(
 		(status = 200, body = Vec<Player>),
 		(status = 204),
@@ -58,7 +59,7 @@ pub struct RootGetParams {
 )]
 pub async fn get_players(
 	state: State,
-	Query(RootGetParams { name, playtime, is_banned, offset, limit }): Query<RootGetParams>,
+	Query(GetPlayersParams { name, playtime, is_banned, offset, limit }): Query<GetPlayersParams>,
 ) -> Response<Vec<res::Player>> {
 	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
 	let mut filter = Filter::new();
@@ -115,7 +116,7 @@ pub async fn get_players(
 
 #[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(get, tag = "Players", context_path = "/api/v0", path = "/players/{ident}",
-	params(("ident" = PlayerIdentifier, Path, description = "The player's SteamID or name")),
+	params(("ident" = PlayerIdentifier, Path, description = "The player's `SteamID` or name")),
 	responses(
 		(status = 200, body = Player),
 		(status = 204),

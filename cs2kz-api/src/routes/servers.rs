@@ -32,11 +32,19 @@ const ROOT_GET_BASE_QUERY: &str = r#"
 		JOIN Players p ON p.id = s.owned_by
 "#;
 
+/// Query parameters for fetching servers.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetServersParams<'a> {
+	/// A server name.
 	name: Option<String>,
+
+	/// `SteamID` or name of a player.
 	owned_by: Option<PlayerIdentifier<'a>>,
+
+	/// Only include servers that were approved after a certain date.
 	created_after: Option<DateTime<Utc>>,
+
+	/// Only include servers that were approved before a certain date.
 	created_before: Option<DateTime<Utc>>,
 
 	#[serde(default)]

@@ -19,7 +19,7 @@ pub struct Ban {
 	#[sqlx(try_from = "u64")]
 	pub steam_id: SteamID,
 
-	// TODO(AlphaKeks): enum this?
+	// TODO(AlphaKeks): enum this
 	/// The reason for the ban.
 	pub reason: String,
 

@@ -39,12 +39,20 @@ const ROOT_GET_BASE_QUERY: &str = r#"
 		JOIN Players p2 ON p2.id = c.created_by
 "#;
 
+/// Query parameters for fetching maps.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetMapsParams<'a> {
+	/// A map's name.
 	pub name: Option<String>,
+
+	/// A player's `SteamID` or name.
 	pub created_by: Option<PlayerIdentifier<'a>>,
-	pub created_after: Option<DateTime<Utc>>,
-	pub created_before: Option<DateTime<Utc>>,
+
+	/// Only include maps that were globalled after a certain date.
+	created_after: Option<DateTime<Utc>>,
+
+	/// Only include maps that were globalled before a certain date.
+	created_before: Option<DateTime<Utc>>,
 
 	#[serde(default)]
 	pub offset: u64,
