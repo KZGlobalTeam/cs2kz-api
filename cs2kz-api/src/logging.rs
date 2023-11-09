@@ -8,7 +8,7 @@ use {
 /// The default log level.
 ///
 /// This will be used if `RUST_LOG` was not specified.
-const DEFAULT_FILTER: &str = "WARN,cs2kz_api=TRACE";
+static DEFAULT_FILTER: &str = "WARN,cs2kz_api=TRACE";
 
 /// Will initialize logging.
 pub fn init() {

@@ -18,7 +18,7 @@ use {
 const LIMIT_DEFAULT: u64 = 100;
 const LIMIT_MAX: u64 = 1000;
 
-const ROOT_GET_BASE_QUERY: &str = r#"
+static ROOT_GET_BASE_QUERY: &str = r#"
 	SELECT
 		m.id,
 		m.name,

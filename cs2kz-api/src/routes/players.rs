@@ -20,7 +20,7 @@ use {
 const LIMIT_DEFAULT: u64 = 100;
 const LIMIT_MAX: u64 = 500;
 
-const ROOT_GET_BASE_QUERY: &str = r#"
+static ROOT_GET_BASE_QUERY: &str = r#"
 	SELECT
 		p1.*,
 		p2.playtime,
