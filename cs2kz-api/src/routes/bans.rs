@@ -1,7 +1,7 @@
 use {
 	crate::{
 		res::{bans as res, bans::BanReason, BadRequest},
-		util::{Created, Filter},
+		util::{Created, Filter, Limit, Offset},
 		Error, Response, Result, State,
 	},
 	axum::{
@@ -15,9 +15,6 @@ use {
 	std::net::Ipv4Addr,
 	utoipa::{IntoParams, ToSchema},
 };
-
-const LIMIT_DEFAULT: u64 = 100;
-const LIMIT_MAX: u64 = 500;
 
 /// Query parameters for fetching bans.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -40,9 +37,8 @@ pub struct GetBansParams<'a> {
 	/// Only include bans that were issued before a certain date.
 	created_before: Option<DateTime<Utc>>,
 
-	#[serde(default)]
-	offset: u64,
-	limit: Option<u64>,
+	offset: Offset,
+	limit: Limit<500>,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -161,13 +157,11 @@ pub async fn get_bans(
 		filter.switch();
 	}
 
-	let limit = limit.map_or(LIMIT_DEFAULT, |limit| std::cmp::min(limit, LIMIT_MAX));
-
 	query
 		.push(" LIMIT ")
-		.push_bind(offset)
+		.push_bind(offset.value)
 		.push(",")
-		.push_bind(limit);
+		.push_bind(limit.value);
 
 	let bans = query
 		.build_query_as::<res::Ban>()

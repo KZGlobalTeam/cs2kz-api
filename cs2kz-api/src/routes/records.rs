@@ -1,7 +1,7 @@
 use {
 	crate::{
 		res::{records as res, BadRequest},
-		util::Created,
+		util::{Created, Limit, Offset},
 		Error, Response, Result, State,
 	},
 	axum::{
@@ -46,9 +46,8 @@ pub struct GetRecordsParams<'a> {
 	/// Only include records on (non) ranked courses.
 	allow_non_ranked: Option<bool>,
 
-	#[serde(default)]
-	offset: u64,
-	limit: Option<u64>,
+	offset: Offset,
+	limit: Limit<500>,
 }
 
 #[tracing::instrument(level = "DEBUG")]

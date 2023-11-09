@@ -1,7 +1,7 @@
 use {
 	crate::{
 		res::{servers as res, BadRequest},
-		util::{Created, Filter},
+		util::{Created, Filter, Limit, Offset},
 		Error, Response, Result, State,
 	},
 	axum::{
@@ -15,9 +15,6 @@ use {
 	std::net::Ipv4Addr,
 	utoipa::{IntoParams, ToSchema},
 };
-
-const LIMIT_DEFAULT: u64 = 100;
-const LIMIT_MAX: u64 = 500;
 
 static ROOT_GET_BASE_QUERY: &str = r#"
 	SELECT
@@ -47,9 +44,8 @@ pub struct GetServersParams<'a> {
 	/// Only include servers that were approved before a certain date.
 	created_before: Option<DateTime<Utc>>,
 
-	#[serde(default)]
-	offset: u64,
-	limit: Option<u64>,
+	offset: Offset,
+	limit: Limit<500>,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -117,13 +113,11 @@ pub async fn get_servers(
 		filter.switch();
 	}
 
-	let limit = limit.map_or(LIMIT_DEFAULT, |limit| std::cmp::min(limit, LIMIT_MAX));
-
 	query
 		.push(" LIMIT ")
-		.push_bind(offset)
+		.push_bind(offset.value)
 		.push(",")
-		.push_bind(limit);
+		.push_bind(limit.value);
 
 	let servers = query
 		.build_query_as::<res::Server>()

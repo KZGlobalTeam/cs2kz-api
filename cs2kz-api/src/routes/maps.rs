@@ -1,7 +1,7 @@
 use {
 	crate::{
 		res::{maps as res, BadRequest},
-		util::{self, Created},
+		util::{self, Created, Limit, Offset},
 		Error, Response, Result, State,
 	},
 	axum::{
@@ -14,9 +14,6 @@ use {
 	sqlx::QueryBuilder,
 	utoipa::{IntoParams, ToSchema},
 };
-
-const LIMIT_DEFAULT: u64 = 100;
-const LIMIT_MAX: u64 = 1000;
 
 static ROOT_GET_BASE_QUERY: &str = r#"
 	SELECT
@@ -49,14 +46,13 @@ pub struct GetMapsParams<'a> {
 	pub created_by: Option<PlayerIdentifier<'a>>,
 
 	/// Only include maps that were globalled after a certain date.
-	created_after: Option<DateTime<Utc>>,
+	pub created_after: Option<DateTime<Utc>>,
 
 	/// Only include maps that were globalled before a certain date.
-	created_before: Option<DateTime<Utc>>,
+	pub created_before: Option<DateTime<Utc>>,
 
-	#[serde(default)]
-	pub offset: u64,
-	pub limit: Option<u64>,
+	pub offset: Offset,
+	pub limit: Limit<1000>,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -126,13 +122,11 @@ pub async fn get_maps(
 
 	query.push(" GROUP BY m.id ");
 
-	let limit = limit.map_or(LIMIT_DEFAULT, |limit| std::cmp::min(limit, LIMIT_MAX));
-
 	query
 		.push(" LIMIT ")
-		.push_bind(offset)
+		.push_bind(offset.value)
 		.push(",")
-		.push_bind(limit);
+		.push_bind(limit.value);
 
 	let maps = query
 		.build_query_as::<res::KZMap>()

@@ -2,7 +2,7 @@ use {
 	crate::{
 		database,
 		res::{player as res, BadRequest},
-		util::{Created, Filter},
+		util::{Created, Filter, Limit, Offset},
 		Error, Response, Result, State,
 	},
 	axum::{
@@ -16,9 +16,6 @@ use {
 	std::net::Ipv4Addr,
 	utoipa::{IntoParams, ToSchema},
 };
-
-const LIMIT_DEFAULT: u64 = 100;
-const LIMIT_MAX: u64 = 500;
 
 static ROOT_GET_BASE_QUERY: &str = r#"
 	SELECT
@@ -42,9 +39,8 @@ pub struct GetPlayersParams {
 	/// Only include (not) banned players.
 	is_banned: Option<bool>,
 
-	#[serde(default)]
-	offset: u64,
-	limit: Option<u64>,
+	offset: Offset,
+	limit: Limit<500>,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -91,13 +87,11 @@ pub async fn get_players(
 		filter.switch();
 	}
 
-	let limit = limit.map_or(LIMIT_DEFAULT, |limit| std::cmp::min(limit, LIMIT_MAX));
-
 	query
 		.push(" LIMIT ")
-		.push_bind(offset)
+		.push_bind(offset.value)
 		.push(",")
-		.push_bind(limit);
+		.push_bind(limit.value);
 
 	let players = query
 		.build_query_as::<database::PlayerWithPlaytime>()
