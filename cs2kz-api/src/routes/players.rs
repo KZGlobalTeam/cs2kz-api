@@ -180,7 +180,7 @@ pub async fn create_player(
 	sqlx::query! {
 		r#"
 		INSERT INTO
-			Players (id, name, ip_address)
+			Players (steam_id, name, last_known_ip_address)
 		VALUES
 			(?, ?, ?)
 		"#,
@@ -236,15 +236,26 @@ pub async fn update_player(
 	let mut transaction = state.transaction().await?;
 
 	if let Some(name) = name {
-		sqlx::query!("UPDATE Players SET name = ? WHERE id = ?", name, id)
+		sqlx::query!("UPDATE Players SET name = ? WHERE steam_id = ?", name, id)
 			.execute(transaction.as_mut())
 			.await?;
 	}
 
 	if let Some(ip_address) = ip_address.map(|ip| ip.to_string()) {
-		sqlx::query!("UPDATE Players SET ip_address = ? WHERE id = ?", ip_address, id)
-			.execute(transaction.as_mut())
-			.await?;
+		sqlx::query! {
+			r#"
+			UPDATE
+				Players
+			SET
+				last_known_ip_address = ?
+			WHERE
+				steam_id = ?
+			"#,
+			ip_address,
+			id
+		}
+		.execute(transaction.as_mut())
+		.await?;
 	}
 
 	transaction.commit().await?;

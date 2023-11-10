@@ -84,10 +84,10 @@ pub async fn get_servers(
 		let steam32_id = match player {
 			PlayerIdentifier::SteamID(steam_id) => steam_id.as_u32(),
 			PlayerIdentifier::Name(name) => {
-				sqlx::query!("SELECT id FROM Players WHERE name LIKE ?", name)
+				sqlx::query!("SELECT steam_id FROM Players WHERE name LIKE ?", name)
 					.fetch_one(state.database())
 					.await?
-					.id
+					.steam_id
 			}
 		};
 

@@ -102,13 +102,13 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Result<Json
 			m.id map_id,
 			m.name map_name,
 			c.id course_id,
-			c.stage course_stage,
+			c.map_stage course_stage,
 			f.tier course_tier,
 			f.mode_id,
 			r.teleports > 0 `runtype: bool`,
-			f.style_id,
+			r.style_id,
 			p.name player_name,
-			p.id steam_id,
+			p.steam_id,
 			s.id server_id,
 			s.name server_name,
 			r.teleports,
@@ -116,10 +116,10 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Result<Json
 			r.created_on
 		FROM
 			Records r
-			JOIN Filters f ON f.id = r.filter_id
+			JOIN CourseFilters f ON f.id = r.filter_id
 			JOIN Courses c ON c.id = f.course_id
 			JOIN Maps m ON m.id = c.map_id
-			JOIN Players p ON p.id = r.player_id
+			JOIN Players p ON p.steam_id = r.player_id
 			JOIN Servers s ON s.id = r.server_id
 		WHERE
 			r.id = ?
@@ -229,15 +229,15 @@ pub async fn create_record(
 		SELECT
 			id
 		FROM
-			Filters
+			CourseFilters
 		WHERE
 			course_id = ?
 			AND mode_id = ?
-			AND style_id = ?
+			AND has_teleports = ?
 		"#,
 		course_id,
 		mode as u8,
-		style as u8,
+		teleports > 0,
 	}
 	.fetch_optional(state.database())
 	.await?

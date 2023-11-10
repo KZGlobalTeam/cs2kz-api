@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS Records (
 	`id` INT8 UNSIGNED NOT NULL AUTO_INCREMENT,
 	`player_id` INT4 UNSIGNED NOT NULL,
 	`filter_id` INT4 UNSIGNED NOT NULL,
+	`style_id` INT1 UNSIGNED NOT NULL,
 	`teleports` INT2 UNSIGNED NOT NULL,
 	`time` FLOAT8 NOT NULL,
 	`server_id` INT2 UNSIGNED NOT NULL,
@@ -21,6 +22,7 @@ CREATE TABLE IF NOT EXISTS Records (
 	PRIMARY KEY (`id`),
 	FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`),
 	FOREIGN KEY (`filter_id`) REFERENCES CourseFilters (`id`),
+	FOREIGN KEY (`style_id`) REFERENCES Styles (`id`),
 	FOREIGN KEY (`server_id`) REFERENCES Servers (`id`),
 	FOREIGN KEY (`plugin_version`) REFERENCES PluginVersions (`id`)
 );

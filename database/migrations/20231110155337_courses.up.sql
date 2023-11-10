@@ -31,7 +31,9 @@ CREATE TABLE IF NOT EXISTS CourseFilters (
 	`course_id` INT4 UNSIGNED NOT NULL,
 	`mode_id` INT1 UNSIGNED NOT NULL,
 	`has_teleports` BOOLEAN NOT NULL,
+	`tier` INT1 UNSIGNED NOT NULL,
 	PRIMARY KEY (`id`),
 	FOREIGN KEY (`course_id`) REFERENCES Courses (`id`),
-	FOREIGN KEY (`mode_id`) REFERENCES Modes (`id`)
+	FOREIGN KEY (`mode_id`) REFERENCES Modes (`id`),
+	CONSTRAINT `valid_tier` CHECK(`tier` BETWEEN 1 AND 10)
 );

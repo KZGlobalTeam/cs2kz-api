@@ -9,7 +9,7 @@ use {
 		Json,
 	},
 	chrono::{DateTime, Utc},
-	cs2kz::{MapIdentifier, Mode, PlayerIdentifier, SteamID, Style, Tier},
+	cs2kz::{MapIdentifier, Mode, PlayerIdentifier, Runtype, SteamID, Style, Tier},
 	serde::{Deserialize, Serialize},
 	sqlx::QueryBuilder,
 	utoipa::{IntoParams, ToSchema},
@@ -93,10 +93,10 @@ pub async fn get_maps(
 		let steam32_id = match player {
 			PlayerIdentifier::SteamID(steam_id) => steam_id.as_u32(),
 			PlayerIdentifier::Name(name) => {
-				sqlx::query!("SELECT id FROM Players WHERE name LIKE ?", name)
+				sqlx::query!("SELECT steam_id FROM Players WHERE name LIKE ?", name)
 					.fetch_one(state.database())
 					.await?
-					.id
+					.steam_id
 			}
 		};
 
@@ -211,8 +211,8 @@ pub struct NewMap {
 	/// The filesize of the map.
 	filesize: u64,
 
-	/// The `SteamID` of the player who owns this map.
-	owned_by: SteamID,
+	/// The `SteamID` of the player who published this map.
+	created_by: SteamID,
 
 	/// The `SteamID` of the admin who approved this map to be globalled.
 	approved_by: SteamID,
@@ -222,7 +222,7 @@ pub struct NewMap {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Course {
 	/// The stage this course corresponds to.
-	stage: u8,
+	map_stage: u8,
 
 	/// The `SteamID` of the player who created this course.
 	created_by: SteamID,
@@ -240,8 +240,8 @@ pub struct Filter {
 	/// A KZ mode.
 	mode: Mode,
 
-	/// A KZ style.
-	style: Style,
+	/// Whether teleports can be used.
+	runtype: Runtype,
 
 	/// A difficulty rating.
 	tier: Tier,
@@ -264,7 +264,7 @@ pub struct CreatedCourse {
 	id: u32,
 
 	/// The stage this course corresponds to.
-	stage: u8,
+	map_stage: u8,
 
 	/// A list of filters on this course.
 	filters: Vec<CreatedFilter>,
@@ -292,7 +292,7 @@ pub struct CreatedFilter {
 )]
 pub async fn create_map(
 	state: State,
-	Json(NewMap { name, workshop_id, courses, filesize, owned_by, approved_by }): Json<NewMap>,
+	Json(NewMap { name, workshop_id, courses, filesize, created_by, approved_by }): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {
 	validate_courses(&courses)?;
 
@@ -301,14 +301,14 @@ pub async fn create_map(
 	sqlx::query! {
 		r#"
 		INSERT INTO
-			Maps (name, workshop_id, filesize, owned_by)
+			Maps (name, workshop_id, filesize, created_by)
 		VALUES
 			(?, ?, ?, ?)
 		"#,
 		name,
 		workshop_id,
 		filesize,
-		owned_by.as_u32(),
+		created_by.as_u32(),
 	}
 	.execute(transaction.as_mut())
 	.await?;
@@ -322,7 +322,7 @@ pub async fn create_map(
 	create_courses.push_values(&courses, |mut query, course| {
 		query
 			.push_bind(map.id)
-			.push_bind(course.stage)
+			.push_bind(course.map_stage)
 			.push_bind(course.created_by.as_u32());
 	});
 
@@ -336,14 +336,14 @@ pub async fn create_map(
 		.await?;
 
 	let mut create_filters =
-		QueryBuilder::new("INSERT INTO Filters (course_id, mode_id, style_id)");
+		QueryBuilder::new("INSERT INTO CourseFilters (course_id, mode_id, has_teleports, tier)");
 
 	create_filters.push_values(
 		courses.iter().flat_map(|course| {
 			course.filters.iter().map(|filter| {
 				let course = db_courses
 					.iter()
-					.find(|c| c.stage == course.stage)
+					.find(|c| c.map_stage == course.map_stage)
 					.expect("we just inserted all the courses");
 
 				(course.id, filter)
@@ -353,7 +353,8 @@ pub async fn create_map(
 			query
 				.push_bind(course_id)
 				.push_bind(filter.mode as u8)
-				.push_bind(filter.style as u8);
+				.push_bind(bool::from(filter.runtype))
+				.push_bind(filter.tier as u8);
 		},
 	);
 
@@ -369,7 +370,7 @@ pub async fn create_map(
 		SELECT
 			f.*
 		FROM
-			Filters f
+			CourseFilters f
 			JOIN Courses c ON c.id = f.course_id
 		WHERE
 			c.map_id = ?
@@ -383,7 +384,7 @@ pub async fn create_map(
 		.into_iter()
 		.map(|course| CreatedCourse {
 			id: course.id,
-			stage: course.stage,
+			map_stage: course.map_stage,
 			filters: db_filters
 				.iter()
 				.filter(|filter| filter.course_id == course.id)
@@ -394,10 +395,7 @@ pub async fn create_map(
 							.mode_id
 							.try_into()
 							.expect("invalid mode in database"),
-						style: filter
-							.style_id
-							.try_into()
-							.expect("invalid filter in database"),
+						runtype: (filter.has_teleports == 1).into(),
 						tier: filter
 							.tier
 							.try_into()
@@ -416,7 +414,7 @@ fn validate_courses(courses: &[Course]) -> Result<()> {
 	let mut counters = vec![0_usize; courses.len()];
 
 	for course in courses {
-		counters[course.stage as usize] += 1;
+		counters[course.map_stage as usize] += 1;
 	}
 
 	for (stage, &count) in counters.iter().enumerate() {
@@ -512,7 +510,7 @@ pub async fn update_map(
 
 	if let Some(filters) = filters_removed {
 		for filter_id in filters {
-			sqlx::query!("DELETE FROM Filters WHERE id = ?", filter_id)
+			sqlx::query!("DELETE FROM CourseFilters WHERE id = ?", filter_id)
 				.execute(transaction.as_mut())
 				.await?;
 		}
