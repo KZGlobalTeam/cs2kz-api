@@ -1,8 +1,8 @@
 use {
 	crate::{
 		res::{servers as res, BadRequest},
-		util::{self, Created, Filter, Limit, Offset},
-		Error, Response, Result, State,
+		util::{self, BoundedU64, Created, Filter},
+		Error, Result, State,
 	},
 	axum::{
 		extract::{Path, Query},
@@ -44,8 +44,12 @@ pub struct GetServersParams<'a> {
 	/// Only include servers that were approved before a certain date.
 	created_before: Option<DateTime<Utc>>,
 
-	offset: Offset,
-	limit: Limit<500>,
+	#[param(value_type = Option<u64>, default = 0)]
+	offset: BoundedU64,
+
+	/// Return at most this many results.
+	#[param(value_type = Option<u64>, default = 100, maximum = 500)]
+	limit: BoundedU64<100, 500>,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -63,7 +67,7 @@ pub async fn get_servers(
 	Query(GetServersParams { name, owned_by, created_after, created_before, offset, limit }): Query<
 		GetServersParams<'_>,
 	>,
-) -> Response<Vec<res::Server>> {
+) -> Result<Json<Vec<res::Server>>> {
 	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
 	let mut filter = Filter::new();
 
@@ -140,7 +144,7 @@ pub async fn get_servers(
 pub async fn get_server(
 	state: State,
 	Path(ident): Path<ServerIdentifier<'_>>,
-) -> Response<res::Server> {
+) -> Result<Json<res::Server>> {
 	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
 
 	query.push(" WHERE ");
@@ -207,7 +211,7 @@ pub async fn create_server(
 	Json(NewServer { name, owned_by, ip_address, port, approved_by }): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
 	let api_key = rand::random::<u32>();
-	let mut transaction = state.database().begin().await?;
+	let mut transaction = state.transaction().await?;
 
 	sqlx::query! {
 		r#"
@@ -269,7 +273,7 @@ pub async fn update_server(
 	Path(server_id): Path<u16>,
 	Json(ServerUpdate { name, owned_by, ip_address, port }): Json<ServerUpdate>,
 ) -> Result<()> {
-	let mut transaction = state.database().begin().await?;
+	let mut transaction = state.transaction().await?;
 
 	if let Some(name) = name {
 		sqlx::query!("UPDATE Servers SET name = ? WHERE id = ?", name, server_id)

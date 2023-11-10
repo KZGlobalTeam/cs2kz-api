@@ -8,7 +8,7 @@ use {
 /// The default log level.
 ///
 /// This will be used if `RUST_LOG` was not specified.
-static DEFAULT_FILTER: &str = "WARN,cs2kz_api=TRACE";
+static DEFAULT_FILTER: &str = "WARN,cs2kz_api=TRACE,sqlx=DEBUG";
 
 /// Will initialize logging.
 pub fn init() {
@@ -19,8 +19,8 @@ pub fn init() {
 	let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| DEFAULT_FILTER.into());
 	let level = env_filter.to_string();
 
-	// Which [`tracing::instrument`] events to log.
-	let span_events = FmtSpan::ACTIVE;
+	// Which `tracing::instrument` events to log.
+	let span_events = FmtSpan::NEW | FmtSpan::CLOSE;
 
 	tracing_subscriber::fmt()
 		.pretty()

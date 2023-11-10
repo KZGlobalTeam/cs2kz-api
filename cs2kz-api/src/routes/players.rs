@@ -2,8 +2,8 @@ use {
 	crate::{
 		database,
 		res::{player as res, BadRequest},
-		util::{self, Created, Filter, Limit, Offset},
-		Error, Response, Result, State,
+		util::{self, BoundedU64, Created, Filter},
+		Error, Result, State,
 	},
 	axum::{
 		extract::{Path, Query},
@@ -23,8 +23,8 @@ static ROOT_GET_BASE_QUERY: &str = r#"
 		p2.playtime,
 		p2.afktime
 	FROM
-		players p1
-		JOIN playtimes p2 ON p2.player_id = p1.id
+		Players p1
+		JOIN Playtimes p2 ON p2.player_id = p1.id
 "#;
 
 /// Query parameters for fetching players.
@@ -39,8 +39,12 @@ pub struct GetPlayersParams {
 	/// Only include (not) banned players.
 	is_banned: Option<bool>,
 
-	offset: Offset,
-	limit: Limit<500>,
+	#[param(value_type = Option<u64>, default = 0)]
+	offset: BoundedU64,
+
+	/// Return at most this many results.
+	#[param(value_type = Option<u64>, default = 100, maximum = 500)]
+	limit: BoundedU64<100, 500>,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -56,7 +60,7 @@ pub struct GetPlayersParams {
 pub async fn get_players(
 	state: State,
 	Query(GetPlayersParams { name, playtime, is_banned, offset, limit }): Query<GetPlayersParams>,
-) -> Response<Vec<res::Player>> {
+) -> Result<Json<Vec<res::Player>>> {
 	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
 	let mut filter = Filter::new();
 
@@ -117,7 +121,7 @@ pub async fn get_players(
 pub async fn get_player(
 	state: State,
 	Path(ident): Path<PlayerIdentifier<'_>>,
-) -> Response<res::Player> {
+) -> Result<Json<res::Player>> {
 	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
 
 	query.push(" WHERE ");
@@ -229,7 +233,7 @@ pub async fn update_player(
 	// TODO(AlphaKeks): update playtimes as well
 
 	let id = steam_id.as_u32();
-	let mut transaction = state.database().begin().await?;
+	let mut transaction = state.transaction().await?;
 
 	if let Some(name) = name {
 		sqlx::query!("UPDATE Players SET name = ? WHERE id = ?", name, id)

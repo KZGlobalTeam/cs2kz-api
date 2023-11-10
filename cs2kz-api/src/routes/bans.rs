@@ -1,8 +1,8 @@
 use {
 	crate::{
 		res::{bans as res, bans::BanReason, BadRequest},
-		util::{self, Created, Filter, Limit, Offset},
-		Error, Response, Result, State,
+		util::{self, BoundedU64, Created, Filter},
+		Error, Result, State,
 	},
 	axum::{
 		extract::{Path, Query},
@@ -37,8 +37,12 @@ pub struct GetBansParams<'a> {
 	/// Only include bans that were issued before a certain date.
 	created_before: Option<DateTime<Utc>>,
 
-	offset: Offset,
-	limit: Limit<500>,
+	#[param(value_type = Option<u64>, default = 0)]
+	offset: BoundedU64,
+
+	/// Return at most this many results.
+	#[param(value_type = Option<u64>, default = 100, maximum = 500)]
+	limit: BoundedU64<100, 500>,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -63,7 +67,7 @@ pub async fn get_bans(
 		offset,
 		limit,
 	}): Query<GetBansParams<'_>>,
-) -> Response<Vec<res::Ban>> {
+) -> Result<Json<Vec<res::Ban>>> {
 	let mut query = QueryBuilder::new(
 		r#"
 		SELECT
@@ -181,8 +185,8 @@ pub async fn get_bans(
 		(status = 500, body = Error),
 	),
 )]
-pub async fn get_replay(state: State, Path(ban_id): Path<u32>) -> Response<()> {
-	todo!();
+pub async fn get_replay(state: State, Path(ban_id): Path<u32>) -> Result<&'static str> {
+	Ok("not yet implemented")
 }
 
 /// Submissions for a player ban.
@@ -239,7 +243,7 @@ pub async fn create_ban(
 	state: State,
 	Json(NewBan { steam_id, ip_address, reason, banned_by, server_info, expires_on }): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
-	let mut transaction = state.database().begin().await?;
+	let mut transaction = state.transaction().await?;
 
 	sqlx::query! {
 		r#"

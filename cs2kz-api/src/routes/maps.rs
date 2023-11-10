@@ -1,8 +1,8 @@
 use {
 	crate::{
 		res::{maps as res, BadRequest},
-		util::{self, Created, Limit, Offset},
-		Error, Response, Result, State,
+		util::{self, BoundedU64, Created},
+		Error, Result, State,
 	},
 	axum::{
 		extract::{Path, Query},
@@ -51,8 +51,14 @@ pub struct GetMapsParams<'a> {
 	/// Only include maps that were globalled before a certain date.
 	pub created_before: Option<DateTime<Utc>>,
 
-	pub offset: Offset,
-	pub limit: Limit<1000>,
+	#[param(value_type = Option<u64>, default = 0)]
+	pub offset: BoundedU64,
+
+	/// Return at most this many results.
+	///
+	/// Defaults to 100 and caps out at 1000.
+	#[param(value_type = Option<u64>, default = 100, maximum = 1000)]
+	pub limit: BoundedU64<100, 1000>,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -70,7 +76,7 @@ pub async fn get_maps(
 	Query(GetMapsParams { name, created_by, created_after, created_before, offset, limit }): Query<
 		GetMapsParams<'_>,
 	>,
-) -> Response<Vec<res::KZMap>> {
+) -> Result<Json<Vec<res::KZMap>>> {
 	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
 	let mut filter = util::Filter::new();
 
@@ -157,7 +163,10 @@ pub async fn get_maps(
 		(status = 500, body = Error),
 	),
 )]
-pub async fn get_map(state: State, Path(ident): Path<MapIdentifier<'_>>) -> Response<res::KZMap> {
+pub async fn get_map(
+	state: State,
+	Path(ident): Path<MapIdentifier<'_>>,
+) -> Result<Json<res::KZMap>> {
 	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
 
 	query.push(" WHERE ");
@@ -287,7 +296,7 @@ pub async fn create_map(
 ) -> Result<Created<Json<CreatedMap>>> {
 	validate_courses(&courses)?;
 
-	let mut transaction = state.database().begin().await?;
+	let mut transaction = state.transaction().await?;
 
 	sqlx::query! {
 		r#"
@@ -329,11 +338,7 @@ pub async fn create_map(
 	let mut create_filters =
 		QueryBuilder::new("INSERT INTO Filters (course_id, mode_id, style_id)");
 
-	// FIXME(AlphaKeks): this seems to break axum if it's not a closure...?
-	//
-	// This will not compile unless it's either a closure or inlined into where it's used.
-	// Don't ask me why.
-	let filters = || {
+	create_filters.push_values(
 		courses.iter().flat_map(|course| {
 			course.filters.iter().map(|filter| {
 				let course = db_courses
@@ -343,15 +348,14 @@ pub async fn create_map(
 
 				(course.id, filter)
 			})
-		})
-	};
-
-	create_filters.push_values(filters(), |mut query, (course_id, filter)| {
-		query
-			.push_bind(course_id)
-			.push_bind(filter.mode as u8)
-			.push_bind(filter.style as u8);
-	});
+		}),
+		|mut query, (course_id, filter)| {
+			query
+				.push_bind(course_id)
+				.push_bind(filter.mode as u8)
+				.push_bind(filter.style as u8);
+		},
+	);
 
 	create_filters
 		.build()
@@ -475,7 +479,7 @@ pub async fn update_map(
 	Path(map_id): Path<u16>,
 	Json(MapUpdate { name, workshop_id, filters_added, filters_removed }): Json<MapUpdate>,
 ) -> Result<()> {
-	let mut transaction = state.database().begin().await?;
+	let mut transaction = state.transaction().await?;
 
 	if let Some(name) = name {
 		sqlx::query!("UPDATE Maps SET name = ? WHERE id = ?", name, map_id)

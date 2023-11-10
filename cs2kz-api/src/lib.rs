@@ -1,6 +1,6 @@
 use {
 	crate::state::AppState,
-	axum::{extract::State as StateExtractor, routing, Router},
+	axum::{routing, Router},
 	utoipa::OpenApi,
 	utoipa_swagger_ui::SwaggerUi,
 };
@@ -15,37 +15,6 @@ pub mod logging;
 pub mod routes;
 pub mod state;
 pub mod res;
-
-/// Type alias for easy use in function signatures.
-///
-/// You can read more about axum's extractors
-/// [here](https://docs.rs/axum/0.6.20/axum/index.html#extractors).
-///
-/// Usually you would write a handler function like this:
-///
-/// ```ignore
-/// use axum::extract::State;
-/// use crate::State as AppState;
-///
-/// async fn handler(State(state): State<&'static AppState>) {
-///     let db = state.database();
-///     // ...
-/// }
-/// ```
-///
-/// To avoid all that type "boilerplate", you can use this type alias instead:
-///
-/// ```ignore
-/// use crate::State;
-///
-/// async fn handler(state: State) {
-///     let db = state.database();
-///     // ...
-/// }
-/// ```
-pub type State = StateExtractor<&'static AppState>;
-
-pub type Response<T> = Result<axum::Json<T>>;
 
 #[rustfmt::skip]
 #[derive(OpenApi)]
@@ -145,7 +114,7 @@ pub type Response<T> = Result<axum::Json<T>>;
 pub struct API;
 
 impl API {
-	/// Creates an [`axum::Router`] which can be served as a tower service.
+	/// Creates an [`axum::Router`] which will be used by the HTTP server.
 	pub fn router(state: AppState) -> Router {
 		let state: &'static AppState = Box::leak(Box::new(state));
 
@@ -159,6 +128,9 @@ impl API {
 			.route("/maps/:ident", routing::get(routes::maps::get_map))
 			.route("/servers", routing::get(routes::servers::get_servers))
 			.route("/servers/:ident", routing::get(routes::servers::get_server))
+			.route("/records", routing::get(routes::records::get_records))
+			.route("/record/:id", routing::get(routes::records::get_record))
+			.route("/record/:id/replay", routing::get(routes::records::get_replay))
 			.with_state(state);
 
 		// Routes to be used by cs2kz servers (require auth).
@@ -172,6 +144,7 @@ impl API {
 			.route("/maps/:ident", routing::put(routes::maps::update_map))
 			.route("/servers", routing::post(routes::servers::create_server))
 			.route("/servers/:ident", routing::put(routes::servers::update_server))
+			.route("/record", routing::post(routes::records::create_record))
 			.with_state(state);
 
 		let api_router = game_server_router.merge(public_api_router);
@@ -193,3 +166,29 @@ impl API {
 		SwaggerUi::new("/api/docs/swagger-ui").url("/api/docs/openapi.json", Self::openapi())
 	}
 }
+
+/// Type alias for easy use in function signatures.
+///
+/// You can read more about axum's extractors [here](https://docs.rs/axum/0.6.20/axum/index.html#extractors).
+///
+/// Usually you would write a handler function like this:
+///
+/// ```ignore
+/// use axum::extract::State;
+/// use crate::State as AppState;
+///
+/// async fn handler(State(state): State<&'static AppState>) {
+///     let db = state.database();
+///     // ...
+/// }
+/// ```
+///
+/// To avoid all that type "boilerplate", you can use this type alias instead:
+///
+/// ```ignore
+/// async fn handler(state: crate::State) {
+///     let db = state.database();
+///     // ...
+/// }
+/// ```
+pub type State = axum::extract::State<&'static crate::AppState>;

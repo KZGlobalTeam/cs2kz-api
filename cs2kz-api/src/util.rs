@@ -3,7 +3,6 @@ use {
 	serde::{Deserialize, Deserializer, Serialize},
 	sqlx::{MySql, QueryBuilder},
 	std::fmt::Display,
-	utoipa::ToSchema,
 };
 
 /// A filter to use in database queries.
@@ -57,13 +56,10 @@ where
 /// * `DEFAULT`: the fallback value to be used if the actual value was null (defaults to 0)
 /// * `MAX`: the maximum value that is allowed (defaults to [`u64::MAX`])
 /// * `MIN`: the minimum value that is allowed (defaults to 0)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, ToSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct BoundedU64<const DEFAULT: u64 = 0, const MAX: u64 = { u64::MAX }, const MIN: u64 = 0> {
 	pub value: u64,
 }
-
-pub type Offset = BoundedU64;
-pub type Limit<const LIMIT_LIMIT: u64> = BoundedU64<100, LIMIT_LIMIT>;
 
 impl<'de, const DEFAULT: u64, const MAX: u64, const MIN: u64> Deserialize<'de>
 	for BoundedU64<DEFAULT, MAX, MIN>
@@ -91,8 +87,8 @@ impl<'de, const DEFAULT: u64, const MAX: u64, const MIN: u64> Deserialize<'de>
 // Because I can never remember the order 🤤
 pub fn push_limit<const LIMIT_LIMIT: u64>(
 	query: &mut QueryBuilder<'_, MySql>,
-	offset: Offset,
-	limit: Limit<LIMIT_LIMIT>,
+	offset: BoundedU64,
+	limit: BoundedU64<100, LIMIT_LIMIT>,
 ) {
 	query
 		.push(" LIMIT ")

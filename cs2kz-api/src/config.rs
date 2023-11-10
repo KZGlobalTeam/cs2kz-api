@@ -9,7 +9,7 @@ use {
 #[derive(Debug)]
 pub struct Config {
 	/// The IP address the API will run on.
-	pub address: Ipv4Addr,
+	pub ip_address: Ipv4Addr,
 
 	/// The port the API will be exposed on.
 	pub port: u16,
@@ -33,16 +33,16 @@ macro_rules! load_env {
 impl Config {
 	/// Creates a [`SocketAddr`] from the specified IP address and port.
 	pub const fn socket_addr(&self) -> SocketAddr {
-		SocketAddr::new(IpAddr::V4(self.address), self.port)
+		SocketAddr::new(IpAddr::V4(self.ip_address), self.port)
 	}
 
 	/// Loads config values from the environment.
 	pub fn load() -> color_eyre::Result<Self> {
-		let address = load_env!("API_IP");
+		let ip_address = load_env!("API_IP");
 		let port = load_env!("API_PORT");
 		let enable_logging = load_env!("API_LOGGING");
 		let database_url = load_env!("DATABASE_URL");
 
-		Ok(Self { address, port, enable_logging, database_url })
+		Ok(Self { ip_address, port, enable_logging, database_url })
 	}
 }

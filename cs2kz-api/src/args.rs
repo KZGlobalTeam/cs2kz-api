@@ -3,8 +3,8 @@ use {crate::config::Config, clap::Parser, std::net::Ipv4Addr};
 #[derive(Parser)]
 pub struct Args {
 	/// The IP address to run the API on.
-	#[arg(short, long)]
-	pub address: Option<Ipv4Addr>,
+	#[arg(short = 'a', long)]
+	pub ip_address: Option<Ipv4Addr>,
 
 	/// The port to expose the API on.
 	#[arg(short, long)]
@@ -33,8 +33,8 @@ impl Args {
 
 	/// Overrides any [`Config`] values with specified CLI arguments.
 	pub fn override_config(&self, config: &mut Config) {
-		if let Some(address) = self.address {
-			config.address = address;
+		if let Some(ip_address) = self.ip_address {
+			config.ip_address = ip_address;
 		}
 
 		if let Some(port) = self.port {
@@ -46,7 +46,7 @@ impl Args {
 		}
 
 		if let Some(ref database_url) = self.database_url {
-			config.database_url = database_url.clone();
+			config.database_url = database_url.to_owned();
 		}
 	}
 }

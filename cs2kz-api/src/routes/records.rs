@@ -1,8 +1,8 @@
 use {
 	crate::{
 		res::{records as res, BadRequest},
-		util::{Created, Limit, Offset},
-		Error, Response, Result, State,
+		util::{BoundedU64, Created},
+		Error, Result, State,
 	},
 	axum::{
 		extract::{Path, Query},
@@ -46,8 +46,12 @@ pub struct GetRecordsParams<'a> {
 	/// Only include records on (non) ranked courses.
 	allow_non_ranked: Option<bool>,
 
-	offset: Offset,
-	limit: Limit<500>,
+	#[param(value_type = Option<u64>, default = 0)]
+	offset: BoundedU64,
+
+	/// Return at most this many results.
+	#[param(value_type = Option<u64>, default = 100, maximum = 500)]
+	limit: BoundedU64<100, 500>,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -76,7 +80,7 @@ pub async fn get_records(
 		offset,
 		limit,
 	}): Query<GetRecordsParams<'_>>,
-) -> Response<Vec<res::Record>> {
+) -> Result<Json<Vec<res::Record>>> {
 	todo!();
 }
 
@@ -90,7 +94,7 @@ pub async fn get_records(
 		(status = 500, body = Error),
 	),
 )]
-pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Response<res::Record> {
+pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Result<Json<res::Record>> {
 	sqlx::query! {
 		r#"
 		SELECT
@@ -169,8 +173,8 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Response<re
 		(status = 500, body = Error),
 	),
 )]
-pub async fn get_replay(state: State, Path(record_id): Path<u32>) -> Response<()> {
-	todo!();
+pub async fn get_replay(state: State, Path(record_id): Path<u32>) -> Result<&'static str> {
+	Ok("not yet implemented")
 }
 
 /// A newly submitted KZ record.
@@ -240,7 +244,7 @@ pub async fn create_record(
 	.map(|row| row.id)
 	.ok_or(Error::MissingFilter)?;
 
-	let mut transaction = state.database().begin().await?;
+	let mut transaction = state.transaction().await?;
 
 	sqlx::query! {
 		r#"
