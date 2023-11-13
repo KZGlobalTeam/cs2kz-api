@@ -4,7 +4,7 @@ use {
 	color_eyre::eyre::Context,
 	cs2kz_api::{state::AppState, API},
 	std::{fmt::Write, net::SocketAddr},
-	tracing::{error, info},
+	tracing::info,
 };
 
 mod config;
@@ -38,11 +38,6 @@ async fn main() -> color_eyre::Result<()> {
 
 	// Create axum router
 	let router = API::router(state).into_make_service_with_connect_info::<SocketAddr>();
-
-	// Write JSON schema of the API to disk
-	if let Err(err) = API::write_json() {
-		error!("{err}");
-	}
 
 	// Create HTTP server
 	let server = Server::bind(&config.socket_addr()).serve(router);

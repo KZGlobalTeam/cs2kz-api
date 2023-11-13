@@ -1,0 +1,9 @@
+[package]
+name = "cs2kz-api-spec-generator"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+color-eyre = { workspace = true }
+clap = { workspace = true }
+cs2kz-api = { path = "../cs2kz-api" }

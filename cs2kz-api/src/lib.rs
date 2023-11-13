@@ -2,7 +2,6 @@ use {
 	crate::state::AppState,
 	axum::{routing, Router},
 	color_eyre::eyre::Context,
-	tracing::info,
 	utoipa::OpenApi,
 	utoipa_swagger_ui::SwaggerUi,
 };
@@ -172,18 +171,11 @@ impl API {
 		Self::openapi().paths.paths.into_keys()
 	}
 
-	/// Saves a JSON version of the OpenAPI spec on disk.
-	pub fn write_json() -> color_eyre::Result<()> {
-		let json = Self::openapi()
+	/// Returns a JSON version of the OpenAPI spec.
+	pub fn json() -> color_eyre::Result<String> {
+		Self::openapi()
 			.to_pretty_json()
-			.context("Failed to convert API to JSON.")?;
-
-		std::fs::write("api-spec.json", json.into_bytes())
-			.context("Failed to write JSON to disk.")?;
-
-		info!("Wrote OpenAPI spec to disk.");
-
-		Ok(())
+			.context("Failed to convert API to JSON.")
 	}
 
 	/// Creates a tower service layer for serving an HTML page with SwaggerUI.

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["cs2kz", "cs2kz-api"]
+members = ["cs2kz", "cs2kz-api", "cs2kz-api-spec-generator"]
 
 [workspace.dependencies.color-eyre]
 version = "0.6.2"

@@ -577,6 +577,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cs2kz-api-spec-generator"
+version = "0.0.0"
+dependencies = [
+ "clap",
+ "color-eyre",
+ "cs2kz-api",
+]
+
+[[package]]
 name = "ctor"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
