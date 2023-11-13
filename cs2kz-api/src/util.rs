@@ -1,6 +1,11 @@
 use {
-	axum::{http::StatusCode, response::IntoResponse},
-	serde::{Deserialize, Deserializer, Serialize},
+	crate::{Error, Result},
+	axum::{
+		body::Body,
+		http::{Request, StatusCode},
+		response::IntoResponse,
+	},
+	serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize},
 	sqlx::{MySql, QueryBuilder},
 	std::fmt::Display,
 };
@@ -64,7 +69,7 @@ pub struct BoundedU64<const DEFAULT: u64 = 0, const MAX: u64 = { u64::MAX }, con
 impl<'de, const DEFAULT: u64, const MAX: u64, const MIN: u64> Deserialize<'de>
 	for BoundedU64<DEFAULT, MAX, MIN>
 {
-	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
 	where
 		D: Deserializer<'de>, {
 		use serde::de::Error;
@@ -95,4 +100,18 @@ pub fn push_limit<const LIMIT_LIMIT: u64>(
 		.push_bind(offset.value)
 		.push(",")
 		.push_bind(limit.value);
+}
+
+/// Extracts some `T` as JSON from a request body.
+pub async fn extract_from_body<T>(request: Request<Body>) -> Result<(T, Request<Body>)>
+where
+	T: DeserializeOwned, {
+	let (parts, body) = request.into_parts();
+	let bytes = hyper::body::to_bytes(body)
+		.await
+		.map_err(|_| Error::InvalidRequestBody)?;
+
+	let json = serde_json::from_slice(&bytes).map_err(|_| Error::InvalidRequestBody)?;
+
+	Ok((json, Request::from_parts(parts, bytes.into())))
 }

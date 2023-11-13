@@ -12,7 +12,15 @@ In addition to the public `GET` routes there are also a bunch of `POST` and `PUT
 specifically for the CS2KZ plugin which require authentication.
 
 Every approved server will have an API Key associated with it. This key should be included in an
-`api-key` header for every request.
+`api-key` header for every request. In addition to the header each request body should contain
+these fields nomatterwhat:
+
+```rust
+struct Body {
+    port: u16,
+    plugin_version: u16,
+}
+```
 
 For detailed and standardized schemas have a look at the `api-spec.json` file at the root of the
 repository. Alternatively the API also hosts a SwaggerUI web page at `/api/docs/swagger-ui`.

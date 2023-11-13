@@ -1,8 +1,15 @@
 use {
-	crate::{Error, Result, State},
+	crate::{util, Error, Result, State},
 	axum::{body::Body, extract::ConnectInfo, http::Request, middleware::Next, response::Response},
+	serde::Deserialize,
 	std::net::{IpAddr, Ipv4Addr, SocketAddr},
 };
+
+#[derive(Debug, Deserialize)]
+struct ServerMetadata {
+	port: u16,
+	plugin_version: u16,
+}
 
 #[derive(Debug, Clone)]
 pub struct AuthenticatedServer {
@@ -14,7 +21,7 @@ pub struct AuthenticatedServer {
 pub async fn auth_server(
 	state: State,
 	ConnectInfo(addr): ConnectInfo<SocketAddr>,
-	mut request: Request<Body>,
+	request: Request<Body>,
 	next: Next<Body>,
 ) -> Result<Response> {
 	let api_key = request
@@ -26,10 +33,22 @@ pub async fn auth_server(
 		.parse::<u32>()
 		.map_err(|_| Error::InvalidApiKey)?;
 
-	let server = sqlx::query!("SELECT * FROM Servers WHERE api_key = ?", api_key)
-		.fetch_one(state.database())
-		.await
-		.map_err(|_| Error::Unauthorized)?;
+	let server = sqlx::query! {
+		r#"
+		SELECT
+			id,
+			ip_address,
+			port AS `port: u16`
+		FROM
+			Servers
+		WHERE
+			api_key = ?
+		"#,
+		api_key,
+	}
+	.fetch_one(state.database())
+	.await
+	.map_err(|_| Error::Unauthorized)?;
 
 	let ip_address = server
 		.ip_address
@@ -37,14 +56,24 @@ pub async fn auth_server(
 		.map(IpAddr::V4)
 		.expect("invalid ip address in database");
 
-	if ip_address != addr.ip() {
+	if addr.ip() != ip_address {
 		return Err(Error::Unauthorized);
 	}
 
-	// FIXME(AlphaKeks): extract `plugin_version` from request body
+	let (metadata, mut request) = util::extract_from_body::<ServerMetadata>(request).await?;
+
+	if metadata.port != server.port {
+		return Err(Error::Unauthorized);
+	}
+
+	// TODO(AlphaKeks): send the server a UDP packet or something
+
 	request
 		.extensions_mut()
-		.insert(AuthenticatedServer { id: server.id, plugin_version: 0 });
+		.insert(Some(AuthenticatedServer {
+			id: server.id,
+			plugin_version: metadata.plugin_version,
+		}));
 
 	Ok(next.run(request).await)
 }

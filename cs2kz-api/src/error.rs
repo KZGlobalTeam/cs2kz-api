@@ -42,6 +42,9 @@ pub enum Error {
 
 	#[error("You don't have access to this resource.")]
 	Unauthorized,
+
+	#[error("Invalid request body.")]
+	InvalidRequestBody,
 }
 
 impl IntoResponse for Error {
@@ -56,7 +59,8 @@ impl IntoResponse for Error {
 			| Self::DuplicateFilter { .. }
 			| Self::MissingFilter
 			| Self::MissingApiKey
-			| Self::InvalidApiKey => StatusCode::BAD_REQUEST,
+			| Self::InvalidApiKey
+			| Self::InvalidRequestBody => StatusCode::BAD_REQUEST,
 			Self::Unauthorized => StatusCode::UNAUTHORIZED,
 		};
 

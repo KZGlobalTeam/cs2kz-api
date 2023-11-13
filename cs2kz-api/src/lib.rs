@@ -1,12 +1,13 @@
 use {
 	crate::state::AppState,
 	axum::{routing, Router},
+	color_eyre::eyre::Context,
+	tracing::info,
 	utoipa::OpenApi,
 	utoipa_swagger_ui::SwaggerUi,
 };
 
 pub mod error;
-use color_eyre::eyre::Context;
 pub use error::{Error, Result};
 
 pub mod util;
@@ -179,6 +180,8 @@ impl API {
 
 		std::fs::write("api-spec.json", json.into_bytes())
 			.context("Failed to write JSON to disk.")?;
+
+		info!("Wrote OpenAPI spec to disk.");
 
 		Ok(())
 	}

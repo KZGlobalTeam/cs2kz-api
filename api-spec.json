@@ -1713,6 +1713,12 @@
             "enum": [
               "Unauthorized"
             ]
+          },
+          {
+            "type": "string",
+            "enum": [
+              "InvalidRequestBody"
+            ]
           }
         ]
       },
