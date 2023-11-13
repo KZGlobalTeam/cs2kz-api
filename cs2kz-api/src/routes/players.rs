@@ -19,12 +19,12 @@ use {
 
 static ROOT_GET_BASE_QUERY: &str = r#"
 	SELECT
-		p1.*,
-		p2.playtime,
-		p2.afktime
+		p.*,
+		s.active_seconds,
+		s.afk_seconds
 	FROM
-		Players p1
-		JOIN Playtimes p2 ON p2.player_id = p1.id
+		Players p
+		JOIN Sessions s ON s.player_id = p.steam_id
 "#;
 
 /// Query parameters for fetching players.
@@ -67,7 +67,7 @@ pub async fn get_players(
 	if let Some(ref name) = name {
 		query
 			.push(filter)
-			.push(" p1.name LIKE ")
+			.push(" p.name LIKE ")
 			.push_bind(format!("%{name}%"));
 
 		filter.switch();
@@ -76,7 +76,7 @@ pub async fn get_players(
 	if let Some(playtime) = playtime {
 		query
 			.push(filter)
-			.push(" p1.playtime >= ")
+			.push(" s.active_seconds >= ")
 			.push_bind(playtime);
 
 		filter.switch();
@@ -85,7 +85,7 @@ pub async fn get_players(
 	if let Some(is_banned) = is_banned {
 		query
 			.push(filter)
-			.push(" p1.is_banned = ")
+			.push(" p.is_banned = ")
 			.push_bind(is_banned);
 
 		filter.switch();
@@ -129,12 +129,12 @@ pub async fn get_player(
 	match ident {
 		PlayerIdentifier::SteamID(steam_id) => {
 			query
-				.push(" p1.id = ")
+				.push(" p.steam_id = ")
 				.push_bind(steam_id.as_u32());
 		}
 		PlayerIdentifier::Name(name) => {
 			query
-				.push(" p1.name LIKE ")
+				.push(" p.name LIKE ")
 				.push_bind(format!("%{name}%"));
 		}
 	};
