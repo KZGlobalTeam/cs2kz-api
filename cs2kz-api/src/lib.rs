@@ -13,6 +13,7 @@ pub mod database;
 
 pub mod logging;
 pub mod routes;
+pub mod middleware;
 pub mod state;
 pub mod res;
 
@@ -133,9 +134,10 @@ impl API {
 			.route("/record/:id/replay", routing::get(routes::records::get_replay))
 			.with_state(state);
 
+		let game_server_auth =
+			axum::middleware::from_fn_with_state(state, middleware::auth::gameservers::auth_server);
+
 		// Routes to be used by cs2kz servers (require auth).
-		//
-		// TODO(AlphaKeks): implement auth
 		let game_server_router = Router::new()
 			.route("/players", routing::post(routes::players::create_player))
 			.route("/players/:ident", routing::put(routes::players::update_player))
@@ -145,6 +147,7 @@ impl API {
 			.route("/servers", routing::post(routes::servers::create_server))
 			.route("/servers/:ident", routing::put(routes::servers::update_server))
 			.route("/record", routing::post(routes::records::create_record))
+			.layer(game_server_auth)
 			.with_state(state);
 
 		let api_router = game_server_router.merge(public_api_router);

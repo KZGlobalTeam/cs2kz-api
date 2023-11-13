@@ -33,6 +33,15 @@ pub enum Error {
 
 	#[error("Filter for this record does not exist.")]
 	MissingFilter,
+
+	#[error("Missing `api-key` header.")]
+	MissingApiKey,
+
+	#[error("Invalid `api-key` header.")]
+	InvalidApiKey,
+
+	#[error("You don't have access to this resource.")]
+	Unauthorized,
 }
 
 impl IntoResponse for Error {
@@ -45,7 +54,10 @@ impl IntoResponse for Error {
 			| Self::InvalidFilter { .. }
 			| Self::DuplicateCourse { .. }
 			| Self::DuplicateFilter { .. }
-			| Self::MissingFilter => StatusCode::BAD_REQUEST,
+			| Self::MissingFilter
+			| Self::MissingApiKey
+			| Self::InvalidApiKey => StatusCode::BAD_REQUEST,
+			Self::Unauthorized => StatusCode::UNAUTHORIZED,
 		};
 
 		(code, Json(message)).into_response()
