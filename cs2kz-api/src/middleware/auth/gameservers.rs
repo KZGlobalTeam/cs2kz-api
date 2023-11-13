@@ -4,8 +4,10 @@ use {
 	std::net::{IpAddr, Ipv4Addr, SocketAddr},
 };
 
+#[derive(Debug, Clone)]
 pub struct AuthenticatedServer {
 	pub id: u16,
+	pub plugin_version: u16,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -39,9 +41,10 @@ pub async fn auth_server(
 		return Err(Error::Unauthorized);
 	}
 
+	// FIXME(AlphaKeks): extract `plugin_version` from request body
 	request
 		.extensions_mut()
-		.insert(AuthenticatedServer { id: server.id });
+		.insert(AuthenticatedServer { id: server.id, plugin_version: 0 });
 
 	Ok(next.run(request).await)
 }

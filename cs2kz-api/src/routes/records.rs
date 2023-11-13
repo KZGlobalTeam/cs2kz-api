@@ -197,6 +197,24 @@ pub struct NewRecord {
 
 	/// The amount of teleports used in this run.
 	teleports: u16,
+
+	/// Statistics about how many perfect bhops the player hit during the run.
+	bhop_stats: BhopStats,
+}
+
+/// Bhop statistics.
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct BhopStats {
+	perfs: u16,
+	bhops_tick0: u16,
+	bhops_tick1: u16,
+	bhops_tick2: u16,
+	bhops_tick3: u16,
+	bhops_tick4: u16,
+	bhops_tick5: u16,
+	bhops_tick6: u16,
+	bhops_tick7: u16,
+	bhops_tick8: u16,
 }
 
 /// A newly created KZ record.
@@ -218,7 +236,9 @@ pub struct CreatedRecord {
 )]
 pub async fn create_record(
 	state: State,
-	Json(NewRecord { course_id, mode, style, steam_id, time, teleports }): Json<NewRecord>,
+	Json(NewRecord { course_id, mode, style, steam_id, time, teleports, bhop_stats }): Json<
+		NewRecord,
+	>,
 ) -> Result<Created<Json<CreatedRecord>>> {
 	// TODO(AlphaKeks): delete this once we have middleware
 	let server_id = 0;

@@ -1,12 +1,13 @@
 use {
 	crate::{
+		middleware::auth::gameservers::AuthenticatedServer,
 		res::{bans as res, bans::BanReason, BadRequest},
 		util::{self, BoundedU64, Created, Filter},
 		Error, Result, State,
 	},
 	axum::{
 		extract::{Path, Query},
-		Json,
+		Extension, Json,
 	},
 	chrono::{DateTime, Utc},
 	cs2kz::{PlayerIdentifier, ServerIdentifier, SteamID},
@@ -205,9 +206,6 @@ pub struct NewBan {
 	/// The `SteamID` of the admin who issued this ban.
 	banned_by: Option<SteamID>,
 
-	/// Information about the server this ban occurred on.
-	server_info: Option<BanServerInfo>,
-
 	/// Timestamp of when this ban expires.
 	expires_on: Option<DateTime<Utc>>,
 }
@@ -241,7 +239,8 @@ pub struct CreatedBan {
 )]
 pub async fn create_ban(
 	state: State,
-	Json(NewBan { steam_id, ip_address, reason, banned_by, server_info, expires_on }): Json<NewBan>,
+	Extension(server_info): Extension<Option<AuthenticatedServer>>,
+	Json(NewBan { steam_id, ip_address, reason, banned_by, expires_on }): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
 	let mut transaction = state.transaction().await?;
 

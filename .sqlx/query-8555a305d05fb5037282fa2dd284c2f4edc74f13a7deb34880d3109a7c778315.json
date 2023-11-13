@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT * FROM Maps WHERE id = (SELECT MAX(id) id FROM Maps)",
+  "query": "SELECT * FROM Servers WHERE api_key = ?",
   "describe": {
     "columns": [
       {
@@ -20,32 +20,32 @@
           "type": "VarString",
           "flags": "NOT_NULL | NO_DEFAULT_VALUE",
           "char_set": 224,
-          "max_size": 128
+          "max_size": 1020
         }
       },
       {
         "ordinal": 2,
-        "name": "workshop_id",
+        "name": "ip_address",
         "type_info": {
-          "type": "Long",
-          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
-          "char_set": 63,
-          "max_size": 10
+          "type": "String",
+          "flags": "NOT_NULL | UNSIGNED | BINARY | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 60
         }
       },
       {
         "ordinal": 3,
-        "name": "filesize",
+        "name": "port",
         "type_info": {
-          "type": "LongLong",
-          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "type": "Short",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
           "char_set": 63,
-          "max_size": 20
+          "max_size": 6
         }
       },
       {
         "ordinal": 4,
-        "name": "created_by",
+        "name": "owned_by",
         "type_info": {
           "type": "Long",
           "flags": "NOT_NULL | MULTIPLE_KEY | UNSIGNED | NO_DEFAULT_VALUE",
@@ -55,17 +55,17 @@
       },
       {
         "ordinal": 5,
-        "name": "created_on",
+        "name": "api_key",
         "type_info": {
-          "type": "Timestamp",
-          "flags": "NOT_NULL | UNSIGNED | BINARY | TIMESTAMP",
+          "type": "Long",
+          "flags": "UNIQUE_KEY | UNSIGNED",
           "char_set": 63,
-          "max_size": 19
+          "max_size": 10
         }
       },
       {
         "ordinal": 6,
-        "name": "updated_on",
+        "name": "approved_on",
         "type_info": {
           "type": "Timestamp",
           "flags": "NOT_NULL | UNSIGNED | BINARY | TIMESTAMP",
@@ -75,7 +75,7 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false,
@@ -83,9 +83,9 @@
       false,
       false,
       false,
-      false,
+      true,
       false
     ]
   },
-  "hash": "de1c3aa75cae7715079896278fd6fe462c8dd8338c773c207ca62e1e68c2be5e"
+  "hash": "8555a305d05fb5037282fa2dd284c2f4edc74f13a7deb34880d3109a7c778315"
 }

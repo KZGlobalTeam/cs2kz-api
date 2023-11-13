@@ -25,22 +25,12 @@
       },
       {
         "ordinal": 2,
-        "name": "stage",
+        "name": "map_stage",
         "type_info": {
           "type": "Tiny",
           "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
           "char_set": 63,
           "max_size": 3
-        }
-      },
-      {
-        "ordinal": 3,
-        "name": "created_by",
-        "type_info": {
-          "type": "Long",
-          "flags": "NOT_NULL | MULTIPLE_KEY | UNSIGNED | NO_DEFAULT_VALUE",
-          "char_set": 63,
-          "max_size": 10
         }
       }
     ],
@@ -48,7 +38,6 @@
       "Right": 1
     },
     "nullable": [
-      false,
       false,
       false,
       false

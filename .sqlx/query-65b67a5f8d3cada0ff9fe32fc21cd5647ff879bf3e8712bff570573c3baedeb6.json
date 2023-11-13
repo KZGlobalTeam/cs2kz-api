@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tUPDATE\n\t\t\t\tPlayers\n\t\t\tSET\n\t\t\t\tlast_known_ip_address = ?\n\t\t\tWHERE\n\t\t\t\tsteam_id = ?\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "65b67a5f8d3cada0ff9fe32fc21cd5647ff879bf3e8712bff570573c3baedeb6"
+}

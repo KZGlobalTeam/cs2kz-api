@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t\tf.*\n\t\tFROM\n\t\t\tFilters f\n\t\t\tJOIN Courses c ON c.id = f.course_id\n\t\tWHERE\n\t\t\tc.map_id = ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t\tf.*\n\t\tFROM\n\t\t\tCourseFilters f\n\t\t\tJOIN Courses c ON c.id = f.course_id\n\t\tWHERE\n\t\t\tc.map_id = ?\n\t\t",
   "describe": {
     "columns": [
       {
@@ -8,7 +8,7 @@
         "name": "id",
         "type_info": {
           "type": "Long",
-          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
           "char_set": 63,
           "max_size": 10
         }
@@ -35,12 +35,12 @@
       },
       {
         "ordinal": 3,
-        "name": "style_id",
+        "name": "has_teleports",
         "type_info": {
           "type": "Tiny",
-          "flags": "NOT_NULL | MULTIPLE_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
           "char_set": 63,
-          "max_size": 3
+          "max_size": 1
         }
       },
       {
@@ -65,5 +65,5 @@
       false
     ]
   },
-  "hash": "500042bb562337be1b650bc8312991de9cb24941bdeff7b83a9779f8f76c3d0e"
+  "hash": "f15791d64b73fc766f407f4f0569b1683773d7a6055b20bbcac4747570b0984b"
 }

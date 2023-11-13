@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t\tr.id,\n\t\t\tm.id map_id,\n\t\t\tm.name map_name,\n\t\t\tc.id course_id,\n\t\t\tc.stage course_stage,\n\t\t\tf.tier course_tier,\n\t\t\tf.mode_id,\n\t\t\tr.teleports > 0 `runtype: bool`,\n\t\t\tf.style_id,\n\t\t\tp.name player_name,\n\t\t\tp.id steam_id,\n\t\t\ts.id server_id,\n\t\t\ts.name server_name,\n\t\t\tr.teleports,\n\t\t\tr.time,\n\t\t\tr.created_on\n\t\tFROM\n\t\t\tRecords r\n\t\t\tJOIN Filters f ON f.id = r.filter_id\n\t\t\tJOIN Courses c ON c.id = f.course_id\n\t\t\tJOIN Maps m ON m.id = c.map_id\n\t\t\tJOIN Players p ON p.id = r.player_id\n\t\t\tJOIN Servers s ON s.id = r.server_id\n\t\tWHERE\n\t\t\tr.id = ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t\tr.id,\n\t\t\tm.id map_id,\n\t\t\tm.name map_name,\n\t\t\tc.id course_id,\n\t\t\tc.map_stage course_stage,\n\t\t\tf.tier course_tier,\n\t\t\tf.mode_id,\n\t\t\tr.teleports > 0 `runtype: bool`,\n\t\t\tr.style_id,\n\t\t\tp.name player_name,\n\t\t\tp.steam_id,\n\t\t\ts.id server_id,\n\t\t\ts.name server_name,\n\t\t\tr.teleports,\n\t\t\tr.time,\n\t\t\tr.created_on\n\t\tFROM\n\t\t\tRecords r\n\t\t\tJOIN CourseFilters f ON f.id = r.filter_id\n\t\t\tJOIN Courses c ON c.id = f.course_id\n\t\t\tJOIN Maps m ON m.id = c.map_id\n\t\t\tJOIN Players p ON p.steam_id = r.player_id\n\t\t\tJOIN Servers s ON s.id = r.server_id\n\t\tWHERE\n\t\t\tr.id = ?\n\t\t",
   "describe": {
     "columns": [
       {
@@ -186,5 +186,5 @@
       false
     ]
   },
-  "hash": "6e17d71a5e4da1f3878573f5924a99d10f00c451568997470a492e6dd5ca81d1"
+  "hash": "7cf20ca4ac86618bd9a782a97c00934845079610a1fd510099c54bc1a3342391"
 }

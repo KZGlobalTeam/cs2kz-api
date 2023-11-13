@@ -6,6 +6,7 @@ use {
 };
 
 pub mod error;
+use color_eyre::eyre::Context;
 pub use error::{Error, Result};
 
 pub mod util;
@@ -142,13 +143,19 @@ impl API {
 			.route("/players", routing::post(routes::players::create_player))
 			.route("/players/:ident", routing::put(routes::players::update_player))
 			.route("/bans", routing::post(routes::bans::create_ban))
-			.route("/maps", routing::post(routes::maps::create_map))
-			.route("/maps/:ident", routing::put(routes::maps::update_map))
-			.route("/servers", routing::post(routes::servers::create_server))
-			.route("/servers/:ident", routing::put(routes::servers::update_server))
 			.route("/record", routing::post(routes::records::create_record))
 			.layer(game_server_auth)
 			.with_state(state);
+
+		// let map_approval_router = Router::new()
+		// 	.route("/maps", routing::post(routes::maps::create_map))
+		// 	.route("/maps/:ident", routing::put(routes::maps::update_map))
+		// 	.with_state(state);
+
+		// let server_approval_router = Router::new()
+		// 	.route("/servers", routing::post(routes::servers::create_server))
+		// 	.route("/servers/:ident", routing::put(routes::servers::update_server))
+		// 	.with_state(state);
 
 		let api_router = game_server_router.merge(public_api_router);
 
@@ -162,6 +169,18 @@ impl API {
 	/// Creates an iterator over all of the API's routes.
 	pub fn routes() -> impl Iterator<Item = String> {
 		Self::openapi().paths.paths.into_keys()
+	}
+
+	/// Saves a JSON version of the OpenAPI spec on disk.
+	pub fn write_json() -> color_eyre::Result<()> {
+		let json = Self::openapi()
+			.to_pretty_json()
+			.context("Failed to convert API to JSON.")?;
+
+		std::fs::write("api-spec.json", json.into_bytes())
+			.context("Failed to write JSON to disk.")?;
+
+		Ok(())
 	}
 
 	/// Creates a tower service layer for serving an HTML page with SwaggerUI.
