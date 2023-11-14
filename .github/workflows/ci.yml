@@ -2,6 +2,7 @@ name: CS2KZ API CI
 
 on:
   push:
+    branches: ['master']
   pull_request:
 
 env:
