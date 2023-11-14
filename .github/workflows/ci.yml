@@ -1,0 +1,30 @@
+name: CS2KZ API CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: moonrepo/setup-rust@v1
+        with:
+          components: clippy
+      - run: make lint
+
+  format:
+    name: RustFmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: moonrepo/setup-rust@v1
+        with:
+          channel: nightly
+          components: rustfmt
+      - run: make format
