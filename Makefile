@@ -30,7 +30,7 @@ run:
 	docker compose up
 
 dev:
-	DATABASE_URL=mysql://kz:csgo-kz-is-dead-boys@127.0.0.1:8070/cs2kz-api cargo run
+	DATABASE_URL=mysql://kz:csgo-kz-is-dead-boys@127.0.0.1:8070/cs2kz-api cargo run -p cs2kz-api
 
 format:
 	cargo +nightly fmt --all

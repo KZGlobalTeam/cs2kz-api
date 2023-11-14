@@ -33,6 +33,8 @@ pub mod res;
 	paths(
 		routes::health::health,
 
+		routes::auth::token,
+
 		routes::players::get_players,
 		routes::players::get_player,
 		routes::players::create_player,
@@ -71,6 +73,8 @@ pub mod res;
 			cs2kz::Runtype,
 
 			crate::Error,
+
+			crate::routes::auth::TokenResponse,
 
 			crate::res::PlayerInfo,
 
@@ -133,6 +137,7 @@ impl API {
 			.route("/records", routing::get(routes::records::get_records))
 			.route("/record/:id", routing::get(routes::records::get_record))
 			.route("/record/:id/replay", routing::get(routes::records::get_replay))
+			.route("/auth/token", routing::get(routes::auth::token))
 			.with_state(state);
 
 		let game_server_auth =
@@ -143,7 +148,7 @@ impl API {
 			.route("/players", routing::post(routes::players::create_player))
 			.route("/players/:ident", routing::put(routes::players::update_player))
 			.route("/bans", routing::post(routes::bans::create_ban))
-			.route("/record", routing::post(routes::records::create_record))
+			.route("/records", routing::post(routes::records::create_record))
 			.layer(game_server_auth)
 			.with_state(state);
 

@@ -1,12 +1,13 @@
 use {
 	super::{BoundedU64, Created},
 	crate::{
+		middleware::auth::gameservers::AuthenticatedServer,
 		res::{records as res, BadRequest},
 		Error, Result, State,
 	},
 	axum::{
 		extract::{Path, Query},
-		Json,
+		Extension, Json,
 	},
 	cs2kz::{MapIdentifier, Mode, PlayerIdentifier, Runtype, ServerIdentifier, SteamID, Style},
 	serde::{Deserialize, Serialize},
@@ -236,14 +237,11 @@ pub struct CreatedRecord {
 )]
 pub async fn create_record(
 	state: State,
+	Extension(server): Extension<AuthenticatedServer>,
 	Json(NewRecord { course_id, mode, style, steam_id, time, teleports, bhop_stats }): Json<
 		NewRecord,
 	>,
 ) -> Result<Created<Json<CreatedRecord>>> {
-	// TODO(AlphaKeks): delete this once we have middleware
-	let server_id = 0;
-	let plugin_version = 0;
-
 	let filter_id = sqlx::query! {
 		r#"
 		SELECT
@@ -282,10 +280,10 @@ pub async fn create_record(
 		"#,
 		filter_id,
 		steam_id.as_u32(),
-		server_id,
+		server.id,
 		teleports,
 		time,
-		plugin_version,
+		server.plugin_version,
 	}
 	.execute(transaction.as_mut())
 	.await?;

@@ -10,10 +10,9 @@ use {
 		response::Response,
 		TypedHeader,
 	},
-	chrono::Utc,
 	jsonwebtoken as jwt,
 	serde::Deserialize,
-	std::net::{IpAddr, Ipv4Addr, SocketAddr},
+	std::net::SocketAddr,
 };
 
 #[derive(Debug, Deserialize)]
@@ -45,14 +44,12 @@ pub async fn auth_server(
 	let server = sqlx::query! {
 		r#"
 		SELECT
-			id,
-			ip_address,
-			port AS `port: u16`
+			id
 		FROM
 			Servers
 		WHERE
 			id = ?
-			AND api_token IS NOT NULL
+			AND api_key IS NOT NULL
 		"#,
 		server_info.id,
 	}
@@ -60,21 +57,11 @@ pub async fn auth_server(
 	.await
 	.map_err(|_| Error::Unauthorized)?;
 
-	if server_info.expires_on < Utc::now() {
+	if server_info.exp < jwt::get_current_timestamp() {
 		return Err(Error::Unauthorized);
 	}
 
-	let ip_address = server
-		.ip_address
-		.parse::<Ipv4Addr>()
-		.map(IpAddr::V4)
-		.expect("invalid ip address in database");
-
-	if addr.ip() != ip_address {
-		return Err(Error::Unauthorized);
-	}
-
-	let (metadata, mut request) = middleware::extract_from_body::<ServerMetadata>(request).await?;
+	let (metadata, mut request) = middleware::deserialize_body::<ServerMetadata>(request).await?;
 
 	request
 		.extensions_mut()

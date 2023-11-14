@@ -11,13 +11,13 @@ the API.
 In addition to the public `GET` routes there are also a bunch of `POST` and `PUT` routes
 specifically for the CS2KZ plugin which require authentication.
 
-Every approved server will have an API Key associated with it. This key should be included in an
-`api-key` header for every request. In addition to the header each request body should contain
-these fields nomatterwhat:
+Every approved server will have an API Key associated with it.
+This key acts as a refresh token to obtain temporary access tokens (JWT).
+Every request that requires authentication should include that access-token as a header.
+In addition to the JWT every request should also include these keys in their JSON request body:
 
 ```rust
 struct Body {
-    port: u16,
     plugin_version: u16,
 }
 ```
@@ -26,6 +26,27 @@ For detailed and standardized schemas have a look at the `api-spec.json` file at
 repository. Alternatively the API also hosts a SwaggerUI web page at `/api/docs/swagger-ui`.
 
 ## Routes for CS2KZ servers
+
+### GET `/auth/token`
+
+This requests a new access token.
+
+Access tokens expire after 30 minutes so every server should regularly request a new one.
+The request headers should include the API Key in an `api-key` header.
+
+The newly generated JWT will be sent back as a response that looks like this:
+
+```rust
+struct Response {
+    token: String,
+    expires_on: DateTime<Utc>,
+}
+```
+
+Servers will be queried regularly via
+[A2S](https://developer.valvesoftware.com/wiki/Server_queries#A2S_INFO) to make sure they are still
+alive and reachable at the expected IP:port combination. If a server stays down for an extended
+period of time, the server owner will be notified and the server will be invalidated.
 
 ### POST `/players`
 

@@ -7,7 +7,7 @@ use {
 pub mod auth;
 
 /// Extracts some `T` as JSON from a request body.
-pub async fn extract_from_body<T>(request: Request<Body>) -> Result<(T, Request<Body>)>
+pub async fn deserialize_body<T>(request: Request<Body>) -> Result<(T, Request<Body>)>
 where
 	T: DeserializeOwned, {
 	let (parts, body) = request.into_parts();

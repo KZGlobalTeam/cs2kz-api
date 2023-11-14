@@ -1,19 +1,23 @@
 use {
 	chrono::{DateTime, Utc},
+	jsonwebtoken as jwt,
 	serde::{Deserialize, Serialize},
-	std::time::Duration,
 };
 
-const HALF_HOUR: Duration = Duration::from_secs(60 * 30);
+const HALF_HOUR: u64 = 60 * 30;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct GameServerInfo {
 	pub id: u16,
-	pub expires_on: DateTime<Utc>,
+	pub exp: u64,
 }
 
 impl GameServerInfo {
 	pub fn new(id: u16) -> Self {
-		Self { id, expires_on: Utc::now() + HALF_HOUR }
+		Self { id, exp: jwt::get_current_timestamp() + HALF_HOUR }
+	}
+
+	pub fn timestamp(&self) -> DateTime<Utc> {
+		DateTime::from_timestamp(self.exp as _, 0).unwrap()
 	}
 }

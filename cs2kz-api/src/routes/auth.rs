@@ -1,16 +1,35 @@
 use {
 	crate::{headers::ApiKey, middleware::auth::jwt::GameServerInfo, Error, Result, State},
-	axum::TypedHeader,
+	axum::{Json, TypedHeader},
 	jsonwebtoken as jwt,
-	std::net::{IpAddr, Ipv4Addr, SocketAddr},
-	tokio::net::UdpSocket,
-	tracing::error,
+	serde::Serialize,
+	utoipa::ToSchema,
 };
 
-pub async fn refresh_token(
+#[derive(Debug, Serialize, ToSchema)]
+pub struct TokenResponse {
+	/// JWT
+	token: String,
+
+	/// Expiration date of the JWT
+	expires_on: u64,
+}
+
+/// CS2 server authentication.
+///
+/// This endpoint is used by CS2 game servers to refresh their access token.
+#[tracing::instrument(level = "DEBUG")]
+#[utoipa::path(get, tag = "Auth", context_path = "/api/v0", path = "/auth/token", params(
+	("api-key" = u32, Header, description = "API Key"),
+), responses(
+	(status = 200, body = TokenResponse, description = "The JWT and its expiration date."),
+	(status = 401, body = Error, description = "The API Key header was incorrect."),
+	(status = 500, body = Error),
+))]
+pub async fn token(
 	state: State,
 	TypedHeader(ApiKey(api_key)): TypedHeader<ApiKey>,
-) -> Result<()> {
+) -> Result<Json<TokenResponse>> {
 	let server = sqlx::query! {
 		r#"
 		SELECT
@@ -22,7 +41,7 @@ pub async fn refresh_token(
 		WHERE
 			api_key = ?
 		"#,
-		api_key
+		api_key,
 	}
 	.fetch_one(state.database())
 	.await
@@ -31,27 +50,5 @@ pub async fn refresh_token(
 	let server_info = GameServerInfo::new(server.id);
 	let token = jwt::encode(&state.jwt().header, &server_info, &state.jwt().encode)?;
 
-	let socket = UdpSocket::bind("0.0.0.0:0")
-		.await
-		.map_err(|_| Error::InternalServerError)?;
-
-	let ip_address = server
-		.ip_address
-		.parse::<Ipv4Addr>()
-		.expect("invalid ip_address in database");
-
-	let addr = SocketAddr::new(IpAddr::V4(ip_address), server.port);
-
-	socket
-		.connect(addr)
-		.await
-		.map_err(|_| Error::InternalServerError)?;
-
-	if let Err(err) = socket.send(token.as_bytes()).await {
-		error!(?err, "Failed to send api_token via UDP");
-
-		return Err(Error::InternalServerError);
-	}
-
-	Ok(())
+	Ok(Json(TokenResponse { token, expires_on: server_info.exp }))
 }

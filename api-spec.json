@@ -10,6 +10,61 @@
     "version": "0.0.0"
   },
   "paths": {
+    "/api/v0/auth/token": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "CS2 server authentication.",
+        "description": "CS2 server authentication.\n\nThis endpoint is used by CS2 game servers to refresh their access token.",
+        "operationId": "token",
+        "parameters": [
+          {
+            "name": "api-key",
+            "in": "header",
+            "description": "API Key",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The JWT and its expiration date.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The API Key header was incorrect.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v0/bans": {
       "get": {
         "tags": [
@@ -2409,6 +2464,25 @@
           "unfeasible",
           "impossible"
         ]
+      },
+      "TokenResponse": {
+        "type": "object",
+        "required": [
+          "token",
+          "expires_on"
+        ],
+        "properties": {
+          "expires_on": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Expiration date of the JWT",
+            "minimum": 0
+          },
+          "token": {
+            "type": "string",
+            "description": "JWT"
+          }
+        }
       }
     },
     "responses": {
