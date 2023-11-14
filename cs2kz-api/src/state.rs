@@ -1,6 +1,7 @@
 use {
 	crate::Result,
 	color_eyre::eyre::Context,
+	jsonwebtoken as jwt,
 	sqlx::{mysql::MySqlPoolOptions, MySql, MySqlPool, Transaction},
 	std::fmt::Debug,
 };
@@ -13,22 +14,52 @@ pub struct AppState {
 	///
 	/// This can be used to make database queries. See [`sqlx`].
 	mysql_pool: MySqlPool,
+
+	jwt: JwtState,
+}
+
+pub struct JwtState {
+	/// Encodes [`GameServerInfo`](crate::middleware::auth::jwt::GameServerInfo) as a JWT.
+	pub encode: jwt::EncodingKey,
+
+	/// Header value for encoding JWTs.
+	pub header: jwt::Header,
+
+	/// Decodes a JWT into a [`GameServerInfo`](crate::middleware::auth::jwt::GameServerInfo).
+	pub decode: jwt::DecodingKey,
+
+	/// Validation struct for the JWT algorithm.
+	pub validation: jwt::Validation,
 }
 
 impl AppState {
 	/// Constructs a new [`AppState`].
-	pub async fn new(database_url: &str) -> color_eyre::Result<Self> {
+	pub async fn new(database_url: &str, jwt_secret: &str) -> color_eyre::Result<Self> {
 		let mysql_pool = MySqlPoolOptions::new()
 			.connect(database_url)
 			.await
 			.context("Failed to establish database connection.")?;
 
-		Ok(Self { mysql_pool })
+		let jwt = JwtState {
+			encode: jwt::EncodingKey::from_base64_secret(jwt_secret)
+				.context("Failed to consturct JWT encoding key.")?,
+			header: jwt::Header::default(),
+			decode: jwt::DecodingKey::from_base64_secret(jwt_secret)
+				.context("Failed to consturct JWT decoding key.")?,
+			validation: jwt::Validation::default(),
+		};
+
+		Ok(Self { mysql_pool, jwt })
 	}
 
 	/// Returns a reference to the application's database connection pool.
 	pub const fn database(&self) -> &MySqlPool {
 		&self.mysql_pool
+	}
+
+	/// Returns a reference to the application's JWT data.
+	pub const fn jwt(&self) -> &JwtState {
+		&self.jwt
 	}
 
 	/// Starts a new MySQL transaction.

@@ -1,13 +1,23 @@
 use {
-	crate::{util, Error, Result, State},
-	axum::{body::Body, extract::ConnectInfo, http::Request, middleware::Next, response::Response},
+	super::jwt::GameServerInfo,
+	crate::{middleware, Error, Result, State},
+	axum::{
+		body::Body,
+		extract::ConnectInfo,
+		headers::{authorization::Bearer, Authorization},
+		http::Request,
+		middleware::Next,
+		response::Response,
+		TypedHeader,
+	},
+	chrono::Utc,
+	jsonwebtoken as jwt,
 	serde::Deserialize,
 	std::net::{IpAddr, Ipv4Addr, SocketAddr},
 };
 
 #[derive(Debug, Deserialize)]
 struct ServerMetadata {
-	port: u16,
 	plugin_version: u16,
 }
 
@@ -21,17 +31,16 @@ pub struct AuthenticatedServer {
 pub async fn auth_server(
 	state: State,
 	ConnectInfo(addr): ConnectInfo<SocketAddr>,
+	TypedHeader(api_token): TypedHeader<Authorization<Bearer>>,
 	request: Request<Body>,
 	next: Next<Body>,
 ) -> Result<Response> {
-	let api_key = request
-		.headers()
-		.get("api-key")
-		.ok_or(Error::MissingApiKey)?
-		.to_str()
-		.map_err(|_| Error::InvalidApiKey)?
-		.parse::<u32>()
-		.map_err(|_| Error::InvalidApiKey)?;
+	let server_info = jwt::decode::<GameServerInfo>(
+		api_token.token(),
+		&state.jwt().decode,
+		&state.jwt().validation,
+	)?
+	.claims;
 
 	let server = sqlx::query! {
 		r#"
@@ -42,13 +51,18 @@ pub async fn auth_server(
 		FROM
 			Servers
 		WHERE
-			api_key = ?
+			id = ?
+			AND api_token IS NOT NULL
 		"#,
-		api_key,
+		server_info.id,
 	}
 	.fetch_one(state.database())
 	.await
 	.map_err(|_| Error::Unauthorized)?;
+
+	if server_info.expires_on < Utc::now() {
+		return Err(Error::Unauthorized);
+	}
 
 	let ip_address = server
 		.ip_address
@@ -60,13 +74,7 @@ pub async fn auth_server(
 		return Err(Error::Unauthorized);
 	}
 
-	let (metadata, mut request) = util::extract_from_body::<ServerMetadata>(request).await?;
-
-	if metadata.port != server.port {
-		return Err(Error::Unauthorized);
-	}
-
-	// TODO(AlphaKeks): send the server a UDP packet or something
+	let (metadata, mut request) = middleware::extract_from_body::<ServerMetadata>(request).await?;
 
 	request
 		.extensions_mut()

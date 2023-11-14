@@ -1,7 +1,7 @@
 use {
+	super::{BoundedU64, Created},
 	crate::{
 		res::{maps as res, BadRequest},
-		util::{self, BoundedU64, Created},
 		Error, Result, State,
 	},
 	axum::{
@@ -78,7 +78,7 @@ pub async fn get_maps(
 	>,
 ) -> Result<Json<Vec<res::KZMap>>> {
 	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
-	let mut filter = util::Filter::new();
+	let mut filter = super::Filter::new();
 
 	if let Some(ref name) = name {
 		query
@@ -127,7 +127,7 @@ pub async fn get_maps(
 	}
 
 	query.push(" GROUP BY m.id ");
-	util::push_limit(&mut query, offset, limit);
+	super::push_limit(&mut query, offset, limit);
 
 	let maps = query
 		.build_query_as::<res::KZMap>()

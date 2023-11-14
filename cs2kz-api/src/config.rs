@@ -19,6 +19,9 @@ pub struct Config {
 
 	/// MySQL connection string.
 	pub database_url: String,
+
+	/// JWT secret key for encoding / decoding authentication headers.
+	pub jwt_secret: String,
 }
 
 macro_rules! load_env {
@@ -42,7 +45,8 @@ impl Config {
 		let port = load_env!("API_PORT");
 		let enable_logging = load_env!("API_LOGGING");
 		let database_url = load_env!("DATABASE_URL");
+		let jwt_secret = load_env!("JWT_SECRET");
 
-		Ok(Self { ip_address, port, enable_logging, database_url })
+		Ok(Self { ip_address, port, enable_logging, database_url, jwt_secret })
 	}
 }

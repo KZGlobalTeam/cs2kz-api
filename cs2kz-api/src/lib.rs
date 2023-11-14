@@ -9,13 +9,13 @@ use {
 pub mod error;
 pub use error::{Error, Result};
 
-pub mod util;
+pub mod logging;
 pub mod database;
 
-pub mod logging;
-pub mod routes;
-pub mod middleware;
 pub mod state;
+pub mod routes;
+pub mod headers;
+pub mod middleware;
 pub mod res;
 
 #[rustfmt::skip]

@@ -1,8 +1,8 @@
 use {
+	super::{BoundedU64, Created, Filter},
 	crate::{
 		middleware::auth::gameservers::AuthenticatedServer,
 		res::{bans as res, bans::BanReason, BadRequest},
-		util::{self, BoundedU64, Created, Filter},
 		Error, Result, State,
 	},
 	axum::{
@@ -162,7 +162,7 @@ pub async fn get_bans(
 		filter.switch();
 	}
 
-	util::push_limit(&mut query, offset, limit);
+	super::push_limit(&mut query, offset, limit);
 
 	let bans = query
 		.build_query_as::<res::Ban>()

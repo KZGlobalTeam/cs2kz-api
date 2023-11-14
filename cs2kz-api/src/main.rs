@@ -34,7 +34,7 @@ async fn main() -> color_eyre::Result<()> {
 	}
 
 	// Create application state
-	let state = AppState::new(&config.database_url).await?;
+	let state = AppState::new(&config.database_url, &config.jwt_secret).await?;
 
 	// Create axum router
 	let router = API::router(state).into_make_service_with_connect_info::<SocketAddr>();

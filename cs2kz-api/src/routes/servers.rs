@@ -1,7 +1,7 @@
 use {
+	super::{BoundedU64, Created, Filter},
 	crate::{
 		res::{servers as res, BadRequest},
-		util::{self, BoundedU64, Created, Filter},
 		Error, Result, State,
 	},
 	axum::{
@@ -117,7 +117,7 @@ pub async fn get_servers(
 		filter.switch();
 	}
 
-	util::push_limit(&mut query, offset, limit);
+	super::push_limit(&mut query, offset, limit);
 
 	let servers = query
 		.build_query_as::<res::Server>()

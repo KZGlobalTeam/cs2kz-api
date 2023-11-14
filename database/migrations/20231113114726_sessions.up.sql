@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS Sessions (
 	`server_id` INT2 UNSIGNED NOT NULL,
 	`active_seconds` INT4 UNSIGNED NOT NULL,
 	`afk_seconds` INT4 UNSIGNED NOT NULL,
-	`created_on` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`id`),
 	FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`),
 	FOREIGN KEY (`server_id`) REFERENCES Servers (`id`)
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS CourseSessions (
 	`bhops_tick6` INT2 UNSIGNED NOT NULL,
 	`bhops_tick7` INT2 UNSIGNED NOT NULL,
 	`bhops_tick8` INT2 UNSIGNED NOT NULL,
-	`created_on` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`id`),
 	FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`),
 	FOREIGN KEY (`filter_id`) REFERENCES CourseFilters (`id`),

@@ -34,12 +34,6 @@ pub enum Error {
 	#[error("Filter for this record does not exist.")]
 	MissingFilter,
 
-	#[error("Missing `api-key` header.")]
-	MissingApiKey,
-
-	#[error("Invalid `api-key` header.")]
-	InvalidApiKey,
-
 	#[error("You don't have access to this resource.")]
 	Unauthorized,
 
@@ -58,8 +52,6 @@ impl IntoResponse for Error {
 			| Self::DuplicateCourse { .. }
 			| Self::DuplicateFilter { .. }
 			| Self::MissingFilter
-			| Self::MissingApiKey
-			| Self::InvalidApiKey
 			| Self::InvalidRequestBody => StatusCode::BAD_REQUEST,
 			Self::Unauthorized => StatusCode::UNAUTHORIZED,
 		};
@@ -72,5 +64,13 @@ impl From<sqlx::Error> for Error {
 	fn from(error: sqlx::Error) -> Self {
 		error!(?error, "database error");
 		Self::InternalServerError
+	}
+}
+
+impl From<jsonwebtoken::errors::Error> for Error {
+	fn from(error: jsonwebtoken::errors::Error) -> Self {
+		error!(error = ?error.kind(), "failed to decode jwt");
+
+		Self::Unauthorized
 	}
 }

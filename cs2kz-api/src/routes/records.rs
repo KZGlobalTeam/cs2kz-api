@@ -1,7 +1,7 @@
 use {
+	super::{BoundedU64, Created},
 	crate::{
 		res::{records as res, BadRequest},
-		util::{BoundedU64, Created},
 		Error, Result, State,
 	},
 	axum::{

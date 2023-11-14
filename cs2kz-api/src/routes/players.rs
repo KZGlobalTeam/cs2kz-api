@@ -1,8 +1,8 @@
 use {
+	super::{BoundedU64, Created, Filter},
 	crate::{
 		database,
 		res::{player as res, BadRequest},
-		util::{self, BoundedU64, Created, Filter},
 		Error, Result, State,
 	},
 	axum::{
@@ -91,7 +91,7 @@ pub async fn get_players(
 		filter.switch();
 	}
 
-	util::push_limit(&mut query, offset, limit);
+	super::push_limit(&mut query, offset, limit);
 
 	let players = query
 		.build_query_as::<database::PlayerWithPlaytime>()
