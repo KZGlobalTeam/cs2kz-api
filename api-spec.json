@@ -1699,18 +1699,6 @@
           {
             "type": "string",
             "enum": [
-              "MissingApiKey"
-            ]
-          },
-          {
-            "type": "string",
-            "enum": [
-              "InvalidApiKey"
-            ]
-          },
-          {
-            "type": "string",
-            "enum": [
               "Unauthorized"
             ]
           },

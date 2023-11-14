@@ -28,3 +28,11 @@ jobs:
           channel: nightly
           components: rustfmt
       - run: make format
+
+  spech-check:
+    name: OpenAPI Spec Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: moonrepo/setup-rust@v1
+      - run: make spec-check
