@@ -7,3 +7,6 @@ edition = "2021"
 color-eyre = { workspace = true }
 clap = { workspace = true }
 cs2kz-api = { path = "../cs2kz-api" }
+
+[dependencies.similar]
+version = "2.3.0"
