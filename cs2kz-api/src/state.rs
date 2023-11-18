@@ -16,7 +16,7 @@ pub struct AppState {
 	mysql_pool: MySqlPool,
 
 	/// JWT utilities for encoding / decoding.
-	jwt: JwtState,
+	pub jwt: JwtState,
 }
 
 pub struct JwtState {
@@ -56,11 +56,6 @@ impl AppState {
 	/// Returns a reference to the application's database connection pool.
 	pub const fn database(&self) -> &MySqlPool {
 		&self.mysql_pool
-	}
-
-	/// Returns a reference to the application's JWT data.
-	pub const fn jwt(&self) -> &JwtState {
-		&self.jwt
 	}
 
 	/// Starts a new MySQL transaction.

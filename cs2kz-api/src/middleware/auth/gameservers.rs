@@ -1,6 +1,6 @@
 use {
 	super::jwt::GameServerInfo,
-	crate::{middleware, Error, Result, State},
+	crate::{middleware, state::JwtState, Error, Result, State},
 	axum::{
 		body::Body,
 		extract::ConnectInfo,
@@ -34,12 +34,8 @@ pub async fn auth_server(
 	request: Request<Body>,
 	next: Next<Body>,
 ) -> Result<Response> {
-	let server_info = jwt::decode::<GameServerInfo>(
-		api_token.token(),
-		&state.jwt().decode,
-		&state.jwt().validation,
-	)?
-	.claims;
+	let JwtState { decode, validation, .. } = &state.jwt;
+	let server_info = jwt::decode::<GameServerInfo>(api_token.token(), decode, validation)?.claims;
 
 	let server = sqlx::query! {
 		r#"

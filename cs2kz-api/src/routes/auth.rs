@@ -36,7 +36,7 @@ pub async fn token(state: State, TypedHeader(ApiKey(api_key)): TypedHeader<ApiKe
 	.map_err(|_| Error::Unauthorized)?;
 
 	let server_info = GameServerInfo::new(server.id);
-	let token = jwt::encode(&state.jwt().header, &server_info, &state.jwt().encode)?;
+	let token = jwt::encode(&state.jwt.header, &server_info, &state.jwt.encode)?;
 	let socket = UdpSocket::bind("127.0.0.0:0")
 		.await
 		.map_err(|_| Error::InternalServerError)?;
