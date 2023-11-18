@@ -81,6 +81,7 @@ pub mod res;
 			crate::res::player::Player,
 			crate::routes::players::NewPlayer,
 			crate::routes::players::PlayerUpdate,
+			crate::routes::players::SessionData,
 
 			crate::res::bans::Ban,
 			crate::res::bans::BanReason,

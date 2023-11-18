@@ -2,12 +2,13 @@ use {
 	super::{BoundedU64, Created, Filter},
 	crate::{
 		database,
+		middleware::auth::gameservers::AuthenticatedServer,
 		res::{player as res, BadRequest},
 		Error, Result, State,
 	},
 	axum::{
 		extract::{Path, Query},
-		Json,
+		Extension, Json,
 	},
 	chrono::NaiveTime,
 	cs2kz::{PlayerIdentifier, SteamID},
@@ -196,7 +197,6 @@ pub async fn create_player(
 }
 
 /// Updated information about a KZ player.
-#[rustfmt::skip]
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct PlayerUpdate {
 	/// The player's new name.
@@ -206,13 +206,19 @@ pub struct PlayerUpdate {
 	#[schema(value_type = String)]
 	ip_address: Option<Ipv4Addr>,
 
-	/* TODO(AlphaKeks): figure out what to take here. Probably a `course_id` as well? Maybe
-	 * a `course_info` struct?
-	 *
-	 * /// The additional playtime recorded by the server.
-	 * playtime: u32,
-	 *
-	 */
+	session_data: SessionData,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct SessionData {
+	/// Amount of seconds spent with a running timer.
+	time_active: u32,
+
+	/// Amount of seconds spent spectating.
+	time_spectating: u32,
+
+	/// Amount of seconds spent inactive.
+	time_afk: u32,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -228,16 +234,15 @@ pub struct PlayerUpdate {
 )]
 pub async fn update_player(
 	state: State,
+	Extension(server): Extension<AuthenticatedServer>,
 	Path(steam_id): Path<SteamID>,
-	Json(PlayerUpdate { name, ip_address }): Json<PlayerUpdate>,
+	Json(PlayerUpdate { name, ip_address, session_data }): Json<PlayerUpdate>,
 ) -> Result<()> {
-	// TODO(AlphaKeks): update playtimes as well
-
-	let id = steam_id.as_u32();
+	let steam32_id = steam_id.as_u32();
 	let mut transaction = state.transaction().await?;
 
 	if let Some(name) = name {
-		sqlx::query!("UPDATE Players SET name = ? WHERE steam_id = ?", name, id)
+		sqlx::query!("UPDATE Players SET name = ? WHERE steam_id = ?", name, steam32_id)
 			.execute(transaction.as_mut())
 			.await?;
 	}
@@ -253,11 +258,33 @@ pub async fn update_player(
 				steam_id = ?
 			"#,
 			ip_address,
-			id
+			steam32_id
 		}
 		.execute(transaction.as_mut())
 		.await?;
 	}
+
+	sqlx::query! {
+		r#"
+		INSERT INTO
+			Sessions (
+				player_id,
+				server_id,
+				time_active,
+				time_spectating,
+				time_afk
+			)
+		VALUES
+			(?, ?, ?, ?, ?)
+		"#,
+		steam32_id,
+		server.id,
+		session_data.time_active,
+		session_data.time_spectating,
+		session_data.time_afk,
+	}
+	.execute(transaction.as_mut())
+	.await?;
 
 	transaction.commit().await?;
 
