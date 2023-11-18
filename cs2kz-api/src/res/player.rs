@@ -10,10 +10,13 @@ pub struct Player {
 	pub steam_id: SteamID,
 
 	/// The player's total active time spent on verified servers.
-	pub playtime: NaiveTime,
+	pub time_active: NaiveTime,
+
+	/// The player's total time spent spectating on verified servers.
+	pub time_spectating: NaiveTime,
 
 	/// The player's total AFK time spent on verified servers.
-	pub afktime: NaiveTime,
+	pub time_afk: NaiveTime,
 
 	/// Whether the player is banned.
 	pub is_banned: bool,
@@ -24,8 +27,9 @@ impl From<database::PlayerWithPlaytime> for Player {
 		Self {
 			name: row.player.name,
 			steam_id: row.player.steam_id,
-			playtime: row.playtime,
-			afktime: row.afktime,
+			time_active: row.time_active,
+			time_spectating: row.time_spectating,
+			time_afk: row.time_afk,
 			is_banned: row.player.is_banned,
 		}
 	}

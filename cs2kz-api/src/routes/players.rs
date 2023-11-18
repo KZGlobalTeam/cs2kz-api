@@ -20,8 +20,9 @@ use {
 static ROOT_GET_BASE_QUERY: &str = r#"
 	SELECT
 		p.*,
-		s.active_seconds,
-		s.afk_seconds
+		s.time_active,
+		s.time_spectating,
+		s.time_afk
 	FROM
 		Players p
 		JOIN Sessions s ON s.player_id = p.steam_id
@@ -76,7 +77,7 @@ pub async fn get_players(
 	if let Some(playtime) = playtime {
 		query
 			.push(filter)
-			.push(" s.active_seconds >= ")
+			.push(" s.time_active >= ")
 			.push_bind(playtime);
 
 		filter.switch();

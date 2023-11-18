@@ -12,6 +12,7 @@ pub struct Player {
 pub struct PlayerWithPlaytime {
 	#[sqlx(flatten)]
 	pub player: Player,
-	pub playtime: NaiveTime,
-	pub afktime: NaiveTime,
+	pub time_active: NaiveTime,
+	pub time_spectating: NaiveTime,
+	pub time_afk: NaiveTime,
 }
