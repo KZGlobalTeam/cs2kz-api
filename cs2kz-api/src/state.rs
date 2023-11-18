@@ -15,6 +15,7 @@ pub struct AppState {
 	/// This can be used to make database queries. See [`sqlx`].
 	mysql_pool: MySqlPool,
 
+	/// JWT utilities for encoding / decoding.
 	jwt: JwtState,
 }
 

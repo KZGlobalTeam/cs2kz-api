@@ -1,19 +1,10 @@
 use {
 	crate::{headers::ApiKey, middleware::auth::jwt::GameServerInfo, Error, Result, State},
-	axum::{Json, TypedHeader},
+	axum::TypedHeader,
 	jsonwebtoken as jwt,
-	serde::Serialize,
-	utoipa::ToSchema,
+	std::net::{Ipv4Addr, SocketAddr},
+	tokio::net::UdpSocket,
 };
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct TokenResponse {
-	/// JWT
-	token: String,
-
-	/// Expiration date of the JWT
-	expires_on: u64,
-}
 
 /// CS2 server authentication.
 ///
@@ -22,14 +13,11 @@ pub struct TokenResponse {
 #[utoipa::path(get, tag = "Auth", context_path = "/api/v0", path = "/auth/token", params(
 	("api-key" = u32, Header, description = "API Key"),
 ), responses(
-	(status = 200, body = TokenResponse, description = "The JWT and its expiration date."),
+	(status = 200, body = (), description = "The JWT has been sent to the server over UDP."),
 	(status = 401, body = Error, description = "The API Key header was incorrect."),
 	(status = 500, body = Error),
 ))]
-pub async fn token(
-	state: State,
-	TypedHeader(ApiKey(api_key)): TypedHeader<ApiKey>,
-) -> Result<Json<TokenResponse>> {
+pub async fn token(state: State, TypedHeader(ApiKey(api_key)): TypedHeader<ApiKey>) -> Result<()> {
 	let server = sqlx::query! {
 		r#"
 		SELECT
@@ -49,6 +37,27 @@ pub async fn token(
 
 	let server_info = GameServerInfo::new(server.id);
 	let token = jwt::encode(&state.jwt().header, &server_info, &state.jwt().encode)?;
+	let socket = UdpSocket::bind("127.0.0.0:0")
+		.await
+		.map_err(|_| Error::InternalServerError)?;
 
-	Ok(Json(TokenResponse { token, expires_on: server_info.exp }))
+	let server_ip = server
+		.ip_address
+		.parse::<Ipv4Addr>()
+		.expect("invalid IP address in database");
+
+	let server_addr = SocketAddr::from((server_ip, server.port));
+
+	socket
+		.connect(server_addr)
+		.await
+		.map_err(|_| Error::InternalServerError)?;
+
+	// TODO(AlphaKeks): send a header of some sort as well in addition to the token
+	socket
+		.send(token.as_bytes())
+		.await
+		.map_err(|_| Error::InternalServerError)?;
+
+	Ok(())
 }

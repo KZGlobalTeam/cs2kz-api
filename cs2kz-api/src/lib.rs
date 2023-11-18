@@ -74,8 +74,6 @@ pub mod res;
 
 			crate::Error,
 
-			crate::routes::auth::TokenResponse,
-
 			crate::res::PlayerInfo,
 
 			crate::res::player::Player,
