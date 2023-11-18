@@ -33,11 +33,12 @@
         ],
         "responses": {
           "200": {
-            "description": "The JWT and its expiration date.",
+            "description": "The JWT has been sent to the server over UDP.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TokenResponse"
+                  "default": null,
+                  "nullable": true
                 }
               }
             }
@@ -2140,15 +2141,12 @@
         "required": [
           "name",
           "steam_id",
-          "playtime",
-          "afktime",
+          "time_active",
+          "time_spectating",
+          "time_afk",
           "is_banned"
         ],
         "properties": {
-          "afktime": {
-            "type": "string",
-            "description": "The player's total AFK time spent on verified servers."
-          },
           "is_banned": {
             "type": "boolean",
             "description": "Whether the player is banned."
@@ -2157,12 +2155,20 @@
             "type": "string",
             "description": "The player's Steam name."
           },
-          "playtime": {
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
+          },
+          "time_active": {
             "type": "string",
             "description": "The player's total active time spent on verified servers."
           },
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
+          "time_afk": {
+            "type": "string",
+            "description": "The player's total AFK time spent on verified servers."
+          },
+          "time_spectating": {
+            "type": "string",
+            "description": "The player's total time spent spectating on verified servers."
           }
         }
       },
@@ -2197,7 +2203,8 @@
         "type": "object",
         "description": "Updated information about a KZ player.",
         "required": [
-          "ip_address"
+          "ip_address",
+          "session_data"
         ],
         "properties": {
           "ip_address": {
@@ -2208,6 +2215,9 @@
             "type": "string",
             "description": "The player's new name.",
             "nullable": true
+          },
+          "session_data": {
+            "$ref": "#/components/schemas/SessionData"
           }
         }
       },
@@ -2438,6 +2448,34 @@
           }
         }
       },
+      "SessionData": {
+        "type": "object",
+        "required": [
+          "time_active",
+          "time_spectating",
+          "time_afk"
+        ],
+        "properties": {
+          "time_active": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Amount of seconds spent with a running timer.",
+            "minimum": 0
+          },
+          "time_afk": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Amount of seconds spent inactive.",
+            "minimum": 0
+          },
+          "time_spectating": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Amount of seconds spent spectating.",
+            "minimum": 0
+          }
+        }
+      },
       "SteamID": {
         "type": "string"
       },
@@ -2464,25 +2502,6 @@
           "unfeasible",
           "impossible"
         ]
-      },
-      "TokenResponse": {
-        "type": "object",
-        "required": [
-          "token",
-          "expires_on"
-        ],
-        "properties": {
-          "expires_on": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Expiration date of the JWT",
-            "minimum": 0
-          },
-          "token": {
-            "type": "string",
-            "description": "JWT"
-          }
-        }
       }
     },
     "responses": {
