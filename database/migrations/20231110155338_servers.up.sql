@@ -16,5 +16,6 @@ CREATE TABLE IF NOT EXISTS Servers (
 	`approved_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`id`),
 	FOREIGN KEY (`owned_by`) REFERENCES Players (`steam_id`),
+	UNIQUE (`name`),
 	UNIQUE (`api_key`)
 );

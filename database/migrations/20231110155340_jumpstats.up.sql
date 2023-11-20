@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS JumpstatTypes (
 	`id` INT1 UNSIGNED NOT NULL AUTO_INCREMENT,
 	`name` VARCHAR(16),
 	`created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	PRIMARY KEY(`id`)
+	PRIMARY KEY (`id`)
 );
 
 INSERT INTO
@@ -58,7 +58,6 @@ CREATE TABLE IF NOT EXISTS Jumpstats (
 	`player_id` INT4 UNSIGNED NOT NULL,
 	`server_id` INT2 UNSIGNED NOT NULL,
 	`plugin_version` INT2 UNSIGNED NOT NULL,
-	`cheated` BOOLEAN NOT NULL DEFAULT FALSE,
 	`created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`id`),
 	FOREIGN KEY (`type`) REFERENCES JumpstatTypes (`id`),
@@ -68,3 +67,15 @@ CREATE TABLE IF NOT EXISTS Jumpstats (
 	FOREIGN KEY (`server_id`) REFERENCES Servers (`id`),
 	FOREIGN KEY (`plugin_version`) REFERENCES PluginVersions (`id`)
 );
+
+CREATE TABLE IF NOT EXISTS SuspiciousJumpstats AS
+SELECT
+	*
+FROM
+	Jumpstats;
+
+CREATE TABLE IF NOT EXISTS CheatedJumpstats AS
+SELECT
+	*
+FROM
+	Jumpstats;

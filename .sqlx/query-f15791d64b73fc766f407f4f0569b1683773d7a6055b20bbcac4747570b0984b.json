@@ -52,12 +52,23 @@
           "char_set": 63,
           "max_size": 3
         }
+      },
+      {
+        "ordinal": 5,
+        "name": "ranked",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 1
+        }
       }
     ],
     "parameters": {
       "Right": 1
     },
     "nullable": [
+      false,
       false,
       false,
       false,

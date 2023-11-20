@@ -9,7 +9,7 @@ use {
 		Json,
 	},
 	chrono::{DateTime, Utc},
-	cs2kz::{MapIdentifier, Mode, PlayerIdentifier, Runtype, SteamID, Style, Tier},
+	cs2kz::{MapIdentifier, Mode, Runtype, SteamID, Style, Tier},
 	serde::{Deserialize, Serialize},
 	sqlx::QueryBuilder,
 	utoipa::{IntoParams, ToSchema},
@@ -21,29 +21,33 @@ static ROOT_GET_BASE_QUERY: &str = r#"
 		m.name,
 		m.workshop_id,
 		m.filesize,
-		p1.name player_name,
-		p1.id steam_id,
-		m.created_on,
+		mapper.name mapper_name,
+		mapper.steam_id mapper_steam_id,
 		c.id course_id,
-		c.stage course_stage,
-		c.difficulty course_tier,
-		p2.id course_created_by_id,
-		p2.name course_created_by_name
+		c.map_stage course_stage,
+		c_mapper.name course_mapper_name,
+		c_mapper.steam_id course_mapper_steam_id,
+		f.id filter_id,
+		f.mode_id filter_mode,
+		f.has_teleports filter_has_teleports,
+		f.tier filter_tier,
+		f.ranked filter_ranked,
+		m.created_on
 	FROM
 		Maps m
-		JOIN Players p1 ON p1.id = m.owned_by
+		JOIN Mappers mapper_ ON mapper_.map_id = m.id
+		JOIN Players mapper ON mapper.steam_id = mapper_.player_id
 		JOIN Courses c ON c.map_id = m.id
-		JOIN Players p2 ON p2.id = c.created_by
+		JOIN CourseMappers c_mapper_ ON c_mapper_.course_id = c.id
+		JOIN Players c_mapper ON c_mapper.steam_id = c_mapper_.player_id
+		JOIN CourseFilters f ON f.course_id = c.id
 "#;
 
 /// Query parameters for fetching maps.
 #[derive(Debug, Deserialize, IntoParams)]
-pub struct GetMapsParams<'a> {
+pub struct GetMapsParams {
 	/// A map's name.
 	pub name: Option<String>,
-
-	/// A player's `SteamID` or name.
-	pub created_by: Option<PlayerIdentifier<'a>>,
 
 	/// Only include maps that were globalled after a certain date.
 	pub created_after: Option<DateTime<Utc>>,
@@ -73,37 +77,18 @@ pub struct GetMapsParams<'a> {
 )]
 pub async fn get_maps(
 	state: State,
-	Query(GetMapsParams { name, created_by, created_after, created_before, offset, limit }): Query<
-		GetMapsParams<'_>,
+	Query(GetMapsParams { name, created_after, created_before, offset, limit }): Query<
+		GetMapsParams,
 	>,
 ) -> Result<Json<Vec<res::KZMap>>> {
 	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
 	let mut filter = super::Filter::new();
 
-	if let Some(ref name) = name {
+	if let Some(name) = name {
 		query
 			.push(filter)
 			.push(" m.name LIKE ")
 			.push_bind(format!("%{name}%"));
-
-		filter.switch();
-	}
-
-	if let Some(player) = created_by {
-		let steam32_id = match player {
-			PlayerIdentifier::SteamID(steam_id) => steam_id.as_u32(),
-			PlayerIdentifier::Name(name) => {
-				sqlx::query!("SELECT steam_id FROM Players WHERE name LIKE ?", name)
-					.fetch_one(state.database())
-					.await?
-					.steam_id
-			}
-		};
-
-		query
-			.push(filter)
-			.push(" p1.id = ")
-			.push_bind(steam32_id);
 
 		filter.switch();
 	}
@@ -126,25 +111,38 @@ pub async fn get_maps(
 		filter.switch();
 	}
 
-	query.push(" GROUP BY m.id ");
 	super::push_limit(&mut query, offset, limit);
 
-	let maps = query
+	let map_rows = query
 		.build_query_as::<res::KZMap>()
 		.fetch_all(state.database())
-		.await?
-		.into_iter()
-		.fold(Vec::<res::KZMap>::new(), |mut maps, mut map| {
-			if let Some(last_map) = maps.last_mut() {
-				if last_map.id == map.id {
-					last_map.courses.append(&mut map.courses);
-					return maps;
-				}
-			};
+		.await?;
 
-			maps.push(map);
-			maps
-		});
+	let mut maps = Vec::<res::KZMap>::new();
+
+	for mut row in map_rows {
+		let Some(map) = maps.iter_mut().rfind(|map| map.id == row.id) else {
+			maps.push(row);
+			continue;
+		};
+
+		map.mappers.append(&mut row.mappers);
+		map.mappers.dedup_by_key(|p| p.steam_id);
+		map.courses.append(&mut row.courses);
+		map.courses = map
+			.courses
+			.drain(..)
+			.fold(Vec::new(), |mut courses, mut course| {
+				if let Some(c) = courses.iter_mut().rfind(|c| c.id == course.id) {
+					c.filters.append(&mut course.filters);
+					c.mappers.dedup_by_key(|p| p.steam_id);
+				} else {
+					courses.push(course);
+				}
+
+				courses
+			});
+	}
 
 	if maps.is_empty() {
 		return Err(Error::NoContent);
@@ -187,9 +185,22 @@ pub async fn get_map(
 		.fetch_all(state.database())
 		.await?
 		.into_iter()
-		.reduce(|mut acc, mut row| {
-			acc.courses.append(&mut row.courses);
-			acc
+		.reduce(|mut map, mut row| {
+			map.courses.append(&mut row.courses);
+			map.courses = map
+				.courses
+				.drain(..)
+				.fold(Vec::new(), |mut courses, mut course| {
+					if let Some(c) = courses.iter_mut().rfind(|c| c.id == course.id) {
+						c.filters.append(&mut course.filters);
+					} else {
+						courses.push(course);
+					}
+
+					courses
+				});
+
+			map
 		})
 		.ok_or(Error::NoContent)?;
 
@@ -298,20 +309,20 @@ pub async fn create_map(
 
 	let mut transaction = state.transaction().await?;
 
-	sqlx::query! {
-		r#"
-		INSERT INTO
-			Maps (name, workshop_id, filesize, created_by)
-		VALUES
-			(?, ?, ?, ?)
-		"#,
-		name,
-		workshop_id,
-		filesize,
-		created_by.as_u32(),
-	}
-	.execute(transaction.as_mut())
-	.await?;
+	// sqlx::query! {
+	// 	r#"
+	// 	INSERT INTO
+	// 		Maps (name, workshop_id, filesize, created_by)
+	// 	VALUES
+	// 		(?, ?, ?, ?)
+	// 	"#,
+	// 	name,
+	// 	workshop_id,
+	// 	filesize,
+	// 	created_by.as_u32(),
+	// }
+	// .execute(transaction.as_mut())
+	// .await?;
 
 	let map = sqlx::query!("SELECT * FROM Maps WHERE id = (SELECT MAX(id) id FROM Maps)")
 		.fetch_one(transaction.as_mut())

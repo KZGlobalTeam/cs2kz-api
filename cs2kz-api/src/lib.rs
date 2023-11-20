@@ -151,6 +151,11 @@ impl API {
 			.layer(game_server_auth)
 			.with_state(state);
 
+		// TODO(AlphaKeks): implement auth for this
+		//
+		// Ideally we use Steam for authenticating admins who are allowed to approve and
+		// change maps, servers, ban players etc.
+
 		// let map_approval_router = Router::new()
 		// 	.route("/maps", routing::post(routes::maps::create_map))
 		// 	.route("/maps/:ident", routing::put(routes::maps::update_map))

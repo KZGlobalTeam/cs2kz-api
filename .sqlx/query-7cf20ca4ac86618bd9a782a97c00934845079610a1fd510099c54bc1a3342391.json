@@ -28,7 +28,7 @@
         "name": "map_name",
         "type_info": {
           "type": "VarString",
-          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "flags": "NOT_NULL | UNIQUE_KEY | NO_DEFAULT_VALUE",
           "char_set": 224,
           "max_size": 128
         }
@@ -128,7 +128,7 @@
         "name": "server_name",
         "type_info": {
           "type": "VarString",
-          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "flags": "NOT_NULL | UNIQUE_KEY | NO_DEFAULT_VALUE",
           "char_set": 224,
           "max_size": 1020
         }

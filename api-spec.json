@@ -341,20 +341,6 @@
             }
           },
           {
-            "name": "created_by",
-            "in": "query",
-            "description": "A player's `SteamID` or name.",
-            "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/PlayerIdentifier"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
             "name": "created_after",
             "in": "query",
             "description": "Only include maps that were globalled after a certain date.",
@@ -616,8 +602,10 @@
             "description": "A minimum amount of playtime.",
             "required": false,
             "schema": {
-              "type": "string",
-              "nullable": true
+              "type": "integer",
+              "format": "int32",
+              "nullable": true,
+              "minimum": 0
             }
           },
           {
@@ -1828,9 +1816,9 @@
           "id",
           "name",
           "workshop_id",
-          "courses",
           "filesize",
-          "owned_by",
+          "mappers",
+          "courses",
           "created_on"
         ],
         "properties": {
@@ -1858,12 +1846,16 @@
             "description": "The map's ID.",
             "minimum": 0
           },
+          "mappers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlayerInfo"
+            },
+            "description": "The players who created this map."
+          },
           "name": {
             "type": "string",
             "description": "The map's name."
-          },
-          "owned_by": {
-            "$ref": "#/components/schemas/PlayerInfo"
           },
           "workshop_id": {
             "type": "integer",
@@ -1879,12 +1871,16 @@
         "required": [
           "id",
           "stage",
-          "tier",
-          "created_by"
+          "mappers",
+          "filters"
         ],
         "properties": {
-          "created_by": {
-            "$ref": "#/components/schemas/PlayerInfo"
+          "filters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseFilter"
+            },
+            "description": "List of filters."
           },
           "id": {
             "type": "integer",
@@ -1892,14 +1888,18 @@
             "description": "The ID of the course.",
             "minimum": 0
           },
+          "mappers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlayerInfo"
+            },
+            "description": "The players who created this course."
+          },
           "stage": {
             "type": "integer",
             "format": "int32",
             "description": "The stage this course corresponds to.",
             "minimum": 0
-          },
-          "tier": {
-            "$ref": "#/components/schemas/Tier"
           }
         }
       },
@@ -2144,9 +2144,73 @@
           "time_active",
           "time_spectating",
           "time_afk",
-          "is_banned"
+          "is_banned",
+          "perfs",
+          "bhops_tick0",
+          "bhops_tick1",
+          "bhops_tick2",
+          "bhops_tick3",
+          "bhops_tick4",
+          "bhops_tick5",
+          "bhops_tick6",
+          "bhops_tick7",
+          "bhops_tick8"
         ],
         "properties": {
+          "bhops_tick0": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 0 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick1": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 1 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick2": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 2 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick3": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 3 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick4": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 4 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick5": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 5 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick6": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 6 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick7": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 7 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick8": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 8 ticks after landing.",
+            "minimum": 0
+          },
           "is_banned": {
             "type": "boolean",
             "description": "Whether the player is banned."
@@ -2155,20 +2219,32 @@
             "type": "string",
             "description": "The player's Steam name."
           },
+          "perfs": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many perfect bhops the player has hit in total.",
+            "minimum": 0
+          },
           "steam_id": {
             "$ref": "#/components/schemas/SteamID"
           },
           "time_active": {
-            "type": "string",
-            "description": "The player's total active time spent on verified servers."
+            "type": "integer",
+            "format": "int32",
+            "description": "The player's total active time spent on verified servers.",
+            "minimum": 0
           },
           "time_afk": {
-            "type": "string",
-            "description": "The player's total AFK time spent on verified servers."
+            "type": "integer",
+            "format": "int32",
+            "description": "The player's total AFK time spent on verified servers.",
+            "minimum": 0
           },
           "time_spectating": {
-            "type": "string",
-            "description": "The player's total time spent spectating on verified servers."
+            "type": "integer",
+            "format": "int32",
+            "description": "The player's total time spent spectating on verified servers.",
+            "minimum": 0
           }
         }
       },
@@ -2453,9 +2529,79 @@
         "required": [
           "time_active",
           "time_spectating",
-          "time_afk"
+          "time_afk",
+          "perfs",
+          "bhops_tick0",
+          "bhops_tick1",
+          "bhops_tick2",
+          "bhops_tick3",
+          "bhops_tick4",
+          "bhops_tick5",
+          "bhops_tick6",
+          "bhops_tick7",
+          "bhops_tick8"
         ],
         "properties": {
+          "bhops_tick0": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 0 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick1": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 1 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick2": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 2 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick3": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 3 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick4": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 4 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick5": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 5 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick6": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 6 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick7": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 7 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick8": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many bhops the player has hit 8 ticks after landing.",
+            "minimum": 0
+          },
+          "perfs": {
+            "type": "integer",
+            "format": "int32",
+            "description": "How many perfect bhops the player has hit in total.",
+            "minimum": 0
+          },
           "time_active": {
             "type": "integer",
             "format": "int32",

@@ -55,7 +55,7 @@ where
 	T: IntoResponse,
 {
 	fn into_response(self) -> axum::response::Response {
-		(StatusCode::CREATED, self).into_response()
+		(StatusCode::CREATED, self.0).into_response()
 	}
 }
 

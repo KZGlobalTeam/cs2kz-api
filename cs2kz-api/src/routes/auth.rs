@@ -4,6 +4,7 @@ use {
 	jsonwebtoken as jwt,
 	std::net::{Ipv4Addr, SocketAddr},
 	tokio::net::UdpSocket,
+	tracing::debug,
 };
 
 /// CS2 server authentication.
@@ -58,6 +59,8 @@ pub async fn token(state: State, TypedHeader(ApiKey(api_key)): TypedHeader<ApiKe
 		.send(token.as_bytes())
 		.await
 		.map_err(|_| Error::InternalServerError)?;
+
+	debug!(%server_addr, %token, "sent API token to server");
 
 	Ok(())
 }

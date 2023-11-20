@@ -18,7 +18,7 @@
         "name": "name",
         "type_info": {
           "type": "VarString",
-          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "flags": "NOT_NULL | UNIQUE_KEY | NO_DEFAULT_VALUE",
           "char_set": 224,
           "max_size": 128
         }
@@ -45,16 +45,6 @@
       },
       {
         "ordinal": 4,
-        "name": "created_by",
-        "type_info": {
-          "type": "Long",
-          "flags": "NOT_NULL | MULTIPLE_KEY | UNSIGNED | NO_DEFAULT_VALUE",
-          "char_set": 63,
-          "max_size": 10
-        }
-      },
-      {
-        "ordinal": 5,
         "name": "created_on",
         "type_info": {
           "type": "Timestamp",
@@ -64,7 +54,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 5,
         "name": "updated_on",
         "type_info": {
           "type": "Timestamp",
@@ -78,7 +68,6 @@
       "Right": 0
     },
     "nullable": [
-      false,
       false,
       false,
       false,

@@ -1,7 +1,7 @@
 use {
 	super::PlayerInfo,
 	chrono::{DateTime, Utc},
-	cs2kz::{SteamID, Tier},
+	cs2kz::{Mode, Runtype, SteamID, Tier},
 	serde::Serialize,
 	sqlx::{mysql::MySqlRow, FromRow, Row},
 	utoipa::ToSchema,
@@ -19,14 +19,14 @@ pub struct KZMap {
 	/// The map's Steam workshop ID.
 	pub workshop_id: u32,
 
-	/// A list of the courses on this map.
-	pub courses: Vec<MapCourse>,
-
 	/// The filesize of the map.
 	pub filesize: u64,
 
-	/// The player who owns this map.
-	pub owned_by: PlayerInfo,
+	/// The players who created this map.
+	pub mappers: Vec<PlayerInfo>,
+
+	/// A list of the courses on this map.
+	pub courses: Vec<MapCourse>,
 
 	/// Timestamp of when this map was globalled.
 	pub created_on: DateTime<Utc>,
@@ -41,11 +41,33 @@ pub struct MapCourse {
 	/// The stage this course corresponds to.
 	pub stage: u8,
 
-	/// The difficulty of the course.
+	/// The players who created this course.
+	pub mappers: Vec<PlayerInfo>,
+
+	/// List of filters.
+	pub filters: Vec<CourseFilter>,
+}
+
+/// A filter for a course on a KZ map.
+///
+/// This determines which (mode, runtype) combination is feasible on a given course, as well as its
+/// ranked status and difficulty.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CourseFilter {
+	/// The ID of this filter.
+	pub id: u32,
+
+	/// The mode which the filter applies to.
+	pub mode: Mode,
+
+	/// The runtype which the filter applies to.
+	pub runtype: Runtype,
+
+	/// The difficulty of this course with the given (mode, runtype) combination.
 	pub tier: Tier,
 
-	/// The player who created this course.
-	pub created_by: PlayerInfo,
+	/// Whether this course with the given (mode, runtype) combination is ranked.
+	pub ranked: bool,
 }
 
 impl FromRow<'_, MySqlRow> for KZMap {
@@ -55,35 +77,52 @@ impl FromRow<'_, MySqlRow> for KZMap {
 		let workshop_id = row.try_get("workshop_id")?;
 		let filesize = row.try_get("filesize")?;
 		let created_on = row.try_get("created_on")?;
-		let player_name = row.try_get("owner_name")?;
-		let steam32_id = row.try_get("owner_id")?;
-		let steam_id =
-			SteamID::from_id32(steam32_id).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
-		let owned_by = PlayerInfo { name: player_name, steam_id };
+		let mapper_name = row.try_get("mapper_name")?;
+		let mapper_steam_id = row.try_get("mapper_steam_id")?;
+		let mapper_steam_id = SteamID::from_id32(mapper_steam_id)
+			.map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+
+		let mappers = vec![PlayerInfo { name: mapper_name, steam_id: mapper_steam_id }];
 
 		let course_id = row.try_get("course_id")?;
 		let course_stage = row.try_get("course_stage")?;
-		let course_tier = row
-			.try_get::<u8, _>("course_tier")?
-			.try_into()
+		let course_mapper_name = row.try_get("course_mapper_name")?;
+		let course_mapper_steam_id = row.try_get("course_mapper_steam_id")?;
+		let course_mapper_steam_id = SteamID::from_id32(course_mapper_steam_id)
 			.map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
-		let course_created_by_name = row.try_get("course_created_by_name")?;
-		let course_created_by_id = row.try_get("course_created_by_id")?;
-		let course_created_by_steam_id = SteamID::from_id32(course_created_by_id)
-			.map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+		let course_mappers =
+			vec![PlayerInfo { name: course_mapper_name, steam_id: course_mapper_steam_id }];
+
+		let filter_id = row.try_get("filter_id")?;
+		let filter_mode: u8 = row.try_get("filter_mode")?;
+		let filter_mode =
+			Mode::try_from(filter_mode).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+
+		let filter_has_teleports: bool = row.try_get("filter_has_teleports")?;
+		let filter_runtype = Runtype::from(filter_has_teleports);
+		let filter_tier: u8 = row.try_get("filter_tier")?;
+		let filter_tier =
+			Tier::try_from(filter_tier).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
+
+		let filter_ranked = row.try_get("filter_ranked")?;
+
+		let course_filters = vec![CourseFilter {
+			id: filter_id,
+			mode: filter_mode,
+			runtype: filter_runtype,
+			tier: filter_tier,
+			ranked: filter_ranked,
+		}];
 
 		let courses = vec![MapCourse {
 			id: course_id,
 			stage: course_stage,
-			tier: course_tier,
-			created_by: PlayerInfo {
-				name: course_created_by_name,
-				steam_id: course_created_by_steam_id,
-			},
+			mappers: course_mappers,
+			filters: course_filters,
 		}];
 
-		Ok(Self { id, name, workshop_id, courses, filesize, owned_by, created_on })
+		Ok(Self { id, name, workshop_id, filesize, mappers, courses, created_on })
 	}
 }

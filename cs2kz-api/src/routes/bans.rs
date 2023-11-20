@@ -73,13 +73,13 @@ pub async fn get_bans(
 		r#"
 		SELECT
 			b.id,
-			p.id steam_id,
+			p.steam_id,
 			p.name,
 			b.reason,
 			b.created_on
 		FROM
 			Players p
-			JOIN Bans b ON b.player_id = p.id
+			JOIN Bans b ON b.player_id = p.steam_id
 		"#,
 	);
 
@@ -91,7 +91,7 @@ pub async fn get_bans(
 		match player {
 			PlayerIdentifier::SteamID(steam_id) => {
 				query
-					.push(" p.id = ")
+					.push(" p.steam_id = ")
 					.push_bind(steam_id.as_u32());
 			}
 			PlayerIdentifier::Name(name) => {

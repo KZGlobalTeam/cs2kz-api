@@ -10,13 +10,13 @@ CREATE TABLE IF NOT EXISTS Courses (
 );
 
 /**
- * Any course can have one or more mappers, and any player can be the mapper of any amount of
- * courses.
+ * Any course has one or more mappers, and any player can be the mapper of any amount of courses.
  */
 CREATE TABLE IF NOT EXISTS CourseMappers (
 	`course_id` INT4 UNSIGNED NOT NULL,
 	`player_id` INT4 UNSIGNED NOT NULL,
 	PRIMARY KEY (`course_id`, `player_id`),
+	FOREIGN KEY (`course_id`) REFERENCES Courses (`id`),
 	FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`)
 );
 
@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS CourseFilters (
 	`mode_id` INT1 UNSIGNED NOT NULL,
 	`has_teleports` BOOLEAN NOT NULL,
 	`tier` INT1 UNSIGNED NOT NULL,
+	`ranked` BOOLEAN NOT NULL,
 	PRIMARY KEY (`id`),
 	FOREIGN KEY (`course_id`) REFERENCES Courses (`id`),
 	FOREIGN KEY (`mode_id`) REFERENCES Modes (`id`),

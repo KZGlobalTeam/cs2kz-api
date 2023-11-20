@@ -37,22 +37,6 @@ pub async fn auth_server(
 	let JwtState { decode, validation, .. } = &state.jwt;
 	let server_info = jwt::decode::<GameServerInfo>(api_token.token(), decode, validation)?.claims;
 
-	let server = sqlx::query! {
-		r#"
-		SELECT
-			id
-		FROM
-			Servers
-		WHERE
-			id = ?
-			AND api_key IS NOT NULL
-		"#,
-		server_info.id,
-	}
-	.fetch_one(state.database())
-	.await
-	.map_err(|_| Error::Unauthorized)?;
-
 	if server_info.exp < jwt::get_current_timestamp() {
 		return Err(Error::Unauthorized);
 	}
@@ -61,10 +45,10 @@ pub async fn auth_server(
 
 	request
 		.extensions_mut()
-		.insert(Some(AuthenticatedServer {
-			id: server.id,
+		.insert(AuthenticatedServer {
+			id: server_info.id,
 			plugin_version: metadata.plugin_version,
-		}));
+		});
 
 	Ok(next.run(request).await)
 }

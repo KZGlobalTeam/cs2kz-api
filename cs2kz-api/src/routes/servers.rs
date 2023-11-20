@@ -21,12 +21,12 @@ static ROOT_GET_BASE_QUERY: &str = r#"
 		s.id,
 		s.name,
 		p.name player_name,
-		p.id steam_id,
+		p.steam_id,
 		s.ip_address,
 		s.port
 	FROM
 		Servers s
-		JOIN Players p ON p.id = s.owned_by
+		JOIN Players p ON p.steam_id = s.owned_by
 "#;
 
 /// Query parameters for fetching servers.
@@ -93,7 +93,7 @@ pub async fn get_servers(
 
 		query
 			.push(filter)
-			.push(" p.id = ")
+			.push(" p.steam_id = ")
 			.push_bind(steam32_id);
 
 		filter.switch();

@@ -10,7 +10,6 @@ use {
 		extract::{Path, Query},
 		Extension, Json,
 	},
-	chrono::NaiveTime,
 	cs2kz::{PlayerIdentifier, SteamID},
 	serde::{Deserialize, Serialize},
 	sqlx::QueryBuilder,
@@ -23,7 +22,17 @@ static ROOT_GET_BASE_QUERY: &str = r#"
 		p.*,
 		s.time_active,
 		s.time_spectating,
-		s.time_afk
+		s.time_afk,
+		s.perfs,
+		s.bhops_tick0,
+		s.bhops_tick1,
+		s.bhops_tick2,
+		s.bhops_tick3,
+		s.bhops_tick4,
+		s.bhops_tick5,
+		s.bhops_tick6,
+		s.bhops_tick7,
+		s.bhops_tick8
 	FROM
 		Players p
 		JOIN Sessions s ON s.player_id = p.steam_id
@@ -36,7 +45,7 @@ pub struct GetPlayersParams {
 	name: Option<String>,
 
 	/// A minimum amount of playtime.
-	playtime: Option<NaiveTime>,
+	playtime: Option<u32>,
 
 	/// Only include (not) banned players.
 	is_banned: Option<bool>,
@@ -66,7 +75,7 @@ pub async fn get_players(
 	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
 	let mut filter = Filter::new();
 
-	if let Some(ref name) = name {
+	if let Some(name) = name {
 		query
 			.push(filter)
 			.push(" p.name LIKE ")
@@ -219,6 +228,36 @@ pub struct SessionData {
 
 	/// Amount of seconds spent inactive.
 	time_afk: u32,
+
+	/// How many perfect bhops the player has hit in total.
+	perfs: u16,
+
+	/// How many bhops the player has hit 0 ticks after landing.
+	bhops_tick0: u16,
+
+	/// How many bhops the player has hit 1 ticks after landing.
+	bhops_tick1: u16,
+
+	/// How many bhops the player has hit 2 ticks after landing.
+	bhops_tick2: u16,
+
+	/// How many bhops the player has hit 3 ticks after landing.
+	bhops_tick3: u16,
+
+	/// How many bhops the player has hit 4 ticks after landing.
+	bhops_tick4: u16,
+
+	/// How many bhops the player has hit 5 ticks after landing.
+	bhops_tick5: u16,
+
+	/// How many bhops the player has hit 6 ticks after landing.
+	bhops_tick6: u16,
+
+	/// How many bhops the player has hit 7 ticks after landing.
+	bhops_tick7: u16,
+
+	/// How many bhops the player has hit 8 ticks after landing.
+	bhops_tick8: u16,
 }
 
 #[tracing::instrument(level = "DEBUG")]
@@ -272,16 +311,36 @@ pub async fn update_player(
 				server_id,
 				time_active,
 				time_spectating,
-				time_afk
+				time_afk,
+				perfs,
+				bhops_tick0,
+				bhops_tick1,
+				bhops_tick2,
+				bhops_tick3,
+				bhops_tick4,
+				bhops_tick5,
+				bhops_tick6,
+				bhops_tick7,
+				bhops_tick8
 			)
 		VALUES
-			(?, ?, ?, ?, ?)
+			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		"#,
 		steam32_id,
 		server.id,
 		session_data.time_active,
 		session_data.time_spectating,
 		session_data.time_afk,
+		session_data.perfs,
+		session_data.bhops_tick0,
+		session_data.bhops_tick1,
+		session_data.bhops_tick2,
+		session_data.bhops_tick3,
+		session_data.bhops_tick4,
+		session_data.bhops_tick5,
+		session_data.bhops_tick6,
+		session_data.bhops_tick7,
+		session_data.bhops_tick8,
 	}
 	.execute(transaction.as_mut())
 	.await?;
