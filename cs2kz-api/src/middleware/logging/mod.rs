@@ -6,7 +6,7 @@ use {
 		response::Response,
 	},
 	serde_json::Value as JsonValue,
-	std::net::SocketAddr,
+	std::{fmt::Write, net::SocketAddr},
 	tracing::info,
 };
 
@@ -18,26 +18,15 @@ pub async fn log_request(
 ) -> Result<Response> {
 	let method = request.method();
 	let uri = request.uri();
+	let mut message = format!("{method} `{uri}` from {addr}");
 
-	info!("{method} `{uri}` from {addr}");
-
-	Ok(next.run(request).await)
-}
-
-/// Logs basic information about an incoming request **including the request body**.
-///
-/// NOTE: This will **not** work if the request body cannot be deserialized into JSON.
-#[tracing::instrument(skip(next), err)]
-pub async fn log_request_with_body(
-	ConnectInfo(addr): ConnectInfo<SocketAddr>,
-	request: Request,
-	next: Next,
-) -> Result<Response> {
 	let (body, request) = middleware::deserialize_body::<JsonValue>(request).await?;
-	let method = request.method();
-	let uri = request.uri();
 
-	info!("{method} `{uri}` from {addr} with body {body:#?}");
+	if let Some(value) = body {
+		write!(&mut message, " with {value:#?}").expect("this never fails");
+	}
+
+	info!("{message}");
 
 	Ok(next.run(request).await)
 }

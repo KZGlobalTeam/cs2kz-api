@@ -24,7 +24,7 @@ pub struct AuthenticatedServer {
 #[tracing::instrument(skip(state, request, next))]
 pub async fn auth_server(
 	state: State,
-	TypedHeader(api_token): TypedHeader<Authorization<Bearer>>,
+	api_token: TypedHeader<Authorization<Bearer>>,
 	request: Request,
 	next: Next,
 ) -> Result<Response> {
@@ -35,8 +35,11 @@ pub async fn auth_server(
 		return Err(Error::Unauthorized);
 	}
 
-	let (ServerMetadata { plugin_version }, mut request) =
-		middleware::deserialize_body(request).await?;
+	let (metadata, mut request) = middleware::deserialize_body(request).await?;
+
+	let Some(ServerMetadata { plugin_version }) = metadata else {
+		return Err(Error::InvalidRequestBody);
+	};
 
 	request
 		.extensions_mut()

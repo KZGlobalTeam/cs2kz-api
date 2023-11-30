@@ -143,14 +143,10 @@ impl API {
 			.route("/record/:id", get(routes::records::get_record))
 			.route("/record/:id/replay", get(routes::records::get_replay))
 			.route("/auth/token", get(routes::auth::token))
-			.layer(log_request)
 			.with_state(state);
 
 		let game_server_auth =
 			axum::middleware::from_fn_with_state(state, middleware::auth::gameservers::auth_server);
-
-		let log_request_with_body =
-			axum::middleware::from_fn(middleware::logging::log_request_with_body);
 
 		// Routes to be used by cs2kz servers (require auth).
 		let game_server_router = Router::new()
@@ -159,7 +155,6 @@ impl API {
 			.route("/bans", post(routes::bans::create_ban))
 			.route("/records", post(routes::records::create_record))
 			.layer(game_server_auth)
-			.layer(log_request_with_body)
 			.with_state(state);
 
 		// TODO(AlphaKeks): implement auth for this
@@ -177,7 +172,9 @@ impl API {
 		// 	.route("/servers/:ident", routing::put(routes::servers::update_server))
 		// 	.with_state(state);
 
-		let api_router = game_server_router.merge(public_api_router);
+		let api_router = game_server_router
+			.merge(public_api_router)
+			.layer(log_request);
 
 		let swagger_ui = Self::swagger_ui();
 
