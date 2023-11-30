@@ -58,7 +58,7 @@ pub struct GetPlayersParams {
 	limit: BoundedU64<100, 500>,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(get, tag = "Players", context_path = "/api/v0", path = "/players",
 	params(GetPlayersParams),
 	responses(
@@ -119,7 +119,6 @@ pub async fn get_players(
 	Ok(Json(players))
 }
 
-#[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(get, tag = "Players", context_path = "/api/v0", path = "/players/{ident}",
 	params(("ident" = PlayerIdentifier, Path, description = "The player's `SteamID` or name")),
 	responses(
@@ -174,7 +173,7 @@ pub struct NewPlayer {
 	ip_address: Ipv4Addr,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(post, tag = "Players", context_path = "/api/v0", path = "/players",
 	request_body = NewPlayer,
 	responses(
@@ -260,7 +259,7 @@ pub struct SessionData {
 	bhops_tick8: u16,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(put, tag = "Players", context_path = "/api/v0", path = "/players/{steam_id}",
 	params(("steam_id" = SteamID, Path, description = "The player's SteamID")),
 	request_body = PlayerUpdate,

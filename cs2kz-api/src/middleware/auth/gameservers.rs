@@ -1,18 +1,13 @@
 use {
 	super::jwt::GameServerInfo,
 	crate::{middleware, state::JwtState, Error, Result, State},
-	axum::{
-		extract::{ConnectInfo, Request},
-		middleware::Next,
-		response::Response,
-	},
+	axum::{extract::Request, middleware::Next, response::Response},
 	axum_extra::{
 		headers::{authorization::Bearer, Authorization},
 		TypedHeader,
 	},
 	jsonwebtoken as jwt,
 	serde::Deserialize,
-	std::net::SocketAddr,
 };
 
 #[derive(Debug, Deserialize)]
@@ -26,10 +21,9 @@ pub struct AuthenticatedServer {
 	pub plugin_version: u16,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state, request, next))]
 pub async fn auth_server(
 	state: State,
-	ConnectInfo(addr): ConnectInfo<SocketAddr>,
 	TypedHeader(api_token): TypedHeader<Authorization<Bearer>>,
 	request: Request,
 	next: Next,

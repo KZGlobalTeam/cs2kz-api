@@ -52,7 +52,7 @@ pub struct GetServersParams<'a> {
 	limit: BoundedU64<100, 500>,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(get, tag = "Servers", context_path = "/api/v0", path = "/servers",
 	params(GetServersParams),
 	responses(
@@ -131,7 +131,6 @@ pub async fn get_servers(
 	Ok(Json(servers))
 }
 
-#[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(get, tag = "Servers", context_path = "/api/v0", path = "/servers/{ident}",
 	params(("ident" = ServerIdentifier, Path, description = "The servers's ID or name")),
 	responses(
@@ -184,9 +183,6 @@ pub struct NewServer {
 
 	/// The port of this server.
 	port: u16,
-
-	/// The `SteamID` of the admin who approved this server.
-	approved_by: SteamID,
 }
 
 /// Information about a newly created KZ server.
@@ -196,7 +192,7 @@ pub struct CreatedServer {
 	id: u16,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(post, tag = "Servers", context_path = "/api/v0", path = "/servers",
 	request_body = NewServer,
 	responses(
@@ -208,7 +204,7 @@ pub struct CreatedServer {
 )]
 pub async fn create_server(
 	state: State,
-	Json(NewServer { name, owned_by, ip_address, port, approved_by }): Json<NewServer>,
+	Json(NewServer { name, owned_by, ip_address, port }): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
 	let api_key = rand::random::<u32>();
 	let mut transaction = state.transaction().await?;
@@ -257,7 +253,7 @@ pub struct ServerUpdate {
 	port: Option<u16>,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(put, tag = "Servers", context_path = "/api/v0", path = "/servers/{id}",
 	params(("id" = u16, Path, description = "The server's ID")),
 	request_body = ServerUpdate,

@@ -46,7 +46,7 @@ pub struct GetBansParams<'a> {
 	limit: BoundedU64<100, 500>,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(get, tag = "Bans", context_path = "/api/v0", path = "/bans",
 	params(GetBansParams),
 	responses(
@@ -176,7 +176,6 @@ pub async fn get_bans(
 	Ok(Json(bans))
 }
 
-#[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(get, tag = "Bans", context_path = "/api/v0", path = "/bans/{id}/replay",
 	params(("id" = u32, Path, description = "The ban's ID")),
 	responses(
@@ -186,6 +185,7 @@ pub async fn get_bans(
 		(status = 500, body = Error),
 	),
 )]
+#[allow(unused_variables)] // TODO: implement this handler
 pub async fn get_replay(state: State, Path(ban_id): Path<u32>) -> Result<&'static str> {
 	Ok("not yet implemented")
 }
@@ -227,7 +227,7 @@ pub struct CreatedBan {
 	id: u32,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(post, tag = "Bans", context_path = "/api/v0", path = "/bans",
 	request_body = NewBan,
 	responses(

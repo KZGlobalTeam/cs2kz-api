@@ -65,7 +65,7 @@ pub struct GetMapsParams {
 	pub limit: BoundedU64<100, 1000>,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(get, tag = "Maps", context_path = "/api/v0", path = "/maps",
 	params(GetMapsParams),
 	responses(
@@ -151,7 +151,6 @@ pub async fn get_maps(
 	Ok(Json(maps))
 }
 
-#[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(get, tag = "Maps", context_path = "/api/v0", path = "/maps/{ident}",
 	params(("ident" = MapIdentifier, Path, description = "The map's ID or name")),
 	responses(
@@ -222,11 +221,8 @@ pub struct NewMap {
 	/// The filesize of the map.
 	filesize: u64,
 
-	/// The `SteamID` of the player who published this map.
-	created_by: SteamID,
-
-	/// The `SteamID` of the admin who approved this map to be globalled.
-	approved_by: SteamID,
+	/// The `SteamID`s of the players who made this map.
+	mappers: Vec<SteamID>,
 }
 
 /// A course on a KZ map.
@@ -291,7 +287,7 @@ pub struct CreatedFilter {
 	filter: Filter,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(post, tag = "Maps", context_path = "/api/v0", path = "/maps",
 	request_body = NewMap,
 	responses(
@@ -303,29 +299,39 @@ pub struct CreatedFilter {
 )]
 pub async fn create_map(
 	state: State,
-	Json(NewMap { name, workshop_id, courses, filesize, created_by, approved_by }): Json<NewMap>,
+	Json(NewMap { name, workshop_id, courses, filesize, mappers }): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {
 	validate_courses(&courses)?;
 
 	let mut transaction = state.transaction().await?;
 
-	// sqlx::query! {
-	// 	r#"
-	// 	INSERT INTO
-	// 		Maps (name, workshop_id, filesize, created_by)
-	// 	VALUES
-	// 		(?, ?, ?, ?)
-	// 	"#,
-	// 	name,
-	// 	workshop_id,
-	// 	filesize,
-	// 	created_by.as_u32(),
-	// }
-	// .execute(transaction.as_mut())
-	// .await?;
+	sqlx::query! {
+		r#"
+		INSERT INTO
+			Maps (name, workshop_id, filesize)
+		VALUES
+			(?, ?, ?)
+		"#,
+		name,
+		workshop_id,
+		filesize,
+	}
+	.execute(transaction.as_mut())
+	.await?;
 
 	let map = sqlx::query!("SELECT * FROM Maps WHERE id = (SELECT MAX(id) id FROM Maps)")
 		.fetch_one(transaction.as_mut())
+		.await?;
+
+	let mut create_mappers = QueryBuilder::new("INSERT INTO Mappers (map_id, player_id)");
+
+	create_mappers.push_values(mappers, |mut query, mapper| {
+		query.push_bind(mapper.as_u32());
+	});
+
+	create_mappers
+		.build()
+		.execute(transaction.as_mut())
 		.await?;
 
 	let mut create_courses = QueryBuilder::new("INSERT INTO Courses (map_id, stage, created_by)");
@@ -349,25 +355,24 @@ pub async fn create_map(
 	let mut create_filters =
 		QueryBuilder::new("INSERT INTO CourseFilters (course_id, mode_id, has_teleports, tier)");
 
-	create_filters.push_values(
-		courses.iter().flat_map(|course| {
-			course.filters.iter().map(|filter| {
-				let course = db_courses
-					.iter()
-					.find(|c| c.map_stage == course.map_stage)
-					.expect("we just inserted all the courses");
+	let filters = courses.iter().flat_map(|course| {
+		course.filters.iter().map(|filter| {
+			let course = db_courses
+				.iter()
+				.find(|c| c.map_stage == course.map_stage)
+				.expect("we just inserted all the courses");
 
-				(course.id, filter)
-			})
-		}),
-		|mut query, (course_id, filter)| {
-			query
-				.push_bind(course_id)
-				.push_bind(filter.mode as u8)
-				.push_bind(bool::from(filter.runtype))
-				.push_bind(filter.tier as u8);
-		},
-	);
+			(course.id, filter)
+		})
+	});
+
+	create_filters.push_values(filters, |mut query, (course_id, filter)| {
+		query
+			.push_bind(course_id)
+			.push_bind(filter.mode as u8)
+			.push_bind(bool::from(filter.runtype))
+			.push_bind(filter.tier as u8);
+	});
 
 	create_filters
 		.build()
@@ -472,7 +477,6 @@ pub struct FilterWithCourseId {
 	style: Style,
 }
 
-#[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(put, tag = "Maps", context_path = "/api/v0", path = "/maps/{id}",
 	params(("id" = u16, Path, description = "The map's ID")),
 	request_body = MapUpdate,

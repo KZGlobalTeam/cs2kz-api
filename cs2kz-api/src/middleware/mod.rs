@@ -6,6 +6,7 @@ use {
 };
 
 pub mod auth;
+pub mod logging;
 
 /// Extracts some `T` as JSON from a request body.
 pub async fn deserialize_body<T>(request: Request) -> Result<(T, Request)>

@@ -10,7 +10,7 @@ use {
 /// CS2 server authentication.
 ///
 /// This endpoint is used by CS2 game servers to refresh their access token.
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(get, tag = "Auth", context_path = "/api/v0", path = "/auth/token", params(
 	("api-key" = u32, Header, description = "API Key"),
 ), responses(

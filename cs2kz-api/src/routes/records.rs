@@ -55,7 +55,7 @@ pub struct GetRecordsParams<'a> {
 	limit: BoundedU64<100, 500>,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records",
 	params(GetRecordsParams),
 	responses(
@@ -65,6 +65,7 @@ pub struct GetRecordsParams<'a> {
 		(status = 500, body = Error),
 	),
 )]
+#[allow(unused_variables)] // TODO: implement this handler
 pub async fn get_records(
 	state: State,
 	Query(GetRecordsParams {
@@ -85,7 +86,6 @@ pub async fn get_records(
 	todo!();
 }
 
-#[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records/{id}",
 	params(("id" = u32, Path, description = "The records's ID")),
 	responses(
@@ -164,7 +164,6 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Result<Json
 	.ok_or(Error::NoContent)
 }
 
-#[tracing::instrument(level = "DEBUG")]
 #[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records/{id}/replay",
 	params(("id" = u32, Path, description = "The records's ID")),
 	responses(
@@ -174,6 +173,7 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Result<Json
 		(status = 500, body = Error),
 	),
 )]
+#[allow(unused_variables)] // TODO: implement this handler
 pub async fn get_replay(state: State, Path(record_id): Path<u32>) -> Result<&'static str> {
 	Ok("not yet implemented")
 }
@@ -181,6 +181,9 @@ pub async fn get_replay(state: State, Path(record_id): Path<u32>) -> Result<&'st
 /// A newly submitted KZ record.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewRecord {
+	/// The `SteamID` of the player who performed this record.
+	steam_id: SteamID,
+
 	/// The ID of the course this record was performed on.
 	course_id: u32,
 
@@ -190,14 +193,11 @@ pub struct NewRecord {
 	/// The style this record was performed in.
 	style: Style,
 
-	/// The `SteamID` of the player who performed this record.
-	steam_id: SteamID,
+	/// The amount of teleports used in this run.
+	teleports: u16,
 
 	/// The time it took to finish this run (in seconds).
 	time: f64,
-
-	/// The amount of teleports used in this run.
-	teleports: u16,
 
 	/// Statistics about how many perfect bhops the player hit during the run.
 	bhop_stats: BhopStats,
@@ -225,7 +225,7 @@ pub struct CreatedRecord {
 	id: u64,
 }
 
-#[tracing::instrument(level = "DEBUG")]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(post, tag = "Records", context_path = "/api/v0", path = "/records",
 	request_body = NewRecord,
 	responses(
@@ -268,21 +268,43 @@ pub async fn create_record(
 		r#"
 		INSERT INTO
 			Records (
-				filter_id,
 				player_id,
-				server_id,
+				filter_id,
+				style_id,
 				teleports,
 				time,
+				server_id,
+				perfs,
+				bhops_tick0,
+				bhops_tick1,
+				bhops_tick2,
+				bhops_tick3,
+				bhops_tick4,
+				bhops_tick5,
+				bhops_tick6,
+				bhops_tick7,
+				bhops_tick8,
 				plugin_version
 			)
 		VALUES
-			(?, ?, ?, ?, ?, ?)
+			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		"#,
-		filter_id,
 		steam_id.as_u32(),
-		server.id,
+		filter_id,
+		style as u8,
 		teleports,
 		time,
+		server.id,
+		bhop_stats.perfs,
+		bhop_stats.bhops_tick0,
+		bhop_stats.bhops_tick1,
+		bhop_stats.bhops_tick2,
+		bhop_stats.bhops_tick3,
+		bhop_stats.bhops_tick4,
+		bhop_stats.bhops_tick5,
+		bhop_stats.bhops_tick6,
+		bhop_stats.bhops_tick7,
+		bhop_stats.bhops_tick8,
 		server.plugin_version,
 	}
 	.execute(transaction.as_mut())

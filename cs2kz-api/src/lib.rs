@@ -124,6 +124,8 @@ impl API {
 	pub fn router(state: AppState) -> Router {
 		let state: &'static AppState = Box::leak(Box::new(state));
 
+		let log_request = axum::middleware::from_fn(middleware::logging::log_request);
+
 		let public_api_router = Router::new()
 			.route("/health", routing::get(routes::health::health))
 			.route("/players", routing::get(routes::players::get_players))
@@ -138,10 +140,14 @@ impl API {
 			.route("/record/:id", routing::get(routes::records::get_record))
 			.route("/record/:id/replay", routing::get(routes::records::get_replay))
 			.route("/auth/token", routing::get(routes::auth::token))
+			.layer(log_request)
 			.with_state(state);
 
 		let game_server_auth =
 			axum::middleware::from_fn_with_state(state, middleware::auth::gameservers::auth_server);
+
+		let log_request_with_body =
+			axum::middleware::from_fn(middleware::logging::log_request_with_body);
 
 		// Routes to be used by cs2kz servers (require auth).
 		let game_server_router = Router::new()
@@ -150,6 +156,7 @@ impl API {
 			.route("/bans", routing::post(routes::bans::create_ban))
 			.route("/records", routing::post(routes::records::create_record))
 			.layer(game_server_auth)
+			.layer(log_request_with_body)
 			.with_state(state);
 
 		// TODO(AlphaKeks): implement auth for this
