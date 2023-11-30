@@ -2072,13 +2072,9 @@
           "workshop_id",
           "courses",
           "filesize",
-          "created_by",
-          "approved_by"
+          "mappers"
         ],
         "properties": {
-          "approved_by": {
-            "$ref": "#/components/schemas/SteamID"
-          },
           "courses": {
             "type": "array",
             "items": {
@@ -2086,14 +2082,18 @@
             },
             "description": "A list of the map's courses."
           },
-          "created_by": {
-            "$ref": "#/components/schemas/SteamID"
-          },
           "filesize": {
             "type": "integer",
             "format": "int64",
             "description": "The filesize of the map.",
             "minimum": 0
+          },
+          "mappers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SteamID"
+            },
+            "description": "The `SteamID`s of the players who made this map."
           },
           "name": {
             "type": "string",
@@ -2111,8 +2111,8 @@
         "type": "object",
         "description": "Information about a new KZ player.",
         "required": [
-          "name",
           "steam_id",
+          "name",
           "ip_address"
         ],
         "properties": {
@@ -2133,12 +2133,12 @@
         "type": "object",
         "description": "A newly submitted KZ record.",
         "required": [
+          "steam_id",
           "course_id",
           "mode",
           "style",
-          "steam_id",
-          "time",
           "teleports",
+          "time",
           "bhop_stats"
         ],
         "properties": {
@@ -2180,13 +2180,9 @@
           "name",
           "owned_by",
           "ip_address",
-          "port",
-          "approved_by"
+          "port"
         ],
         "properties": {
-          "approved_by": {
-            "$ref": "#/components/schemas/SteamID"
-          },
           "ip_address": {
             "type": "string",
             "description": "The IP address of this server."
