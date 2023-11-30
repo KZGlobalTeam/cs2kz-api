@@ -47,7 +47,7 @@ pub struct GetBansParams<'a> {
 }
 
 #[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Bans", context_path = "/api/v0", path = "/bans",
+#[utoipa::path(get, tag = "Bans", context_path = "/api", path = "/bans",
 	params(GetBansParams),
 	responses(
 		(status = 200, body = Vec<Ban>),
@@ -176,7 +176,7 @@ pub async fn get_bans(
 	Ok(Json(bans))
 }
 
-#[utoipa::path(get, tag = "Bans", context_path = "/api/v0", path = "/bans/{id}/replay",
+#[utoipa::path(get, tag = "Bans", context_path = "/api", path = "/bans/{id}/replay",
 	params(("id" = u32, Path, description = "The ban's ID")),
 	responses(
 		(status = 200, body = ()),
@@ -228,7 +228,7 @@ pub struct CreatedBan {
 }
 
 #[tracing::instrument(skip(state))]
-#[utoipa::path(post, tag = "Bans", context_path = "/api/v0", path = "/bans",
+#[utoipa::path(post, tag = "Bans", context_path = "/api", path = "/bans",
 	request_body = NewBan,
 	responses(
 		(status = 201, body = CreatedBan),

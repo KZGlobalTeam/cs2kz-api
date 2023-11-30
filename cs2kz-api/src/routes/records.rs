@@ -56,7 +56,7 @@ pub struct GetRecordsParams<'a> {
 }
 
 #[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records",
+#[utoipa::path(get, tag = "Records", context_path = "/api", path = "/records",
 	params(GetRecordsParams),
 	responses(
 		(status = 200, body = Vec<Record>),
@@ -86,7 +86,7 @@ pub async fn get_records(
 	todo!();
 }
 
-#[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records/{id}",
+#[utoipa::path(get, tag = "Records", context_path = "/api", path = "/records/{id}",
 	params(("id" = u32, Path, description = "The records's ID")),
 	responses(
 		(status = 200, body = Record),
@@ -164,7 +164,7 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Result<Json
 	.ok_or(Error::NoContent)
 }
 
-#[utoipa::path(get, tag = "Records", context_path = "/api/v0", path = "/records/{id}/replay",
+#[utoipa::path(get, tag = "Records", context_path = "/api", path = "/records/{id}/replay",
 	params(("id" = u32, Path, description = "The records's ID")),
 	responses(
 		(status = 200, body = ()),
@@ -226,7 +226,7 @@ pub struct CreatedRecord {
 }
 
 #[tracing::instrument(skip(state))]
-#[utoipa::path(post, tag = "Records", context_path = "/api/v0", path = "/records",
+#[utoipa::path(post, tag = "Records", context_path = "/api", path = "/records",
 	request_body = NewRecord,
 	responses(
 		(status = 201, body = CreatedRecord),

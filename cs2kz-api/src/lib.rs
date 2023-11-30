@@ -1,6 +1,9 @@
 use {
 	crate::state::AppState,
-	axum::{routing, Router},
+	axum::{
+		routing::{get, post, put},
+		Router,
+	},
 	color_eyre::eyre::Context,
 	utoipa::OpenApi,
 	utoipa_swagger_ui::SwaggerUi,
@@ -127,19 +130,19 @@ impl API {
 		let log_request = axum::middleware::from_fn(middleware::logging::log_request);
 
 		let public_api_router = Router::new()
-			.route("/health", routing::get(routes::health::health))
-			.route("/players", routing::get(routes::players::get_players))
-			.route("/players/:ident", routing::get(routes::players::get_player))
-			.route("/bans", routing::get(routes::bans::get_bans))
-			.route("/bans/:id/replay", routing::get(routes::bans::get_replay))
-			.route("/maps", routing::get(routes::maps::get_maps))
-			.route("/maps/:ident", routing::get(routes::maps::get_map))
-			.route("/servers", routing::get(routes::servers::get_servers))
-			.route("/servers/:ident", routing::get(routes::servers::get_server))
-			.route("/records", routing::get(routes::records::get_records))
-			.route("/record/:id", routing::get(routes::records::get_record))
-			.route("/record/:id/replay", routing::get(routes::records::get_replay))
-			.route("/auth/token", routing::get(routes::auth::token))
+			.route("/health", get(routes::health::health))
+			.route("/players", get(routes::players::get_players))
+			.route("/players/:ident", get(routes::players::get_player))
+			.route("/bans", get(routes::bans::get_bans))
+			.route("/bans/:id/replay", get(routes::bans::get_replay))
+			.route("/maps", get(routes::maps::get_maps))
+			.route("/maps/:ident", get(routes::maps::get_map))
+			.route("/servers", get(routes::servers::get_servers))
+			.route("/servers/:ident", get(routes::servers::get_server))
+			.route("/records", get(routes::records::get_records))
+			.route("/record/:id", get(routes::records::get_record))
+			.route("/record/:id/replay", get(routes::records::get_replay))
+			.route("/auth/token", get(routes::auth::token))
 			.layer(log_request)
 			.with_state(state);
 
@@ -151,10 +154,10 @@ impl API {
 
 		// Routes to be used by cs2kz servers (require auth).
 		let game_server_router = Router::new()
-			.route("/players", routing::post(routes::players::create_player))
-			.route("/players/:ident", routing::put(routes::players::update_player))
-			.route("/bans", routing::post(routes::bans::create_ban))
-			.route("/records", routing::post(routes::records::create_record))
+			.route("/players", post(routes::players::create_player))
+			.route("/players/:ident", put(routes::players::update_player))
+			.route("/bans", post(routes::bans::create_ban))
+			.route("/records", post(routes::records::create_record))
 			.layer(game_server_auth)
 			.layer(log_request_with_body)
 			.with_state(state);
@@ -179,7 +182,7 @@ impl API {
 		let swagger_ui = Self::swagger_ui();
 
 		Router::new()
-			.nest("/api/v0", api_router)
+			.nest("/api", api_router)
 			.merge(swagger_ui)
 	}
 

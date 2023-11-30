@@ -53,7 +53,7 @@ pub struct GetServersParams<'a> {
 }
 
 #[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Servers", context_path = "/api/v0", path = "/servers",
+#[utoipa::path(get, tag = "Servers", context_path = "/api", path = "/servers",
 	params(GetServersParams),
 	responses(
 		(status = 200, body = Vec<Server>),
@@ -131,7 +131,7 @@ pub async fn get_servers(
 	Ok(Json(servers))
 }
 
-#[utoipa::path(get, tag = "Servers", context_path = "/api/v0", path = "/servers/{ident}",
+#[utoipa::path(get, tag = "Servers", context_path = "/api", path = "/servers/{ident}",
 	params(("ident" = ServerIdentifier, Path, description = "The servers's ID or name")),
 	responses(
 		(status = 200, body = Server),
@@ -193,7 +193,7 @@ pub struct CreatedServer {
 }
 
 #[tracing::instrument(skip(state))]
-#[utoipa::path(post, tag = "Servers", context_path = "/api/v0", path = "/servers",
+#[utoipa::path(post, tag = "Servers", context_path = "/api", path = "/servers",
 	request_body = NewServer,
 	responses(
 		(status = 201, body = CreatedServer),
@@ -254,7 +254,7 @@ pub struct ServerUpdate {
 }
 
 #[tracing::instrument(skip(state))]
-#[utoipa::path(put, tag = "Servers", context_path = "/api/v0", path = "/servers/{id}",
+#[utoipa::path(put, tag = "Servers", context_path = "/api", path = "/servers/{id}",
 	params(("id" = u16, Path, description = "The server's ID")),
 	request_body = ServerUpdate,
 	responses(

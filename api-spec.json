@@ -10,7 +10,7 @@
     "version": "0.0.0"
   },
   "paths": {
-    "/api/v0/auth/token": {
+    "/api/auth/token": {
       "get": {
         "tags": [
           "Auth"
@@ -66,7 +66,7 @@
         }
       }
     },
-    "/api/v0/bans": {
+    "/api/bans": {
       "get": {
         "tags": [
           "Bans"
@@ -258,7 +258,7 @@
         }
       }
     },
-    "/api/v0/bans/{id}/replay": {
+    "/api/bans/{id}/replay": {
       "get": {
         "tags": [
           "Bans"
@@ -308,7 +308,7 @@
         }
       }
     },
-    "/api/v0/health": {
+    "/api/health": {
       "get": {
         "tags": [
           "Health"
@@ -323,7 +323,7 @@
         }
       }
     },
-    "/api/v0/maps": {
+    "/api/maps": {
       "get": {
         "tags": [
           "Maps"
@@ -473,7 +473,7 @@
         }
       }
     },
-    "/api/v0/maps/{ident}": {
+    "/api/maps/{ident}": {
       "get": {
         "tags": [
           "Maps"
@@ -520,7 +520,7 @@
         }
       }
     },
-    "/api/v0/maps/{id}": {
+    "/api/maps/{id}": {
       "put": {
         "tags": [
           "Maps"
@@ -579,7 +579,7 @@
         }
       }
     },
-    "/api/v0/players": {
+    "/api/players": {
       "get": {
         "tags": [
           "Players"
@@ -730,7 +730,7 @@
         }
       }
     },
-    "/api/v0/players/{ident}": {
+    "/api/players/{ident}": {
       "get": {
         "tags": [
           "Players"
@@ -777,7 +777,7 @@
         }
       }
     },
-    "/api/v0/players/{steam_id}": {
+    "/api/players/{steam_id}": {
       "put": {
         "tags": [
           "Players"
@@ -834,7 +834,7 @@
         }
       }
     },
-    "/api/v0/records": {
+    "/api/records": {
       "get": {
         "tags": [
           "Records"
@@ -1076,7 +1076,7 @@
         }
       }
     },
-    "/api/v0/records/{id}": {
+    "/api/records/{id}": {
       "get": {
         "tags": [
           "Records"
@@ -1125,7 +1125,7 @@
         }
       }
     },
-    "/api/v0/records/{id}/replay": {
+    "/api/records/{id}/replay": {
       "get": {
         "tags": [
           "Records"
@@ -1175,7 +1175,7 @@
         }
       }
     },
-    "/api/v0/servers": {
+    "/api/servers": {
       "get": {
         "tags": [
           "Servers"
@@ -1339,7 +1339,7 @@
         }
       }
     },
-    "/api/v0/servers/{ident}": {
+    "/api/servers/{ident}": {
       "get": {
         "tags": [
           "Servers"
@@ -1386,7 +1386,7 @@
         }
       }
     },
-    "/api/v0/servers/{id}": {
+    "/api/servers/{id}": {
       "put": {
         "tags": [
           "Servers"

@@ -11,7 +11,7 @@ use {
 ///
 /// This endpoint is used by CS2 game servers to refresh their access token.
 #[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Auth", context_path = "/api/v0", path = "/auth/token", params(
+#[utoipa::path(get, tag = "Auth", context_path = "/api", path = "/auth/token", params(
 	("api-key" = u32, Header, description = "API Key"),
 ), responses(
 	(status = 200, body = (), description = "The JWT has been sent to the server over UDP."),
@@ -60,7 +60,7 @@ pub async fn token(state: State, TypedHeader(ApiKey(api_key)): TypedHeader<ApiKe
 		.await
 		.map_err(|_| Error::InternalServerError)?;
 
-	debug!(%server_addr, %token, "sent API token to server");
+	debug!(addr = %server_addr, %token, "sent JWT to server");
 
 	Ok(())
 }

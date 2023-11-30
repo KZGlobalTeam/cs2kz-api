@@ -66,7 +66,7 @@ pub struct GetMapsParams {
 }
 
 #[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Maps", context_path = "/api/v0", path = "/maps",
+#[utoipa::path(get, tag = "Maps", context_path = "/api", path = "/maps",
 	params(GetMapsParams),
 	responses(
 		(status = 200, body = Vec<KZMap>),
@@ -151,7 +151,7 @@ pub async fn get_maps(
 	Ok(Json(maps))
 }
 
-#[utoipa::path(get, tag = "Maps", context_path = "/api/v0", path = "/maps/{ident}",
+#[utoipa::path(get, tag = "Maps", context_path = "/api", path = "/maps/{ident}",
 	params(("ident" = MapIdentifier, Path, description = "The map's ID or name")),
 	responses(
 		(status = 200, body = KZMap),
@@ -288,7 +288,7 @@ pub struct CreatedFilter {
 }
 
 #[tracing::instrument(skip(state))]
-#[utoipa::path(post, tag = "Maps", context_path = "/api/v0", path = "/maps",
+#[utoipa::path(post, tag = "Maps", context_path = "/api", path = "/maps",
 	request_body = NewMap,
 	responses(
 		(status = 201, body = CreatedMap),
@@ -477,7 +477,7 @@ pub struct FilterWithCourseId {
 	style: Style,
 }
 
-#[utoipa::path(put, tag = "Maps", context_path = "/api/v0", path = "/maps/{id}",
+#[utoipa::path(put, tag = "Maps", context_path = "/api", path = "/maps/{id}",
 	params(("id" = u16, Path, description = "The map's ID")),
 	request_body = MapUpdate,
 	responses(
