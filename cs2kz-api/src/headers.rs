@@ -1,8 +1,6 @@
 use {
-	axum::{
-		headers::{self, Header},
-		http::{HeaderName, HeaderValue},
-	},
+	axum::http::{HeaderName, HeaderValue},
+	axum_extra::headers::{self, Header},
 	serde::Deserialize,
 };
 

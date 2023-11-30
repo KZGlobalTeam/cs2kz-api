@@ -23,20 +23,28 @@ path = "../cs2kz/"
 features = ["serde", "utoipa"]
 
 [dependencies.axum]
-version = "0.6.20"
+version = "0.7"
 default-features = false
-features = ["http1", "query", "tokio", "tracing", "macros", "headers"]
+features = ["http1", "json", "query", "tokio", "macros"]
+
+[dependencies.axum-extra]
+version = "0.9"
+default-features = false
+features = ["typed-header"]
 
 [dependencies.hyper]
-version = "0.14.27"
+version = "1"
+
+[dependencies.http-body-util]
+version = "0.1"
 
 [dependencies.tower-http]
-version = "0.4.4"
+version = "0.5"
 features = ["cors"]
 
 [dependencies.jsonwebtoken]
-version = "9.1.0"
+version = "9"
 
 [dependencies.utoipa-swagger-ui]
-version = "3.1.5"
+version = "5"
 features = ["axum"]

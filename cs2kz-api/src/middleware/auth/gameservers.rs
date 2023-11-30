@@ -2,12 +2,12 @@ use {
 	super::jwt::GameServerInfo,
 	crate::{middleware, state::JwtState, Error, Result, State},
 	axum::{
-		body::Body,
-		extract::ConnectInfo,
-		headers::{authorization::Bearer, Authorization},
-		http::Request,
+		extract::{ConnectInfo, Request},
 		middleware::Next,
 		response::Response,
+	},
+	axum_extra::{
+		headers::{authorization::Bearer, Authorization},
 		TypedHeader,
 	},
 	jsonwebtoken as jwt,
@@ -31,8 +31,8 @@ pub async fn auth_server(
 	state: State,
 	ConnectInfo(addr): ConnectInfo<SocketAddr>,
 	TypedHeader(api_token): TypedHeader<Authorization<Bearer>>,
-	request: Request<Body>,
-	next: Next<Body>,
+	request: Request,
+	next: Next,
 ) -> Result<Response> {
 	let JwtState { decode, validation, .. } = &state.jwt;
 	let server_info = jwt::decode::<GameServerInfo>(api_token.token(), decode, validation)?.claims;

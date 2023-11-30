@@ -9,4 +9,4 @@ clap = { workspace = true }
 cs2kz-api = { path = "../cs2kz-api" }
 
 [dependencies.similar]
-version = "2.3.0"
+version = "2"

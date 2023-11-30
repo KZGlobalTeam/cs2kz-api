@@ -1,9 +1,9 @@
 use {
 	crate::{args::Args, config::Config},
-	axum::Server,
 	color_eyre::eyre::Context,
 	cs2kz_api::{state::AppState, API},
 	std::{fmt::Write, net::SocketAddr},
+	tokio::net::TcpListener,
 	tracing::info,
 };
 
@@ -40,10 +40,12 @@ async fn main() -> color_eyre::Result<()> {
 	let router = API::router(state).into_make_service_with_connect_info::<SocketAddr>();
 
 	// Create HTTP server
-	let server = Server::bind(&config.socket_addr()).serve(router);
+	let tcp_listener = TcpListener::bind(config.socket_addr())
+		.await
+		.context("Failed to bind TCP listener.")?;
 
 	// Print information to stdout
-	let addr = server.local_addr();
+	let addr = tcp_listener.local_addr()?;
 
 	info!("Listening on {addr}.");
 
@@ -57,7 +59,9 @@ async fn main() -> color_eyre::Result<()> {
 	info!("OpenAPI spec hosted at: <http://{addr}/api/docs/openapi.json>");
 
 	// Run the server
-	server.await.context("Failed to run axum.")?;
+	axum::serve(tcp_listener, router)
+		.await
+		.context("Failed to run axum.")?;
 
 	Ok(())
 }

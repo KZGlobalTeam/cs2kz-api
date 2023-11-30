@@ -11,7 +11,7 @@ utoipa = ["dep:utoipa", "serde"]
 thiserror = { version = "1" }
 serde = { version = "1", optional = true }
 serde_json = { version = "1", optional = true }
-utoipa = { version = "3.5", optional = true }
+utoipa = { version = "4", optional = true }
 lazy-regex = "3"
 
 [dev-dependencies]

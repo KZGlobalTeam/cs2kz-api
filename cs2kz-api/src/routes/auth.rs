@@ -1,6 +1,6 @@
 use {
 	crate::{headers::ApiKey, middleware::auth::jwt::GameServerInfo, Error, Result, State},
-	axum::TypedHeader,
+	axum_extra::TypedHeader,
 	jsonwebtoken as jwt,
 	std::net::{Ipv4Addr, SocketAddr},
 	tokio::net::UdpSocket,
