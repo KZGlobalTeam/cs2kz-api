@@ -88,6 +88,7 @@ pub mod res;
 
 			crate::res::maps::KZMap,
 			crate::res::maps::MapCourse,
+			crate::res::maps::CourseFilter,
 			crate::routes::maps::NewMap,
 			crate::routes::maps::Course,
 			crate::routes::maps::Filter,

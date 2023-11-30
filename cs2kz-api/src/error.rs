@@ -4,6 +4,8 @@ use {
 		response::{IntoResponse, Response as AxumResponse},
 		Json,
 	},
+	serde::Serialize,
+	serde_json::json,
 	thiserror::Error as ThisError,
 	tracing::error,
 	utoipa::ToSchema,
@@ -11,7 +13,8 @@ use {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Clone, PartialEq, Eq, ThisError, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, ThisError, Serialize, ToSchema)]
+#[serde(tag = "message")]
 pub enum Error {
 	#[error("Something went wrong.")]
 	InternalServerError,
@@ -43,7 +46,12 @@ pub enum Error {
 
 impl IntoResponse for Error {
 	fn into_response(self) -> AxumResponse {
-		let message = self.to_string();
+		let message = json! {
+			{
+				"message": self.to_string()
+			}
+		};
+
 		let code = match self {
 			Self::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
 			Self::NoContent => StatusCode::NO_CONTENT,
