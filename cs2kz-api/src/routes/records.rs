@@ -1,8 +1,8 @@
 use {
-	super::{BoundedU64, Created},
+	super::BoundedU64,
 	crate::{
 		middleware::auth::gameservers::AuthenticatedServer,
-		res::{records as res, BadRequest},
+		res::{records as res, responses, Created},
 		Error, Result, State,
 	},
 	axum::{
@@ -59,10 +59,10 @@ pub struct GetRecordsParams<'a> {
 #[utoipa::path(get, tag = "Records", context_path = "/api", path = "/records",
 	params(GetRecordsParams),
 	responses(
-		(status = 200, body = Vec<Record>),
-		(status = 204),
-		(status = 400, response = BadRequest),
-		(status = 500, body = Error),
+		responses::Created<res::Record>,
+		responses::NoContent,
+		responses::BadRequest,
+		responses::InternalServerError,
 	),
 )]
 #[allow(unused_variables)] // TODO: implement this handler
@@ -86,13 +86,14 @@ pub async fn get_records(
 	todo!();
 }
 
+#[tracing::instrument(skip(state))]
 #[utoipa::path(get, tag = "Records", context_path = "/api", path = "/records/{id}",
 	params(("id" = u32, Path, description = "The records's ID")),
 	responses(
-		(status = 200, body = Record),
-		(status = 204),
-		(status = 400, response = BadRequest),
-		(status = 500, body = Error),
+		responses::Ok<res::Record>,
+		responses::NoContent,
+		responses::BadRequest,
+		responses::InternalServerError,
 	),
 )]
 pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Result<Json<res::Record>> {
@@ -164,13 +165,14 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Result<Json
 	.ok_or(Error::NoContent)
 }
 
+#[tracing::instrument(skip(state))]
 #[utoipa::path(get, tag = "Records", context_path = "/api", path = "/records/{id}/replay",
 	params(("id" = u32, Path, description = "The records's ID")),
 	responses(
-		(status = 200, body = ()),
-		(status = 204),
-		(status = 400, response = BadRequest),
-		(status = 500, body = Error),
+		responses::Ok<()>,
+		responses::NoContent,
+		responses::BadRequest,
+		responses::InternalServerError,
 	),
 )]
 #[allow(unused_variables)] // TODO: implement this handler
@@ -229,10 +231,10 @@ pub struct CreatedRecord {
 #[utoipa::path(post, tag = "Records", context_path = "/api", path = "/records",
 	request_body = NewRecord,
 	responses(
-		(status = 201, body = CreatedRecord),
-		(status = 400, response = BadRequest),
-		(status = 401, body = Error),
-		(status = 500, body = Error),
+		responses::Created<CreatedRecord>,
+		responses::BadRequest,
+		responses::Unauthorized,
+		responses::InternalServerError,
 	),
 )]
 pub async fn create_record(

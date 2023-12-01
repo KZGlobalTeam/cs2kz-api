@@ -33,7 +33,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The JWT has been sent to the server over UDP.",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
@@ -43,25 +43,14 @@
               }
             }
           },
+          "400": {
+            "description": "Something about the request was incorrect."
+          },
           "401": {
-            "description": "The API Key header was incorrect.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "You do not have access to this resource."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -176,33 +165,54 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Ban"
+                  "type": "object",
+                  "description": "Information about a ban of a player.",
+                  "required": [
+                    "id",
+                    "name",
+                    "steam_id",
+                    "reason",
+                    "date"
+                  ],
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when the player was banned."
+                    },
+                    "id": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The ban's ID.",
+                      "minimum": 0
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The player's Steam name."
+                    },
+                    "reason": {
+                      "$ref": "#/components/schemas/BanReason"
+                    },
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    }
                   }
                 }
               }
             }
           },
           "204": {
-            "description": ""
+            "description": "There is no data available for the given query."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       },
@@ -223,37 +233,35 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreatedBan"
+                  "type": "object",
+                  "description": "Information about a newly created ban.",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The ban's ID.",
+                      "minimum": 0
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "You do not have access to this resource."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -279,7 +287,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
@@ -290,20 +298,13 @@
             }
           },
           "204": {
-            "description": ""
+            "description": "There is no data available for the given query."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -391,33 +392,76 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/KZMap"
+                  "type": "object",
+                  "description": "A KZ map.",
+                  "required": [
+                    "id",
+                    "name",
+                    "workshop_id",
+                    "filesize",
+                    "mappers",
+                    "courses",
+                    "created_on"
+                  ],
+                  "properties": {
+                    "courses": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MapCourse"
+                      },
+                      "description": "A list of the courses on this map."
+                    },
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when this map was globalled."
+                    },
+                    "filesize": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "The filesize of the map.",
+                      "minimum": 0
+                    },
+                    "id": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The map's ID.",
+                      "minimum": 0
+                    },
+                    "mappers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PlayerInfo"
+                      },
+                      "description": "The players who created this map."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The map's name."
+                    },
+                    "workshop_id": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The map's Steam workshop ID.",
+                      "minimum": 0
+                    }
                   }
                 }
               }
             }
           },
           "204": {
-            "description": ""
+            "description": "There is no data available for the given query."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       },
@@ -438,37 +482,43 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreatedMap"
+                  "type": "object",
+                  "description": "Information about a newly created KZ map.",
+                  "required": [
+                    "id",
+                    "courses"
+                  ],
+                  "properties": {
+                    "courses": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CreatedCourse"
+                      },
+                      "description": "List of courses."
+                    },
+                    "id": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The ID of the map.",
+                      "minimum": 0
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "You do not have access to this resource."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -492,30 +542,76 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/KZMap"
+                  "type": "object",
+                  "description": "A KZ map.",
+                  "required": [
+                    "id",
+                    "name",
+                    "workshop_id",
+                    "filesize",
+                    "mappers",
+                    "courses",
+                    "created_on"
+                  ],
+                  "properties": {
+                    "courses": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MapCourse"
+                      },
+                      "description": "A list of the courses on this map."
+                    },
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when this map was globalled."
+                    },
+                    "filesize": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "The filesize of the map.",
+                      "minimum": 0
+                    },
+                    "id": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The map's ID.",
+                      "minimum": 0
+                    },
+                    "mappers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PlayerInfo"
+                      },
+                      "description": "The players who created this map."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The map's name."
+                    },
+                    "workshop_id": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The map's Steam workshop ID.",
+                      "minimum": 0
+                    }
+                  }
                 }
               }
             }
           },
           "204": {
-            "description": ""
+            "description": "There is no data available for the given query."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -551,30 +647,24 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "You do not have access to this resource."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -647,33 +737,133 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Player"
+                  "type": "object",
+                  "description": "A KZ player.",
+                  "required": [
+                    "name",
+                    "steam_id",
+                    "time_active",
+                    "time_spectating",
+                    "time_afk",
+                    "is_banned",
+                    "perfs",
+                    "bhops_tick0",
+                    "bhops_tick1",
+                    "bhops_tick2",
+                    "bhops_tick3",
+                    "bhops_tick4",
+                    "bhops_tick5",
+                    "bhops_tick6",
+                    "bhops_tick7",
+                    "bhops_tick8"
+                  ],
+                  "properties": {
+                    "bhops_tick0": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 0 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick1": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 1 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick2": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 2 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick3": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 3 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick4": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 4 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick5": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 5 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick6": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 6 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick7": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 7 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick8": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 8 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "is_banned": {
+                      "type": "boolean",
+                      "description": "Whether the player is banned."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The player's Steam name."
+                    },
+                    "perfs": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many perfect bhops the player has hit in total.",
+                      "minimum": 0
+                    },
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "time_active": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The player's total active time spent on verified servers.",
+                      "minimum": 0
+                    },
+                    "time_afk": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The player's total AFK time spent on verified servers.",
+                      "minimum": 0
+                    },
+                    "time_spectating": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The player's total time spent spectating on verified servers.",
+                      "minimum": 0
+                    }
                   }
                 }
               }
             }
           },
           "204": {
-            "description": ""
+            "description": "There is no data available for the given query."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       },
@@ -694,7 +884,7 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
@@ -705,27 +895,13 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "You do not have access to this resource."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -749,30 +925,133 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Player"
+                  "type": "object",
+                  "description": "A KZ player.",
+                  "required": [
+                    "name",
+                    "steam_id",
+                    "time_active",
+                    "time_spectating",
+                    "time_afk",
+                    "is_banned",
+                    "perfs",
+                    "bhops_tick0",
+                    "bhops_tick1",
+                    "bhops_tick2",
+                    "bhops_tick3",
+                    "bhops_tick4",
+                    "bhops_tick5",
+                    "bhops_tick6",
+                    "bhops_tick7",
+                    "bhops_tick8"
+                  ],
+                  "properties": {
+                    "bhops_tick0": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 0 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick1": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 1 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick2": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 2 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick3": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 3 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick4": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 4 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick5": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 5 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick6": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 6 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick7": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 7 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick8": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many bhops the player has hit 8 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "is_banned": {
+                      "type": "boolean",
+                      "description": "Whether the player is banned."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The player's Steam name."
+                    },
+                    "perfs": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "How many perfect bhops the player has hit in total.",
+                      "minimum": 0
+                    },
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "time_active": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The player's total active time spent on verified servers.",
+                      "minimum": 0
+                    },
+                    "time_afk": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The player's total AFK time spent on verified servers.",
+                      "minimum": 0
+                    },
+                    "time_spectating": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The player's total time spent spectating on verified servers.",
+                      "minimum": 0
+                    }
+                  }
                 }
               }
             }
           },
           "204": {
-            "description": ""
+            "description": "There is no data available for the given query."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -806,30 +1085,24 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "You do not have access to this resource."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -993,34 +1266,75 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "",
+          "201": {
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Record"
+                  "type": "object",
+                  "description": "A KZ record.",
+                  "required": [
+                    "id",
+                    "map",
+                    "mode",
+                    "style",
+                    "player",
+                    "server",
+                    "teleports",
+                    "time",
+                    "created_on"
+                  ],
+                  "properties": {
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when this record was submitted."
+                    },
+                    "id": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "The ID of the record.",
+                      "minimum": 0
+                    },
+                    "map": {
+                      "$ref": "#/components/schemas/RecordMap"
+                    },
+                    "mode": {
+                      "$ref": "#/components/schemas/Mode"
+                    },
+                    "player": {
+                      "$ref": "#/components/schemas/RecordPlayer"
+                    },
+                    "server": {
+                      "$ref": "#/components/schemas/RecordServer"
+                    },
+                    "style": {
+                      "$ref": "#/components/schemas/Style"
+                    },
+                    "teleports": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The amount of teleports used during this run.",
+                      "minimum": 0
+                    },
+                    "time": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "The time it took to complete this run (in seconds)."
+                    }
                   }
                 }
               }
             }
           },
           "204": {
-            "description": ""
+            "description": "There is no data available for the given query."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       },
@@ -1041,37 +1355,35 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreatedRecord"
+                  "type": "object",
+                  "description": "A newly created KZ record.",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "The record's ID.",
+                      "minimum": 0
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "You do not have access to this resource."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -1097,30 +1409,74 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Record"
+                  "type": "object",
+                  "description": "A KZ record.",
+                  "required": [
+                    "id",
+                    "map",
+                    "mode",
+                    "style",
+                    "player",
+                    "server",
+                    "teleports",
+                    "time",
+                    "created_on"
+                  ],
+                  "properties": {
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when this record was submitted."
+                    },
+                    "id": {
+                      "type": "integer",
+                      "format": "int64",
+                      "description": "The ID of the record.",
+                      "minimum": 0
+                    },
+                    "map": {
+                      "$ref": "#/components/schemas/RecordMap"
+                    },
+                    "mode": {
+                      "$ref": "#/components/schemas/Mode"
+                    },
+                    "player": {
+                      "$ref": "#/components/schemas/RecordPlayer"
+                    },
+                    "server": {
+                      "$ref": "#/components/schemas/RecordServer"
+                    },
+                    "style": {
+                      "$ref": "#/components/schemas/Style"
+                    },
+                    "teleports": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The amount of teleports used during this run.",
+                      "minimum": 0
+                    },
+                    "time": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "The time it took to complete this run (in seconds)."
+                    }
+                  }
                 }
               }
             }
           },
           "204": {
-            "description": ""
+            "description": "There is no data available for the given query."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -1146,7 +1502,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1157,20 +1513,13 @@
             }
           },
           "204": {
-            "description": ""
+            "description": "There is no data available for the given query."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -1257,33 +1606,56 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Server"
+                  "type": "object",
+                  "description": "A KZ server.",
+                  "required": [
+                    "id",
+                    "name",
+                    "owned_by",
+                    "ip_address",
+                    "port"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The ID of the server.",
+                      "minimum": 0
+                    },
+                    "ip_address": {
+                      "type": "string",
+                      "description": "The IP address of this server."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the server."
+                    },
+                    "owned_by": {
+                      "$ref": "#/components/schemas/PlayerInfo"
+                    },
+                    "port": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The port of this server.",
+                      "minimum": 0
+                    }
                   }
                 }
               }
             }
           },
           "204": {
-            "description": ""
+            "description": "There is no data available for the given query."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       },
@@ -1304,37 +1676,35 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CreatedServer"
+                  "type": "object",
+                  "description": "Information about a newly created KZ server.",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The ID of the server.",
+                      "minimum": 0
+                    }
+                  }
                 }
               }
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "You do not have access to this resource."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -1358,30 +1728,56 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The request was successful.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Server"
+                  "type": "object",
+                  "description": "A KZ server.",
+                  "required": [
+                    "id",
+                    "name",
+                    "owned_by",
+                    "ip_address",
+                    "port"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The ID of the server.",
+                      "minimum": 0
+                    },
+                    "ip_address": {
+                      "type": "string",
+                      "description": "The IP address of this server."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The name of the server."
+                    },
+                    "owned_by": {
+                      "$ref": "#/components/schemas/PlayerInfo"
+                    },
+                    "port": {
+                      "type": "integer",
+                      "format": "int32",
+                      "description": "The port of this server.",
+                      "minimum": 0
+                    }
+                  }
                 }
               }
             }
           },
           "204": {
-            "description": ""
+            "description": "There is no data available for the given query."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -1417,30 +1813,24 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "description": "Something about the request was incorrect."
           },
           "401": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "You do not have access to this resource."
           },
           "500": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
+            "description": "A bug in the API."
           }
         }
       }
@@ -1488,6 +1878,74 @@
         "enum": [
           "auto_bhop"
         ]
+      },
+      "BhopStats": {
+        "type": "object",
+        "description": "Bhop statistics.",
+        "required": [
+          "perfs",
+          "bhops_tick0",
+          "bhops_tick1",
+          "bhops_tick2",
+          "bhops_tick3",
+          "bhops_tick4",
+          "bhops_tick5",
+          "bhops_tick6",
+          "bhops_tick7",
+          "bhops_tick8"
+        ],
+        "properties": {
+          "bhops_tick0": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "bhops_tick1": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "bhops_tick2": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "bhops_tick3": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "bhops_tick4": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "bhops_tick5": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "bhops_tick6": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "bhops_tick7": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "bhops_tick8": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "perfs": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
       },
       "Course": {
         "type": "object",
@@ -1666,163 +2124,6 @@
             "description": "The ID of the server.",
             "minimum": 0
           }
-        }
-      },
-      "Error": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "message"
-            ],
-            "properties": {
-              "message": {
-                "type": "string",
-                "enum": [
-                  "InternalServerError"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "message"
-            ],
-            "properties": {
-              "message": {
-                "type": "string",
-                "enum": [
-                  "NoContent"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "stage",
-              "message"
-            ],
-            "properties": {
-              "message": {
-                "type": "string",
-                "enum": [
-                  "MissingCourse"
-                ]
-              },
-              "stage": {
-                "type": "integer",
-                "format": "int32",
-                "minimum": 0
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "stage",
-              "message"
-            ],
-            "properties": {
-              "message": {
-                "type": "string",
-                "enum": [
-                  "InvalidFilter"
-                ]
-              },
-              "stage": {
-                "type": "integer",
-                "format": "int32",
-                "minimum": 0
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "stage",
-              "message"
-            ],
-            "properties": {
-              "message": {
-                "type": "string",
-                "enum": [
-                  "DuplicateCourse"
-                ]
-              },
-              "stage": {
-                "type": "integer",
-                "format": "int32",
-                "minimum": 0
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "stage",
-              "message"
-            ],
-            "properties": {
-              "message": {
-                "type": "string",
-                "enum": [
-                  "DuplicateFilter"
-                ]
-              },
-              "stage": {
-                "type": "integer",
-                "format": "int32",
-                "minimum": 0
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "message"
-            ],
-            "properties": {
-              "message": {
-                "type": "string",
-                "enum": [
-                  "MissingFilter"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "message"
-            ],
-            "properties": {
-              "message": {
-                "type": "string",
-                "enum": [
-                  "Unauthorized"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "message"
-            ],
-            "properties": {
-              "message": {
-                "type": "string",
-                "enum": [
-                  "InvalidRequestBody"
-                ]
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "message"
         }
       },
       "Filter": {
@@ -2715,11 +3016,6 @@
           "unfeasible",
           "impossible"
         ]
-      }
-    },
-    "responses": {
-      "BadRequest": {
-        "description": "Request body is malformed in some way."
       }
     }
   }

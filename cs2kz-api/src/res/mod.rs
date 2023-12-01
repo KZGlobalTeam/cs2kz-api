@@ -1,9 +1,12 @@
 use {
+	axum::{http::StatusCode, response::IntoResponse},
 	cs2kz::SteamID,
-	serde::Serialize,
+	serde::{Deserialize, Serialize},
 	sqlx::FromRow,
-	utoipa::{ToResponse, ToSchema},
+	utoipa::ToSchema,
 };
+
+pub mod responses;
 
 pub mod player;
 pub mod bans;
@@ -21,6 +24,16 @@ pub struct PlayerInfo {
 	pub steam_id: SteamID,
 }
 
-#[derive(ToResponse)]
-#[response(description = "Request body is malformed in some way.")]
-pub struct BadRequest;
+/// Wraps something such that a generated [`Response`](axum::response::Response) will have an HTTP
+/// status code of 201.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Created<T>(pub T);
+
+impl<T> IntoResponse for Created<T>
+where
+	T: IntoResponse,
+{
+	fn into_response(self) -> axum::response::Response {
+		(StatusCode::CREATED, self.0).into_response()
+	}
+}

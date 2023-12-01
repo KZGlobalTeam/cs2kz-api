@@ -1,8 +1,11 @@
 use {
-	super::{BoundedU64, Created, Filter},
+	super::{BoundedU64, Filter},
 	crate::{
 		middleware::auth::gameservers::AuthenticatedServer,
-		res::{bans as res, bans::BanReason, BadRequest},
+		res::{
+			bans::{self as res, BanReason},
+			responses, Created,
+		},
 		Error, Result, State,
 	},
 	axum::{
@@ -50,10 +53,10 @@ pub struct GetBansParams<'a> {
 #[utoipa::path(get, tag = "Bans", context_path = "/api", path = "/bans",
 	params(GetBansParams),
 	responses(
-		(status = 200, body = Vec<Ban>),
-		(status = 204),
-		(status = 400, response = BadRequest),
-		(status = 500, body = Error),
+		responses::Ok<res::Ban>,
+		responses::NoContent,
+		responses::BadRequest,
+		responses::InternalServerError,
 	),
 )]
 pub async fn get_bans(
@@ -176,13 +179,14 @@ pub async fn get_bans(
 	Ok(Json(bans))
 }
 
+#[tracing::instrument(skip(state))]
 #[utoipa::path(get, tag = "Bans", context_path = "/api", path = "/bans/{id}/replay",
 	params(("id" = u32, Path, description = "The ban's ID")),
 	responses(
-		(status = 200, body = ()),
-		(status = 204),
-		(status = 400, response = BadRequest),
-		(status = 500, body = Error),
+		responses::Ok<()>,
+		responses::NoContent,
+		responses::BadRequest,
+		responses::InternalServerError,
 	),
 )]
 #[allow(unused_variables)] // TODO: implement this handler
@@ -231,10 +235,10 @@ pub struct CreatedBan {
 #[utoipa::path(post, tag = "Bans", context_path = "/api", path = "/bans",
 	request_body = NewBan,
 	responses(
-		(status = 201, body = CreatedBan),
-		(status = 400, response = BadRequest),
-		(status = 401, body = Error),
-		(status = 500, body = Error),
+		responses::Created<CreatedBan>,
+		responses::BadRequest,
+		responses::Unauthorized,
+		responses::InternalServerError,
 	),
 )]
 pub async fn create_ban(

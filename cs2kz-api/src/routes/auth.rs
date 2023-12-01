@@ -1,5 +1,8 @@
 use {
-	crate::{headers::ApiKey, middleware::auth::jwt::GameServerInfo, Error, Result, State},
+	crate::{
+		headers::ApiKey, middleware::auth::jwt::GameServerInfo, res::responses, Error, Result,
+		State,
+	},
 	axum_extra::TypedHeader,
 	jsonwebtoken as jwt,
 	std::net::{Ipv4Addr, SocketAddr},
@@ -14,9 +17,10 @@ use {
 #[utoipa::path(get, tag = "Auth", context_path = "/api", path = "/auth/token", params(
 	("api-key" = u32, Header, description = "API Key"),
 ), responses(
-	(status = 200, body = (), description = "The JWT has been sent to the server over UDP."),
-	(status = 401, body = Error, description = "The API Key header was incorrect."),
-	(status = 500, body = Error),
+	responses::Ok<()>,
+	responses::BadRequest,
+	responses::Unauthorized,
+	responses::InternalServerError,
 ))]
 pub async fn token(state: State, TypedHeader(ApiKey(api_key)): TypedHeader<ApiKey>) -> Result<()> {
 	let server = sqlx::query! {

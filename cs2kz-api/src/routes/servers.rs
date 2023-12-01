@@ -1,7 +1,7 @@
 use {
-	super::{BoundedU64, Created, Filter},
+	super::{BoundedU64, Filter},
 	crate::{
-		res::{servers as res, BadRequest},
+		res::{responses, servers as res, Created},
 		Error, Result, State,
 	},
 	axum::{
@@ -56,10 +56,10 @@ pub struct GetServersParams<'a> {
 #[utoipa::path(get, tag = "Servers", context_path = "/api", path = "/servers",
 	params(GetServersParams),
 	responses(
-		(status = 200, body = Vec<Server>),
-		(status = 204),
-		(status = 400, response = BadRequest),
-		(status = 500, body = Error),
+		responses::Ok<res::Server>,
+		responses::NoContent,
+		responses::BadRequest,
+		responses::InternalServerError,
 	),
 )]
 pub async fn get_servers(
@@ -131,13 +131,14 @@ pub async fn get_servers(
 	Ok(Json(servers))
 }
 
+#[tracing::instrument(skip(state))]
 #[utoipa::path(get, tag = "Servers", context_path = "/api", path = "/servers/{ident}",
 	params(("ident" = ServerIdentifier, Path, description = "The servers's ID or name")),
 	responses(
-		(status = 200, body = Server),
-		(status = 204),
-		(status = 400, response = BadRequest),
-		(status = 500, body = Error),
+		responses::Ok<res::Server>,
+		responses::NoContent,
+		responses::BadRequest,
+		responses::InternalServerError,
 	),
 )]
 pub async fn get_server(
@@ -196,10 +197,10 @@ pub struct CreatedServer {
 #[utoipa::path(post, tag = "Servers", context_path = "/api", path = "/servers",
 	request_body = NewServer,
 	responses(
-		(status = 201, body = CreatedServer),
-		(status = 400, response = BadRequest),
-		(status = 401, body = Error),
-		(status = 500, body = Error),
+		responses::Created<CreatedServer>,
+		responses::Unauthorized,
+		responses::BadRequest,
+		responses::InternalServerError,
 	),
 )]
 pub async fn create_server(
@@ -258,10 +259,10 @@ pub struct ServerUpdate {
 	params(("id" = u16, Path, description = "The server's ID")),
 	request_body = ServerUpdate,
 	responses(
-		(status = 200),
-		(status = 400, response = BadRequest),
-		(status = 401, body = Error),
-		(status = 500, body = Error),
+		responses::Ok<()>,
+		responses::BadRequest,
+		responses::Unauthorized,
+		responses::InternalServerError,
 	),
 )]
 pub async fn update_server(

@@ -1,9 +1,9 @@
 use {
-	super::{BoundedU64, Created, Filter},
+	super::{BoundedU64, Filter},
 	crate::{
 		database,
 		middleware::auth::gameservers::AuthenticatedServer,
-		res::{player as res, BadRequest},
+		res::{player as res, responses, Created},
 		Error, Result, State,
 	},
 	axum::{
@@ -62,10 +62,10 @@ pub struct GetPlayersParams {
 #[utoipa::path(get, tag = "Players", context_path = "/api", path = "/players",
 	params(GetPlayersParams),
 	responses(
-		(status = 200, body = Vec<Player>),
-		(status = 204),
-		(status = 400, response = BadRequest),
-		(status = 500, body = Error),
+		responses::Ok<res::Player>,
+		responses::NoContent,
+		responses::BadRequest,
+		responses::InternalServerError,
 	),
 )]
 pub async fn get_players(
@@ -119,13 +119,14 @@ pub async fn get_players(
 	Ok(Json(players))
 }
 
+#[tracing::instrument(skip(state))]
 #[utoipa::path(get, tag = "Players", context_path = "/api", path = "/players/{ident}",
 	params(("ident" = PlayerIdentifier, Path, description = "The player's `SteamID` or name")),
 	responses(
-		(status = 200, body = Player),
-		(status = 204),
-		(status = 400, response = BadRequest),
-		(status = 500, body = Error),
+		responses::Ok<res::Player>,
+		responses::NoContent,
+		responses::BadRequest,
+		responses::InternalServerError,
 	),
 )]
 pub async fn get_player(
@@ -177,10 +178,10 @@ pub struct NewPlayer {
 #[utoipa::path(post, tag = "Players", context_path = "/api", path = "/players",
 	request_body = NewPlayer,
 	responses(
-		(status = 201, body = ()),
-		(status = 400, response = BadRequest),
-		(status = 401, body = Error),
-		(status = 500, body = Error),
+		responses::Created<()>,
+		responses::BadRequest,
+		responses::Unauthorized,
+		responses::InternalServerError,
 	),
 )]
 pub async fn create_player(
@@ -264,10 +265,10 @@ pub struct SessionData {
 	params(("steam_id" = SteamID, Path, description = "The player's SteamID")),
 	request_body = PlayerUpdate,
 	responses(
-		(status = 200),
-		(status = 400, response = BadRequest),
-		(status = 401, body = Error),
-		(status = 500, body = Error),
+		responses::Ok<()>,
+		responses::BadRequest,
+		responses::Unauthorized,
+		responses::InternalServerError,
 	),
 )]
 pub async fn update_player(

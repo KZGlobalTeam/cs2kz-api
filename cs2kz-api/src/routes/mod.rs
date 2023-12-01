@@ -1,6 +1,5 @@
 use {
-	axum::{http::StatusCode, response::IntoResponse},
-	serde::{Deserialize, Deserializer, Serialize},
+	serde::{Deserialize, Deserializer},
 	sqlx::{MySql, QueryBuilder},
 	std::fmt::Display,
 };
@@ -42,20 +41,6 @@ impl Display for Filter {
 			Filter::Where => " WHERE ",
 			Filter::And => " AND ",
 		})
-	}
-}
-
-/// Wraps something such that a generated [`Response`](axum::response::Response) will have an
-/// HTTP status code of 201.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Created<T>(pub T);
-
-impl<T> IntoResponse for Created<T>
-where
-	T: IntoResponse,
-{
-	fn into_response(self) -> axum::response::Response {
-		(StatusCode::CREATED, self.0).into_response()
 	}
 }
 

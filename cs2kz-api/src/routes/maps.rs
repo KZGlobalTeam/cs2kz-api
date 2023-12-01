@@ -1,7 +1,7 @@
 use {
-	super::{BoundedU64, Created},
+	super::BoundedU64,
 	crate::{
-		res::{maps as res, BadRequest},
+		res::{maps as res, responses, Created},
 		Error, Result, State,
 	},
 	axum::{
@@ -69,11 +69,11 @@ pub struct GetMapsParams {
 #[utoipa::path(get, tag = "Maps", context_path = "/api", path = "/maps",
 	params(GetMapsParams),
 	responses(
-		(status = 200, body = Vec<KZMap>),
-		(status = 204),
-		(status = 400, response = BadRequest),
-		(status = 500, body = Error),
-	),
+		responses::Ok<res::KZMap>,
+		responses::NoContent,
+		responses::BadRequest,
+		responses::InternalServerError,
+	)
 )]
 pub async fn get_maps(
 	state: State,
@@ -151,13 +151,14 @@ pub async fn get_maps(
 	Ok(Json(maps))
 }
 
+#[tracing::instrument(skip(state))]
 #[utoipa::path(get, tag = "Maps", context_path = "/api", path = "/maps/{ident}",
 	params(("ident" = MapIdentifier, Path, description = "The map's ID or name")),
 	responses(
-		(status = 200, body = KZMap),
-		(status = 204),
-		(status = 400, response = BadRequest),
-		(status = 500, body = Error),
+		responses::Ok<res::KZMap>,
+		responses::NoContent,
+		responses::BadRequest,
+		responses::InternalServerError,
 	),
 )]
 pub async fn get_map(
@@ -291,10 +292,10 @@ pub struct CreatedFilter {
 #[utoipa::path(post, tag = "Maps", context_path = "/api", path = "/maps",
 	request_body = NewMap,
 	responses(
-		(status = 201, body = CreatedMap),
-		(status = 400, response = BadRequest),
-		(status = 401, body = Error),
-		(status = 500, body = Error),
+		responses::Created<CreatedMap>,
+		responses::BadRequest,
+		responses::Unauthorized,
+		responses::InternalServerError,
 	),
 )]
 pub async fn create_map(
@@ -477,14 +478,15 @@ pub struct FilterWithCourseId {
 	style: Style,
 }
 
+#[tracing::instrument(skip(state))]
 #[utoipa::path(put, tag = "Maps", context_path = "/api", path = "/maps/{id}",
 	params(("id" = u16, Path, description = "The map's ID")),
 	request_body = MapUpdate,
 	responses(
-		(status = 200),
-		(status = 400, response = BadRequest),
-		(status = 401, body = Error),
-		(status = 500, body = Error),
+		responses::Ok<()>,
+		responses::BadRequest,
+		responses::Unauthorized,
+		responses::InternalServerError,
 	),
 )]
 pub async fn update_map(

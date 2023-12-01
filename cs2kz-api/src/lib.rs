@@ -75,8 +75,6 @@ pub mod res;
 			cs2kz::Tier,
 			cs2kz::Runtype,
 
-			crate::Error,
-
 			crate::res::PlayerInfo,
 
 			crate::res::player::Player,
@@ -112,11 +110,8 @@ pub mod res;
 			crate::res::records::RecordPlayer,
 			crate::res::records::RecordServer,
 			crate::routes::records::NewRecord,
+			crate::routes::records::BhopStats,
 			crate::routes::records::CreatedRecord,
-		),
-
-		responses(
-			res::BadRequest,
 		),
 	),
 )]
