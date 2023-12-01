@@ -4,7 +4,9 @@ pub type Result<T> = StdResult<T, Error>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, ThisError)]
 pub enum Error {
-	/// An invalid input was passed to a [`SteamID`](crate::SteamID) constructor.
+	/// An invalid input was passed to a [`SteamID`] constructor.
+	///
+	/// [`SteamID`]: crate::SteamID
 	#[error("`{}` is not a valid SteamID.{}", input, match reason {
 		None => String::new(),
 		Some(reason) => format!(" ({reason})"),

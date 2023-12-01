@@ -20,13 +20,17 @@ pub struct AppState {
 }
 
 pub struct JwtState {
-	/// Encodes [`GameServerInfo`](crate::middleware::auth::jwt::GameServerInfo) as a JWT.
+	/// Encodes [`GameServerInfo`] as a JWT.
+	///
+	/// [`GameServerInfo`]: crate::middleware::auth::jwt::GameServerInfo
 	pub encode: jwt::EncodingKey,
 
 	/// Header value for encoding JWTs.
 	pub header: jwt::Header,
 
-	/// Decodes a JWT into a [`GameServerInfo`](crate::middleware::auth::jwt::GameServerInfo).
+	/// Decodes a JWT into a [`GameServerInfo`].
+	///
+	/// [`GameServerInfo`]: crate::middleware::auth::jwt::GameServerInfo
 	pub decode: jwt::DecodingKey,
 
 	/// Validation struct for the JWT algorithm.

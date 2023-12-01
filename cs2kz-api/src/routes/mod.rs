@@ -14,8 +14,11 @@ pub mod auth;
 
 /// A filter to use in database queries.
 ///
-/// Can be [`.push()`](sqlx::QueryBuilder::push)'ed to a query to concatenate filters. After
-/// pushing, you can call [`.switch()`](Self::switch) so the next push will use [`Filter::And`].
+/// Can be [`.push()`]'ed to a query to concatenate filters. After pushing, you can call
+/// [`.switch()`] so the next push will use [`Filter::And`].
+///
+/// [`.push()`]: sqlx::QueryBuilder::push
+/// [`.switch()`]: Self::switch
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Filter {
 	#[default]

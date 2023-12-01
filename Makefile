@@ -38,6 +38,9 @@ format:
 lint:
 	cargo clippy --all-features --workspace -- -D warnings
 
+docs:
+	cargo doc --all-features --workspace --document-private-items --no-deps
+
 spec:
 	cargo run -p cs2kz-api-spec-generator -- json
 

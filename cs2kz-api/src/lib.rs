@@ -198,7 +198,7 @@ impl API {
 
 /// Type alias for easy use in function signatures.
 ///
-/// You can read more about axum's extractors [here](https://docs.rs/axum/0.6.20/axum/index.html#extractors).
+/// You can read more about axum's extractors [here].
 ///
 /// Usually you would write a handler function like this:
 ///
@@ -220,4 +220,6 @@ impl API {
 ///     // ...
 /// }
 /// ```
+///
+/// [here]: https://docs.rs/axum/0.6.20/axum/index.html#extractors
 pub type State = axum::extract::State<&'static crate::AppState>;

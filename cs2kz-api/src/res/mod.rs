@@ -24,8 +24,9 @@ pub struct PlayerInfo {
 	pub steam_id: SteamID,
 }
 
-/// Wraps something such that a generated [`Response`](axum::response::Response) will have an HTTP
-/// status code of 201.
+/// Wraps something such that a generated [`Response`] will have an HTTP status code of 201.
+///
+/// [`Response`]: axum::response::Response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Created<T>(pub T);
 

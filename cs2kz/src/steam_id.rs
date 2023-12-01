@@ -412,8 +412,9 @@ mod serde_impls {
 			/// You can pass this function to the `#[serde(serialize_with = "...")]`
 			/// attribute to control how a [`SteamID`] will be serialized.
 			///
-			/// By default the [`serialize_standard`](SteamID::serialize_standard)
-			/// function will be used.
+			/// By default the [`serialize_standard`] function will be used.
+			///
+			/// [`serialize_standard`]: Self::serialize_standard
 			pub fn $name<S: ::serde::Serializer>(
 				$steam_id: &Self,
 				serializer: S,
@@ -427,9 +428,9 @@ mod serde_impls {
 			/// You can pass this function to the `#[serde(serialize_with = "...")]`
 			/// attribute to control how an [`Option<SteamID>`] will be serialized.
 			///
-			/// By default the
-			/// [`serialize_standard_opt`](SteamID::serialize_standard_opt)
-			/// function will be used.
+			/// By default the [`serialize_standard_opt`] function will be used.
+			///
+			/// [`serialize_standard_opt`]: Self::serialize_standard_opt
 			pub fn $name_opt<S: ::serde::Serializer>(
 				$steam_id: &Option<Self>,
 				serializer: S,
