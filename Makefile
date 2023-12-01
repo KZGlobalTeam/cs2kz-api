@@ -32,11 +32,11 @@ run:
 dev:
 	DATABASE_URL=mysql://kz:csgo-kz-is-dead-boys@127.0.0.1:8070/cs2kz-api cargo run -p cs2kz-api
 
-format:
-	cargo +nightly fmt --all
-
 lint:
 	cargo clippy --all-features --workspace -- -D warnings
+
+format:
+	cargo +nightly fmt --all
 
 docs:
 	cargo doc --all-features --workspace --document-private-items --no-deps
@@ -46,3 +46,9 @@ spec:
 
 spec-check:
 	cargo run -p cs2kz-api-spec-generator -- check
+
+pre-push:
+	make lint
+	make format
+	make docs
+	make spec-check
