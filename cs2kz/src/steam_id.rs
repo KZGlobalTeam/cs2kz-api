@@ -215,6 +215,10 @@ impl SteamID {
 
 	#[inline]
 	pub fn from_id32(input: u32) -> Result<Self> {
+		if input == 0 {
+			invalid!(input, "is 0");
+		}
+
 		let steam64_id = input as u64 + Self::MAGIC_OFFSET;
 
 		if steam64_id > Self::MAX {
