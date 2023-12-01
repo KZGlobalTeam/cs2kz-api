@@ -31,10 +31,10 @@ impl SteamID {
 	pub const ACCOUNT_UNIVERSE: u64 = 1;
 	pub const ACCOUNT_TYPE: u64 = 1;
 
-	// 4294967296 (0x100_000_000)
+	/// 4294967296 (0x100_000_000)
 	const MSB_9_BITS: u64 = 1 << 32;
 
-	// 4503599627370496 (0x010_000_000_000_000)
+	/// 4503599627370496 (0x010_000_000_000_000)
 	const MSB_14_BITS: u64 = 1 << 52;
 }
 
@@ -409,12 +409,25 @@ mod serde_impls {
 		($name:ident, $name_opt:ident, | $steam_id:ident | $impl:block) => {
 			/// Helper function for use with [`serde`].
 			///
-			/// You can pass this function to the `#[serde(serialize_with = "...")]`
+			/// You can pass this function to the [`#[serde(serialize_with = "...")]`](https://serde.rs/field-attrs.html#serialize_with)
 			/// attribute to control how a [`SteamID`] will be serialized.
+			///
+			/// Example:
+			///
+			/// ```
+			/// use cs2kz::SteamID;
+			/// use serde::Serialize;
+			///
+			/// #[derive(Serialize)]
+			/// struct HoldsSteamID {
+			///     #[serde(serialize_with = "SteamID::serialize_id3")]
+			///     steam_id: SteamID,
+			/// }
+			/// ```
 			///
 			/// By default the [`serialize_standard`] function will be used.
 			///
-			/// [`serialize_standard`]: Self::serialize_standard
+			/// [`serialize_standard`]: SteamID::serialize_standard
 			pub fn $name<S: ::serde::Serializer>(
 				$steam_id: &Self,
 				serializer: S,
@@ -425,12 +438,25 @@ mod serde_impls {
 
 			/// Helper function for use with [`serde`].
 			///
-			/// You can pass this function to the `#[serde(serialize_with = "...")]`
+			/// You can pass this function to the [`#[serde(serialize_with = "...")]`](https://serde.rs/field-attrs.html#serialize_with)
 			/// attribute to control how an [`Option<SteamID>`] will be serialized.
+			///
+			/// Example:
+			///
+			/// ```
+			/// use cs2kz::SteamID;
+			/// use serde::Serialize;
+			///
+			/// #[derive(Serialize)]
+			/// struct HoldsSteamID {
+			///     #[serde(serialize_with = "SteamID::serialize_id3_opt")]
+			///     steam_id: Option<SteamID>,
+			/// }
+			/// ```
 			///
 			/// By default the [`serialize_standard_opt`] function will be used.
 			///
-			/// [`serialize_standard_opt`]: Self::serialize_standard_opt
+			/// [`serialize_standard_opt`]: SteamID::serialize_standard_opt
 			pub fn $name_opt<S: ::serde::Serializer>(
 				$steam_id: &Option<Self>,
 				serializer: S,

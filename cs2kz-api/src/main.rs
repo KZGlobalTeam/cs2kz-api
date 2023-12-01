@@ -24,9 +24,7 @@ async fn main() -> color_eyre::Result<()> {
 	let mut config = Config::load()?;
 
 	// Parse CLI arguments
-	let args = Args::get();
-
-	args.override_config(&mut config);
+	Args::get().override_config(&mut config);
 
 	// Initialize logging
 	if config.enable_logging {

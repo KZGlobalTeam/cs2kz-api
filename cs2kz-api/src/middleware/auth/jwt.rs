@@ -1,5 +1,4 @@
 use {
-	chrono::{DateTime, Utc},
 	jsonwebtoken as jwt,
 	serde::{Deserialize, Serialize},
 };
@@ -15,9 +14,5 @@ pub struct GameServerInfo {
 impl GameServerInfo {
 	pub fn new(id: u16) -> Self {
 		Self { id, exp: jwt::get_current_timestamp() + HALF_HOUR }
-	}
-
-	pub fn timestamp(&self) -> DateTime<Utc> {
-		DateTime::from_timestamp(self.exp as _, 0).unwrap()
 	}
 }

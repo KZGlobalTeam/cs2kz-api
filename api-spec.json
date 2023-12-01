@@ -10,6 +10,21 @@
     "version": "0.0.0"
   },
   "paths": {
+    "/api/": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "API Healthcheck.",
+        "description": "API Healthcheck.\n\nIf this endpoint responds, it means the API is up and running.",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "The API is healthy."
+          }
+        }
+      }
+    },
     "/api/auth/token": {
       "get": {
         "tags": [
@@ -305,21 +320,6 @@
           },
           "500": {
             "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/health": {
-      "get": {
-        "tags": [
-          "Health"
-        ],
-        "summary": "API Healthcheck.",
-        "description": "API Healthcheck.\n\nIf this endpoint responds, it means the API is up and running.",
-        "operationId": "health",
-        "responses": {
-          "200": {
-            "description": "The API is healthy."
           }
         }
       }

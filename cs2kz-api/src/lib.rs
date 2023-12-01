@@ -118,14 +118,13 @@ pub mod res;
 pub struct API;
 
 impl API {
-	/// Creates an [`axum::Router`] which will be used by the HTTP server.
+	/// Creates a [`Router`] which will be used by the HTTP server.
 	pub fn router(state: AppState) -> Router {
+		// The state will live as long as the whole application, so leaking it is fine.
 		let state: &'static AppState = Box::leak(Box::new(state));
 
-		let log_request = axum::middleware::from_fn(middleware::logging::log_request);
-
 		let public_api_router = Router::new()
-			.route("/health", get(routes::health::health))
+			.route("/", get(routes::health::health))
 			.route("/players", get(routes::players::get_players))
 			.route("/players/:ident", get(routes::players::get_player))
 			.route("/bans", get(routes::bans::get_bans))
@@ -143,7 +142,7 @@ impl API {
 		let game_server_auth =
 			axum::middleware::from_fn_with_state(state, middleware::auth::gameservers::auth_server);
 
-		// Routes to be used by cs2kz servers (require auth).
+		// These routes are to be used only by CS2 servers and require auth.
 		let game_server_router = Router::new()
 			.route("/players", post(routes::players::create_player))
 			.route("/players/:ident", put(routes::players::update_player))
@@ -158,18 +157,20 @@ impl API {
 		// change maps, servers, ban players etc.
 
 		// let map_approval_router = Router::new()
-		// 	.route("/maps", routing::post(routes::maps::create_map))
-		// 	.route("/maps/:ident", routing::put(routes::maps::update_map))
+		// 	.route("/maps", post(routes::maps::create_map))
+		// 	.route("/maps/:ident", put(routes::maps::update_map))
 		// 	.with_state(state);
 
 		// let server_approval_router = Router::new()
-		// 	.route("/servers", routing::post(routes::servers::create_server))
-		// 	.route("/servers/:ident", routing::put(routes::servers::update_server))
+		// 	.route("/servers", post(routes::servers::create_server))
+		// 	.route("/servers/:ident", put(routes::servers::update_server))
 		// 	.with_state(state);
+
+		let logging = axum::middleware::from_fn(middleware::logging::log_request);
 
 		let api_router = game_server_router
 			.merge(public_api_router)
-			.layer(log_request);
+			.layer(logging);
 
 		let swagger_ui = Self::swagger_ui();
 
@@ -183,28 +184,33 @@ impl API {
 		Self::openapi().paths.paths.into_keys()
 	}
 
-	/// Returns a JSON version of the OpenAPI spec.
+	/// Returns a JSON version of the [OpenAPI] spec.
+	///
+	/// [OpenAPI]: https://www.openapis.org
 	pub fn json() -> color_eyre::Result<String> {
 		Self::openapi()
 			.to_pretty_json()
-			.context("Failed to convert API to JSON.")
+			.context("Failed to convert API spec to JSON.")
 	}
 
-	/// Creates a tower service layer for serving an HTML page with SwaggerUI.
+	/// Creates a [service layer] for serving an HTML page with [SwaggerUI].
+	///
+	/// [service layer]: https://docs.rs/tower/latest/tower/trait.Layer.html
+	/// [SwaggerUI]: https://swagger.io/tools/swagger-ui
 	pub fn swagger_ui() -> SwaggerUi {
 		SwaggerUi::new("/api/docs/swagger-ui").url("/api/docs/openapi.json", Self::openapi())
 	}
 }
 
-/// Type alias for easy use in function signatures.
+/// Type alias for convenience.
 ///
 /// You can read more about axum's extractors [here].
 ///
 /// Usually you would write a handler function like this:
 ///
-/// ```ignore
+/// ```
+/// use cs2kz_api::State as AppState;
 /// use axum::extract::State;
-/// use crate::State as AppState;
 ///
 /// async fn handler(State(state): State<&'static AppState>) {
 ///     let db = state.database();
@@ -214,12 +220,14 @@ impl API {
 ///
 /// To avoid all that type "boilerplate", you can use this type alias instead:
 ///
-/// ```ignore
-/// async fn handler(state: crate::State) {
+/// ```
+/// use cs2kz_api::State;
+///
+/// async fn handler(state: cs2kz_api::State) {
 ///     let db = state.database();
 ///     // ...
 /// }
 /// ```
 ///
-/// [here]: https://docs.rs/axum/0.6.20/axum/index.html#extractors
+/// [here]: axum::extract
 pub type State = axum::extract::State<&'static crate::AppState>;

@@ -32,7 +32,7 @@ impl Args {
 	}
 
 	/// Overrides any [`Config`] values with specified CLI arguments.
-	pub fn override_config(&self, config: &mut Config) {
+	pub fn override_config(self, config: &mut Config) {
 		if let Some(ip_address) = self.ip_address {
 			config.ip_address = ip_address;
 		}
@@ -45,8 +45,8 @@ impl Args {
 			config.enable_logging = true;
 		}
 
-		if let Some(ref database_url) = self.database_url {
-			config.database_url = database_url.to_owned();
+		if let Some(database_url) = self.database_url {
+			config.database_url = database_url;
 		}
 	}
 }

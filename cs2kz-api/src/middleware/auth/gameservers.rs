@@ -28,14 +28,14 @@ pub async fn auth_server(
 	request: Request,
 	next: Next,
 ) -> Result<Response> {
-	let JwtState { decode, validation, .. } = &state.jwt;
+	let JwtState { decode, validation, .. } = state.jwt();
 	let GameServerInfo { id, exp } = jwt::decode(api_token.token(), decode, validation)?.claims;
 
 	if exp < jwt::get_current_timestamp() {
 		return Err(Error::Unauthorized);
 	}
 
-	let (metadata, mut request) = middleware::deserialize_body(request).await?;
+	let (metadata, mut request) = middleware::deserialize_body::<ServerMetadata>(request).await?;
 
 	let Some(ServerMetadata { plugin_version }) = metadata else {
 		return Err(Error::InvalidRequestBody);

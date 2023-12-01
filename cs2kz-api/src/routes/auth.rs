@@ -1,7 +1,7 @@
 use {
 	crate::{
-		headers::ApiKey, middleware::auth::jwt::GameServerInfo, res::responses, Error, Result,
-		State,
+		headers::ApiKey, middleware::auth::jwt::GameServerInfo, res::responses, state::JwtState,
+		Error, Result, State,
 	},
 	axum_extra::TypedHeader,
 	jsonwebtoken as jwt,
@@ -40,8 +40,10 @@ pub async fn token(state: State, TypedHeader(ApiKey(api_key)): TypedHeader<ApiKe
 	.await
 	.map_err(|_| Error::Unauthorized)?;
 
+	let JwtState { header, encode, .. } = state.jwt();
 	let server_info = GameServerInfo::new(server.id);
-	let token = jwt::encode(&state.jwt.header, &server_info, &state.jwt.encode)?;
+	let token = jwt::encode(header, &server_info, encode)?;
+
 	let socket = UdpSocket::bind("127.0.0.0:0")
 		.await
 		.map_err(|_| Error::InternalServerError)?;

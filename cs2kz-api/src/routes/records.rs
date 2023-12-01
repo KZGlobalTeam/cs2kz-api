@@ -312,7 +312,7 @@ pub async fn create_record(
 	.execute(transaction.as_mut())
 	.await?;
 
-	let record_id = sqlx::query!("SELECT MAX(id) id FROM Records")
+	let id = sqlx::query!("SELECT MAX(id) id FROM Records")
 		.fetch_one(transaction.as_mut())
 		.await?
 		.id
@@ -320,5 +320,5 @@ pub async fn create_record(
 
 	transaction.commit().await?;
 
-	Ok(Created(Json(CreatedRecord { id: record_id })))
+	Ok(Created(Json(CreatedRecord { id })))
 }
