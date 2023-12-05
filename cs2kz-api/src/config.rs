@@ -1,7 +1,6 @@
-use {
-	color_eyre::eyre::Context,
-	std::net::{IpAddr, Ipv4Addr, SocketAddr},
-};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+
+use color_eyre::eyre::Context;
 
 /// The configuration for the API.
 ///

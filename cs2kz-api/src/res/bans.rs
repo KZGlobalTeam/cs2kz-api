@@ -1,10 +1,8 @@
-use {
-	chrono::{DateTime, Utc},
-	cs2kz::SteamID,
-	serde::{Deserialize, Serialize},
-	sqlx::FromRow,
-	utoipa::ToSchema,
-};
+use chrono::{DateTime, Utc};
+use cs2kz::SteamID;
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use utoipa::ToSchema;
 
 /// Information about a ban of a player.
 #[derive(Debug, Serialize, FromRow, ToSchema)]

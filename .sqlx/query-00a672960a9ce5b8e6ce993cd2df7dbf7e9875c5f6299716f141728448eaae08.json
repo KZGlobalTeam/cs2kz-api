@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT * FROM Courses WHERE map_id = ? ORDER BY id ASC",
+  "query": "\n\t\tSELECT\n\t\t\t*\n\t\tFROM\n\t\t\tCourses\n\t\tWHERE\n\t\t\tmap_id = ?\n\t\tORDER BY\n\t\t\tid ASC\n\t\t",
   "describe": {
     "columns": [
       {
@@ -43,5 +43,5 @@
       false
     ]
   },
-  "hash": "e5a02b42e9e57fd9d2193624c72e4f85d24ec4a927dba994cc62f71be8760f14"
+  "hash": "00a672960a9ce5b8e6ce993cd2df7dbf7e9875c5f6299716f141728448eaae08"
 }

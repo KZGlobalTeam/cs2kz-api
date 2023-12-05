@@ -1,8 +1,7 @@
-use {
-	serde::{Deserialize, Deserializer},
-	sqlx::{MySql, QueryBuilder},
-	std::fmt::Display,
-};
+use std::fmt::{self, Display};
+
+use serde::{Deserialize, Deserializer};
+use sqlx::{MySql, QueryBuilder};
 
 pub mod health;
 pub mod players;
@@ -39,7 +38,7 @@ impl Filter {
 }
 
 impl Display for Filter {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.write_str(match self {
 			Filter::Where => " WHERE ",
 			Filter::And => " AND ",
@@ -62,15 +61,16 @@ impl<'de, const DEFAULT: u64, const MAX: u64, const MIN: u64> Deserialize<'de>
 {
 	fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
 	where
-		D: Deserializer<'de>, {
-		use serde::de::Error;
+		D: Deserializer<'de>,
+	{
+		use serde::de::Error as E;
 
 		let value = match Option::<u64>::deserialize(deserializer)? {
 			None => DEFAULT,
 			// No `Some(value @ MIN..=MAX)` pattern matching :(
 			Some(value) if (MIN..=MAX).contains(&value) => value,
 			Some(out_of_bounds) => {
-				return Err(Error::custom(format!(
+				return Err(E::custom(format!(
 					"expected integer in the range of {MIN}..={MAX} but got {out_of_bounds}"
 				)));
 			}
@@ -80,7 +80,6 @@ impl<'de, const DEFAULT: u64, const MAX: u64, const MIN: u64> Deserialize<'de>
 	}
 }
 
-// Because I can never remember the order 🤤
 pub fn push_limit<const LIMIT_LIMIT: u64>(
 	query: &mut QueryBuilder<'_, MySql>,
 	offset: BoundedU64,

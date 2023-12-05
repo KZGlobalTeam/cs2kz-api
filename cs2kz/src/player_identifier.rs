@@ -1,7 +1,7 @@
-use {
-	crate::SteamID,
-	std::{borrow::Cow, fmt::Display},
-};
+use std::borrow::Cow;
+use std::fmt::Display;
+
+use crate::SteamID;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -16,7 +16,8 @@ impl<'a> PlayerIdentifier<'a> {
 	#[inline]
 	pub fn name<S>(name: S) -> Self
 	where
-		S: Into<Cow<'a, str>>, {
+		S: Into<Cow<'a, str>>,
+	{
 		Self::Name(name.into())
 	}
 }
@@ -47,15 +48,15 @@ impl Display for PlayerIdentifier<'_> {
 
 #[cfg(feature = "serde")]
 mod serde_impls {
-	use {
-		super::PlayerIdentifier,
-		serde::{Serialize, Serializer},
-	};
+	use serde::{Serialize, Serializer};
+
+	use super::PlayerIdentifier;
 
 	impl Serialize for PlayerIdentifier<'_> {
 		fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 		where
-			S: Serializer, {
+			S: Serializer,
+		{
 			match self {
 				PlayerIdentifier::SteamID(steam_id) => steam_id.serialize(serializer),
 				PlayerIdentifier::Name(name) => name.serialize(serializer),

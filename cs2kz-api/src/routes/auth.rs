@@ -1,14 +1,15 @@
-use {
-	crate::{
-		headers::ApiKey, middleware::auth::jwt::GameServerInfo, res::responses, state::JwtState,
-		Error, Result, State,
-	},
-	axum_extra::TypedHeader,
-	jsonwebtoken as jwt,
-	std::net::{Ipv4Addr, SocketAddr},
-	tokio::net::UdpSocket,
-	tracing::debug,
-};
+use std::net::{Ipv4Addr, SocketAddr};
+
+use axum_extra::TypedHeader;
+use jsonwebtoken as jwt;
+use tokio::net::UdpSocket;
+use tracing::debug;
+
+use crate::headers::ApiKey;
+use crate::middleware::auth::jwt::GameServerInfo;
+use crate::res::responses;
+use crate::state::JwtState;
+use crate::{Error, Result, State};
 
 /// CS2 server authentication.
 ///

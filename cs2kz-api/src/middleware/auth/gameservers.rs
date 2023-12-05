@@ -1,14 +1,15 @@
-use {
-	super::jwt::GameServerInfo,
-	crate::{middleware, state::JwtState, Error, Result, State},
-	axum::{extract::Request, middleware::Next, response::Response},
-	axum_extra::{
-		headers::{authorization::Bearer, Authorization},
-		TypedHeader,
-	},
-	jsonwebtoken as jwt,
-	serde::Deserialize,
-};
+use axum::extract::Request;
+use axum::middleware::Next;
+use axum::response::Response;
+use axum_extra::headers::authorization::Bearer;
+use axum_extra::headers::Authorization;
+use axum_extra::TypedHeader;
+use jsonwebtoken as jwt;
+use serde::Deserialize;
+
+use super::jwt::GameServerInfo;
+use crate::state::JwtState;
+use crate::{middleware, Error, Result, State};
 
 #[derive(Debug, Deserialize)]
 struct ServerMetadata {

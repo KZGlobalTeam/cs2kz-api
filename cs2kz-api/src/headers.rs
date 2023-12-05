@@ -1,8 +1,6 @@
-use {
-	axum::http::{HeaderName, HeaderValue},
-	axum_extra::headers::{self, Header},
-	serde::Deserialize,
-};
+use axum::http::{HeaderName, HeaderValue};
+use axum_extra::headers::{self, Header};
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct ApiKey(pub u32);
@@ -17,7 +15,8 @@ impl Header for ApiKey {
 	fn decode<'i, I>(values: &mut I) -> Result<Self, headers::Error>
 	where
 		Self: Sized,
-		I: Iterator<Item = &'i HeaderValue>, {
+		I: Iterator<Item = &'i HeaderValue>,
+	{
 		let value = values
 			.next()
 			.ok_or_else(headers::Error::invalid)?

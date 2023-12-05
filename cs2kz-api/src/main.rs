@@ -1,11 +1,14 @@
-use {
-	crate::{args::Args, config::Config},
-	color_eyre::eyre::Context,
-	cs2kz_api::{state::AppState, API},
-	std::{fmt::Write, net::SocketAddr},
-	tokio::net::TcpListener,
-	tracing::info,
-};
+use std::fmt::Write;
+use std::net::SocketAddr;
+
+use color_eyre::eyre::Context;
+use cs2kz_api::state::AppState;
+use cs2kz_api::API;
+use tokio::net::TcpListener;
+use tracing::info;
+
+use crate::args::Args;
+use crate::config::Config;
 
 mod config;
 mod args;
@@ -47,10 +50,11 @@ async fn main() -> color_eyre::Result<()> {
 
 	info!("Listening on {addr}.");
 
-	let routes = API::routes().fold(String::from("Registering routes:\n"), |mut routes, route| {
-		writeln!(&mut routes, "\t\t\t\t\t• `{route}`").expect("This never fails.");
-		routes
-	});
+	let mut routes = String::from("Registering routes:\n");
+
+	for route in API::routes() {
+		writeln!(&mut routes, "\t\t\t\t\t• `{route}`")?;
+	}
 
 	info!("{routes}");
 	info!("SwaggerUI hosted at: <http://{addr}/api/docs/swagger-ui>");

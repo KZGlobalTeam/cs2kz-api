@@ -1,7 +1,7 @@
-use {
-	crate::{Error, Result},
-	std::{fmt::Display, str::FromStr},
-};
+use std::fmt::Display;
+use std::str::FromStr;
+
+use crate::{Error, Result};
 
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -72,21 +72,22 @@ impl FromStr for Runtype {
 
 #[cfg(feature = "serde")]
 mod serde_impls {
-	use {
-		super::Runtype,
-		serde::{Deserialize, Deserializer, Serialize, Serializer},
-	};
+	use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+	use super::Runtype;
 
 	impl Runtype {
 		pub fn serialize_as_text<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 		where
-			S: Serializer, {
+			S: Serializer,
+		{
 			self.api().serialize(serializer)
 		}
 
 		pub fn serialize_as_bool<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 		where
-			S: Serializer, {
+			S: Serializer,
+		{
 			bool::from(*self).serialize(serializer)
 		}
 	}
@@ -94,7 +95,8 @@ mod serde_impls {
 	impl Serialize for Runtype {
 		fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 		where
-			S: Serializer, {
+			S: Serializer,
+		{
 			self.serialize_as_text(serializer)
 		}
 	}
@@ -109,7 +111,8 @@ mod serde_impls {
 	impl<'de> Deserialize<'de> for Runtype {
 		fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 		where
-			D: Deserializer<'de>, {
+			D: Deserializer<'de>,
+		{
 			match Deserializable::deserialize(deserializer)? {
 				Deserializable::Bool(bool) => Ok(bool.into()),
 				Deserializable::String(input) => input.parse(),

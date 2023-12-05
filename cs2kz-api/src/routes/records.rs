@@ -1,18 +1,13 @@
-use {
-	super::BoundedU64,
-	crate::{
-		middleware::auth::gameservers::AuthenticatedServer,
-		res::{records as res, responses, Created},
-		Error, Result, State,
-	},
-	axum::{
-		extract::{Path, Query},
-		Extension, Json,
-	},
-	cs2kz::{MapIdentifier, Mode, PlayerIdentifier, Runtype, ServerIdentifier, SteamID, Style},
-	serde::{Deserialize, Serialize},
-	utoipa::{IntoParams, ToSchema},
-};
+use axum::extract::{Path, Query};
+use axum::{Extension, Json};
+use cs2kz::{MapIdentifier, Mode, PlayerIdentifier, Runtype, ServerIdentifier, SteamID, Style};
+use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
+
+use super::BoundedU64;
+use crate::middleware::auth::gameservers::AuthenticatedServer;
+use crate::res::{records as res, responses, Created};
+use crate::{Error, Result, State};
 
 /// Query parameters for fetching records.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -138,20 +133,11 @@ pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Result<Json
 			course: res::RecordCourse {
 				id: record.course_id,
 				stage: record.course_stage,
-				tier: record
-					.course_tier
-					.try_into()
-					.expect("found invalid tier"),
+				tier: record.course_tier.try_into().expect("found invalid tier"),
 			},
 		},
-		mode: record
-			.mode_id
-			.try_into()
-			.expect("found invalid mode"),
-		style: record
-			.style_id
-			.try_into()
-			.expect("found invalid style"),
+		mode: record.mode_id.try_into().expect("found invalid mode"),
+		style: record.style_id.try_into().expect("found invalid style"),
 		player: res::RecordPlayer {
 			name: record.player_name,
 			steam_id: SteamID::from_id32(record.steam_id).expect("found invalid SteamID"),

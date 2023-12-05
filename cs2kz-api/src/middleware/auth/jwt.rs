@@ -1,7 +1,5 @@
-use {
-	jsonwebtoken as jwt,
-	serde::{Deserialize, Serialize},
-};
+use jsonwebtoken as jwt;
+use serde::{Deserialize, Serialize};
 
 const HALF_HOUR: u64 = 60 * 30;
 

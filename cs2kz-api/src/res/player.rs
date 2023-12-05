@@ -1,4 +1,8 @@
-use {crate::database, cs2kz::SteamID, serde::Serialize, utoipa::ToSchema};
+use cs2kz::SteamID;
+use serde::Serialize;
+use utoipa::ToSchema;
+
+use crate::database;
 
 /// A KZ player.
 #[derive(Debug, Serialize, ToSchema)]

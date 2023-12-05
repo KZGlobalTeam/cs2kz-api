@@ -1,16 +1,15 @@
-use {
-	axum::{
-		http::StatusCode,
-		response::{IntoResponse, Response as AxumResponse},
-		Json,
-	},
-	serde::{Serialize, Serializer},
-	serde_json::json,
-	thiserror::Error as ThisError,
-	tracing::error,
-};
+use std::result::Result as StdResult;
 
-pub type Result<T> = std::result::Result<T, Error>;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response as AxumResponse};
+use axum::Json;
+use jsonwebtoken as jwt;
+use serde::{Serialize, Serializer};
+use serde_json::json;
+use thiserror::Error as ThisError;
+use tracing::error;
+
+pub type Result<T> = StdResult<T, Error>;
 
 #[derive(Debug, Clone, PartialEq, Eq, ThisError)]
 pub enum Error {
@@ -53,9 +52,11 @@ impl IntoResponse for Error {
 }
 
 impl Serialize for Error {
-	fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+	fn serialize<S>(&self, serializer: S) -> StdResult<S::Ok, S::Error>
 	where
-		S: Serializer, {
+		S: Serializer,
+	{
+		// TODO(AlphaKeks): include a custom error code here?
 		json!({ "message": self.to_string() }).serialize(serializer)
 	}
 }
@@ -67,8 +68,8 @@ impl From<sqlx::Error> for Error {
 	}
 }
 
-impl From<jsonwebtoken::errors::Error> for Error {
-	fn from(error: jsonwebtoken::errors::Error) -> Self {
+impl From<jwt::errors::Error> for Error {
+	fn from(error: jwt::errors::Error) -> Self {
 		error!(error = ?error.kind(), "failed to decode jwt");
 
 		Self::Unauthorized

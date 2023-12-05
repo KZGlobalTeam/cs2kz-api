@@ -1,4 +1,5 @@
-use {cs2kz::SteamID, sqlx::FromRow};
+use cs2kz::SteamID;
+use sqlx::FromRow;
 
 #[derive(Debug, Clone, FromRow)]
 pub struct Player {

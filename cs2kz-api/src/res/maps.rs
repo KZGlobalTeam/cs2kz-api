@@ -1,11 +1,11 @@
-use {
-	super::PlayerInfo,
-	chrono::{DateTime, Utc},
-	cs2kz::{Mode, Runtype, SteamID, Tier},
-	serde::Serialize,
-	sqlx::{mysql::MySqlRow, FromRow, Row},
-	utoipa::ToSchema,
-};
+use chrono::{DateTime, Utc};
+use cs2kz::{Mode, Runtype, SteamID, Tier};
+use serde::Serialize;
+use sqlx::mysql::MySqlRow;
+use sqlx::{FromRow, Row};
+use utoipa::ToSchema;
+
+use super::PlayerInfo;
 
 /// A KZ map.
 #[derive(Debug, Serialize, ToSchema)]

@@ -1,20 +1,15 @@
 //! Logging related functions.
 
-use {
-	std::io::Stderr,
-	tracing::info,
-	tracing_subscriber::{fmt::format::FmtSpan, EnvFilter},
-};
+use std::io;
+
+use tracing::info;
+use tracing_subscriber::fmt::format::FmtSpan;
+use tracing_subscriber::EnvFilter;
 
 /// The default log level.
 ///
 /// This will be used if `RUST_LOG` was not specified.
 static DEFAULT_FILTER: &str = "WARN,cs2kz_api=TRACE,sqlx=DEBUG";
-
-/// The default writer.
-///
-/// This is where logs will end up.
-static DEFAULT_WRITER: fn() -> Stderr = std::io::stderr;
 
 /// Will initialize logging.
 pub fn init() {
@@ -27,7 +22,7 @@ pub fn init() {
 
 	tracing_subscriber::fmt()
 		.pretty()
-		.with_writer(DEFAULT_WRITER)
+		.with_writer(io::stderr)
 		.with_span_events(span_events)
 		.with_env_filter(env_filter)
 		.init();

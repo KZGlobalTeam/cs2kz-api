@@ -1,15 +1,13 @@
-use {
-	crate::{Error, Result},
-	lazy_regex::{regex, Lazy, Regex},
-	std::{
-		borrow::Borrow,
-		cmp,
-		fmt::Display,
-		hash::{Hash, Hasher},
-		ops::Deref,
-		str::FromStr,
-	},
-};
+use std::borrow::Borrow;
+use std::fmt::Display;
+use std::hash::{Hash, Hasher};
+use std::ops::Deref;
+use std::str::FromStr;
+use std::{cmp, fmt};
+
+use lazy_regex::{regex, Lazy, Regex};
+
+use crate::{Error, Result};
 
 /// A regex to match [`SteamID`]s in the format of `STEAM_1:1:161178172`.
 pub static STANDARD_REGEX: &Lazy<Regex> = regex!(r"^STEAM_[01]:[01]:\d+$");
@@ -23,7 +21,6 @@ pub static STEAM3_ID_REGEX: &Lazy<Regex> = regex!(r"^(\[U:1:\d+\]|U:1:\d+)$");
 #[cfg_attr(feature = "utoipa", schema(value_type = String))]
 pub struct SteamID(u64);
 
-#[rustfmt::skip]
 impl SteamID {
 	pub const MIN: u64 = 76561197960265729_u64;
 	pub const MAX: u64 = 76561202255233023_u64;
@@ -57,7 +54,8 @@ macro_rules! invalid {
 impl SteamID {
 	pub fn new<S>(input: S) -> Result<Self>
 	where
-		S: AsRef<str>, {
+		S: AsRef<str>,
+	{
 		let input = input.as_ref();
 
 		if STANDARD_REGEX.is_match(input) {
@@ -88,7 +86,11 @@ impl SteamID {
 	pub fn as_steam3_id(&self, brackets: bool) -> String {
 		let id32 = self.as_u32();
 
-		if brackets { format!("[U:1:{id32}]") } else { format!("U:1:{id32}") }
+		if brackets {
+			format!("[U:1:{id32}]")
+		} else {
+			format!("U:1:{id32}")
+		}
 	}
 
 	#[inline]
@@ -121,7 +123,8 @@ impl SteamID {
 impl SteamID {
 	pub fn from_standard<S>(input: S) -> Result<Self>
 	where
-		S: AsRef<str>, {
+		S: AsRef<str>,
+	{
 		let input = input.as_ref();
 
 		if !STANDARD_REGEX.is_match(input) {
@@ -189,7 +192,8 @@ impl SteamID {
 
 	pub fn from_id3<S>(input: S) -> Result<Self>
 	where
-		S: AsRef<str>, {
+		S: AsRef<str>,
+	{
 		let input = input.as_ref();
 
 		if !STEAM3_ID_REGEX.is_match(input) {
@@ -206,9 +210,7 @@ impl SteamID {
 			id32 = &id32[..(id32.len() - 1)];
 		}
 
-		let steam32_id = id32
-			.parse::<u32>()
-			.expect("Only digits are left.");
+		let steam32_id = id32.parse::<u32>().expect("Only digits are left.");
 
 		Self::try_from(steam32_id)
 	}
@@ -373,7 +375,8 @@ impl PartialOrd<u32> for SteamID {
 impl Hash for SteamID {
 	fn hash<H>(&self, hasher: &mut H)
 	where
-		H: Hasher, {
+		H: Hasher,
+	{
 		self.0.hash(hasher);
 	}
 }
@@ -393,17 +396,20 @@ impl Deref for SteamID {
 }
 
 impl Display for SteamID {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		write!(f, "STEAM_{}:{}:{}", self.account_universe(), self.lsb(), self.account_number())
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let x = self.account_universe();
+		let y = self.lsb();
+		let z = self.account_number();
+
+		write!(f, "STEAM_{x}:{y}:{z}")
 	}
 }
 
 #[cfg(feature = "serde")]
 mod serde_impls {
-	use {
-		super::SteamID,
-		serde::{Deserialize, Deserializer, Serialize, Serializer},
-	};
+	use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+	use super::SteamID;
 
 	macro_rules! serialize {
 		($name:ident, $name_opt:ident, | $steam_id:ident | $impl:block) => {
@@ -462,9 +468,7 @@ mod serde_impls {
 				serializer: S,
 			) -> Result<S::Ok, S::Error> {
 				use ::serde::Serialize as _;
-				$steam_id
-					.map(|$steam_id| $impl)
-					.serialize(serializer)
+				$steam_id.map(|$steam_id| $impl).serialize(serializer)
 			}
 		};
 	}
@@ -495,7 +499,8 @@ mod serde_impls {
 	impl Serialize for SteamID {
 		fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 		where
-			S: Serializer, {
+			S: Serializer,
+		{
 			Self::serialize_standard(self, serializer)
 		}
 	}
@@ -511,7 +516,8 @@ mod serde_impls {
 	impl<'de> Deserialize<'de> for SteamID {
 		fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 		where
-			D: Deserializer<'de>, {
+			D: Deserializer<'de>,
+		{
 			match Deserializable::deserialize(deserializer)? {
 				Deserializable::U32(id32) => Self::try_from(id32),
 				Deserializable::U64(id64) => Self::try_from(id64),
@@ -524,7 +530,9 @@ mod serde_impls {
 
 #[cfg(test)]
 mod tests {
-	use {super::*, color_eyre::Result};
+	use color_eyre::Result;
+
+	use super::*;
 
 	macro_rules! case {
 		(AlphaKeks $name:ident, $input:expr) => {
