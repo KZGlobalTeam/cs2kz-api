@@ -1,14 +1,13 @@
-use {
-	crate::{middleware, Result},
-	axum::{
-		extract::{ConnectInfo, Request},
-		middleware::Next,
-		response::Response,
-	},
-	serde_json::Value as JsonValue,
-	std::{fmt::Write, net::SocketAddr},
-	tracing::info,
-};
+use std::fmt::Write;
+use std::net::SocketAddr;
+
+use axum::extract::{ConnectInfo, Request};
+use axum::middleware::Next;
+use axum::response::Response;
+use serde_json::Value as JsonValue;
+use tracing::info;
+
+use crate::{middleware, Result};
 
 /// Logs basic information about an incoming request.
 pub async fn log_request(

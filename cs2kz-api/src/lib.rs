@@ -1,13 +1,10 @@
-use {
-	crate::state::AppState,
-	axum::{
-		routing::{get, post, put},
-		Router,
-	},
-	color_eyre::eyre::Context,
-	utoipa::OpenApi,
-	utoipa_swagger_ui::SwaggerUi,
-};
+use axum::routing::{get, post, put};
+use axum::Router;
+use color_eyre::eyre::Context;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
+
+use crate::state::AppState;
 
 pub mod error;
 pub use error::{Error, Result};
@@ -167,16 +164,10 @@ impl API {
 		// 	.with_state(state);
 
 		let logging = axum::middleware::from_fn(middleware::logging::log_request);
-
-		let api_router = game_server_router
-			.merge(public_api_router)
-			.layer(logging);
-
+		let api_router = game_server_router.merge(public_api_router).layer(logging);
 		let swagger_ui = Self::swagger_ui();
 
-		Router::new()
-			.nest("/api", api_router)
-			.merge(swagger_ui)
+		Router::new().nest("/api", api_router).merge(swagger_ui)
 	}
 
 	/// Creates an iterator over all of the API's routes.
@@ -209,8 +200,8 @@ impl API {
 /// Usually you would write a handler function like this:
 ///
 /// ```
-/// use cs2kz_api::State as AppState;
 /// use axum::extract::State;
+/// use cs2kz_api::State as AppState;
 ///
 /// async fn handler(State(state): State<&'static AppState>) {
 ///     let db = state.database();

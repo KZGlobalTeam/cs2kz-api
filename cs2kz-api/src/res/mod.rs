@@ -1,10 +1,9 @@
-use {
-	axum::{http::StatusCode, response::IntoResponse},
-	cs2kz::SteamID,
-	serde::{Deserialize, Serialize},
-	sqlx::FromRow,
-	utoipa::ToSchema,
-};
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
+use cs2kz::SteamID;
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use utoipa::ToSchema;
 
 pub mod responses;
 

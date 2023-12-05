@@ -1,24 +1,18 @@
-use {
-	super::{BoundedU64, Filter},
-	crate::{
-		middleware::auth::gameservers::AuthenticatedServer,
-		res::{
-			bans::{self as res, BanReason},
-			responses, Created,
-		},
-		Error, Result, State,
-	},
-	axum::{
-		extract::{Path, Query},
-		Extension, Json,
-	},
-	chrono::{DateTime, Utc},
-	cs2kz::{PlayerIdentifier, ServerIdentifier, SteamID},
-	serde::{Deserialize, Serialize},
-	sqlx::QueryBuilder,
-	std::net::Ipv4Addr,
-	utoipa::{IntoParams, ToSchema},
-};
+use std::net::Ipv4Addr;
+
+use axum::extract::{Path, Query};
+use axum::{Extension, Json};
+use chrono::{DateTime, Utc};
+use cs2kz::{PlayerIdentifier, ServerIdentifier, SteamID};
+use serde::{Deserialize, Serialize};
+use sqlx::QueryBuilder;
+use utoipa::{IntoParams, ToSchema};
+
+use super::{BoundedU64, Filter};
+use crate::middleware::auth::gameservers::AuthenticatedServer;
+use crate::res::bans::{self as res, BanReason};
+use crate::res::{responses, Created};
+use crate::{Error, Result, State};
 
 /// Query parameters for fetching bans.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -93,14 +87,10 @@ pub async fn get_bans(
 
 		match player {
 			PlayerIdentifier::SteamID(steam_id) => {
-				query
-					.push(" p.steam_id = ")
-					.push_bind(steam_id.as_u32());
+				query.push(" p.steam_id = ").push_bind(steam_id.as_u32());
 			}
 			PlayerIdentifier::Name(name) => {
-				query
-					.push(" p.name LIKE ")
-					.push_bind(format!("%{name}%"));
+				query.push(" p.name LIKE ").push_bind(format!("%{name}%"));
 			}
 		};
 
@@ -108,10 +98,7 @@ pub async fn get_bans(
 	}
 
 	if let Some(ref reason) = reason {
-		query
-			.push(filter)
-			.push(" b.reason = ")
-			.push_bind(reason);
+		query.push(filter).push(" b.reason = ").push_bind(reason);
 
 		filter.switch();
 	}

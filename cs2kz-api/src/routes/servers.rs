@@ -1,20 +1,16 @@
-use {
-	super::{BoundedU64, Filter},
-	crate::{
-		res::{responses, servers as res, Created},
-		Error, Result, State,
-	},
-	axum::{
-		extract::{Path, Query},
-		Json,
-	},
-	chrono::{DateTime, Utc},
-	cs2kz::{PlayerIdentifier, ServerIdentifier, SteamID},
-	serde::{Deserialize, Serialize},
-	sqlx::QueryBuilder,
-	std::net::Ipv4Addr,
-	utoipa::{IntoParams, ToSchema},
-};
+use std::net::Ipv4Addr;
+
+use axum::extract::{Path, Query};
+use axum::Json;
+use chrono::{DateTime, Utc};
+use cs2kz::{PlayerIdentifier, ServerIdentifier, SteamID};
+use serde::{Deserialize, Serialize};
+use sqlx::QueryBuilder;
+use utoipa::{IntoParams, ToSchema};
+
+use super::{BoundedU64, Filter};
+use crate::res::{responses, servers as res, Created};
+use crate::{Error, Result, State};
 
 static ROOT_GET_BASE_QUERY: &str = r#"
 	SELECT
@@ -72,10 +68,7 @@ pub async fn get_servers(
 	let mut filter = Filter::new();
 
 	if let Some(ref name) = name {
-		query
-			.push(filter)
-			.push(" s.name LIKE ")
-			.push_bind(name);
+		query.push(filter).push(" s.name LIKE ").push_bind(name);
 
 		filter.switch();
 	}
@@ -154,9 +147,7 @@ pub async fn get_server(
 			query.push(" s.id = ").push_bind(id);
 		}
 		ServerIdentifier::Name(name) => {
-			query
-				.push(" s.name LIKE ")
-				.push_bind(format!("%{name}%"));
+			query.push(" s.name LIKE ").push_bind(format!("%{name}%"));
 		}
 	};
 
@@ -279,13 +270,17 @@ pub async fn update_server(
 	}
 
 	if let Some(steam_id) = owned_by {
-		sqlx::query!("UPDATE Servers SET owned_by = ? WHERE id = ?", steam_id.as_u32(), server_id)
-			.execute(transaction.as_mut())
-			.await?;
+		sqlx::query!(
+			"UPDATE Servers SET owned_by = ? WHERE id = ?",
+			steam_id.as_u32(),
+			server_id
+		)
+		.execute(transaction.as_mut())
+		.await?;
 	}
 
-	if let Some(ip_address) = ip_address.map(|ip| ip.to_string()) {
-		sqlx::query!("UPDATE Servers SET ip_address = ? WHERE id = ?", ip_address, server_id)
+	if let Some(ip_addr) = ip_address.map(|ip| ip.to_string()) {
+		sqlx::query!("UPDATE Servers SET ip_address = ? WHERE id = ?", ip_addr, server_id)
 			.execute(transaction.as_mut())
 			.await?;
 	}

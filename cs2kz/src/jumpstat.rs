@@ -1,7 +1,7 @@
-use {
-	crate::{Error, Result},
-	std::{fmt::Display, str::FromStr},
-};
+use std::fmt::{self, Display};
+use std::str::FromStr;
+
+use crate::{Error, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -43,7 +43,7 @@ impl Jumpstat {
 }
 
 impl Display for Jumpstat {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		write!(f, "{self:?}")
 	}
 }
@@ -72,6 +72,7 @@ macro_rules! try_from {
 	};
 }
 
+#[rustfmt::skip]
 try_from!([u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize]);
 
 impl TryFrom<&str> for Jumpstat {
@@ -109,15 +110,15 @@ impl FromStr for Jumpstat {
 
 #[cfg(feature = "serde")]
 mod serde_impls {
-	use {
-		super::Jumpstat,
-		serde::{Deserialize, Deserializer, Serialize, Serializer},
-	};
+	use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+	use super::Jumpstat;
 
 	impl Serialize for Jumpstat {
 		fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
 		where
-			S: Serializer, {
+			S: Serializer,
+		{
 			self.api().serialize(serializer)
 		}
 	}
@@ -125,7 +126,8 @@ mod serde_impls {
 	impl<'de> Deserialize<'de> for Jumpstat {
 		fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
 		where
-			D: Deserializer<'de>, {
+			D: Deserializer<'de>,
+		{
 			String::deserialize(deserializer)?
 				.parse()
 				.map_err(serde::de::Error::custom)

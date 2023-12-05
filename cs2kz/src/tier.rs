@@ -1,7 +1,7 @@
-use {
-	crate::{Error, Result},
-	std::{fmt::Display, str::FromStr},
-};
+use std::fmt::Display;
+use std::str::FromStr;
+
+use crate::{Error, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -69,6 +69,7 @@ macro_rules! try_from {
 	};
 }
 
+#[rustfmt::skip]
 try_from!([u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize]);
 
 impl TryFrom<&str> for Tier {
@@ -109,15 +110,15 @@ impl FromStr for Tier {
 
 #[cfg(feature = "serde")]
 mod serde_impls {
-	use {
-		super::Tier,
-		serde::{Deserialize, Deserializer, Serialize, Serializer},
-	};
+	use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+	use super::Tier;
 
 	impl Serialize for Tier {
 		fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 		where
-			S: Serializer, {
+			S: Serializer,
+		{
 			self.api().serialize(serializer)
 		}
 	}
@@ -125,7 +126,8 @@ mod serde_impls {
 	impl<'de> Deserialize<'de> for Tier {
 		fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 		where
-			D: Deserializer<'de>, {
+			D: Deserializer<'de>,
+		{
 			String::deserialize(deserializer)?
 				.parse()
 				.map_err(serde::de::Error::custom)

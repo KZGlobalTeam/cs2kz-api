@@ -1,9 +1,7 @@
-use {
-	chrono::{DateTime, Utc},
-	cs2kz::{Mode, SteamID, Style, Tier},
-	serde::Serialize,
-	utoipa::ToSchema,
-};
+use chrono::{DateTime, Utc};
+use cs2kz::{Mode, SteamID, Style, Tier};
+use serde::Serialize;
+use utoipa::ToSchema;
 
 /// A KZ record.
 #[derive(Debug, Serialize, ToSchema)]

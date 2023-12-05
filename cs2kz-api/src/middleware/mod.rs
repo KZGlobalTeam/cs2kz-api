@@ -1,9 +1,9 @@
-use {
-	crate::{Error, Result},
-	axum::{body::Body, extract::Request},
-	http_body_util::BodyExt,
-	serde::de::DeserializeOwned,
-};
+use axum::body::Body;
+use axum::extract::Request;
+use http_body_util::BodyExt;
+use serde::de::DeserializeOwned;
+
+use crate::{Error, Result};
 
 pub mod auth;
 pub mod logging;
@@ -13,7 +13,8 @@ pub mod logging;
 /// Returns `Ok((None, Request))` if the body was empty.
 pub async fn deserialize_body<T>(request: Request) -> Result<(Option<T>, Request)>
 where
-	T: DeserializeOwned, {
+	T: DeserializeOwned,
+{
 	let (parts, body) = request.into_parts();
 
 	let bytes = body

@@ -1,10 +1,11 @@
-use {
-	crate::Result,
-	color_eyre::eyre::Context,
-	jsonwebtoken as jwt,
-	sqlx::{mysql::MySqlPoolOptions, MySql, MySqlPool, Transaction},
-	std::fmt::Debug,
-};
+use std::fmt::{self, Debug};
+
+use color_eyre::eyre::Context;
+use jsonwebtoken as jwt;
+use sqlx::mysql::MySqlPoolOptions;
+use sqlx::{MySql, MySqlPool, Transaction};
+
+use crate::Result;
 
 /// Main application state.
 ///
@@ -59,12 +60,14 @@ impl AppState {
 	}
 }
 
-/// Required because we instrument all the handler functions.
-/// We would have to explicitly `skip(state)` in all of them if [`AppState`] didn't implement
-/// [`Debug`], but we also don't want to log the connection pool, so we just print "State".
+/// Because [`AppState`] is used in nearly all handlers, and all handlers are instrumented, we
+/// don't want to accidentally log the contents of [`AppState`]. Instead, we use a custom [`Debug`]
+/// implementation that will simply not print anything.
+///
+/// Ideally every handler just includes `skip(state)` to not log it in the first place.
 impl Debug for AppState {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		f.write_str("State")
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("State").finish_non_exhaustive()
 	}
 }
 

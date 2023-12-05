@@ -1,21 +1,16 @@
-use {
-	super::{BoundedU64, Filter},
-	crate::{
-		database,
-		middleware::auth::gameservers::AuthenticatedServer,
-		res::{player as res, responses, Created},
-		Error, Result, State,
-	},
-	axum::{
-		extract::{Path, Query},
-		Extension, Json,
-	},
-	cs2kz::{PlayerIdentifier, SteamID},
-	serde::{Deserialize, Serialize},
-	sqlx::QueryBuilder,
-	std::net::Ipv4Addr,
-	utoipa::{IntoParams, ToSchema},
-};
+use std::net::Ipv4Addr;
+
+use axum::extract::{Path, Query};
+use axum::{Extension, Json};
+use cs2kz::{PlayerIdentifier, SteamID};
+use serde::{Deserialize, Serialize};
+use sqlx::QueryBuilder;
+use utoipa::{IntoParams, ToSchema};
+
+use super::{BoundedU64, Filter};
+use crate::middleware::auth::gameservers::AuthenticatedServer;
+use crate::res::{player as res, responses, Created};
+use crate::{database, Error, Result, State};
 
 static ROOT_GET_BASE_QUERY: &str = r#"
 	SELECT
@@ -139,14 +134,10 @@ pub async fn get_player(
 
 	match ident {
 		PlayerIdentifier::SteamID(steam_id) => {
-			query
-				.push(" p.steam_id = ")
-				.push_bind(steam_id.as_u32());
+			query.push(" p.steam_id = ").push_bind(steam_id.as_u32());
 		}
 		PlayerIdentifier::Name(name) => {
-			query
-				.push(" p.name LIKE ")
-				.push_bind(format!("%{name}%"));
+			query.push(" p.name LIKE ").push_bind(format!("%{name}%"));
 		}
 	};
 

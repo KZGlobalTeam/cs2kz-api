@@ -1,11 +1,12 @@
-use {
-	super::PlayerInfo,
-	cs2kz::SteamID,
-	serde::Serialize,
-	sqlx::{mysql::MySqlRow, FromRow, Row},
-	std::net::Ipv4Addr,
-	utoipa::ToSchema,
-};
+use std::net::Ipv4Addr;
+
+use cs2kz::SteamID;
+use serde::Serialize;
+use sqlx::mysql::MySqlRow;
+use sqlx::{FromRow, Row};
+use utoipa::ToSchema;
+
+use super::PlayerInfo;
 
 /// A KZ server.
 #[derive(Debug, Serialize, ToSchema)]

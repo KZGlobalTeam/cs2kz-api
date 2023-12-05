@@ -1,6 +1,7 @@
 macro_rules! id_or_name {
 	($name:ident) => {
-		use std::{borrow::Cow, fmt::Display};
+		use std::borrow::Cow;
+		use std::fmt::Display;
 
 		#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 		#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -15,7 +16,8 @@ macro_rules! id_or_name {
 			#[inline]
 			pub fn name<S>(name: S) -> Self
 			where
-				S: Into<Cow<'a, str>>, {
+				S: Into<Cow<'a, str>>,
+			{
 				Self::Name(name.into())
 			}
 		}

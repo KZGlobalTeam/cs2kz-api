@@ -1,10 +1,11 @@
-use {
-	clap::{Parser, Subcommand},
-	color_eyre::{eyre::Context, Result},
-	cs2kz_api::API,
-	similar::TextDiff,
-	std::path::PathBuf,
-};
+use std::path::PathBuf;
+use std::{fs, process};
+
+use clap::{Parser, Subcommand};
+use color_eyre::eyre::Context;
+use color_eyre::Result;
+use cs2kz_api::API;
+use similar::TextDiff;
 
 #[derive(Parser)]
 struct Args {
@@ -14,19 +15,19 @@ struct Args {
 
 #[derive(Subcommand)]
 enum Output {
-	/// Do not write the output anywhere, just check against the existing output.
-	Check {
-		/// The path to the existing spec file.
-		#[clap(default_value = "./api-spec.json")]
-		path: PathBuf,
-	},
-
 	/// Write the generated spec to STDOUT.
 	Stdout,
 
 	/// Write the generated spec to a JSON file.
 	Json {
 		/// The path to the target spec file.
+		#[clap(default_value = "./api-spec.json")]
+		path: PathBuf,
+	},
+
+	/// Do not write the output anywhere, just check against the existing output.
+	Check {
+		/// The path to the existing spec file.
 		#[clap(default_value = "./api-spec.json")]
 		path: PathBuf,
 	},
@@ -39,8 +40,14 @@ fn main() -> Result<()> {
 	let json = API::json()?;
 
 	match args.output {
+		Output::Stdout => {
+			println!("{json}");
+		}
+		Output::Json { path } => {
+			fs::write(path, json.into_bytes()).context("Failed to write JSON to disk.")?;
+		}
 		Output::Check { path } => {
-			let check = std::fs::read_to_string(path).context("Failed to read spec file.")?;
+			let check = fs::read_to_string(path).context("Failed to read spec file.")?;
 			let diff = TextDiff::from_lines(&check, &json);
 			let mut error = false;
 
@@ -50,12 +57,8 @@ fn main() -> Result<()> {
 			}
 
 			if error {
-				std::process::exit(1);
+				process::exit(1);
 			}
-		}
-		Output::Stdout => println!("{json}"),
-		Output::Json { path } => {
-			std::fs::write(path, json.into_bytes()).context("Failed to write JSON to disk.")?;
 		}
 	};
 

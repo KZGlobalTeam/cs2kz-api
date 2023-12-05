@@ -1,19 +1,14 @@
-use {
-	super::BoundedU64,
-	crate::{
-		res::{maps as res, responses, Created},
-		Error, Result, State,
-	},
-	axum::{
-		extract::{Path, Query},
-		Json,
-	},
-	chrono::{DateTime, Utc},
-	cs2kz::{MapIdentifier, Mode, Runtype, SteamID, Style, Tier},
-	serde::{Deserialize, Serialize},
-	sqlx::QueryBuilder,
-	utoipa::{IntoParams, ToSchema},
-};
+use axum::extract::{Path, Query};
+use axum::Json;
+use chrono::{DateTime, Utc};
+use cs2kz::{MapIdentifier, Mode, Runtype, SteamID, Style, Tier};
+use serde::{Deserialize, Serialize};
+use sqlx::QueryBuilder;
+use utoipa::{IntoParams, ToSchema};
+
+use super::BoundedU64;
+use crate::res::{maps as res, responses, Created};
+use crate::{Error, Result, State};
 
 static ROOT_GET_BASE_QUERY: &str = r#"
 	SELECT
@@ -174,9 +169,7 @@ pub async fn get_map(
 			query.push(" m.id = ").push_bind(id);
 		}
 		MapIdentifier::Name(name) => {
-			query
-				.push(" m.name LIKE ")
-				.push_bind(format!("%{name}%"));
+			query.push(" m.name LIKE ").push_bind(format!("%{name}%"));
 		}
 	};
 
@@ -330,10 +323,7 @@ pub async fn create_map(
 		query.push_bind(mapper.as_u32());
 	});
 
-	create_mappers
-		.build()
-		.execute(transaction.as_mut())
-		.await?;
+	create_mappers.build().execute(transaction.as_mut()).await?;
 
 	let mut create_courses = QueryBuilder::new("INSERT INTO Courses (map_id, stage, created_by)");
 
@@ -344,14 +334,23 @@ pub async fn create_map(
 			.push_bind(course.created_by.as_u32());
 	});
 
-	create_courses
-		.build()
-		.execute(transaction.as_mut())
-		.await?;
+	create_courses.build().execute(transaction.as_mut()).await?;
 
-	let db_courses = sqlx::query!("SELECT * FROM Courses WHERE map_id = ? ORDER BY id ASC", map.id)
-		.fetch_all(transaction.as_mut())
-		.await?;
+	let db_courses = sqlx::query! {
+		r#"
+		SELECT
+			*
+		FROM
+			Courses
+		WHERE
+			map_id = ?
+		ORDER BY
+			id ASC
+		"#,
+		map.id,
+	}
+	.fetch_all(transaction.as_mut())
+	.await?;
 
 	let mut create_filters =
 		QueryBuilder::new("INSERT INTO CourseFilters (course_id, mode_id, has_teleports, tier)");
@@ -375,10 +374,7 @@ pub async fn create_map(
 			.push_bind(filter.tier as u8);
 	});
 
-	create_filters
-		.build()
-		.execute(transaction.as_mut())
-		.await?;
+	create_filters.build().execute(transaction.as_mut()).await?;
 
 	transaction.commit().await?;
 
@@ -408,15 +404,9 @@ pub async fn create_map(
 				.map(|filter| CreatedFilter {
 					id: filter.id,
 					filter: Filter {
-						mode: filter
-							.mode_id
-							.try_into()
-							.expect("invalid mode in database"),
+						mode: filter.mode_id.try_into().expect("invalid mode in database"),
 						runtype: (filter.has_teleports == 1).into(),
-						tier: filter
-							.tier
-							.try_into()
-							.expect("invalid tier in database"),
+						tier: filter.tier.try_into().expect("invalid tier in database"),
 					},
 				})
 				.collect(),
@@ -519,10 +509,7 @@ pub async fn update_map(
 				.push_bind(filter.style as u8);
 		});
 
-		create_filters
-			.build()
-			.execute(transaction.as_mut())
-			.await?;
+		create_filters.build().execute(transaction.as_mut()).await?;
 	}
 
 	if let Some(filters) = filters_removed {
