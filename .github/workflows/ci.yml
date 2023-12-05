@@ -28,7 +28,7 @@ jobs:
         with:
           channel: nightly
           components: rustfmt
-      - run: make format
+      - run: make format-check
 
   docs:
     name: Documentation
