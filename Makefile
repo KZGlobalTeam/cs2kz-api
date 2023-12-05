@@ -38,6 +38,9 @@ lint:
 format:
 	cargo +nightly fmt --all
 
+format-check:
+	cargo +nightly fmt --all --check
+
 docs:
 	cargo doc --all-features --workspace --document-private-items --no-deps
 
