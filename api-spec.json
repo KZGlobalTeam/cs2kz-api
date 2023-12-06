@@ -33,19 +33,6 @@
         "summary": "CS2 server authentication.",
         "description": "CS2 server authentication.\n\nThis endpoint is used by CS2 game servers to refresh their access token.",
         "operationId": "token",
-        "parameters": [
-          {
-            "name": "api-key",
-            "in": "header",
-            "description": "API Key",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "minimum": 0
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "The request was successful.",
@@ -67,7 +54,482 @@
           "500": {
             "description": "A bug in the API."
           }
+        },
+        "security": [
+          {
+            "API Key": []
+          }
+        ]
+      }
+    },
+    "/api/players": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "operationId": "get_players",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "Name of a player.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "playtime",
+            "in": "query",
+            "description": "A minimum amount of playtime.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "uint32",
+              "nullable": true,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "is_banned",
+            "in": "query",
+            "description": "Only include (not) banned players.",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "default": 0,
+              "nullable": true,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Return at most this many results.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "default": 100,
+              "nullable": true,
+              "maximum": 500,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "A KZ player.",
+                  "required": [
+                    "name",
+                    "steam_id",
+                    "time_active",
+                    "time_spectating",
+                    "time_afk",
+                    "is_banned",
+                    "perfs",
+                    "bhops_tick0",
+                    "bhops_tick1",
+                    "bhops_tick2",
+                    "bhops_tick3",
+                    "bhops_tick4",
+                    "bhops_tick5",
+                    "bhops_tick6",
+                    "bhops_tick7",
+                    "bhops_tick8"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The player's Steam name."
+                    },
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "time_active": {
+                      "type": "integer",
+                      "format": "uint32",
+                      "description": "The player's total active time spent on verified servers.",
+                      "minimum": 0
+                    },
+                    "time_spectating": {
+                      "type": "integer",
+                      "format": "uint32",
+                      "description": "The player's total time spent spectating on verified servers.",
+                      "minimum": 0
+                    },
+                    "time_afk": {
+                      "type": "integer",
+                      "format": "uint32",
+                      "description": "The player's total AFK time spent on verified servers.",
+                      "minimum": 0
+                    },
+                    "is_banned": {
+                      "type": "boolean",
+                      "description": "Whether the player is banned."
+                    },
+                    "perfs": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many perfect bhops the player has hit in total.",
+                      "minimum": 0
+                    },
+                    "bhops_tick0": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 0 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick1": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 1 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick2": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 2 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick3": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 3 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick4": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 4 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick5": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 5 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick6": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 6 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick7": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 7 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick8": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 8 ticks after landing.",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There is no data available for the given query."
+          },
+          "400": {
+            "description": "Something about the request was incorrect."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
         }
+      },
+      "post": {
+        "tags": [
+          "Players"
+        ],
+        "operationId": "create_player",
+        "parameters": [
+          {
+            "name": "plugin-version",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewPlayer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something about the request was incorrect."
+          },
+          "401": {
+            "description": "You do not have access to this resource."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        },
+        "security": [
+          {
+            "API Token": []
+          }
+        ]
+      }
+    },
+    "/api/players/{ident}": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "operationId": "get_player",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "description": "The player's `SteamID` or name",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PlayerIdentifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "A KZ player.",
+                  "required": [
+                    "name",
+                    "steam_id",
+                    "time_active",
+                    "time_spectating",
+                    "time_afk",
+                    "is_banned",
+                    "perfs",
+                    "bhops_tick0",
+                    "bhops_tick1",
+                    "bhops_tick2",
+                    "bhops_tick3",
+                    "bhops_tick4",
+                    "bhops_tick5",
+                    "bhops_tick6",
+                    "bhops_tick7",
+                    "bhops_tick8"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The player's Steam name."
+                    },
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "time_active": {
+                      "type": "integer",
+                      "format": "uint32",
+                      "description": "The player's total active time spent on verified servers.",
+                      "minimum": 0
+                    },
+                    "time_spectating": {
+                      "type": "integer",
+                      "format": "uint32",
+                      "description": "The player's total time spent spectating on verified servers.",
+                      "minimum": 0
+                    },
+                    "time_afk": {
+                      "type": "integer",
+                      "format": "uint32",
+                      "description": "The player's total AFK time spent on verified servers.",
+                      "minimum": 0
+                    },
+                    "is_banned": {
+                      "type": "boolean",
+                      "description": "Whether the player is banned."
+                    },
+                    "perfs": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many perfect bhops the player has hit in total.",
+                      "minimum": 0
+                    },
+                    "bhops_tick0": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 0 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick1": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 1 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick2": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 2 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick3": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 3 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick4": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 4 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick5": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 5 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick6": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 6 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick7": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 7 ticks after landing.",
+                      "minimum": 0
+                    },
+                    "bhops_tick8": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "How many bhops the player has hit 8 ticks after landing.",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There is no data available for the given query."
+          },
+          "400": {
+            "description": "Something about the request was incorrect."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      }
+    },
+    "/api/players/{steam_id}": {
+      "patch": {
+        "tags": [
+          "Players"
+        ],
+        "operationId": "update_player",
+        "parameters": [
+          {
+            "name": "plugin-version",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "steam_id",
+            "in": "path",
+            "description": "The player's SteamID",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SteamID"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Something about the request was incorrect."
+          },
+          "401": {
+            "description": "You do not have access to this resource."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        },
+        "security": [
+          {
+            "API Token": []
+          }
+        ]
       }
     },
     "/api/bans": {
@@ -157,7 +619,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int64",
+              "format": "uint64",
               "default": 0,
               "nullable": true,
               "minimum": 0
@@ -170,7 +632,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int64",
+              "format": "uint64",
               "default": 100,
               "nullable": true,
               "maximum": 500,
@@ -194,14 +656,9 @@
                     "date"
                   ],
                   "properties": {
-                    "date": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when the player was banned."
-                    },
                     "id": {
                       "type": "integer",
-                      "format": "int32",
+                      "format": "uint32",
                       "description": "The ban's ID.",
                       "minimum": 0
                     },
@@ -209,11 +666,16 @@
                       "type": "string",
                       "description": "The player's Steam name."
                     },
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
                     "reason": {
                       "$ref": "#/components/schemas/BanReason"
                     },
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
+                    "date": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when the player was banned."
                     }
                   }
                 }
@@ -236,6 +698,18 @@
           "Bans"
         ],
         "operationId": "create_ban",
+        "parameters": [
+          {
+            "name": "plugin-version",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -260,7 +734,7 @@
                   "properties": {
                     "id": {
                       "type": "integer",
-                      "format": "int32",
+                      "format": "uint32",
                       "description": "The ban's ID.",
                       "minimum": 0
                     }
@@ -278,7 +752,12 @@
           "500": {
             "description": "A bug in the API."
           }
-        }
+        },
+        "security": [
+          {
+            "API Token": []
+          }
+        ]
       }
     },
     "/api/bans/{id}/replay": {
@@ -295,7 +774,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int32",
+              "format": "uint32",
               "minimum": 0
             }
           }
@@ -369,7 +848,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int64",
+              "format": "uint64",
               "default": 0,
               "nullable": true,
               "minimum": 0
@@ -382,7 +861,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int64",
+              "format": "uint64",
               "default": 100,
               "nullable": true,
               "maximum": 1000,
@@ -408,6 +887,35 @@
                     "created_on"
                   ],
                   "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The map's ID.",
+                      "minimum": 0
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The map's name."
+                    },
+                    "workshop_id": {
+                      "type": "integer",
+                      "format": "uint32",
+                      "description": "The map's Steam workshop ID.",
+                      "minimum": 0
+                    },
+                    "filesize": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The filesize of the map.",
+                      "minimum": 0
+                    },
+                    "mappers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PlayerInfo"
+                      },
+                      "description": "The players who created this map."
+                    },
                     "courses": {
                       "type": "array",
                       "items": {
@@ -419,35 +927,6 @@
                       "type": "string",
                       "format": "date-time",
                       "description": "Timestamp of when this map was globalled."
-                    },
-                    "filesize": {
-                      "type": "integer",
-                      "format": "int64",
-                      "description": "The filesize of the map.",
-                      "minimum": 0
-                    },
-                    "id": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The map's ID.",
-                      "minimum": 0
-                    },
-                    "mappers": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/PlayerInfo"
-                      },
-                      "description": "The players who created this map."
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "The map's name."
-                    },
-                    "workshop_id": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The map's Steam workshop ID.",
-                      "minimum": 0
                     }
                   }
                 }
@@ -493,18 +972,18 @@
                     "courses"
                   ],
                   "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The ID of the map.",
+                      "minimum": 0
+                    },
                     "courses": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/CreatedCourse"
                       },
                       "description": "List of courses."
-                    },
-                    "id": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The ID of the map.",
-                      "minimum": 0
                     }
                   }
                 }
@@ -558,6 +1037,35 @@
                     "created_on"
                   ],
                   "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The map's ID.",
+                      "minimum": 0
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The map's name."
+                    },
+                    "workshop_id": {
+                      "type": "integer",
+                      "format": "uint32",
+                      "description": "The map's Steam workshop ID.",
+                      "minimum": 0
+                    },
+                    "filesize": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The filesize of the map.",
+                      "minimum": 0
+                    },
+                    "mappers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PlayerInfo"
+                      },
+                      "description": "The players who created this map."
+                    },
                     "courses": {
                       "type": "array",
                       "items": {
@@ -569,35 +1077,6 @@
                       "type": "string",
                       "format": "date-time",
                       "description": "Timestamp of when this map was globalled."
-                    },
-                    "filesize": {
-                      "type": "integer",
-                      "format": "int64",
-                      "description": "The filesize of the map.",
-                      "minimum": 0
-                    },
-                    "id": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The map's ID.",
-                      "minimum": 0
-                    },
-                    "mappers": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/PlayerInfo"
-                      },
-                      "description": "The players who created this map."
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "The map's name."
-                    },
-                    "workshop_id": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The map's Steam workshop ID.",
-                      "minimum": 0
                     }
                   }
                 }
@@ -617,7 +1096,7 @@
       }
     },
     "/api/maps/{id}": {
-      "put": {
+      "patch": {
         "tags": [
           "Maps"
         ],
@@ -630,7 +1109,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int32",
+              "format": "uint16",
               "minimum": 0
             }
           }
@@ -669,17 +1148,17 @@
         }
       }
     },
-    "/api/players": {
+    "/api/servers": {
       "get": {
         "tags": [
-          "Players"
+          "Servers"
         ],
-        "operationId": "get_players",
+        "operationId": "get_servers",
         "parameters": [
           {
             "name": "name",
             "in": "query",
-            "description": "Name of a player.",
+            "description": "A server name.",
             "required": false,
             "schema": {
               "type": "string",
@@ -687,24 +1166,38 @@
             }
           },
           {
-            "name": "playtime",
+            "name": "owned_by",
             "in": "query",
-            "description": "A minimum amount of playtime.",
+            "description": "`SteamID` or name of a player.",
             "required": false,
             "schema": {
-              "type": "integer",
-              "format": "int32",
-              "nullable": true,
-              "minimum": 0
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/PlayerIdentifier"
+                }
+              ],
+              "nullable": true
             }
           },
           {
-            "name": "is_banned",
+            "name": "created_after",
             "in": "query",
-            "description": "Only include (not) banned players.",
+            "description": "Only include servers that were approved after a certain date.",
             "required": false,
             "schema": {
-              "type": "boolean",
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            }
+          },
+          {
+            "name": "created_before",
+            "in": "query",
+            "description": "Only include servers that were approved before a certain date.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
               "nullable": true
             }
           },
@@ -714,7 +1207,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int64",
+              "format": "uint64",
               "default": 0,
               "nullable": true,
               "minimum": 0
@@ -727,7 +1220,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int64",
+              "format": "uint64",
               "default": 100,
               "nullable": true,
               "maximum": 500,
@@ -742,113 +1235,36 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A KZ player.",
+                  "description": "A KZ server.",
                   "required": [
+                    "id",
                     "name",
-                    "steam_id",
-                    "time_active",
-                    "time_spectating",
-                    "time_afk",
-                    "is_banned",
-                    "perfs",
-                    "bhops_tick0",
-                    "bhops_tick1",
-                    "bhops_tick2",
-                    "bhops_tick3",
-                    "bhops_tick4",
-                    "bhops_tick5",
-                    "bhops_tick6",
-                    "bhops_tick7",
-                    "bhops_tick8"
+                    "owned_by",
+                    "ip_address",
+                    "port"
                   ],
                   "properties": {
-                    "bhops_tick0": {
+                    "id": {
                       "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 0 ticks after landing.",
+                      "format": "uint16",
+                      "description": "The ID of the server.",
                       "minimum": 0
-                    },
-                    "bhops_tick1": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 1 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick2": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 2 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick3": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 3 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick4": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 4 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick5": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 5 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick6": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 6 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick7": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 7 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick8": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 8 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "is_banned": {
-                      "type": "boolean",
-                      "description": "Whether the player is banned."
                     },
                     "name": {
                       "type": "string",
-                      "description": "The player's Steam name."
+                      "description": "The name of the server."
                     },
-                    "perfs": {
+                    "owned_by": {
+                      "$ref": "#/components/schemas/PlayerInfo"
+                    },
+                    "ip_address": {
+                      "type": "string",
+                      "description": "The IP address of this server."
+                    },
+                    "port": {
                       "type": "integer",
-                      "format": "int32",
-                      "description": "How many perfect bhops the player has hit in total.",
-                      "minimum": 0
-                    },
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "time_active": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The player's total active time spent on verified servers.",
-                      "minimum": 0
-                    },
-                    "time_afk": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The player's total AFK time spent on verified servers.",
-                      "minimum": 0
-                    },
-                    "time_spectating": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The player's total time spent spectating on verified servers.",
+                      "format": "uint16",
+                      "description": "The port of this server.",
                       "minimum": 0
                     }
                   }
@@ -869,14 +1285,14 @@
       },
       "post": {
         "tags": [
-          "Players"
+          "Servers"
         ],
-        "operationId": "create_player",
+        "operationId": "create_server",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewPlayer"
+                "$ref": "#/components/schemas/NewServer"
               }
             }
           },
@@ -888,8 +1304,19 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "default": null,
-                  "nullable": true
+                  "type": "object",
+                  "description": "Information about a newly created KZ server.",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The ID of the server.",
+                      "minimum": 0
+                    }
+                  }
                 }
               }
             }
@@ -906,20 +1333,20 @@
         }
       }
     },
-    "/api/players/{ident}": {
+    "/api/servers/{ident}": {
       "get": {
         "tags": [
-          "Players"
+          "Servers"
         ],
-        "operationId": "get_player",
+        "operationId": "get_server",
         "parameters": [
           {
             "name": "ident",
             "in": "path",
-            "description": "The player's `SteamID` or name",
+            "description": "The servers's ID or name",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/PlayerIdentifier"
+              "$ref": "#/components/schemas/ServerIdentifier"
             }
           }
         ],
@@ -930,113 +1357,36 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A KZ player.",
+                  "description": "A KZ server.",
                   "required": [
+                    "id",
                     "name",
-                    "steam_id",
-                    "time_active",
-                    "time_spectating",
-                    "time_afk",
-                    "is_banned",
-                    "perfs",
-                    "bhops_tick0",
-                    "bhops_tick1",
-                    "bhops_tick2",
-                    "bhops_tick3",
-                    "bhops_tick4",
-                    "bhops_tick5",
-                    "bhops_tick6",
-                    "bhops_tick7",
-                    "bhops_tick8"
+                    "owned_by",
+                    "ip_address",
+                    "port"
                   ],
                   "properties": {
-                    "bhops_tick0": {
+                    "id": {
                       "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 0 ticks after landing.",
+                      "format": "uint16",
+                      "description": "The ID of the server.",
                       "minimum": 0
-                    },
-                    "bhops_tick1": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 1 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick2": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 2 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick3": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 3 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick4": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 4 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick5": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 5 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick6": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 6 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick7": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 7 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick8": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "How many bhops the player has hit 8 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "is_banned": {
-                      "type": "boolean",
-                      "description": "Whether the player is banned."
                     },
                     "name": {
                       "type": "string",
-                      "description": "The player's Steam name."
+                      "description": "The name of the server."
                     },
-                    "perfs": {
+                    "owned_by": {
+                      "$ref": "#/components/schemas/PlayerInfo"
+                    },
+                    "ip_address": {
+                      "type": "string",
+                      "description": "The IP address of this server."
+                    },
+                    "port": {
                       "type": "integer",
-                      "format": "int32",
-                      "description": "How many perfect bhops the player has hit in total.",
-                      "minimum": 0
-                    },
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "time_active": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The player's total active time spent on verified servers.",
-                      "minimum": 0
-                    },
-                    "time_afk": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The player's total AFK time spent on verified servers.",
-                      "minimum": 0
-                    },
-                    "time_spectating": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The player's total time spent spectating on verified servers.",
+                      "format": "uint16",
+                      "description": "The port of this server.",
                       "minimum": 0
                     }
                   }
@@ -1056,20 +1406,22 @@
         }
       }
     },
-    "/api/players/{steam_id}": {
-      "put": {
+    "/api/servers/{id}": {
+      "patch": {
         "tags": [
-          "Players"
+          "Servers"
         ],
-        "operationId": "update_player",
+        "operationId": "update_server",
         "parameters": [
           {
-            "name": "steam_id",
+            "name": "id",
             "in": "path",
-            "description": "The player's SteamID",
+            "description": "The server's ID",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/SteamID"
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0
             }
           }
         ],
@@ -1077,7 +1429,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PlayerUpdate"
+                "$ref": "#/components/schemas/ServerUpdate"
               }
             }
           },
@@ -1135,7 +1487,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
+              "format": "uint8",
               "nullable": true,
               "minimum": 0
             }
@@ -1147,7 +1499,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int32",
+              "format": "uint8",
               "nullable": true,
               "minimum": 0
             }
@@ -1244,7 +1596,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int64",
+              "format": "uint64",
               "default": 0,
               "nullable": true,
               "minimum": 0
@@ -1257,7 +1609,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "format": "int64",
+              "format": "uint64",
               "default": 100,
               "nullable": true,
               "maximum": 500,
@@ -1285,14 +1637,9 @@
                     "created_on"
                   ],
                   "properties": {
-                    "created_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when this record was submitted."
-                    },
                     "id": {
                       "type": "integer",
-                      "format": "int64",
+                      "format": "uint64",
                       "description": "The ID of the record.",
                       "minimum": 0
                     },
@@ -1302,18 +1649,18 @@
                     "mode": {
                       "$ref": "#/components/schemas/Mode"
                     },
+                    "style": {
+                      "$ref": "#/components/schemas/Style"
+                    },
                     "player": {
                       "$ref": "#/components/schemas/RecordPlayer"
                     },
                     "server": {
                       "$ref": "#/components/schemas/RecordServer"
                     },
-                    "style": {
-                      "$ref": "#/components/schemas/Style"
-                    },
                     "teleports": {
                       "type": "integer",
-                      "format": "int32",
+                      "format": "uint16",
                       "description": "The amount of teleports used during this run.",
                       "minimum": 0
                     },
@@ -1321,6 +1668,11 @@
                       "type": "number",
                       "format": "double",
                       "description": "The time it took to complete this run (in seconds)."
+                    },
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when this record was submitted."
                     }
                   }
                 }
@@ -1343,6 +1695,18 @@
           "Records"
         ],
         "operationId": "create_record",
+        "parameters": [
+          {
+            "name": "plugin-version",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1367,7 +1731,7 @@
                   "properties": {
                     "id": {
                       "type": "integer",
-                      "format": "int64",
+                      "format": "uint64",
                       "description": "The record's ID.",
                       "minimum": 0
                     }
@@ -1385,7 +1749,12 @@
           "500": {
             "description": "A bug in the API."
           }
-        }
+        },
+        "security": [
+          {
+            "API Token": []
+          }
+        ]
       }
     },
     "/api/records/{id}": {
@@ -1402,7 +1771,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int64",
+              "format": "uint64",
               "minimum": 0
             }
           }
@@ -1427,14 +1796,9 @@
                     "created_on"
                   ],
                   "properties": {
-                    "created_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when this record was submitted."
-                    },
                     "id": {
                       "type": "integer",
-                      "format": "int64",
+                      "format": "uint64",
                       "description": "The ID of the record.",
                       "minimum": 0
                     },
@@ -1444,18 +1808,18 @@
                     "mode": {
                       "$ref": "#/components/schemas/Mode"
                     },
+                    "style": {
+                      "$ref": "#/components/schemas/Style"
+                    },
                     "player": {
                       "$ref": "#/components/schemas/RecordPlayer"
                     },
                     "server": {
                       "$ref": "#/components/schemas/RecordServer"
                     },
-                    "style": {
-                      "$ref": "#/components/schemas/Style"
-                    },
                     "teleports": {
                       "type": "integer",
-                      "format": "int32",
+                      "format": "uint16",
                       "description": "The amount of teleports used during this run.",
                       "minimum": 0
                     },
@@ -1463,6 +1827,11 @@
                       "type": "number",
                       "format": "double",
                       "description": "The time it took to complete this run (in seconds)."
+                    },
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when this record was submitted."
                     }
                   }
                 }
@@ -1495,7 +1864,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int32",
+              "format": "uint32",
               "minimum": 0
             }
           }
@@ -1517,317 +1886,6 @@
           },
           "400": {
             "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/servers": {
-      "get": {
-        "tags": [
-          "Servers"
-        ],
-        "operationId": "get_servers",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "query",
-            "description": "A server name.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "owned_by",
-            "in": "query",
-            "description": "`SteamID` or name of a player.",
-            "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/PlayerIdentifier"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
-            "name": "created_after",
-            "in": "query",
-            "description": "Only include servers that were approved after a certain date.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "nullable": true
-            }
-          },
-          {
-            "name": "created_before",
-            "in": "query",
-            "description": "Only include servers that were approved before a certain date.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "nullable": true
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "default": 0,
-              "nullable": true,
-              "minimum": 0
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Return at most this many results.",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "default": 100,
-              "nullable": true,
-              "maximum": 500,
-              "minimum": 0
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "A KZ server.",
-                  "required": [
-                    "id",
-                    "name",
-                    "owned_by",
-                    "ip_address",
-                    "port"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The ID of the server.",
-                      "minimum": 0
-                    },
-                    "ip_address": {
-                      "type": "string",
-                      "description": "The IP address of this server."
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "The name of the server."
-                    },
-                    "owned_by": {
-                      "$ref": "#/components/schemas/PlayerInfo"
-                    },
-                    "port": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The port of this server.",
-                      "minimum": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Servers"
-        ],
-        "operationId": "create_server",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewServer"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Information about a newly created KZ server.",
-                  "required": [
-                    "id"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The ID of the server.",
-                      "minimum": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "401": {
-            "description": "You do not have access to this resource."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/servers/{ident}": {
-      "get": {
-        "tags": [
-          "Servers"
-        ],
-        "operationId": "get_server",
-        "parameters": [
-          {
-            "name": "ident",
-            "in": "path",
-            "description": "The servers's ID or name",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ServerIdentifier"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "A KZ server.",
-                  "required": [
-                    "id",
-                    "name",
-                    "owned_by",
-                    "ip_address",
-                    "port"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The ID of the server.",
-                      "minimum": 0
-                    },
-                    "ip_address": {
-                      "type": "string",
-                      "description": "The IP address of this server."
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "The name of the server."
-                    },
-                    "owned_by": {
-                      "$ref": "#/components/schemas/PlayerInfo"
-                    },
-                    "port": {
-                      "type": "integer",
-                      "format": "int32",
-                      "description": "The port of this server.",
-                      "minimum": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/servers/{id}": {
-      "put": {
-        "tags": [
-          "Servers"
-        ],
-        "operationId": "update_server",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "The server's ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32",
-              "minimum": 0
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ServerUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "401": {
-            "description": "You do not have access to this resource."
           },
           "500": {
             "description": "A bug in the API."
@@ -1849,14 +1907,9 @@
           "date"
         ],
         "properties": {
-          "date": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of when the player was banned."
-          },
           "id": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint32",
             "description": "The ban's ID.",
             "minimum": 0
           },
@@ -1864,11 +1917,16 @@
             "type": "string",
             "description": "The player's Steam name."
           },
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
+          },
           "reason": {
             "$ref": "#/components/schemas/BanReason"
           },
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
+          "date": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when the player was banned."
           }
         }
       },
@@ -1895,54 +1953,54 @@
           "bhops_tick8"
         ],
         "properties": {
+          "perfs": {
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0
+          },
           "bhops_tick0": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "minimum": 0
           },
           "bhops_tick1": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "minimum": 0
           },
           "bhops_tick2": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "minimum": 0
           },
           "bhops_tick3": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "minimum": 0
           },
           "bhops_tick4": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "minimum": 0
           },
           "bhops_tick5": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "minimum": 0
           },
           "bhops_tick6": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "minimum": 0
           },
           "bhops_tick7": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "minimum": 0
           },
           "bhops_tick8": {
             "type": "integer",
-            "format": "int32",
-            "minimum": 0
-          },
-          "perfs": {
-            "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "minimum": 0
           }
         }
@@ -1956,6 +2014,12 @@
           "filters"
         ],
         "properties": {
+          "map_stage": {
+            "type": "integer",
+            "format": "uint8",
+            "description": "The stage this course corresponds to.",
+            "minimum": 0
+          },
           "created_by": {
             "$ref": "#/components/schemas/SteamID"
           },
@@ -1965,12 +2029,6 @@
               "$ref": "#/components/schemas/Filter"
             },
             "description": "List of filters on this course."
-          },
-          "map_stage": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The stage this course corresponds to.",
-            "minimum": 0
           }
         }
       },
@@ -1987,22 +2045,22 @@
         "properties": {
           "id": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint32",
             "description": "The ID of this filter.",
             "minimum": 0
           },
           "mode": {
             "$ref": "#/components/schemas/Mode"
           },
-          "ranked": {
-            "type": "boolean",
-            "description": "Whether this course with the given (mode, runtype) combination is ranked."
-          },
           "runtype": {
             "$ref": "#/components/schemas/Runtype"
           },
           "tier": {
             "$ref": "#/components/schemas/Tier"
+          },
+          "ranked": {
+            "type": "boolean",
+            "description": "Whether this course with the given (mode, runtype) combination is ranked."
           }
         }
       },
@@ -2015,7 +2073,7 @@
         "properties": {
           "id": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint32",
             "description": "The ban's ID.",
             "minimum": 0
           }
@@ -2030,24 +2088,24 @@
           "filters"
         ],
         "properties": {
+          "id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The ID of the course.",
+            "minimum": 0
+          },
+          "map_stage": {
+            "type": "integer",
+            "format": "uint8",
+            "description": "The stage this course corresponds to.",
+            "minimum": 0
+          },
           "filters": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CreatedFilter"
             },
             "description": "A list of filters on this course."
-          },
-          "id": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The ID of the course.",
-            "minimum": 0
-          },
-          "map_stage": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The stage this course corresponds to.",
-            "minimum": 0
           }
         }
       },
@@ -2064,7 +2122,7 @@
             "properties": {
               "id": {
                 "type": "integer",
-                "format": "int32",
+                "format": "uint32",
                 "description": "The ID of the filter.",
                 "minimum": 0
               }
@@ -2081,18 +2139,18 @@
           "courses"
         ],
         "properties": {
+          "id": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "The ID of the map.",
+            "minimum": 0
+          },
           "courses": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CreatedCourse"
             },
             "description": "List of courses."
-          },
-          "id": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The ID of the map.",
-            "minimum": 0
           }
         }
       },
@@ -2105,7 +2163,7 @@
         "properties": {
           "id": {
             "type": "integer",
-            "format": "int64",
+            "format": "uint64",
             "description": "The record's ID.",
             "minimum": 0
           }
@@ -2120,7 +2178,7 @@
         "properties": {
           "id": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "The ID of the server.",
             "minimum": 0
           }
@@ -2157,7 +2215,7 @@
         "properties": {
           "course_id": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint32",
             "description": "The ID of the course this filter belongs to.",
             "minimum": 0
           },
@@ -2194,6 +2252,35 @@
           "created_on"
         ],
         "properties": {
+          "id": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "The map's ID.",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string",
+            "description": "The map's name."
+          },
+          "workshop_id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The map's Steam workshop ID.",
+            "minimum": 0
+          },
+          "filesize": {
+            "type": "integer",
+            "format": "uint64",
+            "description": "The filesize of the map.",
+            "minimum": 0
+          },
+          "mappers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlayerInfo"
+            },
+            "description": "The players who created this map."
+          },
           "courses": {
             "type": "array",
             "items": {
@@ -2205,35 +2292,6 @@
             "type": "string",
             "format": "date-time",
             "description": "Timestamp of when this map was globalled."
-          },
-          "filesize": {
-            "type": "integer",
-            "format": "int64",
-            "description": "The filesize of the map.",
-            "minimum": 0
-          },
-          "id": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The map's ID.",
-            "minimum": 0
-          },
-          "mappers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PlayerInfo"
-            },
-            "description": "The players who created this map."
-          },
-          "name": {
-            "type": "string",
-            "description": "The map's name."
-          },
-          "workshop_id": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The map's Steam workshop ID.",
-            "minimum": 0
           }
         }
       },
@@ -2247,17 +2305,16 @@
           "filters"
         ],
         "properties": {
-          "filters": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CourseFilter"
-            },
-            "description": "List of filters."
-          },
           "id": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint32",
             "description": "The ID of the course.",
+            "minimum": 0
+          },
+          "stage": {
+            "type": "integer",
+            "format": "uint8",
+            "description": "The stage this course corresponds to.",
             "minimum": 0
           },
           "mappers": {
@@ -2267,11 +2324,12 @@
             },
             "description": "The players who created this course."
           },
-          "stage": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The stage this course corresponds to.",
-            "minimum": 0
+          "filters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseFilter"
+            },
+            "description": "List of filters."
           }
         }
       },
@@ -2279,7 +2337,7 @@
         "oneOf": [
           {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "minimum": 0
           },
           {
@@ -2291,6 +2349,18 @@
         "type": "object",
         "description": "Updated information about a KZ map.",
         "properties": {
+          "name": {
+            "type": "string",
+            "description": "The new name of the map.",
+            "nullable": true
+          },
+          "workshop_id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The new Steam workshop ID of the map.",
+            "nullable": true,
+            "minimum": 0
+          },
           "filters_added": {
             "type": "array",
             "items": {
@@ -2303,23 +2373,11 @@
             "type": "array",
             "items": {
               "type": "integer",
-              "format": "int32",
+              "format": "uint32",
               "minimum": 0
             },
             "description": "A list of IDs for filters that should be removed.",
             "nullable": true
-          },
-          "name": {
-            "type": "string",
-            "description": "The new name of the map.",
-            "nullable": true
-          },
-          "workshop_id": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The new Steam workshop ID of the map.",
-            "nullable": true,
-            "minimum": 0
           }
         }
       },
@@ -2339,6 +2397,16 @@
           "reason"
         ],
         "properties": {
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
+          },
+          "ip_address": {
+            "type": "string",
+            "description": "The player's IP address at the time of the ban."
+          },
+          "reason": {
+            "$ref": "#/components/schemas/BanReason"
+          },
           "banned_by": {
             "allOf": [
               {
@@ -2352,16 +2420,6 @@
             "format": "date-time",
             "description": "Timestamp of when this ban expires.",
             "nullable": true
-          },
-          "ip_address": {
-            "type": "string",
-            "description": "The player's IP address at the time of the ban."
-          },
-          "reason": {
-            "$ref": "#/components/schemas/BanReason"
-          },
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
           }
         }
       },
@@ -2376,6 +2434,16 @@
           "mappers"
         ],
         "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the map."
+          },
+          "workshop_id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The Steam workshop ID of the map.",
+            "minimum": 0
+          },
           "courses": {
             "type": "array",
             "items": {
@@ -2385,7 +2453,7 @@
           },
           "filesize": {
             "type": "integer",
-            "format": "int64",
+            "format": "uint64",
             "description": "The filesize of the map.",
             "minimum": 0
           },
@@ -2395,16 +2463,6 @@
               "$ref": "#/components/schemas/SteamID"
             },
             "description": "The `SteamID`s of the players who made this map."
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the map."
-          },
-          "workshop_id": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The Steam workshop ID of the map.",
-            "minimum": 0
           }
         }
       },
@@ -2417,16 +2475,16 @@
           "ip_address"
         ],
         "properties": {
-          "ip_address": {
-            "type": "string",
-            "description": "The player's IP address."
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
           },
           "name": {
             "type": "string",
             "description": "The player's Steam name."
           },
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
+          "ip_address": {
+            "type": "string",
+            "description": "The player's IP address."
           }
         }
       },
@@ -2443,27 +2501,24 @@
           "bhop_stats"
         ],
         "properties": {
-          "bhop_stats": {
-            "$ref": "#/components/schemas/BhopStats"
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
           },
           "course_id": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint32",
             "description": "The ID of the course this record was performed on.",
             "minimum": 0
           },
           "mode": {
             "$ref": "#/components/schemas/Mode"
           },
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
-          },
           "style": {
             "$ref": "#/components/schemas/Style"
           },
           "teleports": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "The amount of teleports used in this run.",
             "minimum": 0
           },
@@ -2471,6 +2526,9 @@
             "type": "number",
             "format": "double",
             "description": "The time it took to finish this run (in seconds)."
+          },
+          "bhop_stats": {
+            "$ref": "#/components/schemas/BhopStats"
           }
         }
       },
@@ -2484,10 +2542,6 @@
           "port"
         ],
         "properties": {
-          "ip_address": {
-            "type": "string",
-            "description": "The IP address of this server."
-          },
           "name": {
             "type": "string",
             "description": "The name of the server."
@@ -2495,9 +2549,13 @@
           "owned_by": {
             "$ref": "#/components/schemas/SteamID"
           },
+          "ip_address": {
+            "type": "string",
+            "description": "The IP address of this server."
+          },
           "port": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "The port of this server.",
             "minimum": 0
           }
@@ -2525,93 +2583,93 @@
           "bhops_tick8"
         ],
         "properties": {
-          "bhops_tick0": {
-            "type": "integer",
-            "format": "int32",
-            "description": "How many bhops the player has hit 0 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick1": {
-            "type": "integer",
-            "format": "int32",
-            "description": "How many bhops the player has hit 1 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick2": {
-            "type": "integer",
-            "format": "int32",
-            "description": "How many bhops the player has hit 2 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick3": {
-            "type": "integer",
-            "format": "int32",
-            "description": "How many bhops the player has hit 3 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick4": {
-            "type": "integer",
-            "format": "int32",
-            "description": "How many bhops the player has hit 4 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick5": {
-            "type": "integer",
-            "format": "int32",
-            "description": "How many bhops the player has hit 5 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick6": {
-            "type": "integer",
-            "format": "int32",
-            "description": "How many bhops the player has hit 6 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick7": {
-            "type": "integer",
-            "format": "int32",
-            "description": "How many bhops the player has hit 7 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick8": {
-            "type": "integer",
-            "format": "int32",
-            "description": "How many bhops the player has hit 8 ticks after landing.",
-            "minimum": 0
-          },
-          "is_banned": {
-            "type": "boolean",
-            "description": "Whether the player is banned."
-          },
           "name": {
             "type": "string",
             "description": "The player's Steam name."
-          },
-          "perfs": {
-            "type": "integer",
-            "format": "int32",
-            "description": "How many perfect bhops the player has hit in total.",
-            "minimum": 0
           },
           "steam_id": {
             "$ref": "#/components/schemas/SteamID"
           },
           "time_active": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint32",
             "description": "The player's total active time spent on verified servers.",
-            "minimum": 0
-          },
-          "time_afk": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The player's total AFK time spent on verified servers.",
             "minimum": 0
           },
           "time_spectating": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint32",
             "description": "The player's total time spent spectating on verified servers.",
+            "minimum": 0
+          },
+          "time_afk": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The player's total AFK time spent on verified servers.",
+            "minimum": 0
+          },
+          "is_banned": {
+            "type": "boolean",
+            "description": "Whether the player is banned."
+          },
+          "perfs": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many perfect bhops the player has hit in total.",
+            "minimum": 0
+          },
+          "bhops_tick0": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many bhops the player has hit 0 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick1": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many bhops the player has hit 1 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick2": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many bhops the player has hit 2 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick3": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many bhops the player has hit 3 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick4": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many bhops the player has hit 4 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick5": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many bhops the player has hit 5 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick6": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many bhops the player has hit 6 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick7": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many bhops the player has hit 7 ticks after landing.",
+            "minimum": 0
+          },
+          "bhops_tick8": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many bhops the player has hit 8 ticks after landing.",
             "minimum": 0
           }
         }
@@ -2651,14 +2709,14 @@
           "session_data"
         ],
         "properties": {
-          "ip_address": {
-            "type": "string",
-            "description": "The player's new IP address."
-          },
           "name": {
             "type": "string",
             "description": "The player's new name.",
             "nullable": true
+          },
+          "ip_address": {
+            "type": "string",
+            "description": "The player's new IP address."
           },
           "session_data": {
             "$ref": "#/components/schemas/SessionData"
@@ -2680,14 +2738,9 @@
           "created_on"
         ],
         "properties": {
-          "created_on": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of when this record was submitted."
-          },
           "id": {
             "type": "integer",
-            "format": "int64",
+            "format": "uint64",
             "description": "The ID of the record.",
             "minimum": 0
           },
@@ -2697,18 +2750,18 @@
           "mode": {
             "$ref": "#/components/schemas/Mode"
           },
+          "style": {
+            "$ref": "#/components/schemas/Style"
+          },
           "player": {
             "$ref": "#/components/schemas/RecordPlayer"
           },
           "server": {
             "$ref": "#/components/schemas/RecordServer"
           },
-          "style": {
-            "$ref": "#/components/schemas/Style"
-          },
           "teleports": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "The amount of teleports used during this run.",
             "minimum": 0
           },
@@ -2716,6 +2769,11 @@
             "type": "number",
             "format": "double",
             "description": "The time it took to complete this run (in seconds)."
+          },
+          "created_on": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when this record was submitted."
           }
         }
       },
@@ -2730,13 +2788,13 @@
         "properties": {
           "id": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint32",
             "description": "The ID of the course.",
             "minimum": 0
           },
           "stage": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint8",
             "description": "The stage this course corresponds to.",
             "minimum": 0
           },
@@ -2754,18 +2812,18 @@
           "course"
         ],
         "properties": {
-          "course": {
-            "$ref": "#/components/schemas/RecordCourse"
-          },
           "id": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "The ID of the map.",
             "minimum": 0
           },
           "name": {
             "type": "string",
             "description": "The name of the map."
+          },
+          "course": {
+            "$ref": "#/components/schemas/RecordCourse"
           }
         }
       },
@@ -2796,7 +2854,7 @@
         "properties": {
           "id": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "The server's ID.",
             "minimum": 0
           },
@@ -2826,13 +2884,9 @@
         "properties": {
           "id": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "The ID of the server.",
             "minimum": 0
-          },
-          "ip_address": {
-            "type": "string",
-            "description": "The IP address of this server."
           },
           "name": {
             "type": "string",
@@ -2841,9 +2895,13 @@
           "owned_by": {
             "$ref": "#/components/schemas/PlayerInfo"
           },
+          "ip_address": {
+            "type": "string",
+            "description": "The IP address of this server."
+          },
           "port": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "The port of this server.",
             "minimum": 0
           }
@@ -2853,7 +2911,7 @@
         "oneOf": [
           {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "minimum": 0
           },
           {
@@ -2865,11 +2923,6 @@
         "type": "object",
         "description": "Updated information about a KZ server.",
         "properties": {
-          "ip_address": {
-            "type": "string",
-            "description": "The new IP address of the server.",
-            "nullable": true
-          },
           "name": {
             "type": "string",
             "description": "The new name of the server.",
@@ -2883,9 +2936,14 @@
             ],
             "nullable": true
           },
+          "ip_address": {
+            "type": "string",
+            "description": "The new IP address of the server.",
+            "nullable": true
+          },
           "port": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "The new port of the server.",
             "nullable": true,
             "minimum": 0
@@ -2910,82 +2968,82 @@
           "bhops_tick8"
         ],
         "properties": {
+          "time_active": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "Amount of seconds spent with a running timer.",
+            "minimum": 0
+          },
+          "time_spectating": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "Amount of seconds spent spectating.",
+            "minimum": 0
+          },
+          "time_afk": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "Amount of seconds spent inactive.",
+            "minimum": 0
+          },
+          "perfs": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many perfect bhops the player has hit in total.",
+            "minimum": 0
+          },
           "bhops_tick0": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "How many bhops the player has hit 0 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick1": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "How many bhops the player has hit 1 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick2": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "How many bhops the player has hit 2 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick3": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "How many bhops the player has hit 3 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick4": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "How many bhops the player has hit 4 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick5": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "How many bhops the player has hit 5 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick6": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "How many bhops the player has hit 6 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick7": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "How many bhops the player has hit 7 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick8": {
             "type": "integer",
-            "format": "int32",
+            "format": "uint16",
             "description": "How many bhops the player has hit 8 ticks after landing.",
-            "minimum": 0
-          },
-          "perfs": {
-            "type": "integer",
-            "format": "int32",
-            "description": "How many perfect bhops the player has hit in total.",
-            "minimum": 0
-          },
-          "time_active": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Amount of seconds spent with a running timer.",
-            "minimum": 0
-          },
-          "time_afk": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Amount of seconds spent inactive.",
-            "minimum": 0
-          },
-          "time_spectating": {
-            "type": "integer",
-            "format": "int32",
-            "description": "Amount of seconds spent spectating.",
             "minimum": 0
           }
         }
@@ -3016,6 +3074,17 @@
           "unfeasible",
           "impossible"
         ]
+      }
+    },
+    "securitySchemes": {
+      "API Key": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "api-key"
+      },
+      "API Token": {
+        "type": "http",
+        "scheme": "bearer"
       }
     }
   }
