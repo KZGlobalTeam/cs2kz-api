@@ -1,7 +1,9 @@
-use axum::routing::{get, post, put};
+use axum::routing::{get, patch, post};
 use axum::Router;
 use color_eyre::eyre::Context;
-use utoipa::OpenApi;
+use utoipa::openapi::security::{ApiKey, ApiKeyValue, Http, HttpAuthScheme, SecurityScheme};
+use utoipa::openapi::OpenApi;
+use utoipa::{Modify, OpenApi as _};
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::state::AppState;
@@ -19,7 +21,7 @@ pub mod middleware;
 pub mod res;
 
 #[rustfmt::skip]
-#[derive(OpenApi)]
+#[derive(utoipa::OpenApi)]
 #[openapi(
 	info(
 		title = "CS2KZ API",
@@ -111,8 +113,30 @@ pub mod res;
 			crate::routes::records::CreatedRecord,
 		),
 	),
+
+	modifiers(&Security),
 )]
 pub struct API;
+
+pub struct Security;
+
+impl Modify for Security {
+	fn modify(&self, openapi: &mut OpenApi) {
+		let Some(components) = openapi.components.as_mut() else {
+			return;
+		};
+
+		components.add_security_scheme(
+			"API Key",
+			SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("api-key"))),
+		);
+
+		components.add_security_scheme(
+			"API Token",
+			SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer)),
+		);
+	}
+}
 
 impl API {
 	/// Creates a [`Router`] which will be used by the HTTP server.
@@ -142,7 +166,7 @@ impl API {
 		// These routes are to be used only by CS2 servers and require auth.
 		let game_server_router = Router::new()
 			.route("/players", post(routes::players::create_player))
-			.route("/players/:ident", put(routes::players::update_player))
+			.route("/players/:ident", patch(routes::players::update_player))
 			.route("/bans", post(routes::bans::create_ban))
 			.route("/records", post(routes::records::create_record))
 			.layer(game_server_auth)
@@ -155,12 +179,12 @@ impl API {
 
 		// let map_approval_router = Router::new()
 		// 	.route("/maps", post(routes::maps::create_map))
-		// 	.route("/maps/:ident", put(routes::maps::update_map))
+		// 	.route("/maps/:ident", patch(routes::maps::update_map))
 		// 	.with_state(state);
 
 		// let server_approval_router = Router::new()
 		// 	.route("/servers", post(routes::servers::create_server))
-		// 	.route("/servers/:ident", put(routes::servers::update_server))
+		// 	.route("/servers/:ident", patch(routes::servers::update_server))
 		// 	.with_state(state);
 
 		let logging = axum::middleware::from_fn(middleware::logging::log_request);

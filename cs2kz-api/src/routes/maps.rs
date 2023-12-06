@@ -469,7 +469,7 @@ pub struct FilterWithCourseId {
 }
 
 #[tracing::instrument(skip(state))]
-#[utoipa::path(put, tag = "Maps", context_path = "/api", path = "/maps/{id}",
+#[utoipa::path(patch, tag = "Maps", context_path = "/api", path = "/maps/{id}",
 	params(("id" = u16, Path, description = "The map's ID")),
 	request_body = MapUpdate,
 	responses(

@@ -15,13 +15,13 @@ use crate::{Error, Result, State};
 ///
 /// This endpoint is used by CS2 game servers to refresh their access token.
 #[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Auth", context_path = "/api", path = "/auth/token", params(
-	("api-key" = u32, Header, description = "API Key"),
-), responses(
+#[utoipa::path(get, tag = "Auth", context_path = "/api", path = "/auth/token", responses(
 	responses::Ok<()>,
 	responses::BadRequest,
 	responses::Unauthorized,
 	responses::InternalServerError,
+), security(
+	("API Key" = []),
 ))]
 pub async fn token(state: State, TypedHeader(ApiKey(api_key)): TypedHeader<ApiKey>) -> Result<()> {
 	let server = sqlx::query! {

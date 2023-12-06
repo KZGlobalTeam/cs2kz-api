@@ -9,6 +9,7 @@ use sqlx::QueryBuilder;
 use utoipa::{IntoParams, ToSchema};
 
 use super::{BoundedU64, Filter};
+use crate::headers::PluginVersion;
 use crate::middleware::auth::gameservers::AuthenticatedServer;
 use crate::res::bans::{self as res, BanReason};
 use crate::res::{responses, Created};
@@ -220,6 +221,7 @@ pub struct CreatedBan {
 
 #[tracing::instrument(skip(state))]
 #[utoipa::path(post, tag = "Bans", context_path = "/api", path = "/bans",
+	params(PluginVersion),
 	request_body = NewBan,
 	responses(
 		responses::Created<CreatedBan>,
@@ -227,6 +229,7 @@ pub struct CreatedBan {
 		responses::Unauthorized,
 		responses::InternalServerError,
 	),
+	security(("API Token" = [])),
 )]
 pub async fn create_ban(
 	state: State,
