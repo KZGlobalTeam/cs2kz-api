@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
 use super::BoundedU64;
+use crate::headers::PluginVersion;
 use crate::middleware::auth::gameservers::AuthenticatedServer;
 use crate::res::{records as res, responses, Created};
 use crate::{Error, Result, State};
@@ -215,6 +216,7 @@ pub struct CreatedRecord {
 
 #[tracing::instrument(skip(state))]
 #[utoipa::path(post, tag = "Records", context_path = "/api", path = "/records",
+	params(PluginVersion),
 	request_body = NewRecord,
 	responses(
 		responses::Created<CreatedRecord>,
@@ -222,6 +224,7 @@ pub struct CreatedRecord {
 		responses::Unauthorized,
 		responses::InternalServerError,
 	),
+	security(("API Token" = [])),
 )]
 pub async fn create_record(
 	state: State,

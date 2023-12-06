@@ -49,4 +49,4 @@ features = ["macros", "rust_decimal", "chrono", "runtime-tokio", "tls-rustls", "
 
 [workspace.dependencies.utoipa]
 version = "4"
-features = ["chrono", "axum_extras"]
+features = ["chrono", "axum_extras", "preserve_order", "preserve_path_order", "non_strict_integers"]

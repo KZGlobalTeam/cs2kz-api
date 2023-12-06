@@ -246,7 +246,7 @@ pub struct ServerUpdate {
 }
 
 #[tracing::instrument(skip(state))]
-#[utoipa::path(put, tag = "Servers", context_path = "/api", path = "/servers/{id}",
+#[utoipa::path(patch, tag = "Servers", context_path = "/api", path = "/servers/{id}",
 	params(("id" = u16, Path, description = "The server's ID")),
 	request_body = ServerUpdate,
 	responses(
