@@ -5,6 +5,10 @@ This is the new database and API for CS2KZ.
 It is currently WIP and there are still open questions about the design. For now though, feel free
 to have a look around! If you want to run the API locally, see [Dev Setup](#dev-setup).
 
+> [!IMPORTANT]
+> If you are a [CS2KZ](https://github.com/KZGlobalTeam/cs2kz-metamod) developer, see
+> [KZ-DEVELOPERS.md](./KZ-DEVELOPERS.md).
+
 # Dev Setup
 
 ## System Requirements
