@@ -2,6 +2,9 @@ use std::fmt::{self, Debug};
 
 use color_eyre::eyre::Context;
 use jsonwebtoken as jwt;
+use jwt::TokenData;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use sqlx::mysql::MySqlPoolOptions;
 use sqlx::{MySql, MySqlPool, Transaction};
 
@@ -73,20 +76,20 @@ impl Debug for AppState {
 
 pub struct JwtState {
 	/// Header value for encoding JWTs.
-	pub header: jwt::Header,
+	header: jwt::Header,
 
 	/// Encodes [`GameServerInfo`] as a JWT.
 	///
 	/// [`GameServerInfo`]: crate::middleware::auth::jwt::GameServerInfo
-	pub encode: jwt::EncodingKey,
+	encode: jwt::EncodingKey,
 
 	/// Decodes a JWT into a [`GameServerInfo`].
 	///
 	/// [`GameServerInfo`]: crate::middleware::auth::jwt::GameServerInfo
-	pub decode: jwt::DecodingKey,
+	decode: jwt::DecodingKey,
 
 	/// Validation struct for the JWT algorithm.
-	pub validation: jwt::Validation,
+	validation: jwt::Validation,
 }
 
 impl JwtState {
@@ -103,5 +106,21 @@ impl JwtState {
 		let validation = jwt::Validation::default();
 
 		Ok(Self { header, encode, decode, validation })
+	}
+
+	/// Encodes a payload using the server's JWT secret.
+	pub fn encode<T>(&self, payload: &T) -> Result<String>
+	where
+		T: Serialize,
+	{
+		jwt::encode(&self.header, payload, &self.encode).map_err(Into::into)
+	}
+
+	/// Decodes a JWT using the server's secret.
+	pub fn decode<T>(&self, token: &str) -> Result<TokenData<T>>
+	where
+		T: DeserializeOwned,
+	{
+		jwt::decode(token, &self.decode, &self.validation).map_err(Into::into)
 	}
 }

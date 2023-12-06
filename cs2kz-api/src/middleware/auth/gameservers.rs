@@ -8,7 +8,6 @@ use jsonwebtoken as jwt;
 
 use super::jwt::GameServerInfo;
 use crate::headers::PluginVersion;
-use crate::state::JwtState;
 use crate::{Error, Result, State};
 
 #[derive(Debug, Clone)]
@@ -25,8 +24,7 @@ pub async fn auth_server(
 	mut request: Request,
 	next: Next,
 ) -> Result<Response> {
-	let JwtState { decode, validation, .. } = state.jwt();
-	let GameServerInfo { id, exp } = jwt::decode(api_token.token(), decode, validation)?.claims;
+	let GameServerInfo { id, exp } = state.jwt().decode(api_token.token())?.claims;
 
 	if exp < jwt::get_current_timestamp() {
 		return Err(Error::Unauthorized);

@@ -1,14 +1,13 @@
+use std::io::{self, ErrorKind as IoError};
 use std::net::{Ipv4Addr, SocketAddr};
 
 use axum_extra::TypedHeader;
-use jsonwebtoken as jwt;
 use tokio::net::UdpSocket;
-use tracing::debug;
+use tracing::{debug, error};
 
 use crate::headers::ApiKey;
 use crate::middleware::auth::jwt::GameServerInfo;
 use crate::res::responses;
-use crate::state::JwtState;
 use crate::{Error, Result, State};
 
 /// CS2 server authentication.
@@ -37,35 +36,41 @@ pub async fn token(state: State, TypedHeader(ApiKey(api_key)): TypedHeader<ApiKe
 		"#,
 		api_key,
 	}
-	.fetch_one(state.database())
-	.await
-	.map_err(|_| Error::Unauthorized)?;
+	.fetch_optional(state.database())
+	.await?
+	.ok_or(Error::Unauthorized)?;
 
-	let JwtState { header, encode, .. } = state.jwt();
 	let server_info = GameServerInfo::new(server.id);
-	let token = jwt::encode(header, &server_info, encode)?;
+	let token = state.jwt().encode(&server_info)?;
 
-	let socket = UdpSocket::bind("127.0.0.0:0")
-		.await
-		.map_err(|_| Error::InternalServerError)?;
+	let socket = UdpSocket::bind("127.0.0.0:0").await.map_err(|err| {
+		error!(?err, "failed to bind udp socket");
+		Error::InternalServerError
+	})?;
 
-	let server_ip = server
+	let server_addr = server
 		.ip_address
 		.parse::<Ipv4Addr>()
+		.map(|ip_addr| SocketAddr::from((ip_addr, server.port)))
 		.expect("invalid IP address in database");
 
-	let server_addr = SocketAddr::from((server_ip, server.port));
+	let map_err = |err: io::Error| match err.kind() {
+		// If we get any of these it means that the server we expected is either down or
+		// disfunctional, so we'll just count that as "unauthorized".
+		IoError::NotFound
+		| IoError::ConnectionRefused
+		| IoError::ConnectionReset
+		| IoError::ConnectionAborted
+		| IoError::TimedOut => Error::Unauthorized,
 
-	socket
-		.connect(server_addr)
-		.await
-		.map_err(|_| Error::InternalServerError)?;
+		// Anything else is our fault.
+		_ => Error::InternalServerError,
+	};
+
+	socket.connect(server_addr).await.map_err(map_err)?;
 
 	// TODO(AlphaKeks): send a header of some sort as well in addition to the token
-	socket
-		.send(token.as_bytes())
-		.await
-		.map_err(|_| Error::InternalServerError)?;
+	socket.send(token.as_bytes()).await.map_err(map_err)?;
 
 	debug!(addr = %server_addr, %token, "sent JWT to server");
 
