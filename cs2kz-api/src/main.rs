@@ -1,11 +1,9 @@
 use cs2kz_api::state::AppState;
 use cs2kz_api::API;
 
-use crate::args::Args;
 use crate::config::Config;
 
 mod config;
-mod args;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
@@ -18,10 +16,7 @@ async fn main() -> color_eyre::Result<()> {
 	}
 
 	// Parse environment variables
-	let mut config = Config::load()?;
-
-	// Parse CLI arguments
-	Args::get().override_config(&mut config);
+	let config = Config::load()?;
 
 	// Initialize logging
 	if config.enable_logging {
