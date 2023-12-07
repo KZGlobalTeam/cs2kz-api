@@ -1,73 +1,61 @@
-use axum::http::{HeaderName, HeaderValue};
-use axum_extra::headers::{self, Header};
-use serde::Deserialize;
-use utoipa::IntoParams;
+macro_rules! header {
+	($name:ident wraps $type:ty as $header_name:literal) => {
+		use axum::http::{HeaderName, HeaderValue};
+		use axum_extra::headers::{self, Header};
+		use serde::Deserialize;
+		use utoipa::IntoParams;
 
-#[derive(Debug, Deserialize)]
-pub struct ApiKey(pub u32);
+		#[derive(Debug, Deserialize, IntoParams)]
+		#[into_params(names($header_name), parameter_in = Header)]
+		pub struct $name(pub $type);
 
-static API_KEY_HEADER_NAME: HeaderName = HeaderName::from_static("api-key");
+		mod header_name {
+			use axum::http::HeaderName;
 
-impl Header for ApiKey {
-	fn name() -> &'static HeaderName {
-		&API_KEY_HEADER_NAME
-	}
+			#[allow(non_upper_case_globals)]
+			pub(super) static $name: HeaderName = HeaderName::from_static($header_name);
+		}
 
-	fn decode<'i, I>(values: &mut I) -> Result<Self, headers::Error>
-	where
-		Self: Sized,
-		I: Iterator<Item = &'i HeaderValue>,
-	{
-		let value = values
-			.next()
-			.ok_or_else(headers::Error::invalid)?
-			.to_str()
-			.map_err(|_| headers::Error::invalid())?
-			.parse::<u32>()
-			.map_err(|_| headers::Error::invalid())?;
+		impl Header for $name {
+			fn name() -> &'static HeaderName {
+				&header_name::$name
+			}
 
-		Ok(Self(value))
-	}
+			fn decode<'i, I>(values: &mut I) -> Result<Self, headers::Error>
+			where
+				Self: Sized,
+				I: Iterator<Item = &'i HeaderValue>,
+			{
+				let value = values
+					.next()
+					.ok_or_else(headers::Error::invalid)?
+					.to_str()
+					.map_err(|_| headers::Error::invalid())?
+					.parse::<$type>()
+					.map_err(|_| headers::Error::invalid())?;
 
-	fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-		let s = self.0.to_string();
-		let value = HeaderValue::from_str(&s).expect("u32 is valid ASCII");
+				Ok(Self(value))
+			}
 
-		values.extend(std::iter::once(value));
-	}
+			fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
+				let s = self.0.to_string();
+				let value =
+					HeaderValue::from_str(&s).expect(concat!(stringify!($type), " is valid ASCII"));
+
+				values.extend(std::iter::once(value));
+			}
+		}
+	};
 }
 
-#[derive(Debug, Deserialize, IntoParams)]
-#[into_params(names("plugin-version"), parameter_in = Header)]
-pub struct PluginVersion(pub u16);
-
-static PLUGIN_VERSION_HEADER_NAME: HeaderName = HeaderName::from_static("plugin-version");
-
-impl Header for PluginVersion {
-	fn name() -> &'static HeaderName {
-		&PLUGIN_VERSION_HEADER_NAME
-	}
-
-	fn decode<'i, I>(values: &mut I) -> Result<Self, headers::Error>
-	where
-		Self: Sized,
-		I: Iterator<Item = &'i HeaderValue>,
-	{
-		let value = values
-			.next()
-			.ok_or_else(headers::Error::invalid)?
-			.to_str()
-			.map_err(|_| headers::Error::invalid())?
-			.parse::<u16>()
-			.map_err(|_| headers::Error::invalid())?;
-
-		Ok(Self(value))
-	}
-
-	fn encode<E: Extend<HeaderValue>>(&self, values: &mut E) {
-		let s = self.0.to_string();
-		let value = HeaderValue::from_str(&s).expect("u32 is valid ASCII");
-
-		values.extend(std::iter::once(value));
-	}
+mod api_key {
+	header!(ApiKey wraps u32 as "api-key");
 }
+
+pub use api_key::ApiKey;
+
+mod plugin_version {
+	header!(PluginVersion wraps u16 as "plugin-version");
+}
+
+pub use plugin_version::PluginVersion;
