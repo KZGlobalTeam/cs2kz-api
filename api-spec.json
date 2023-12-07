@@ -25,14 +25,26 @@
         }
       }
     },
-    "/api/auth/token": {
+    "/api/auth/refresh_token": {
       "get": {
         "tags": [
           "Auth"
         ],
         "summary": "CS2 server authentication.",
         "description": "CS2 server authentication.\n\nThis endpoint is used by CS2 game servers to refresh their access token.",
-        "operationId": "token",
+        "operationId": "refresh_token",
+        "parameters": [
+          {
+            "name": "plugin-version",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "The request was successful.",
@@ -265,18 +277,6 @@
           "Players"
         ],
         "operationId": "create_player",
-        "parameters": [
-          {
-            "name": "plugin-version",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -473,16 +473,6 @@
         ],
         "operationId": "update_player",
         "parameters": [
-          {
-            "name": "plugin-version",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            }
-          },
           {
             "name": "steam_id",
             "in": "path",
@@ -698,18 +688,6 @@
           "Bans"
         ],
         "operationId": "create_ban",
-        "parameters": [
-          {
-            "name": "plugin-version",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1695,18 +1673,6 @@
           "Records"
         ],
         "operationId": "create_record",
-        "parameters": [
-          {
-            "name": "plugin-version",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {

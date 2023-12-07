@@ -1,6 +1,13 @@
+use std::fmt::Write;
+use std::net::SocketAddr;
+
 use axum::routing::{get, patch, post};
-use axum::Router;
+use axum::{Router, ServiceExt};
 use color_eyre::eyre::Context;
+use tokio::net::TcpListener;
+use tower_http::normalize_path::NormalizePathLayer;
+use tower_layer::Layer;
+use tracing::info;
 use utoipa::openapi::security::{ApiKey, ApiKeyValue, Http, HttpAuthScheme, SecurityScheme};
 use utoipa::openapi::OpenApi;
 use utoipa::{Modify, OpenApi as _};
@@ -139,6 +146,38 @@ impl Modify for Security {
 }
 
 impl API {
+	/// Serves an [`axum::Router`] at the given `addr`.
+	pub async fn run(router: Router, addr: SocketAddr) -> color_eyre::Result<()> {
+		use axum::extract::Request as R;
+
+		let router = NormalizePathLayer::trim_trailing_slash().layer(router);
+		let service = ServiceExt::<R>::into_make_service_with_connect_info::<SocketAddr>(router);
+
+		let tcp_listener = TcpListener::bind(addr)
+			.await
+			.context("Failed to bind TCP listener.")?;
+
+		let addr = tcp_listener.local_addr()?;
+
+		info!("Listening on {addr}.");
+
+		let mut routes = String::from("Registering routes:\n");
+
+		for route in API::routes() {
+			writeln!(&mut routes, "\t\t\t\t\t• `{route}`")?;
+		}
+
+		info!("{routes}");
+		info!("SwaggerUI hosted at: <http://{addr}/api/docs/swagger-ui>");
+		info!("OpenAPI spec hosted at: <http://{addr}/api/docs/openapi.json>");
+
+		axum::serve(tcp_listener, service)
+			.await
+			.context("Failed to run axum.")?;
+
+		Ok(())
+	}
+
 	/// Creates a [`Router`] which will be used by the HTTP server.
 	pub fn router(state: AppState) -> Router {
 		// The state will live as long as the whole application, so leaking it is fine.
