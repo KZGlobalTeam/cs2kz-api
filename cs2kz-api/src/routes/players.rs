@@ -8,8 +8,7 @@ use sqlx::QueryBuilder;
 use utoipa::{IntoParams, ToSchema};
 
 use super::{BoundedU64, Filter};
-use crate::headers::PluginVersion;
-use crate::middleware::auth::gameservers::AuthenticatedServer;
+use crate::middleware::auth::jwt::GameServerToken;
 use crate::res::{player as res, responses, Created};
 use crate::{database, Error, Result, State};
 
@@ -168,7 +167,6 @@ pub struct NewPlayer {
 
 #[tracing::instrument(skip(state))]
 #[utoipa::path(post, tag = "Players", context_path = "/api", path = "/players",
-	params(PluginVersion),
 	request_body = NewPlayer,
 	responses(
 		responses::Created<()>,
@@ -256,10 +254,7 @@ pub struct SessionData {
 
 #[tracing::instrument(skip(state))]
 #[utoipa::path(patch, tag = "Players", context_path = "/api", path = "/players/{steam_id}",
-	params(
-		PluginVersion,
-		("steam_id" = SteamID, Path, description = "The player's SteamID")
-	),
+	params(("steam_id" = SteamID, Path, description = "The player's SteamID")),
 	request_body = PlayerUpdate,
 	responses(
 		responses::Ok<()>,
@@ -271,7 +266,7 @@ pub struct SessionData {
 )]
 pub async fn update_player(
 	state: State,
-	Extension(server): Extension<AuthenticatedServer>,
+	Extension(server): Extension<GameServerToken>,
 	Path(steam_id): Path<SteamID>,
 	Json(PlayerUpdate { name, ip_address, session_data }): Json<PlayerUpdate>,
 ) -> Result<()> {

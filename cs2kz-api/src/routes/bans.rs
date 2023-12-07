@@ -9,8 +9,7 @@ use sqlx::QueryBuilder;
 use utoipa::{IntoParams, ToSchema};
 
 use super::{BoundedU64, Filter};
-use crate::headers::PluginVersion;
-use crate::middleware::auth::gameservers::AuthenticatedServer;
+use crate::middleware::auth::jwt::GameServerToken;
 use crate::res::bans::{self as res, BanReason};
 use crate::res::{responses, Created};
 use crate::{Error, Result, State};
@@ -221,7 +220,6 @@ pub struct CreatedBan {
 
 #[tracing::instrument(skip(state))]
 #[utoipa::path(post, tag = "Bans", context_path = "/api", path = "/bans",
-	params(PluginVersion),
 	request_body = NewBan,
 	responses(
 		responses::Created<CreatedBan>,
@@ -233,7 +231,7 @@ pub struct CreatedBan {
 )]
 pub async fn create_ban(
 	state: State,
-	Extension(server_info): Extension<Option<AuthenticatedServer>>,
+	Extension(server): Extension<Option<GameServerToken>>,
 	Json(NewBan { steam_id, ip_address, reason, banned_by, expires_on }): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
 	let mut transaction = state.transaction().await?;
@@ -255,10 +253,10 @@ pub async fn create_ban(
 		"#,
 		steam_id.as_u32(),
 		ip_address.map(|ip| ip.to_string()),
-		server_info.as_ref().map(|info| info.id),
+		server.as_ref().map(|server| server.id),
 		reason,
 		banned_by.map(|steam_id| steam_id.as_u32()),
-		server_info.as_ref().map(|info| info.plugin_version),
+		server.as_ref().map(|server| server.plugin_version),
 		expires_on,
 	}
 	.execute(transaction.as_mut())

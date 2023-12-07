@@ -35,7 +35,7 @@ pub mod res;
 	paths(
 		routes::health::health,
 
-		routes::auth::token,
+		routes::auth::refresh_token,
 
 		routes::players::get_players,
 		routes::players::get_player,
@@ -157,7 +157,7 @@ impl API {
 			.route("/records", get(routes::records::get_records))
 			.route("/record/:id", get(routes::records::get_record))
 			.route("/record/:id/replay", get(routes::records::get_replay))
-			.route("/auth/token", get(routes::auth::token))
+			.route("/auth/refresh_token", get(routes::auth::refresh_token))
 			.with_state(state);
 
 		let game_server_auth =

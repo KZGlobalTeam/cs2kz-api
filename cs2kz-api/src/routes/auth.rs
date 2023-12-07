@@ -5,8 +5,8 @@ use axum_extra::TypedHeader;
 use tokio::net::UdpSocket;
 use tracing::{debug, error};
 
-use crate::headers::ApiKey;
-use crate::middleware::auth::jwt::GameServerInfo;
+use crate::headers::{ApiKey, PluginVersion};
+use crate::middleware::auth::jwt::GameServerToken;
 use crate::res::responses;
 use crate::{Error, Result, State};
 
@@ -14,15 +14,21 @@ use crate::{Error, Result, State};
 ///
 /// This endpoint is used by CS2 game servers to refresh their access token.
 #[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Auth", context_path = "/api", path = "/auth/token", responses(
-	responses::Ok<()>,
-	responses::BadRequest,
-	responses::Unauthorized,
-	responses::InternalServerError,
-), security(
-	("API Key" = []),
-))]
-pub async fn token(state: State, TypedHeader(ApiKey(api_key)): TypedHeader<ApiKey>) -> Result<()> {
+#[utoipa::path(get, tag = "Auth", context_path = "/api", path = "/auth/refresh_token",
+	params(PluginVersion),
+	responses(
+		responses::Ok<()>,
+		responses::BadRequest,
+		responses::Unauthorized,
+		responses::InternalServerError,
+	),
+	security(("API Key" = [])),
+)]
+pub async fn refresh_token(
+	state: State,
+	TypedHeader(ApiKey(api_key)): TypedHeader<ApiKey>,
+	TypedHeader(PluginVersion(plugin_version)): TypedHeader<PluginVersion>,
+) -> Result<()> {
 	let server = sqlx::query! {
 		r#"
 		SELECT
@@ -40,7 +46,7 @@ pub async fn token(state: State, TypedHeader(ApiKey(api_key)): TypedHeader<ApiKe
 	.await?
 	.ok_or(Error::Unauthorized)?;
 
-	let server_info = GameServerInfo::new(server.id);
+	let server_info = GameServerToken::new(server.id, plugin_version);
 	let token = state.jwt().encode(&server_info)?;
 
 	let socket = UdpSocket::bind("127.0.0.0:0").await.map_err(|err| {
