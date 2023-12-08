@@ -8,7 +8,7 @@ use tracing::error;
 use utoipa::IntoParams;
 
 use crate::middleware::auth::jwt::GameServerToken;
-use crate::res::responses;
+use crate::res::{responses, Created};
 use crate::{Error, Result, State};
 
 #[derive(Debug, Deserialize, IntoParams)]
@@ -21,7 +21,7 @@ pub struct Params {
 ///
 /// This endpoint is used by CS2 game servers to refresh their access token.
 #[tracing::instrument(skip(state), fields(server_id, addr, token))]
-#[utoipa::path(get, tag = "Auth", context_path = "/api", path = "/auth/refresh_token",
+#[utoipa::path(post, tag = "Auth", context_path = "/api", path = "/auth/refresh_token",
 	params(Params),
 	responses(
 		responses::Ok<()>,
@@ -33,7 +33,7 @@ pub struct Params {
 pub async fn refresh_token(
 	state: State,
 	Json(Params { api_key, plugin_version }): Json<Params>,
-) -> Result<()> {
+) -> Result<Created<()>> {
 	let server = sqlx::query! {
 		r#"
 		SELECT
@@ -88,5 +88,5 @@ pub async fn refresh_token(
 		.record("addr", server_addr.to_string())
 		.record("token", token);
 
-	Ok(())
+	Ok(Created(()))
 }

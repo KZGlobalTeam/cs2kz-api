@@ -190,7 +190,7 @@ impl API {
 			.route("/records", get(routes::records::get_records))
 			.route("/record/:id", get(routes::records::get_record))
 			.route("/record/:id/replay", get(routes::records::get_replay))
-			.route("/auth/refresh_token", get(routes::auth::refresh_token))
+			.route("/auth/refresh_token", post(routes::auth::refresh_token))
 			.with_state(state);
 
 		let game_server_auth =
