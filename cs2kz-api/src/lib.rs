@@ -8,7 +8,7 @@ use tokio::net::TcpListener;
 use tower_http::normalize_path::NormalizePathLayer;
 use tower_layer::Layer;
 use tracing::info;
-use utoipa::openapi::security::{ApiKey, ApiKeyValue, Http, HttpAuthScheme, SecurityScheme};
+use utoipa::openapi::security::{Http, HttpAuthScheme, SecurityScheme};
 use utoipa::openapi::OpenApi;
 use utoipa::{Modify, OpenApi as _};
 use utoipa_swagger_ui::SwaggerUi;
@@ -23,7 +23,6 @@ pub mod database;
 
 pub mod state;
 pub mod routes;
-pub mod headers;
 pub mod middleware;
 pub mod res;
 
@@ -132,11 +131,6 @@ impl Modify for Security {
 		let Some(components) = openapi.components.as_mut() else {
 			return;
 		};
-
-		components.add_security_scheme(
-			"API Key",
-			SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("api-key"))),
-		);
 
 		components.add_security_scheme(
 			"API Token",

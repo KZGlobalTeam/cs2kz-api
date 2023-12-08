@@ -1,33 +1,38 @@
 use std::io::{self, ErrorKind as IoError};
 use std::net::{Ipv4Addr, SocketAddr};
 
-use axum_extra::TypedHeader;
+use axum::Json;
+use serde::Deserialize;
 use tokio::net::UdpSocket;
-use tracing::{debug, error};
+use tracing::error;
+use utoipa::IntoParams;
 
-use crate::headers::{ApiKey, PluginVersion};
 use crate::middleware::auth::jwt::GameServerToken;
 use crate::res::responses;
 use crate::{Error, Result, State};
 
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct Params {
+	api_key: u32,
+	plugin_version: u16,
+}
+
 /// CS2 server authentication.
 ///
 /// This endpoint is used by CS2 game servers to refresh their access token.
-#[tracing::instrument(skip(state))]
+#[tracing::instrument(skip(state), fields(server_id, addr, token))]
 #[utoipa::path(get, tag = "Auth", context_path = "/api", path = "/auth/refresh_token",
-	params(PluginVersion),
+	params(Params),
 	responses(
 		responses::Ok<()>,
 		responses::BadRequest,
 		responses::Unauthorized,
 		responses::InternalServerError,
 	),
-	security(("API Key" = [])),
 )]
 pub async fn refresh_token(
 	state: State,
-	TypedHeader(ApiKey(api_key)): TypedHeader<ApiKey>,
-	TypedHeader(PluginVersion(plugin_version)): TypedHeader<PluginVersion>,
+	Json(Params { api_key, plugin_version }): Json<Params>,
 ) -> Result<()> {
 	let server = sqlx::query! {
 		r#"
@@ -78,7 +83,10 @@ pub async fn refresh_token(
 	// TODO(AlphaKeks): send a header of some sort as well in addition to the token
 	socket.send(token.as_bytes()).await.map_err(map_err)?;
 
-	debug!(addr = %server_addr, %token, "sent JWT to server");
+	tracing::Span::current()
+		.record("server_id", server.id)
+		.record("addr", server_addr.to_string())
+		.record("token", token);
 
 	Ok(())
 }
