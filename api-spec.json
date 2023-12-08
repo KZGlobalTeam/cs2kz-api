@@ -26,25 +26,23 @@
       }
     },
     "/api/auth/refresh_token": {
-      "get": {
+      "post": {
         "tags": [
           "Auth"
         ],
         "summary": "CS2 server authentication.",
         "description": "CS2 server authentication.\n\nThis endpoint is used by CS2 game servers to refresh their access token.",
         "operationId": "refresh_token",
-        "parameters": [
-          {
-            "name": "plugin-version",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRequest"
+              }
             }
-          }
-        ],
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "The request was successful.",
@@ -66,12 +64,7 @@
           "500": {
             "description": "A bug in the API."
           }
-        },
-        "security": [
-          {
-            "API Key": []
-          }
-        ]
+        }
       }
     },
     "/api/players": {
@@ -1862,6 +1855,25 @@
   },
   "components": {
     "schemas": {
+      "AuthRequest": {
+        "type": "object",
+        "required": [
+          "api_key",
+          "plugin_version"
+        ],
+        "properties": {
+          "api_key": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          },
+          "plugin_version": {
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0
+          }
+        }
+      },
       "Ban": {
         "type": "object",
         "description": "Information about a ban of a player.",
@@ -3043,11 +3055,6 @@
       }
     },
     "securitySchemes": {
-      "API Key": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "api-key"
-      },
       "API Token": {
         "type": "http",
         "scheme": "bearer"
