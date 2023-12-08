@@ -218,10 +218,13 @@ impl API {
 		// 	.with_state(state);
 
 		let logging = axum::middleware::from_fn(middleware::logging::log_request);
-		let api_router = game_server_router.merge(public_api_router).layer(logging);
+		let api_router = game_server_router.merge(public_api_router);
 		let swagger_ui = Self::swagger_ui();
 
-		Router::new().nest("/api", api_router).merge(swagger_ui)
+		Router::new()
+			.nest("/api", api_router)
+			.layer(logging)
+			.merge(swagger_ui)
 	}
 
 	/// Creates an iterator over all of the API's routes.
