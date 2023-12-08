@@ -2,11 +2,9 @@ use std::fmt::Write;
 use std::net::SocketAddr;
 
 use axum::routing::{get, patch, post};
-use axum::{Router, ServiceExt};
+use axum::Router;
 use color_eyre::eyre::Context;
 use tokio::net::TcpListener;
-use tower_http::normalize_path::NormalizePathLayer;
-use tower_layer::Layer;
 use tracing::info;
 use utoipa::openapi::security::{Http, HttpAuthScheme, SecurityScheme};
 use utoipa::openapi::OpenApi;
@@ -142,11 +140,6 @@ impl Modify for Security {
 impl API {
 	/// Serves an [`axum::Router`] at the given `addr`.
 	pub async fn run(router: Router, addr: SocketAddr) -> color_eyre::Result<()> {
-		use axum::extract::Request as R;
-
-		let router = NormalizePathLayer::trim_trailing_slash().layer(router);
-		let service = ServiceExt::<R>::into_make_service_with_connect_info::<SocketAddr>(router);
-
 		let tcp_listener = TcpListener::bind(addr)
 			.await
 			.context("Failed to bind TCP listener.")?;
@@ -164,6 +157,8 @@ impl API {
 		info!("{routes}");
 		info!("SwaggerUI hosted at: <http://{addr}/api/docs/swagger-ui>");
 		info!("OpenAPI spec hosted at: <http://{addr}/api/docs/openapi.json>");
+
+		let service = router.into_make_service_with_connect_info::<SocketAddr>();
 
 		axum::serve(tcp_listener, service)
 			.await
