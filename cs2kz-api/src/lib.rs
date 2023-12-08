@@ -80,6 +80,8 @@ pub mod res;
 
 			crate::res::PlayerInfo,
 
+			crate::routes::auth::AuthRequest,
+
 			crate::res::player::Player,
 			crate::routes::players::NewPlayer,
 			crate::routes::players::PlayerUpdate,
