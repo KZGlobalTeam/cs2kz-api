@@ -1,15 +1,18 @@
 use std::io::{self, ErrorKind as IoError};
 use std::net::{Ipv4Addr, SocketAddr};
 
+use axum::extract::RawQuery;
+use axum::response::Redirect;
 use axum::Json;
+use reqwest::header::CONTENT_TYPE;
 use serde::Deserialize;
 use tokio::net::UdpSocket;
 use tracing::error;
 use utoipa::ToSchema;
 
-use crate::middleware::auth::jwt::GameServerToken;
+use crate::middleware::auth::jwt::{GameServerToken, WebUser};
 use crate::res::{responses, Created};
-use crate::{Error, Result, State};
+use crate::{steam, Error, Result, State};
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct AuthRequest {
@@ -89,4 +92,41 @@ pub async fn refresh_token(
 		.record("token", token);
 
 	Ok(Created(()))
+}
+
+/// This is where the frontend will redirect users to when they click "login".
+/// Steam will then redirect back to `steam_callback`, which will verify them.
+#[tracing::instrument(skip_all)]
+pub async fn steam_login(state: State) -> Redirect {
+	state.steam().redirect()
+}
+
+// TODO(AlphaKeks):
+// - generate JWT holding the user's SteamID
+// - store the JWT in the user's cookies or something (no idea how this works)
+// - redirect back to frontend
+#[tracing::instrument(skip_all, fields(steam_id))]
+pub async fn steam_callback(state: State, RawQuery(query): RawQuery) -> Result<&'static str> {
+	let query = query.ok_or(Error::Unauthorized)?;
+
+	let user_data = serde_urlencoded::from_str::<steam::AuthResponse>(&query)
+		.map(WebUser::from)
+		.map_err(|_| Error::Unauthorized)?;
+
+	tracing::Span::current().record("steam_id", user_data.steam_id.to_string());
+
+	let auth_response = state
+		.http_client()
+		.post("https://steamcommunity.com/openid/login")
+		.header(CONTENT_TYPE, "application/x-www-form-urlencoded")
+		.body(query)
+		.send()
+		.await
+		.and_then(|res| res.error_for_status());
+
+	if auth_response.is_err() {
+		return Err(Error::Unauthorized);
+	}
+
+	Ok("You are authenticated!")
 }

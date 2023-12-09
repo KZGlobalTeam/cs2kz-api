@@ -3058,6 +3058,10 @@
       "API Token": {
         "type": "http",
         "scheme": "bearer"
+      },
+      "Steam User": {
+        "type": "http",
+        "scheme": "bearer"
       }
     }
   }

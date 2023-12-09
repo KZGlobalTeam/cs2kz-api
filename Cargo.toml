@@ -29,6 +29,9 @@ features = ["derive"]
 [workspace.dependencies.serde_json]
 version = "1"
 
+[workspace.dependencies.serde_urlencoded]
+version = "0.7"
+
 [workspace.dependencies.rand]
 version = "0.8"
 

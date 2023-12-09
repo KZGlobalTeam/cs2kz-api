@@ -23,6 +23,7 @@ pub mod state;
 pub mod routes;
 pub mod middleware;
 pub mod res;
+pub mod steam;
 
 #[rustfmt::skip]
 #[derive(utoipa::OpenApi)]
@@ -136,6 +137,11 @@ impl Modify for Security {
 			"API Token",
 			SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer)),
 		);
+
+		components.add_security_scheme(
+			"Steam User",
+			SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer)),
+		);
 	}
 }
 
@@ -188,6 +194,8 @@ impl API {
 			.route("/record/:id", get(routes::records::get_record))
 			.route("/record/:id/replay", get(routes::records::get_replay))
 			.route("/auth/refresh_token", post(routes::auth::refresh_token))
+			.route("/auth/steam_login", get(routes::auth::steam_login))
+			.route("/auth/steam_callback", get(routes::auth::steam_callback))
 			.with_state(state);
 
 		let game_server_auth =
@@ -204,8 +212,9 @@ impl API {
 
 		// TODO(AlphaKeks): implement auth for this
 		//
-		// Ideally we use Steam for authenticating admins who are allowed to approve and
-		// change maps, servers, ban players etc.
+		// - create database schemas to hold permissions per user
+		// - create middlewares for each route that verifies permissions
+		//   -> see `crate::middleware::auth::website::auth_admin`
 
 		// let map_approval_router = Router::new()
 		// 	.route("/maps", post(routes::maps::create_map))

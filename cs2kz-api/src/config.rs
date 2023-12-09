@@ -1,20 +1,18 @@
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::net::{IpAddr, SocketAddr};
 
 use color_eyre::eyre::Context;
+use url::Url;
 
 /// The configuration for the API.
 ///
 /// An instance of this struct will be built from environment variables stored in a `.env` file.
 #[derive(Debug)]
 pub struct Config {
-	/// The IP address the API will run on.
-	pub ip_address: Ipv4Addr,
+	/// The internal address to expose the API on.
+	pub socket_addr: SocketAddr,
 
-	/// The port the API will be exposed on.
-	pub port: u16,
-
-	/// Whether to enable logging.
-	pub enable_logging: bool,
+	/// The public URL of the API.
+	pub public_url: Url,
 
 	/// MySQL connection string.
 	pub database_url: String,
@@ -33,19 +31,15 @@ macro_rules! load_env {
 }
 
 impl Config {
-	/// Creates a [`SocketAddr`] from the specified IP address and port.
-	pub const fn socket_addr(&self) -> SocketAddr {
-		SocketAddr::new(IpAddr::V4(self.ip_address), self.port)
-	}
-
 	/// Loads config values from the environment.
 	pub fn load() -> color_eyre::Result<Self> {
 		let ip_address = load_env!("API_IP");
 		let port = load_env!("API_PORT");
-		let enable_logging = load_env!("API_LOGGING");
+		let socket_addr = SocketAddr::new(IpAddr::V4(ip_address), port);
+		let public_url = load_env!("API_PUBLIC_URL");
 		let database_url = load_env!("DATABASE_URL");
 		let jwt_secret = load_env!("JWT_SECRET");
 
-		Ok(Self { ip_address, port, enable_logging, database_url, jwt_secret })
+		Ok(Self { socket_addr, public_url, database_url, jwt_secret })
 	}
 }

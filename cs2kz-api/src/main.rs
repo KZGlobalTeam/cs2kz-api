@@ -15,22 +15,20 @@ async fn main() -> color_eyre::Result<()> {
 		eprintln!("Failed to load `.env` file: {error:?}");
 	}
 
+	// Initialize logging
+	cs2kz_api::logging::init();
+
 	// Parse environment variables
 	let config = Config::load()?;
 
-	// Initialize logging
-	if config.enable_logging {
-		cs2kz_api::logging::init();
-	}
-
 	// Create application state
-	let state = AppState::new(&config.database_url, &config.jwt_secret).await?;
+	let state = AppState::new(&config.database_url, &config.jwt_secret, config.public_url).await?;
 
 	// Create axum router
 	let router = API::router(state);
 
 	// Run the server
-	API::run(router, config.socket_addr()).await?;
+	API::run(router, config.socket_addr).await?;
 
 	Ok(())
 }

@@ -1,5 +1,6 @@
 use std::fmt::{self, Debug};
 
+use axum::response::Redirect;
 use color_eyre::eyre::Context;
 use jsonwebtoken as jwt;
 use jwt::TokenData;
@@ -7,7 +8,9 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::mysql::MySqlPoolOptions;
 use sqlx::{MySql, MySqlPool, Transaction};
+use url::Url;
 
+use crate::steam::RedirectForm;
 use crate::Result;
 
 /// Main application state.
@@ -25,19 +28,31 @@ pub struct AppState {
 	///
 	/// See the [`jsonwebtoken`] crate for more details.
 	jwt_state: JwtState,
+
+	/// Static data used for communicating with the Steam API.
+	steam_state: SteamState,
+
+	/// HTTP client for making requests to other APIs.
+	http_client: reqwest::Client,
 }
 
 impl AppState {
 	/// Constructs a new [`AppState`].
-	pub async fn new(database_url: &str, jwt_secret: &str) -> color_eyre::Result<Self> {
+	pub async fn new(
+		database_url: &str,
+		jwt_secret: &str,
+		api_url: Url,
+	) -> color_eyre::Result<Self> {
 		let database_pool = MySqlPoolOptions::new()
 			.connect(database_url)
 			.await
 			.context("Failed to establish database connection.")?;
 
 		let jwt_state = JwtState::new(jwt_secret)?;
+		let steam_state = SteamState::new(api_url)?;
+		let http_client = reqwest::Client::new();
 
-		Ok(Self { database_pool, jwt_state })
+		Ok(Self { database_pool, jwt_state, steam_state, http_client })
 	}
 
 	/// Returns a reference to the application's database connection pool.
@@ -48,6 +63,15 @@ impl AppState {
 	/// Returns a reference to the application's JWT data for encoding and decoding tokens.
 	pub const fn jwt(&self) -> &JwtState {
 		&self.jwt_state
+	}
+
+	/// Returns a reference to the application's data about the Steam API.
+	pub const fn steam(&self) -> &SteamState {
+		&self.steam_state
+	}
+
+	pub const fn http_client(&self) -> &reqwest::Client {
+		&self.http_client
 	}
 
 	/// Starts a new MySQL transaction.
@@ -122,5 +146,25 @@ impl JwtState {
 		T: DeserializeOwned,
 	{
 		jwt::decode(token, &self.decode, &self.validation).map_err(Into::into)
+	}
+}
+
+pub struct SteamState {
+	redirect_url: Url,
+}
+
+impl SteamState {
+	fn new(api_url: Url) -> color_eyre::Result<Self> {
+		let redirect_form = RedirectForm::new(api_url, "/api/auth/steam_callback")?;
+		let query_string = serde_urlencoded::to_string(redirect_form)?;
+		let mut steam_url = Url::parse("https://steamcommunity.com/openid/login")?;
+		steam_url.set_query(Some(&query_string));
+
+		Ok(Self { redirect_url: steam_url })
+	}
+
+	/// Redirects a request to Steam's login page.
+	pub fn redirect(&self) -> Redirect {
+		Redirect::to(self.redirect_url.as_str())
 	}
 }

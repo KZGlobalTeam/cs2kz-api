@@ -3,6 +3,9 @@ name = "cs2kz-api"
 version = "0.0.0"
 edition = "2021"
 
+[features]
+prod = []
+
 [dependencies]
 color-eyre = { workspace = true }
 thiserror = { workspace = true }
@@ -12,6 +15,7 @@ dotenvy = { workspace = true }
 clap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+serde_urlencoded = { workspace = true }
 rand = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
@@ -44,6 +48,15 @@ features = ["cors"]
 
 [dependencies.tower-layer]
 version = "0.3"
+
+[dependencies.url]
+version = "2.5"
+features = ["serde"]
+
+[dependencies.reqwest]
+version = "0.11"
+default-features = false
+features = ["rustls-tls", "json"]
 
 [dependencies.jsonwebtoken]
 version = "9"
