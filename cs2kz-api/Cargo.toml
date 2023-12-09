@@ -34,7 +34,7 @@ features = ["http1", "json", "query", "tokio", "macros"]
 [dependencies.axum-extra]
 version = "0.9"
 default-features = false
-features = ["typed-header"]
+features = ["typed-header", "cookie"]
 
 [dependencies.hyper]
 version = "1"

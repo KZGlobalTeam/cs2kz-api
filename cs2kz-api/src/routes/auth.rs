@@ -4,6 +4,8 @@ use std::net::{Ipv4Addr, SocketAddr};
 use axum::extract::RawQuery;
 use axum::response::Redirect;
 use axum::Json;
+use axum_extra::extract::cookie::Cookie;
+use axum_extra::extract::CookieJar;
 use reqwest::header::CONTENT_TYPE;
 use serde::Deserialize;
 use tokio::net::UdpSocket;
@@ -101,12 +103,12 @@ pub async fn steam_login(state: State) -> Redirect {
 	state.steam().redirect()
 }
 
-// TODO(AlphaKeks):
-// - generate JWT holding the user's SteamID
-// - store the JWT in the user's cookies or something (no idea how this works)
-// - redirect back to frontend
 #[tracing::instrument(skip_all, fields(steam_id))]
-pub async fn steam_callback(state: State, RawQuery(query): RawQuery) -> Result<&'static str> {
+pub async fn steam_callback(
+	state: State,
+	RawQuery(query): RawQuery,
+	mut cookies: CookieJar,
+) -> Result<(CookieJar, Redirect)> {
 	let query = query.ok_or(Error::Unauthorized)?;
 
 	let user_data = serde_urlencoded::from_str::<steam::AuthResponse>(&query)
@@ -128,5 +130,14 @@ pub async fn steam_callback(state: State, RawQuery(query): RawQuery) -> Result<&
 		return Err(Error::Unauthorized);
 	}
 
-	Ok("You are authenticated!")
+	let jwt = state.jwt().encode(&user_data)?;
+	let cookie = Cookie::build(("steam-id-token", jwt))
+		.http_only(true)
+		.secure(true)
+		.permanent()
+		.build();
+
+	cookies = cookies.add(cookie);
+
+	Ok((cookies, Redirect::to("https://cs2.kz")))
 }
