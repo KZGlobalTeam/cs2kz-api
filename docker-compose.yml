@@ -2,25 +2,25 @@ version: '3'
 
 services:
   cs2kz-database:
-    image: mariadb:10.10
-    restart: 'no'
+    image: mariadb:11.0
+    restart: no
     environment:
       MARIADB_USER: kz
       MARIADB_PASSWORD: csgo-kz-is-dead-boys
-      MARIADB_DATABASE: cs2kz-api
+      MARIADB_DATABASE: cs2kz
       MARIADB_ROOT_PASSWORD: csgo-kz-is-dead-boys
     ports:
-      - 8070:3306
+      - ${DATABASE_PORT:-8070}:3306
     volumes:
-      - ./database/volumes/cs2kz-database:/var/lib/mysql
+      - ./database/volumes/cs2kz:/var/lib/mysql
 
   cs2kz-api:
-    restart: 'no'
+    restart: no
     build:
       context: .
       dockerfile: ./cs2kz-api/Dockerfile
-    env_file: .env
+    env_file: .env.docker
     ports:
-      - 42069:42069
+      - ${KZ_API_PORT:-42069}:${KZ_API_PORT:-42069}
     depends_on:
       - cs2kz-database

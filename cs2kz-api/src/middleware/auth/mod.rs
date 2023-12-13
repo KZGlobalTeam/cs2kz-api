@@ -1,23 +1,10 @@
-use axum_extra::headers::authorization::Bearer;
-use axum_extra::headers::Authorization;
-use serde::de::DeserializeOwned;
+//! This module holds middleware functions for authentication.
 
-use crate::{Error, Result, State};
+mod gameserver;
+pub use gameserver::verify_gameserver;
 
-pub mod jwt;
-pub mod gameservers;
-pub mod website;
+mod map_approval;
+pub use map_approval::verify_map_admin;
 
-fn verify_jwt<T, F>(state: State, token: Authorization<Bearer>, expires_at: F) -> Result<T>
-where
-	T: DeserializeOwned,
-	F: FnOnce(&T) -> u64,
-{
-	let data = state.jwt().decode::<T>(token.token())?.claims;
-
-	if expires_at(&data) < jsonwebtoken::get_current_timestamp() {
-		return Err(Error::Unauthorized);
-	}
-
-	Ok(data)
-}
+mod admins_only;
+pub use admins_only::verify_admin;

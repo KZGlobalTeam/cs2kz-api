@@ -1,0 +1,80 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t\tf.*\n\t\tFROM\n\t\t\tCourseFilters f\n\t\t\tJOIN Courses c ON c.id = f.course_id\n\t\t\tJOIN Maps m ON m.id = c.map_id\n\t\tWHERE\n\t\t\tm.id = ?\n\t\t\tAND c.map_stage = ?\n\t\t\tAND f.mode_id = ?\n\t\t\tAND f.has_teleports = ?\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 10
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "course_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | MULTIPLE_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 10
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "mode_id",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | MULTIPLE_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "has_teleports",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 1
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "tier",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "ranked",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 1
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "95d385b5166cb7c7b1ec04fd6baddd25d06277217b0c3706067f5efc89c01de7"
+}

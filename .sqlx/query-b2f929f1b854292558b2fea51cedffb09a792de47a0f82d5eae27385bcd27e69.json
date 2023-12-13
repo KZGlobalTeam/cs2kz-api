@@ -1,0 +1,36 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\tSELECT\n\t\t\t\t\tsteam_id AS `steam_id: _`,\n\t\t\t\t\tname\n\t\t\t\tFROM\n\t\t\t\t\tPlayers\n\t\t\t\tWHERE\n\t\t\t\t\tsteam_id = ?\n\t\t\t\tLIMIT\n\t\t\t\t\t1\n\t\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "steam_id: _",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 10
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 128
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "b2f929f1b854292558b2fea51cedffb09a792de47a0f82d5eae27385bcd27e69"
+}

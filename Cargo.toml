@@ -1,6 +1,9 @@
 [workspace]
 resolver = "2"
-members = ["cs2kz", "cs2kz-api", "cs2kz-api-spec-generator"]
+members = ["cs2kz", "cs2kz-api", "spec-generator"]
+
+[workspace.dependencies.dotenvy]
+version = "0.15"
 
 [workspace.dependencies.color-eyre]
 version = "0.6"
@@ -13,27 +16,12 @@ version = "0.1"
 
 [workspace.dependencies.tracing-subscriber]
 version = "0.3"
-features = ["env-filter"]
+default-features = false
+features = ["std", "fmt", "ansi", "env-filter", "time"]
 
-[workspace.dependencies.dotenvy]
-version = "0.15"
-
-[workspace.dependencies.clap]
-version = "4"
-features = ["derive"]
-
-[workspace.dependencies.serde]
-version = "1"
-features = ["derive"]
-
-[workspace.dependencies.serde_json]
-version = "1"
-
-[workspace.dependencies.serde_urlencoded]
-version = "0.7"
-
-[workspace.dependencies.rand]
-version = "0.8"
+[workspace.dependencies.time]
+version = "0.3"
+features = ["macros"]
 
 [workspace.dependencies.chrono]
 version = "0.4"
@@ -42,14 +30,16 @@ features = ["std", "serde"]
 
 [workspace.dependencies.tokio]
 version = "1"
-default-features = false
-features = ["rt-multi-thread", "sync", "tracing", "macros"]
+features = ["macros", "net", "rt", "rt-multi-thread"]
 
 [workspace.dependencies.sqlx]
 version = "0.7"
 default-features = false
-features = ["macros", "rust_decimal", "chrono", "runtime-tokio", "tls-rustls", "mysql"]
+features = ["macros", "runtime-tokio-rustls", "mysql", "chrono"]
 
-[workspace.dependencies.utoipa]
-version = "4"
-features = ["chrono", "axum_extras", "preserve_order", "preserve_path_order", "non_strict_integers"]
+[workspace.dependencies.serde]
+version = "1"
+features = ["derive"]
+
+[workspace.dependencies.serde_json]
+version = "1"

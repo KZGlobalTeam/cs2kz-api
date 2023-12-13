@@ -1,290 +1,202 @@
+//! CS2KZ API
+
+#![warn(missing_debug_implementations, rust_2018_idioms, clippy::style)]
+#![deny(missing_docs)]
+
 use std::fmt::Write;
 use std::net::SocketAddr;
 
-use axum::routing::{get, patch, post};
-use axum::Router;
 use color_eyre::eyre::Context;
 use tokio::net::TcpListener;
-use tracing::info;
-use utoipa::openapi::security::{Http, HttpAuthScheme, SecurityScheme};
-use utoipa::openapi::OpenApi;
-use utoipa::{Modify, OpenApi as _};
+use tracing::{debug, info};
+use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
-
-use crate::state::AppState;
 
 pub mod error;
 pub use error::{Error, Result};
 
-pub mod logging;
-pub mod database;
+pub mod config;
+pub use config::Config;
 
 pub mod state;
-pub mod routes;
-pub mod middleware;
-pub mod res;
+pub use state::AppState;
+
+/// Convenience type alias for extracing [`AppState`] from a handler function parameter.
+pub type State = axum::extract::State<&'static crate::state::AppState>;
+
+pub mod serde;
+pub mod sql;
 pub mod steam;
 
+pub mod responses;
+pub mod models;
+pub mod jwt;
+
+pub mod openapi;
+pub use openapi::Security;
+
+pub mod routes;
+pub mod middleware;
+
+/// Utility struct for documenting and running the API.
+///
+/// It is used as a sort of "namespace", because [`utoipa`] requires a struct that implements the
+/// [`OpenApi`] trait in order to generate documentation.
 #[rustfmt::skip]
-#[derive(utoipa::OpenApi)]
+#[derive(Debug, OpenApi)]
 #[openapi(
-	info(
-		title = "CS2KZ API",
-		version = "0.0.0",
-		license(
-			name = "License: GPLv3.0",
-			url = "https://www.gnu.org/licenses/gpl-3.0",
-		),
-	),
-
-	paths(
-		routes::health::health,
-
-		routes::auth::refresh_token,
-
-		routes::players::get_players,
-		routes::players::get_player,
-		routes::players::create_player,
-		routes::players::update_player,
-
-		routes::bans::get_bans,
-		routes::bans::get_replay,
-		routes::bans::create_ban,
-
-		routes::maps::get_maps,
-		routes::maps::get_map,
-		routes::maps::create_map,
-		routes::maps::update_map,
-
-		routes::servers::get_servers,
-		routes::servers::get_server,
-		routes::servers::create_server,
-		routes::servers::update_server,
-
-		routes::records::get_records,
-		routes::records::get_record,
-		routes::records::get_replay,
-		routes::records::create_record,
-	),
-
+	info(title = "CS2KZ API", license(name = "GPLv3.0", url = "https://www.gnu.org/licenses/gpl-3.0")),
+	modifiers(&Security),
 	components(
 		schemas(
 			cs2kz::SteamID,
-			cs2kz::PlayerIdentifier,
-			cs2kz::MapIdentifier,
-			cs2kz::ServerIdentifier,
 			cs2kz::Mode,
 			cs2kz::Style,
 			cs2kz::Jumpstat,
 			cs2kz::Tier,
-			cs2kz::Runtype,
+			cs2kz::PlayerIdentifier<'_>,
+			cs2kz::MapIdentifier<'_>,
+			cs2kz::ServerIdentifier<'_>,
 
-			crate::res::PlayerInfo,
+			models::Player,
+			models::KZMap,
+			models::Mapper,
+			models::Course,
+			models::Filter,
+			models::CourseWithFilter,
+			models::ServerSummary,
+			models::ServerResponse,
+			models::JumpstatResponse,
+			models::Record,
+			models::BhopStats,
+			models::Ban,
 
-			crate::routes::auth::AuthRequest,
+			routes::players::CreatePlayerRequest,
+			routes::players::UpdatePlayerRequest,
+			routes::players::Session,
 
-			crate::res::player::Player,
-			crate::routes::players::NewPlayer,
-			crate::routes::players::PlayerUpdate,
-			crate::routes::players::SessionData,
+			routes::maps::CreateMapRequest,
+			routes::maps::CreateCourse,
+			routes::maps::UpdateMapRequest,
+			routes::maps::CourseUpdate,
+			routes::maps::FilterUpdate,
+			routes::maps::CreateMapResponse,
 
-			crate::res::bans::Ban,
-			crate::res::bans::BanReason,
-			crate::routes::bans::NewBan,
-			crate::routes::bans::CreatedBan,
+			routes::servers::CreateServerRequest,
+			routes::servers::UpdateServerRequest,
+			routes::servers::CreateServerResponse,
 
-			crate::res::maps::KZMap,
-			crate::res::maps::MapCourse,
-			crate::res::maps::CourseFilter,
-			crate::routes::maps::NewMap,
-			crate::routes::maps::Course,
-			crate::routes::maps::Filter,
-			crate::routes::maps::CreatedMap,
-			crate::routes::maps::CreatedCourse,
-			crate::routes::maps::CreatedFilter,
-			crate::routes::maps::MapUpdate,
-			crate::routes::maps::FilterWithCourseId,
+			routes::jumpstats::CreateJumpstatRequest,
+			routes::jumpstats::CreatedJumpstatResponse,
 
-			crate::res::servers::Server,
-			crate::routes::servers::NewServer,
-			crate::routes::servers::CreatedServer,
-			crate::routes::servers::ServerUpdate,
+			routes::records::CreateRecordRequest,
+			routes::records::CreatedRecordResponse,
 
-			crate::res::records::Record,
-			crate::res::records::RecordMap,
-			crate::res::records::RecordCourse,
-			crate::res::records::RecordPlayer,
-			crate::res::records::RecordServer,
-			crate::routes::records::NewRecord,
-			crate::routes::records::BhopStats,
-			crate::routes::records::CreatedRecord,
+			routes::auth::AuthRequest,
 		),
 	),
 
-	modifiers(&Security),
+	paths(
+		routes::status,
+
+		routes::players::get_players,
+		routes::players::create_player,
+		routes::players::get_player_by_ident,
+		routes::players::update_player,
+
+		routes::maps::get_maps,
+		routes::maps::create_map,
+		routes::maps::get_map_by_ident,
+		routes::maps::update_map,
+		routes::maps::get_map_by_workshop_id,
+
+		routes::servers::get_servers,
+		routes::servers::create_server,
+		routes::servers::get_server_by_ident,
+		routes::servers::update_server,
+
+		routes::jumpstats::get_jumpstats,
+		routes::jumpstats::create_jumpstat,
+
+		routes::records::get_records,
+		routes::records::create_record,
+
+		routes::bans::get_bans,
+
+		routes::auth::refresh_token,
+		routes::auth::steam::login,
+		routes::auth::steam::callback,
+	),
 )]
 pub struct API;
 
-pub struct Security;
-
-impl Modify for Security {
-	fn modify(&self, openapi: &mut OpenApi) {
-		let Some(components) = openapi.components.as_mut() else {
-			return;
-		};
-
-		components.add_security_scheme(
-			"API Token",
-			SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer)),
-		);
-
-		components.add_security_scheme(
-			"Steam User",
-			SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer)),
-		);
-	}
-}
-
 impl API {
-	/// Serves an [`axum::Router`] at the given `addr`.
-	pub async fn run(router: Router, addr: SocketAddr) -> color_eyre::Result<()> {
-		let tcp_listener = TcpListener::bind(addr)
+	/// Starts an [`axum`] server to serve the API.
+	#[tracing::instrument]
+	pub async fn run(config: Config) -> color_eyre::Result<()> {
+		let state = AppState::new(config.database_url, config.jwt_secret, config.api_url).await?;
+
+		debug!("Initialized application state.");
+
+		let swagger_ui = Self::swagger_ui();
+		let api_service = routes::router(state)
+			.merge(swagger_ui)
+			.into_make_service_with_connect_info::<SocketAddr>();
+
+		debug!("Initialized API service.");
+
+		let tcp_listener = TcpListener::bind(&config.socket_addr)
 			.await
-			.context("Failed to bind TCP listener.")?;
+			.context("Failed to bind TCP socket.")?;
 
-		let addr = tcp_listener.local_addr()?;
+		debug!("Bound to TCP socket on {}.", config.socket_addr);
 
-		info!("Listening on {addr}.");
+		let socket_addr = tcp_listener
+			.local_addr()
+			.context("Failed to get TCP socket address.")?;
 
-		let mut routes = String::from("Registering routes:\n");
+		info!("Listening on {socket_addr}...");
 
-		for route in API::routes() {
-			writeln!(&mut routes, "\t\t\t\t\t• `{route}`")?;
+		let mut routes = String::from("Routes:\n");
+
+		for route in Self::routes() {
+			writeln!(&mut routes, "{s}• {route}", s = " ".repeat(16))?;
 		}
 
 		info!("{routes}");
-		info!("SwaggerUI hosted at: <http://{addr}/api/docs/swagger-ui>");
-		info!("OpenAPI spec hosted at: <http://{addr}/api/docs/openapi.json>");
+		info!("Hosting SwaggerUI at: <http://{socket_addr}/docs/swagger-ui>");
+		info!("Hosting OpenAPI spect at: <http://{socket_addr}/docs/openapi.json>");
 
-		let service = router.into_make_service_with_connect_info::<SocketAddr>();
-
-		axum::serve(tcp_listener, service)
+		axum::serve(tcp_listener, api_service)
 			.await
-			.context("Failed to run axum.")?;
+			.context("Failed to run axum server.")?;
 
 		Ok(())
 	}
 
-	/// Creates a [`Router`] which will be used by the HTTP server.
-	pub fn router(state: AppState) -> Router {
-		// The state will live as long as the whole application, so leaking it is fine.
-		let state: &'static AppState = Box::leak(Box::new(state));
-
-		let public_api_router = Router::new()
-			.route("/", get(routes::health::health))
-			.route("/players", get(routes::players::get_players))
-			.route("/players/:ident", get(routes::players::get_player))
-			.route("/bans", get(routes::bans::get_bans))
-			.route("/bans/:id/replay", get(routes::bans::get_replay))
-			.route("/maps", get(routes::maps::get_maps))
-			.route("/maps/:ident", get(routes::maps::get_map))
-			.route("/servers", get(routes::servers::get_servers))
-			.route("/servers/:ident", get(routes::servers::get_server))
-			.route("/records", get(routes::records::get_records))
-			.route("/record/:id", get(routes::records::get_record))
-			.route("/record/:id/replay", get(routes::records::get_replay))
-			.route("/auth/refresh_token", post(routes::auth::refresh_token))
-			.route("/auth/steam_login", get(routes::auth::steam_login))
-			.route("/auth/steam_callback", get(routes::auth::steam_callback))
-			.with_state(state);
-
-		let game_server_auth =
-			axum::middleware::from_fn_with_state(state, middleware::auth::gameservers::auth_server);
-
-		// These routes are to be used only by CS2 servers and require auth.
-		let game_server_router = Router::new()
-			.route("/players", post(routes::players::create_player))
-			.route("/players/:ident", patch(routes::players::update_player))
-			.route("/bans", post(routes::bans::create_ban))
-			.route("/records", post(routes::records::create_record))
-			.layer(game_server_auth)
-			.with_state(state);
-
-		// TODO(AlphaKeks): implement auth for this
-		//
-		// - create database schemas to hold permissions per user
-		// - create middlewares for each route that verifies permissions
-		//   -> see `crate::middleware::auth::website::auth_admin`
-
-		// let map_approval_router = Router::new()
-		// 	.route("/maps", post(routes::maps::create_map))
-		// 	.route("/maps/:ident", patch(routes::maps::update_map))
-		// 	.with_state(state);
-
-		// let server_approval_router = Router::new()
-		// 	.route("/servers", post(routes::servers::create_server))
-		// 	.route("/servers/:ident", patch(routes::servers::update_server))
-		// 	.with_state(state);
-
-		let logging = axum::middleware::from_fn(middleware::logging::log_request);
-		let api_router = game_server_router.merge(public_api_router);
-		let swagger_ui = Self::swagger_ui();
-
-		Router::new()
-			.nest("/api", api_router)
-			.layer(logging)
-			.merge(swagger_ui)
+	/// Creates a service hosting a SwaggerUI web page and OpenAPI doc.
+	pub fn swagger_ui() -> SwaggerUi {
+		SwaggerUi::new("/docs/swagger-ui").url("/docs/openapi.json", Self::openapi())
 	}
 
-	/// Creates an iterator over all of the API's routes.
+	/// Creates an iterator over all public routes.
 	pub fn routes() -> impl Iterator<Item = String> {
-		Self::openapi().paths.paths.into_keys()
+		Self::openapi().paths.paths.into_iter().map(|(uri, path)| {
+			let methods = path
+				.operations
+				.into_keys()
+				.map(|method| format!("{method:?}").to_uppercase())
+				.collect::<Vec<_>>()
+				.join(", ");
+
+			format!("{uri} [{methods}]")
+		})
 	}
 
-	/// Returns a JSON version of the [OpenAPI] spec.
-	///
-	/// [OpenAPI]: https://www.openapis.org
-	pub fn json() -> color_eyre::Result<String> {
+	/// Generates an OpenAPI specification as JSON.
+	pub fn spec() -> color_eyre::Result<String> {
 		Self::openapi()
 			.to_pretty_json()
-			.context("Failed to convert API spec to JSON.")
-	}
-
-	/// Creates a [service layer] for serving an HTML page with [SwaggerUI].
-	///
-	/// [service layer]: https://docs.rs/tower/latest/tower/trait.Layer.html
-	/// [SwaggerUI]: https://swagger.io/tools/swagger-ui
-	pub fn swagger_ui() -> SwaggerUi {
-		SwaggerUi::new("/api/docs/swagger-ui").url("/api/docs/openapi.json", Self::openapi())
+			.context("Failed to format API spec as JSON.")
 	}
 }
-
-/// Type alias for convenience.
-///
-/// You can read more about axum's extractors [here].
-///
-/// Usually you would write a handler function like this:
-///
-/// ```
-/// use axum::extract::State;
-/// use cs2kz_api::State as AppState;
-///
-/// async fn handler(State(state): State<&'static AppState>) {
-///     let db = state.database();
-///     // ...
-/// }
-/// ```
-///
-/// To avoid all that type "boilerplate", you can use this type alias instead:
-///
-/// ```
-/// use cs2kz_api::State;
-///
-/// async fn handler(state: cs2kz_api::State) {
-///     let db = state.database();
-///     // ...
-/// }
-/// ```
-///
-/// [here]: axum::extract
-pub type State = axum::extract::State<&'static crate::AppState>;

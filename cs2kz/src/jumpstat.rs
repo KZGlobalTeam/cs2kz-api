@@ -1,9 +1,11 @@
-use std::fmt::{self, Display};
 use std::str::FromStr;
+
+use derive_more::Display;
 
 use crate::{Error, Result};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
+#[derive(Debug, Display, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum Jumpstat {
 	#[cfg_attr(feature = "utoipa", schema(rename = "longjump"))]
@@ -29,82 +31,92 @@ pub enum Jumpstat {
 }
 
 impl Jumpstat {
+	/// Formats the jumpstat in a standardized way that is consistent with the API.
+	#[inline]
 	pub const fn api(&self) -> &'static str {
 		match self {
-			Jumpstat::LongJump => "longjump",
-			Jumpstat::SingleBhop => "single_bhop",
-			Jumpstat::MultiBhop => "multi_bhop",
-			Jumpstat::DropBhop => "drop_bhop",
-			Jumpstat::WeirdJump => "weirdjump",
-			Jumpstat::LadderJump => "ladderjump",
-			Jumpstat::LadderHop => "ladderhop",
+			Self::LongJump => "longjump",
+			Self::SingleBhop => "single_bhop",
+			Self::MultiBhop => "multi_bhop",
+			Self::DropBhop => "drop_bhop",
+			Self::WeirdJump => "weirdjump",
+			Self::LadderJump => "ladderjump",
+			Self::LadderHop => "ladderhop",
+		}
+	}
+
+	/// Formats the jumpstat as an abbreviation.
+	#[inline]
+	pub const fn short(&self) -> &'static str {
+		match self {
+			Self::LongJump => "LJ",
+			Self::SingleBhop => "BH",
+			Self::MultiBhop => "MBH",
+			Self::DropBhop => "DBH",
+			Self::WeirdJump => "WJ",
+			Self::LadderJump => "LAJ",
+			Self::LadderHop => "LAH",
 		}
 	}
 }
 
-impl Display for Jumpstat {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{self:?}")
+impl From<Jumpstat> for u8 {
+	#[inline]
+	fn from(value: Jumpstat) -> Self {
+		value as u8
 	}
 }
 
-macro_rules! try_from {
-	([$($t:ty),+]) => {
-		$(impl TryFrom<$t> for Jumpstat {
-			type Error = $crate::Error;
-
-			fn try_from(value: $t) -> $crate::Result<Self> {
-				match value {
-					1 => Ok(Self::LongJump),
-					2 => Ok(Self::SingleBhop),
-					3 => Ok(Self::MultiBhop),
-					4 => Ok(Self::DropBhop),
-					5 => Ok(Self::WeirdJump),
-					6 => Ok(Self::LadderJump),
-					7 => Ok(Self::LadderHop),
-					_ => Err($crate::Error::InvalidJumpstat {
-						input: value.to_string(),
-						reason: Some(String::from("invalid ID")),
-					}),
-				}
-			}
-		})+
-	};
-}
-
-#[rustfmt::skip]
-try_from!([u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize]);
-
-impl TryFrom<&str> for Jumpstat {
+impl TryFrom<u8> for Jumpstat {
 	type Error = Error;
 
-	fn try_from(input: &str) -> Result<Self> {
-		input.parse()
-	}
-}
-
-impl TryFrom<String> for Jumpstat {
-	type Error = Error;
-
-	fn try_from(input: String) -> Result<Self> {
-		Self::try_from(input.as_str())
+	fn try_from(value: u8) -> Result<Self> {
+		match value {
+			1 => Ok(Self::LongJump),
+			2 => Ok(Self::SingleBhop),
+			3 => Ok(Self::MultiBhop),
+			4 => Ok(Self::DropBhop),
+			5 => Ok(Self::WeirdJump),
+			6 => Ok(Self::LadderJump),
+			7 => Ok(Self::LadderHop),
+			_ => Err(Error::InvalidJumpstatID { value }),
+		}
 	}
 }
 
 impl FromStr for Jumpstat {
 	type Err = Error;
 
-	fn from_str(input: &str) -> Result<Self> {
-		match input {
-			"longjump" => Ok(Self::LongJump),
-			"bhop" | "single_bhop" => Ok(Self::SingleBhop),
-			"multi_bhop" => Ok(Self::MultiBhop),
-			"drop_bhop" => Ok(Self::DropBhop),
-			"weirdjump" => Ok(Self::WeirdJump),
-			"ladderjump" => Ok(Self::LadderJump),
-			"ladderhop" => Ok(Self::LadderHop),
-			_ => Err(Error::InvalidJumpstat { input: input.to_owned(), reason: None }),
+	fn from_str(value: &str) -> Result<Self> {
+		if value.eq_ignore_ascii_case("longjump") {
+			return Ok(Self::LongJump);
 		}
+
+		if value.eq_ignore_ascii_case("single_bhop") {
+			return Ok(Self::SingleBhop);
+		}
+
+		if value.eq_ignore_ascii_case("multi_bhop") {
+			return Ok(Self::MultiBhop);
+		}
+
+		if value.eq_ignore_ascii_case("drop_bhop") {
+			return Ok(Self::DropBhop);
+		}
+
+		if value.eq_ignore_ascii_case("weirdjump") {
+			return Ok(Self::WeirdJump);
+		}
+
+		if value.eq_ignore_ascii_case("ladderjump") {
+			return Ok(Self::LadderJump);
+		}
+
+		if value.eq_ignore_ascii_case("ladderhop") {
+			return Ok(Self::LadderHop);
+		}
+
+		Err(Error::InvalidJumpstat { value: value.to_owned() })
 	}
 }
 
@@ -114,23 +126,109 @@ mod serde_impls {
 
 	use super::Jumpstat;
 
+	impl Jumpstat {
+		/// Serializes the given `jumpstat` in the standardized API format.
+		pub fn serialize_api<S: Serializer>(
+			jumpstat: &Self,
+			serializer: S,
+		) -> Result<S::Ok, S::Error> {
+			jumpstat.api().serialize(serializer)
+		}
+
+		/// Serializes the given `jumpstat` as an ID.
+		pub fn serialize_id<S: Serializer>(
+			jumpstat: &Self,
+			serializer: S,
+		) -> Result<S::Ok, S::Error> {
+			(*jumpstat as u8).serialize(serializer)
+		}
+	}
+
 	impl Serialize for Jumpstat {
-		fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-		where
-			S: Serializer,
-		{
-			self.api().serialize(serializer)
+		/// By default [`Jumpstat::serialize_api`] is used for serialization, but you can use
+		/// any of the `serialize_*` functions and pass them to
+		/// `#[serde(serialize_with = "...")]` if you need a different method.
+		fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+			Self::serialize_api(self, serializer)
+		}
+	}
+
+	impl Jumpstat {
+		/// Deserializes from a string.
+		pub fn deserialize_str<'de, D: Deserializer<'de>>(
+			deserializer: D,
+		) -> Result<Self, D::Error> {
+			<&str as Deserialize>::deserialize(deserializer)?
+				.parse()
+				.map_err(serde::de::Error::custom)
+		}
+
+		/// Deserializes from an integer.
+		pub fn deserialize_integer<'de, D: Deserializer<'de>>(
+			deserializer: D,
+		) -> Result<Self, D::Error> {
+			<u8>::deserialize(deserializer)?
+				.try_into()
+				.map_err(serde::de::Error::custom)
 		}
 	}
 
 	impl<'de> Deserialize<'de> for Jumpstat {
-		fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-		where
-			D: Deserializer<'de>,
-		{
-			String::deserialize(deserializer)?
-				.parse()
-				.map_err(serde::de::Error::custom)
+		/// The default [`Deserialize`] implementation is a best-effort.
+		///
+		/// This means it considers as many cases as possible; if you want / need
+		/// a specific format, consider using `#[serde(deserialize_with = "...")]` in
+		/// combination with any of the `deserialize_*` methods on [`Jumpstat`].
+		fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+			#[derive(Deserialize)]
+			#[serde(untagged)]
+			enum Helper<'a> {
+				U8(u8),
+				Str(&'a str),
+			}
+
+			match <Helper as Deserialize<'de>>::deserialize(deserializer)? {
+				Helper::U8(value) => value.try_into(),
+				Helper::Str(value) => value.parse(),
+			}
+			.map_err(serde::de::Error::custom)
+		}
+	}
+}
+
+#[cfg(feature = "sqlx")]
+mod sqlx_impls {
+	use sqlx::database::{HasArguments, HasValueRef};
+	use sqlx::encode::IsNull;
+	use sqlx::error::BoxDynError;
+	use sqlx::{Database, Decode, Encode, Type};
+
+	use super::Jumpstat;
+
+	impl<DB: Database> Type<DB> for Jumpstat
+	where
+		u8: Type<DB>,
+	{
+		fn type_info() -> <DB as Database>::TypeInfo {
+			<u8 as Type<DB>>::type_info()
+		}
+	}
+
+	impl<'row, DB: Database> Decode<'row, DB> for Jumpstat
+	where
+		u8: Decode<'row, DB>,
+	{
+		fn decode(value: <DB as HasValueRef<'row>>::ValueRef) -> Result<Self, BoxDynError> {
+			Self::try_from(<u8 as Decode<'row, DB>>::decode(value)?).map_err(Into::into)
+		}
+	}
+
+	impl<'query, DB: Database> Encode<'query, DB> for Jumpstat
+	where
+		u8: Encode<'query, DB>,
+	{
+		fn encode_by_ref(&self, buf: &mut <DB as HasArguments<'query>>::ArgumentBuffer) -> IsNull {
+			<u8 as Encode<'query, DB>>::encode(*self as u8, buf)
 		}
 	}
 }

@@ -1,24 +1,24 @@
-INSERT INTO
+INSERT IGNORE INTO
 	Players (`steam_id`, `name`, `last_known_ip_address`)
 VALUES
 	(322356345, "AlphaKeks", "127.0.0.1");
 
-INSERT INTO
+INSERT IGNORE INTO
 	Players (`steam_id`, `name`, `last_known_ip_address`)
 VALUES
 	(158416176, "zer0.k", "127.0.0.1");
 
-INSERT INTO
+INSERT IGNORE INTO
 	Players (`steam_id`, `name`, `last_known_ip_address`)
 VALUES
 	(204937604, "GameChaos", "127.0.0.1");
 
-INSERT INTO
+INSERT IGNORE INTO
 	Players (`steam_id`, `name`, `last_known_ip_address`)
 VALUES
 	(43010223, "Sikari", "127.0.0.1");
 
-INSERT INTO
+INSERT IGNORE INTO
 	Servers (
 		`name`,
 		`ip_address`,
@@ -35,7 +35,7 @@ VALUES
 		322356345
 	);
 
-INSERT INTO
+INSERT IGNORE INTO
 	Sessions (
 		`player_id`,
 		`server_id`,
@@ -72,7 +72,7 @@ VALUES
 		0
 	);
 
-INSERT INTO
+INSERT IGNORE INTO
 	Sessions (
 		`player_id`,
 		`server_id`,
@@ -109,7 +109,7 @@ VALUES
 		0
 	);
 
-INSERT INTO
+INSERT IGNORE INTO
 	Sessions (
 		`player_id`,
 		`server_id`,
@@ -146,7 +146,7 @@ VALUES
 		0
 	);
 
-INSERT INTO
+INSERT IGNORE INTO
 	Sessions (
 		`player_id`,
 		`server_id`,
@@ -183,27 +183,27 @@ VALUES
 		0
 	);
 
-INSERT INTO
+INSERT IGNORE INTO
 	Maps (`name`, `workshop_id`, `filesize`)
 VALUES
 	("kz_checkmate", 3070194623, 190335000);
 
-INSERT INTO
+INSERT IGNORE INTO
 	Mappers (`map_id`, `player_id`)
 VALUES
 	(1, 204937604);
 
-INSERT INTO
+INSERT IGNORE INTO
 	Courses (`map_id`, `map_stage`)
 VALUES
-	(1, 0);
+	(1, 1);
 
-INSERT INTO
+INSERT IGNORE INTO
 	CourseMappers (`course_id`, `player_id`)
 VALUES
 	(1, 204937604);
 
-INSERT INTO
+INSERT IGNORE INTO
 	CourseFilters (
 		`course_id`,
 		`mode_id`,
@@ -214,7 +214,7 @@ INSERT INTO
 VALUES
 	(1, 2, 1, 3, 1);
 
-INSERT INTO
+INSERT IGNORE INTO
 	CourseFilters (
 		`course_id`,
 		`mode_id`,

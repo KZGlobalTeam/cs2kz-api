@@ -2,36 +2,1883 @@
   "openapi": "3.0.3",
   "info": {
     "title": "CS2KZ API",
-    "description": "",
+    "description": "The main API for CS2KZ",
+    "contact": {
+      "name": "AlphaKeks",
+      "email": "alphakeks@dawn.sh"
+    },
     "license": {
-      "name": "License: GPLv3.0",
+      "name": "GPLv3.0",
       "url": "https://www.gnu.org/licenses/gpl-3.0"
     },
-    "version": "0.0.0"
+    "version": "1.0.0"
   },
   "paths": {
-    "/api/": {
+    "/": {
       "get": {
         "tags": [
-          "Health"
+          "Status"
         ],
-        "summary": "API Healthcheck.",
-        "description": "API Healthcheck.\n\nIf this endpoint responds, it means the API is up and running.",
-        "operationId": "health",
+        "summary": "The default response from the API.",
+        "description": "The default response from the API.\n\nIf this endpoint does not respond, something is wrong.",
+        "operationId": "status",
         "responses": {
           "200": {
-            "description": "The API is healthy."
+            "description": "The API is up.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "(͡ ͡° ͜ つ ͡͡°)"
+              }
+            }
           }
         }
       }
     },
-    "/api/auth/refresh_token": {
+    "/players": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "This endpoint allows you to fetch players.",
+        "description": "This endpoint allows you to fetch players.",
+        "operationId": "get_players",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "nullable": true,
+              "maximum": 500,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Information about a player.",
+                  "required": [
+                    "steam_id",
+                    "name"
+                  ],
+                  "properties": {
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The player's name."
+                    }
+                  },
+                  "example": {
+                    "name": "AlphaKeks",
+                    "steam_id": "STEAM_1:1:161178172"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Creates a new player.",
+        "description": "Creates a new player.\n\nServers are expected to make a `GET` request for every joining player. If one of these requests\nreturns a `204` status code, the server should make a request to this endpoint to register the\nplayer.",
+        "operationId": "create_player",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlayerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "A resource has been created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "401": {
+            "description": "You do not have access to this resource."
+          },
+          "409": {
+            "description": "The request conflicts with the server's state. This can happen, for example, when trying to create a resource that already exists."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        },
+        "security": [
+          {
+            "GameServer JWT": []
+          }
+        ]
+      }
+    },
+    "/players/{ident}": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "This endpoint allows you to fetch a single player by their SteamID or (parts of their) name.",
+        "description": "This endpoint allows you to fetch a single player by their SteamID or (parts of their) name.",
+        "operationId": "get_player_by_ident",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "description": "A player's SteamID or name.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PlayerIdentifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Information about a player.",
+                  "required": [
+                    "steam_id",
+                    "name"
+                  ],
+                  "properties": {
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The player's name."
+                    }
+                  },
+                  "example": {
+                    "name": "AlphaKeks",
+                    "steam_id": "STEAM_1:1:161178172"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      }
+    },
+    "/players/{steam_id}": {
+      "patch": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Updates a player.",
+        "description": "Updates a player.\n\nThis route is reserved for CS2KZ servers!\n\nEvery time a map change happens, the server should make a request to this endpoint for every\nplayer currently on the server.\n\nEvery time a player disconnects, the server should make a request to this endpoint for that\nplayer.",
+        "operationId": "update_player",
+        "parameters": [
+          {
+            "name": "steam_id",
+            "in": "path",
+            "description": "The player's SteamID.",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlayerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "401": {
+            "description": "You do not have access to this resource."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        },
+        "security": [
+          {
+            "GameServer JWT": []
+          }
+        ]
+      }
+    },
+    "/maps": {
+      "get": {
+        "tags": [
+          "Maps"
+        ],
+        "summary": "This endpoint allows you to fetch globally approved maps.",
+        "description": "This endpoint allows you to fetch globally approved maps.",
+        "operationId": "get_maps",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "The map's name.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "mapper",
+            "in": "query",
+            "description": "A player's SteamID or name.",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/PlayerIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "created_after",
+            "in": "query",
+            "description": "Only include maps created after this date.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            }
+          },
+          {
+            "name": "created_before",
+            "in": "query",
+            "description": "Only include maps created before this date.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "nullable": true,
+              "maximum": 500,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Information about a map.",
+                  "required": [
+                    "id",
+                    "workshop_id",
+                    "name",
+                    "mappers",
+                    "courses",
+                    "filesize",
+                    "created_on",
+                    "updated_on"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The map's ID.",
+                      "minimum": 0
+                    },
+                    "workshop_id": {
+                      "type": "integer",
+                      "format": "uint32",
+                      "description": "The map's Steam Workshop ID.",
+                      "minimum": 0
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The map's name."
+                    },
+                    "mappers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Mapper"
+                      },
+                      "description": "List of the players who created this map."
+                    },
+                    "courses": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Course"
+                      },
+                      "description": "List of courses on this map."
+                    },
+                    "filesize": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The filesize of this map in bytes.",
+                      "minimum": 0
+                    },
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when this map was initially approved."
+                    },
+                    "updated_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when this map was last updated."
+                    }
+                  },
+                  "example": {
+                    "courses": [
+                      {
+                        "filters": [
+                          {
+                            "has_teleports": true,
+                            "mode": "kz_modded",
+                            "ranked": true,
+                            "tier": 3
+                          },
+                          {
+                            "has_teleports": false,
+                            "mode": "kz_modded",
+                            "ranked": true,
+                            "tier": 4
+                          }
+                        ],
+                        "id": 1,
+                        "mappers": [
+                          {
+                            "name": "GameChaos",
+                            "steam_id": "STEAM_1:0:102468802"
+                          }
+                        ],
+                        "stage": 0
+                      }
+                    ],
+                    "created_on": "2023-12-10T10:41:01Z",
+                    "filesize": 190335000,
+                    "id": 1,
+                    "mappers": [
+                      {
+                        "name": "GameChaos",
+                        "steam_id": "STEAM_1:0:102468802"
+                      }
+                    ],
+                    "name": "kz_checkmate",
+                    "updated_on": "2023-12-10T10:41:01Z",
+                    "workshop_id": 3070194623
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Maps"
+        ],
+        "summary": "This endpoint is used for creating new maps.",
+        "description": "This endpoint is used for creating new maps.\n\nIt is intended to be used by admins and the map approval team.",
+        "operationId": "create_map",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMapRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "A resource has been created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "A newly created map.",
+                  "required": [
+                    "map_id"
+                  ],
+                  "properties": {
+                    "map_id": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The map's ID.",
+                      "minimum": 0
+                    }
+                  },
+                  "example": {
+                    "map_id": 1
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "401": {
+            "description": "You do not have access to this resource."
+          },
+          "409": {
+            "description": "The request conflicts with the server's state. This can happen, for example, when trying to create a resource that already exists."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      }
+    },
+    "/maps/{ident}": {
+      "get": {
+        "tags": [
+          "Maps"
+        ],
+        "summary": "This endpoint allows you to fetch a single map by its ID or (parts of its) name.",
+        "description": "This endpoint allows you to fetch a single map by its ID or (parts of its) name.",
+        "operationId": "get_map_by_ident",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "description": "The map's ID or name.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/MapIdentifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Information about a map.",
+                  "required": [
+                    "id",
+                    "workshop_id",
+                    "name",
+                    "mappers",
+                    "courses",
+                    "filesize",
+                    "created_on",
+                    "updated_on"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The map's ID.",
+                      "minimum": 0
+                    },
+                    "workshop_id": {
+                      "type": "integer",
+                      "format": "uint32",
+                      "description": "The map's Steam Workshop ID.",
+                      "minimum": 0
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The map's name."
+                    },
+                    "mappers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Mapper"
+                      },
+                      "description": "List of the players who created this map."
+                    },
+                    "courses": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Course"
+                      },
+                      "description": "List of courses on this map."
+                    },
+                    "filesize": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The filesize of this map in bytes.",
+                      "minimum": 0
+                    },
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when this map was initially approved."
+                    },
+                    "updated_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when this map was last updated."
+                    }
+                  },
+                  "example": {
+                    "courses": [
+                      {
+                        "filters": [
+                          {
+                            "has_teleports": true,
+                            "mode": "kz_modded",
+                            "ranked": true,
+                            "tier": 3
+                          },
+                          {
+                            "has_teleports": false,
+                            "mode": "kz_modded",
+                            "ranked": true,
+                            "tier": 4
+                          }
+                        ],
+                        "id": 1,
+                        "mappers": [
+                          {
+                            "name": "GameChaos",
+                            "steam_id": "STEAM_1:0:102468802"
+                          }
+                        ],
+                        "stage": 0
+                      }
+                    ],
+                    "created_on": "2023-12-10T10:41:01Z",
+                    "filesize": 190335000,
+                    "id": 1,
+                    "mappers": [
+                      {
+                        "name": "GameChaos",
+                        "steam_id": "STEAM_1:0:102468802"
+                      }
+                    ],
+                    "name": "kz_checkmate",
+                    "updated_on": "2023-12-10T10:41:01Z",
+                    "workshop_id": 3070194623
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      }
+    },
+    "/maps/{id}": {
+      "patch": {
+        "tags": [
+          "Maps"
+        ],
+        "summary": "This endpoint is used for updating maps.",
+        "description": "This endpoint is used for updating maps.\n\nIt is intended to be used by admins and the map approval team.",
+        "operationId": "update_map",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The ID of the map you wish to update.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMapRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "401": {
+            "description": "You do not have access to this resource."
+          },
+          "409": {
+            "description": "The request conflicts with the server's state. This can happen, for example, when trying to create a resource that already exists."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      }
+    },
+    "/maps/workshop/{id}": {
+      "get": {
+        "tags": [
+          "Maps"
+        ],
+        "summary": "This endpoint allows you to fetch a map by its Steam Workshop ID.",
+        "description": "This endpoint allows you to fetch a map by its Steam Workshop ID.",
+        "operationId": "get_map_by_workshop_id",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The map's Steam Workshop ID.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Information about a map.",
+                  "required": [
+                    "id",
+                    "workshop_id",
+                    "name",
+                    "mappers",
+                    "courses",
+                    "filesize",
+                    "created_on",
+                    "updated_on"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The map's ID.",
+                      "minimum": 0
+                    },
+                    "workshop_id": {
+                      "type": "integer",
+                      "format": "uint32",
+                      "description": "The map's Steam Workshop ID.",
+                      "minimum": 0
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The map's name."
+                    },
+                    "mappers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Mapper"
+                      },
+                      "description": "List of the players who created this map."
+                    },
+                    "courses": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Course"
+                      },
+                      "description": "List of courses on this map."
+                    },
+                    "filesize": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The filesize of this map in bytes.",
+                      "minimum": 0
+                    },
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when this map was initially approved."
+                    },
+                    "updated_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Timestamp of when this map was last updated."
+                    }
+                  },
+                  "example": {
+                    "courses": [
+                      {
+                        "filters": [
+                          {
+                            "has_teleports": true,
+                            "mode": "kz_modded",
+                            "ranked": true,
+                            "tier": 3
+                          },
+                          {
+                            "has_teleports": false,
+                            "mode": "kz_modded",
+                            "ranked": true,
+                            "tier": 4
+                          }
+                        ],
+                        "id": 1,
+                        "mappers": [
+                          {
+                            "name": "GameChaos",
+                            "steam_id": "STEAM_1:0:102468802"
+                          }
+                        ],
+                        "stage": 0
+                      }
+                    ],
+                    "created_on": "2023-12-10T10:41:01Z",
+                    "filesize": 190335000,
+                    "id": 1,
+                    "mappers": [
+                      {
+                        "name": "GameChaos",
+                        "steam_id": "STEAM_1:0:102468802"
+                      }
+                    ],
+                    "name": "kz_checkmate",
+                    "updated_on": "2023-12-10T10:41:01Z",
+                    "workshop_id": 3070194623
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      }
+    },
+    "/servers": {
+      "get": {
+        "tags": [
+          "Servers"
+        ],
+        "summary": "This endpoint allows you to fetch servers.",
+        "description": "This endpoint allows you to fetch servers.",
+        "operationId": "get_servers",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "description": "The name of the server.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "owned_by",
+            "in": "query",
+            "description": "Only include servers owned by this player.",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/PlayerIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "approved",
+            "in": "query",
+            "description": "Only include servers that are (not) approved (have an API key).",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "nullable": true,
+              "maximum": 500,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Information about a server.",
+                  "required": [
+                    "id",
+                    "name",
+                    "ip_address",
+                    "owned_by",
+                    "approved_on"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The server's ID.",
+                      "minimum": 0
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The server's name."
+                    },
+                    "ip_address": {
+                      "type": "string",
+                      "description": "The server's IP address and port."
+                    },
+                    "owned_by": {
+                      "$ref": "#/components/schemas/Player"
+                    },
+                    "approved_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "When this server was approved."
+                    }
+                  },
+                  "example": {
+                    "approved_on": "2023-12-10T10:41:01Z",
+                    "id": 1,
+                    "ip_address": "255.255.255.255:1337",
+                    "name": "Alpha's KZ",
+                    "owned_by": {
+                      "name": "AlphaKeks",
+                      "steam_id": "STEAM_1:1:161178172"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Servers"
+        ],
+        "summary": "This endpoint is used for creating new servers.",
+        "description": "This endpoint is used for creating new servers.\n\nIt is intended to be used by admins and one-time-use tokens given to players.",
+        "operationId": "create_server",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateServerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "A resource has been created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "A newly created server.",
+                  "required": [
+                    "server_id"
+                  ],
+                  "properties": {
+                    "server_id": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The server's ID.",
+                      "minimum": 0
+                    }
+                  },
+                  "example": {
+                    "server_id": 1
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "401": {
+            "description": "You do not have access to this resource."
+          },
+          "409": {
+            "description": "The request conflicts with the server's state. This can happen, for example, when trying to create a resource that already exists."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      }
+    },
+    "/servers/{ident}": {
+      "get": {
+        "tags": [
+          "Servers"
+        ],
+        "summary": "This endpoint allows you to fetch a single server by its ID or (parts of its) name.",
+        "description": "This endpoint allows you to fetch a single server by its ID or (parts of its) name.",
+        "operationId": "get_server_by_ident",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "description": "A server's ID or name.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ServerIdentifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Information about a server.",
+                  "required": [
+                    "id",
+                    "name",
+                    "ip_address",
+                    "owned_by",
+                    "approved_on"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The server's ID.",
+                      "minimum": 0
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The server's name."
+                    },
+                    "ip_address": {
+                      "type": "string",
+                      "description": "The server's IP address and port."
+                    },
+                    "owned_by": {
+                      "$ref": "#/components/schemas/Player"
+                    },
+                    "approved_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "When this server was approved."
+                    }
+                  },
+                  "example": {
+                    "approved_on": "2023-12-10T10:41:01Z",
+                    "id": 1,
+                    "ip_address": "255.255.255.255:1337",
+                    "name": "Alpha's KZ",
+                    "owned_by": {
+                      "name": "AlphaKeks",
+                      "steam_id": "STEAM_1:1:161178172"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      }
+    },
+    "/servers/{id}": {
+      "patch": {
+        "tags": [
+          "Servers"
+        ],
+        "summary": "This endpoint allows you to update a single server by its ID.",
+        "description": "This endpoint allows you to update a single server by its ID.",
+        "operationId": "update_server",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "A server's ID.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateServerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "401": {
+            "description": "You do not have access to this resource."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      }
+    },
+    "/jumpstats": {
+      "get": {
+        "tags": [
+          "Jumpstats"
+        ],
+        "summary": "This endpoint allows you to fetch jumpstats.",
+        "description": "This endpoint allows you to fetch jumpstats.",
+        "operationId": "get_jumpstats",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Jumpstat"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "minimum_distance",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "format": "double",
+              "nullable": true
+            }
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Mode"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "style",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Style"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "player",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/PlayerIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "server",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ServerIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "nullable": true,
+              "maximum": 500,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "A jumpstat.",
+                  "required": [
+                    "id",
+                    "kind",
+                    "distance",
+                    "mode",
+                    "style",
+                    "player",
+                    "server",
+                    "created_on"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "minimum": 0
+                    },
+                    "kind": {
+                      "$ref": "#/components/schemas/Jumpstat"
+                    },
+                    "distance": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "mode": {
+                      "$ref": "#/components/schemas/Mode"
+                    },
+                    "style": {
+                      "$ref": "#/components/schemas/Style"
+                    },
+                    "player": {
+                      "$ref": "#/components/schemas/Player"
+                    },
+                    "server": {
+                      "$ref": "#/components/schemas/ServerSummary"
+                    },
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "example": {
+                    "created_on": "2023-12-10T10:41:01Z",
+                    "distance": 269.7274,
+                    "id": 1,
+                    "kind": "longjump",
+                    "mode": "kz_modded",
+                    "player": {
+                      "name": "AlphaKeks",
+                      "steam_id": "STEAM_1:1:161178172"
+                    },
+                    "server": {
+                      "id": 1,
+                      "name": "Alpha's KZ"
+                    },
+                    "style": "normal"
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      }
+    },
+    "/jumpstats/:steam_id": {
+      "post": {
+        "tags": [
+          "Jumpstats"
+        ],
+        "summary": "This endpoint is used by servers to send jumpstats.",
+        "description": "This endpoint is used by servers to send jumpstats.\n\nServers are supposed to fetch the player's PBs when they join and only make requests to this\nroute with new PBs, but the endpoint will still validate the jumpstat, so it is expected to\nreturn a 409 occasionally.",
+        "operationId": "create_jumpstat",
+        "parameters": [
+          {
+            "name": "steam_id",
+            "in": "path",
+            "description": "A player's SteamID.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SteamID"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateJumpstatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "A resource has been created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "A new jumpstat.",
+                  "required": [
+                    "id"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The jumpstat's ID.",
+                      "minimum": 0
+                    }
+                  },
+                  "example": {
+                    "id": 69420
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "401": {
+            "description": "You do not have access to this resource."
+          },
+          "409": {
+            "description": "The request conflicts with the server's state. This can happen, for example, when trying to create a resource that already exists."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        },
+        "security": [
+          {
+            "GameServer JWT": []
+          }
+        ]
+      }
+    },
+    "/records": {
+      "get": {
+        "tags": [
+          "Records"
+        ],
+        "summary": "This endpoint allows you to fetch records.",
+        "description": "This endpoint allows you to fetch records.",
+        "operationId": "get_records",
+        "parameters": [
+          {
+            "name": "player",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/PlayerIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "map",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/MapIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "server",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ServerIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "nullable": true,
+              "maximum": 500,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "A KZ record.",
+                  "required": [
+                    "id",
+                    "player",
+                    "course",
+                    "teleports",
+                    "server",
+                    "bhop_stats",
+                    "created_on"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The record's ID.",
+                      "minimum": 0
+                    },
+                    "player": {
+                      "$ref": "#/components/schemas/Player"
+                    },
+                    "course": {
+                      "$ref": "#/components/schemas/CourseWithFilter"
+                    },
+                    "teleports": {
+                      "type": "integer",
+                      "format": "uint32",
+                      "description": "The amount of teleports used in this run.",
+                      "minimum": 0
+                    },
+                    "server": {
+                      "$ref": "#/components/schemas/ServerSummary"
+                    },
+                    "bhop_stats": {
+                      "$ref": "#/components/schemas/BhopStats"
+                    },
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "When this record was set."
+                    }
+                  },
+                  "example": {
+                    "bhop_stats": {
+                      "bhops_tick0": 100,
+                      "bhops_tick1": 100,
+                      "bhops_tick2": 30,
+                      "bhops_tick3": 10,
+                      "bhops_tick4": 10,
+                      "bhops_tick5": 0,
+                      "bhops_tick6": 0,
+                      "bhops_tick7": 0,
+                      "bhops_tick8": 0,
+                      "perfs": 200
+                    },
+                    "course": {
+                      "id": 1,
+                      "map_id": 1,
+                      "map_name": "kz_checkmate",
+                      "map_stage": 1,
+                      "mode": "kz_modded",
+                      "style": "normal",
+                      "tier": 3
+                    },
+                    "created_on": "2023-12-10T10:41:01Z",
+                    "id": 1,
+                    "player": {
+                      "name": "AlphaKeks",
+                      "steam_id": "STEAM_1:1:161178172"
+                    },
+                    "server": {
+                      "id": 1,
+                      "name": "Alpha's KZ"
+                    },
+                    "teleports": 69
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Records"
+        ],
+        "summary": "This endpoint is used by servers to send records.",
+        "description": "This endpoint is used by servers to send records.",
+        "operationId": "create_record",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRecordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "A resource has been created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "A new record.",
+                  "required": [
+                    "record_id"
+                  ],
+                  "properties": {
+                    "record_id": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The record's ID.",
+                      "minimum": 0
+                    }
+                  },
+                  "example": {
+                    "record_id": 69420
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "401": {
+            "description": "You do not have access to this resource."
+          },
+          "409": {
+            "description": "The request conflicts with the server's state. This can happen, for example, when trying to create a resource that already exists."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        },
+        "security": [
+          {
+            "GameServer JWT": []
+          }
+        ]
+      }
+    },
+    "/bans": {
+      "get": {
+        "tags": [
+          "Bans"
+        ],
+        "summary": "This endpoint allows you to fetch bans.",
+        "description": "This endpoint allows you to fetch bans.",
+        "operationId": "get_bans",
+        "parameters": [
+          {
+            "name": "player",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/PlayerIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "server",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ServerIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          {
+            "name": "banned_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/PlayerIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "expired",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "nullable": true,
+              "maximum": 500,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "A KZ record.",
+                  "required": [
+                    "id",
+                    "player",
+                    "reason",
+                    "created_on"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The ban's ID.",
+                      "minimum": 0
+                    },
+                    "player": {
+                      "$ref": "#/components/schemas/Player"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The reason for the ban."
+                    },
+                    "server": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/ServerSummary"
+                        }
+                      ],
+                      "nullable": true
+                    },
+                    "banned_by": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Player"
+                        }
+                      ],
+                      "nullable": true
+                    },
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "When this ban was issued."
+                    },
+                    "expires_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "When this ban will expire.",
+                      "nullable": true
+                    }
+                  },
+                  "example": {
+                    "created_on": "2023-12-10T10:41:01Z",
+                    "id": 1,
+                    "player": {
+                      "name": "AlphaKeks",
+                      "steam_id": "STEAM_1:1:161178172"
+                    },
+                    "reason": "bhop_hack",
+                    "server": {
+                      "id": 1,
+                      "name": "Alpha's KZ"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "500": {
+            "description": "A bug in the API."
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
       "post": {
         "tags": [
           "Auth"
         ],
-        "summary": "CS2 server authentication.",
-        "description": "CS2 server authentication.\n\nThis endpoint is used by CS2 game servers to refresh their access token.",
+        "summary": "This endpoint is used by servers to refresh their JWTs.",
+        "description": "This endpoint is used by servers to refresh their JWTs.",
         "operationId": "refresh_token",
         "requestBody": {
           "content": {
@@ -56,7 +1903,7 @@
             }
           },
           "400": {
-            "description": "Something about the request was incorrect."
+            "description": "Required request data was missing / invalid."
           },
           "401": {
             "description": "You do not have access to this resource."
@@ -67,1789 +1914,26 @@
         }
       }
     },
-    "/api/players": {
+    "/auth/steam/login": {
       "get": {
         "tags": [
-          "Players"
+          "Auth"
         ],
-        "operationId": "get_players",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "query",
-            "description": "Name of a player.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "playtime",
-            "in": "query",
-            "description": "A minimum amount of playtime.",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint32",
-              "nullable": true,
-              "minimum": 0
-            }
-          },
-          {
-            "name": "is_banned",
-            "in": "query",
-            "description": "Only include (not) banned players.",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "nullable": true
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "default": 0,
-              "nullable": true,
-              "minimum": 0
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Return at most this many results.",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "default": 100,
-              "nullable": true,
-              "maximum": 500,
-              "minimum": 0
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "A KZ player.",
-                  "required": [
-                    "name",
-                    "steam_id",
-                    "time_active",
-                    "time_spectating",
-                    "time_afk",
-                    "is_banned",
-                    "perfs",
-                    "bhops_tick0",
-                    "bhops_tick1",
-                    "bhops_tick2",
-                    "bhops_tick3",
-                    "bhops_tick4",
-                    "bhops_tick5",
-                    "bhops_tick6",
-                    "bhops_tick7",
-                    "bhops_tick8"
-                  ],
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "The player's Steam name."
-                    },
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "time_active": {
-                      "type": "integer",
-                      "format": "uint32",
-                      "description": "The player's total active time spent on verified servers.",
-                      "minimum": 0
-                    },
-                    "time_spectating": {
-                      "type": "integer",
-                      "format": "uint32",
-                      "description": "The player's total time spent spectating on verified servers.",
-                      "minimum": 0
-                    },
-                    "time_afk": {
-                      "type": "integer",
-                      "format": "uint32",
-                      "description": "The player's total AFK time spent on verified servers.",
-                      "minimum": 0
-                    },
-                    "is_banned": {
-                      "type": "boolean",
-                      "description": "Whether the player is banned."
-                    },
-                    "perfs": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many perfect bhops the player has hit in total.",
-                      "minimum": 0
-                    },
-                    "bhops_tick0": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 0 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick1": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 1 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick2": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 2 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick3": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 3 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick4": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 4 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick5": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 5 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick6": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 6 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick7": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 7 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick8": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 8 ticks after landing.",
-                      "minimum": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Players"
-        ],
-        "operationId": "create_player",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlayer"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "401": {
-            "description": "You do not have access to this resource."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        },
-        "security": [
-          {
-            "API Token": []
-          }
-        ]
+        "summary": "This is where the frontend will redirect users to when they click \"login\".",
+        "description": "This is where the frontend will redirect users to when they click \"login\".\nSteam will redirect them back to the API to confirm their identity.",
+        "operationId": "login",
+        "responses": {}
       }
     },
-    "/api/players/{ident}": {
+    "/auth/steam/callback": {
       "get": {
         "tags": [
-          "Players"
+          "Auth"
         ],
-        "operationId": "get_player",
-        "parameters": [
-          {
-            "name": "ident",
-            "in": "path",
-            "description": "The player's `SteamID` or name",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/PlayerIdentifier"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "A KZ player.",
-                  "required": [
-                    "name",
-                    "steam_id",
-                    "time_active",
-                    "time_spectating",
-                    "time_afk",
-                    "is_banned",
-                    "perfs",
-                    "bhops_tick0",
-                    "bhops_tick1",
-                    "bhops_tick2",
-                    "bhops_tick3",
-                    "bhops_tick4",
-                    "bhops_tick5",
-                    "bhops_tick6",
-                    "bhops_tick7",
-                    "bhops_tick8"
-                  ],
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "The player's Steam name."
-                    },
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "time_active": {
-                      "type": "integer",
-                      "format": "uint32",
-                      "description": "The player's total active time spent on verified servers.",
-                      "minimum": 0
-                    },
-                    "time_spectating": {
-                      "type": "integer",
-                      "format": "uint32",
-                      "description": "The player's total time spent spectating on verified servers.",
-                      "minimum": 0
-                    },
-                    "time_afk": {
-                      "type": "integer",
-                      "format": "uint32",
-                      "description": "The player's total AFK time spent on verified servers.",
-                      "minimum": 0
-                    },
-                    "is_banned": {
-                      "type": "boolean",
-                      "description": "Whether the player is banned."
-                    },
-                    "perfs": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many perfect bhops the player has hit in total.",
-                      "minimum": 0
-                    },
-                    "bhops_tick0": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 0 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick1": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 1 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick2": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 2 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick3": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 3 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick4": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 4 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick5": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 5 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick6": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 6 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick7": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 7 ticks after landing.",
-                      "minimum": 0
-                    },
-                    "bhops_tick8": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "How many bhops the player has hit 8 ticks after landing.",
-                      "minimum": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/players/{steam_id}": {
-      "patch": {
-        "tags": [
-          "Players"
-        ],
-        "operationId": "update_player",
-        "parameters": [
-          {
-            "name": "steam_id",
-            "in": "path",
-            "description": "The player's SteamID",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/SteamID"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PlayerUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "401": {
-            "description": "You do not have access to this resource."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        },
-        "security": [
-          {
-            "API Token": []
-          }
-        ]
-      }
-    },
-    "/api/bans": {
-      "get": {
-        "tags": [
-          "Bans"
-        ],
-        "operationId": "get_bans",
-        "parameters": [
-          {
-            "name": "player",
-            "in": "query",
-            "description": "`SteamID` or name of a player.",
-            "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/PlayerIdentifier"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
-            "name": "reason",
-            "in": "query",
-            "description": "A ban reason.",
-            "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/BanReason"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
-            "name": "server",
-            "in": "query",
-            "description": "The ID or name of a server.",
-            "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/ServerIdentifier"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
-            "name": "expired",
-            "in": "query",
-            "description": "Only include (non) expired bans.",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "nullable": true
-            }
-          },
-          {
-            "name": "created_after",
-            "in": "query",
-            "description": "Only include bans that were issued after a certain date.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "nullable": true
-            }
-          },
-          {
-            "name": "created_before",
-            "in": "query",
-            "description": "Only include bans that were issued before a certain date.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "nullable": true
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "default": 0,
-              "nullable": true,
-              "minimum": 0
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Return at most this many results.",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "default": 100,
-              "nullable": true,
-              "maximum": 500,
-              "minimum": 0
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Information about a ban of a player.",
-                  "required": [
-                    "id",
-                    "name",
-                    "steam_id",
-                    "reason",
-                    "date"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "uint32",
-                      "description": "The ban's ID.",
-                      "minimum": 0
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "The player's Steam name."
-                    },
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "reason": {
-                      "$ref": "#/components/schemas/BanReason"
-                    },
-                    "date": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when the player was banned."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Bans"
-        ],
-        "operationId": "create_ban",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewBan"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Information about a newly created ban.",
-                  "required": [
-                    "id"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "uint32",
-                      "description": "The ban's ID.",
-                      "minimum": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "401": {
-            "description": "You do not have access to this resource."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        },
-        "security": [
-          {
-            "API Token": []
-          }
-        ]
-      }
-    },
-    "/api/bans/{id}/replay": {
-      "get": {
-        "tags": [
-          "Bans"
-        ],
-        "operationId": "get_replay",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "The ban's ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/maps": {
-      "get": {
-        "tags": [
-          "Maps"
-        ],
-        "operationId": "get_maps",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "query",
-            "description": "A map's name.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "created_after",
-            "in": "query",
-            "description": "Only include maps that were globalled after a certain date.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "nullable": true
-            }
-          },
-          {
-            "name": "created_before",
-            "in": "query",
-            "description": "Only include maps that were globalled before a certain date.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "nullable": true
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "default": 0,
-              "nullable": true,
-              "minimum": 0
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Return at most this many results.\n\nDefaults to 100 and caps out at 1000.",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "default": 100,
-              "nullable": true,
-              "maximum": 1000,
-              "minimum": 0
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "A KZ map.",
-                  "required": [
-                    "id",
-                    "name",
-                    "workshop_id",
-                    "filesize",
-                    "mappers",
-                    "courses",
-                    "created_on"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "The map's ID.",
-                      "minimum": 0
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "The map's name."
-                    },
-                    "workshop_id": {
-                      "type": "integer",
-                      "format": "uint32",
-                      "description": "The map's Steam workshop ID.",
-                      "minimum": 0
-                    },
-                    "filesize": {
-                      "type": "integer",
-                      "format": "uint64",
-                      "description": "The filesize of the map.",
-                      "minimum": 0
-                    },
-                    "mappers": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/PlayerInfo"
-                      },
-                      "description": "The players who created this map."
-                    },
-                    "courses": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/MapCourse"
-                      },
-                      "description": "A list of the courses on this map."
-                    },
-                    "created_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when this map was globalled."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Maps"
-        ],
-        "operationId": "create_map",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewMap"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Information about a newly created KZ map.",
-                  "required": [
-                    "id",
-                    "courses"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "The ID of the map.",
-                      "minimum": 0
-                    },
-                    "courses": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/CreatedCourse"
-                      },
-                      "description": "List of courses."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "401": {
-            "description": "You do not have access to this resource."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/maps/{ident}": {
-      "get": {
-        "tags": [
-          "Maps"
-        ],
-        "operationId": "get_map",
-        "parameters": [
-          {
-            "name": "ident",
-            "in": "path",
-            "description": "The map's ID or name",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/MapIdentifier"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "A KZ map.",
-                  "required": [
-                    "id",
-                    "name",
-                    "workshop_id",
-                    "filesize",
-                    "mappers",
-                    "courses",
-                    "created_on"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "The map's ID.",
-                      "minimum": 0
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "The map's name."
-                    },
-                    "workshop_id": {
-                      "type": "integer",
-                      "format": "uint32",
-                      "description": "The map's Steam workshop ID.",
-                      "minimum": 0
-                    },
-                    "filesize": {
-                      "type": "integer",
-                      "format": "uint64",
-                      "description": "The filesize of the map.",
-                      "minimum": 0
-                    },
-                    "mappers": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/PlayerInfo"
-                      },
-                      "description": "The players who created this map."
-                    },
-                    "courses": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/MapCourse"
-                      },
-                      "description": "A list of the courses on this map."
-                    },
-                    "created_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when this map was globalled."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/maps/{id}": {
-      "patch": {
-        "tags": [
-          "Maps"
-        ],
-        "operationId": "update_map",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "The map's ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MapUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "401": {
-            "description": "You do not have access to this resource."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/servers": {
-      "get": {
-        "tags": [
-          "Servers"
-        ],
-        "operationId": "get_servers",
-        "parameters": [
-          {
-            "name": "name",
-            "in": "query",
-            "description": "A server name.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "nullable": true
-            }
-          },
-          {
-            "name": "owned_by",
-            "in": "query",
-            "description": "`SteamID` or name of a player.",
-            "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/PlayerIdentifier"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
-            "name": "created_after",
-            "in": "query",
-            "description": "Only include servers that were approved after a certain date.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "nullable": true
-            }
-          },
-          {
-            "name": "created_before",
-            "in": "query",
-            "description": "Only include servers that were approved before a certain date.",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time",
-              "nullable": true
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "default": 0,
-              "nullable": true,
-              "minimum": 0
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Return at most this many results.",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "default": 100,
-              "nullable": true,
-              "maximum": 500,
-              "minimum": 0
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "A KZ server.",
-                  "required": [
-                    "id",
-                    "name",
-                    "owned_by",
-                    "ip_address",
-                    "port"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "The ID of the server.",
-                      "minimum": 0
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "The name of the server."
-                    },
-                    "owned_by": {
-                      "$ref": "#/components/schemas/PlayerInfo"
-                    },
-                    "ip_address": {
-                      "type": "string",
-                      "description": "The IP address of this server."
-                    },
-                    "port": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "The port of this server.",
-                      "minimum": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Servers"
-        ],
-        "operationId": "create_server",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewServer"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "Information about a newly created KZ server.",
-                  "required": [
-                    "id"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "The ID of the server.",
-                      "minimum": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "401": {
-            "description": "You do not have access to this resource."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/servers/{ident}": {
-      "get": {
-        "tags": [
-          "Servers"
-        ],
-        "operationId": "get_server",
-        "parameters": [
-          {
-            "name": "ident",
-            "in": "path",
-            "description": "The servers's ID or name",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ServerIdentifier"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "A KZ server.",
-                  "required": [
-                    "id",
-                    "name",
-                    "owned_by",
-                    "ip_address",
-                    "port"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "The ID of the server.",
-                      "minimum": 0
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "The name of the server."
-                    },
-                    "owned_by": {
-                      "$ref": "#/components/schemas/PlayerInfo"
-                    },
-                    "ip_address": {
-                      "type": "string",
-                      "description": "The IP address of this server."
-                    },
-                    "port": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "The port of this server.",
-                      "minimum": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/servers/{id}": {
-      "patch": {
-        "tags": [
-          "Servers"
-        ],
-        "operationId": "update_server",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "The server's ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ServerUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "401": {
-            "description": "You do not have access to this resource."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/records": {
-      "get": {
-        "tags": [
-          "Records"
-        ],
-        "operationId": "get_records",
-        "parameters": [
-          {
-            "name": "map",
-            "in": "query",
-            "description": "A map's ID or name.",
-            "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/MapIdentifier"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
-            "name": "stage",
-            "in": "query",
-            "description": "A map stage.",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint8",
-              "nullable": true,
-              "minimum": 0
-            }
-          },
-          {
-            "name": "course_id",
-            "in": "query",
-            "description": "A course ID.",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint8",
-              "nullable": true,
-              "minimum": 0
-            }
-          },
-          {
-            "name": "player",
-            "in": "query",
-            "description": "A player's `SteamID` or name.",
-            "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/PlayerIdentifier"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
-            "name": "mode",
-            "in": "query",
-            "description": "A mode.",
-            "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Mode"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
-            "name": "runtype",
-            "in": "query",
-            "description": "A runtype (Pro/TP).",
-            "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Runtype"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
-            "name": "server",
-            "in": "query",
-            "description": "A server's ID or name.",
-            "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/ServerIdentifier"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
-            "name": "top_only",
-            "in": "query",
-            "description": "Only include personal bests.",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "nullable": true
-            }
-          },
-          {
-            "name": "allow_banned",
-            "in": "query",
-            "description": "Only include records from (non) banned players.",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "nullable": true
-            }
-          },
-          {
-            "name": "allow_non_ranked",
-            "in": "query",
-            "description": "Only include records on (non) ranked courses.",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "nullable": true
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "default": 0,
-              "nullable": true,
-              "minimum": 0
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Return at most this many results.",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "default": 100,
-              "nullable": true,
-              "maximum": 500,
-              "minimum": 0
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "A KZ record.",
-                  "required": [
-                    "id",
-                    "map",
-                    "mode",
-                    "style",
-                    "player",
-                    "server",
-                    "teleports",
-                    "time",
-                    "created_on"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "uint64",
-                      "description": "The ID of the record.",
-                      "minimum": 0
-                    },
-                    "map": {
-                      "$ref": "#/components/schemas/RecordMap"
-                    },
-                    "mode": {
-                      "$ref": "#/components/schemas/Mode"
-                    },
-                    "style": {
-                      "$ref": "#/components/schemas/Style"
-                    },
-                    "player": {
-                      "$ref": "#/components/schemas/RecordPlayer"
-                    },
-                    "server": {
-                      "$ref": "#/components/schemas/RecordServer"
-                    },
-                    "teleports": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "The amount of teleports used during this run.",
-                      "minimum": 0
-                    },
-                    "time": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "The time it took to complete this run (in seconds)."
-                    },
-                    "created_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when this record was submitted."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Records"
-        ],
-        "operationId": "create_record",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewRecord"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "A newly created KZ record.",
-                  "required": [
-                    "id"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "uint64",
-                      "description": "The record's ID.",
-                      "minimum": 0
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "401": {
-            "description": "You do not have access to this resource."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        },
-        "security": [
-          {
-            "API Token": []
-          }
-        ]
-      }
-    },
-    "/api/records/{id}": {
-      "get": {
-        "tags": [
-          "Records"
-        ],
-        "operationId": "get_record",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "The records's ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "A KZ record.",
-                  "required": [
-                    "id",
-                    "map",
-                    "mode",
-                    "style",
-                    "player",
-                    "server",
-                    "teleports",
-                    "time",
-                    "created_on"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer",
-                      "format": "uint64",
-                      "description": "The ID of the record.",
-                      "minimum": 0
-                    },
-                    "map": {
-                      "$ref": "#/components/schemas/RecordMap"
-                    },
-                    "mode": {
-                      "$ref": "#/components/schemas/Mode"
-                    },
-                    "style": {
-                      "$ref": "#/components/schemas/Style"
-                    },
-                    "player": {
-                      "$ref": "#/components/schemas/RecordPlayer"
-                    },
-                    "server": {
-                      "$ref": "#/components/schemas/RecordServer"
-                    },
-                    "teleports": {
-                      "type": "integer",
-                      "format": "uint16",
-                      "description": "The amount of teleports used during this run.",
-                      "minimum": 0
-                    },
-                    "time": {
-                      "type": "number",
-                      "format": "double",
-                      "description": "The time it took to complete this run (in seconds)."
-                    },
-                    "created_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when this record was submitted."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
-      }
-    },
-    "/api/records/{id}/replay": {
-      "get": {
-        "tags": [
-          "Records"
-        ],
-        "operationId": "get_replay",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "description": "The records's ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "204": {
-            "description": "There is no data available for the given query."
-          },
-          "400": {
-            "description": "Something about the request was incorrect."
-          },
-          "500": {
-            "description": "A bug in the API."
-          }
-        }
+        "summary": "This is where Steam will redirect a user back to after logging in.",
+        "description": "This is where Steam will redirect a user back to after logging in.\nWe verify that the request actually comes from steam and give the user a cookie containing\na JWT.",
+        "operationId": "callback",
+        "responses": {}
       }
     }
   },
@@ -1857,6 +1941,7 @@
     "schemas": {
       "AuthRequest": {
         "type": "object",
+        "description": "This data is sent by servers to refresh their JWT.",
         "required": [
           "api_key",
           "plugin_version"
@@ -1865,59 +1950,84 @@
           "api_key": {
             "type": "integer",
             "format": "uint32",
+            "description": "The server's \"permanent\" API key.",
             "minimum": 0
           },
           "plugin_version": {
             "type": "integer",
             "format": "uint16",
+            "description": "The CS2KZ version the server is currently running.",
             "minimum": 0
           }
         }
       },
       "Ban": {
         "type": "object",
-        "description": "Information about a ban of a player.",
+        "description": "A KZ record.",
         "required": [
           "id",
-          "name",
-          "steam_id",
+          "player",
           "reason",
-          "date"
+          "created_on"
         ],
         "properties": {
           "id": {
             "type": "integer",
-            "format": "uint32",
+            "format": "uint64",
             "description": "The ban's ID.",
             "minimum": 0
           },
-          "name": {
-            "type": "string",
-            "description": "The player's Steam name."
-          },
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
+          "player": {
+            "$ref": "#/components/schemas/Player"
           },
           "reason": {
-            "$ref": "#/components/schemas/BanReason"
+            "type": "string",
+            "description": "The reason for the ban."
           },
-          "date": {
+          "server": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ServerSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "banned_by": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Player"
+              }
+            ],
+            "nullable": true
+          },
+          "created_on": {
             "type": "string",
             "format": "date-time",
-            "description": "Timestamp of when the player was banned."
+            "description": "When this ban was issued."
+          },
+          "expires_on": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this ban will expire.",
+            "nullable": true
+          }
+        },
+        "example": {
+          "created_on": "2023-12-10T10:41:01Z",
+          "id": 1,
+          "player": {
+            "name": "AlphaKeks",
+            "steam_id": "STEAM_1:1:161178172"
+          },
+          "reason": "bhop_hack",
+          "server": {
+            "id": 1,
+            "name": "Alpha's KZ"
           }
         }
       },
-      "BanReason": {
-        "type": "string",
-        "description": "Reasons for a ban.",
-        "enum": [
-          "auto_bhop"
-        ]
-      },
       "BhopStats": {
         "type": "object",
-        "description": "Bhop statistics.",
         "required": [
           "perfs",
           "bhops_tick0",
@@ -1985,216 +2095,162 @@
       },
       "Course": {
         "type": "object",
-        "description": "A course on a KZ map.",
+        "description": "Information about a course.",
         "required": [
-          "map_stage",
-          "created_by",
+          "id",
+          "stage",
+          "mappers",
           "filters"
         ],
         "properties": {
-          "map_stage": {
+          "id": {
             "type": "integer",
-            "format": "uint8",
-            "description": "The stage this course corresponds to.",
+            "format": "uint32",
+            "description": "The course's ID.",
             "minimum": 0
           },
-          "created_by": {
-            "$ref": "#/components/schemas/SteamID"
+          "stage": {
+            "type": "integer",
+            "format": "uint8",
+            "description": "The stage of the map this course corresponds to.",
+            "minimum": 0
+          },
+          "mappers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Mapper"
+            },
+            "description": "List of the players who created this course."
           },
           "filters": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Filter"
             },
-            "description": "List of filters on this course."
+            "description": "List of filters that apply to this course."
           }
-        }
-      },
-      "CourseFilter": {
-        "type": "object",
-        "description": "A filter for a course on a KZ map.\n\nThis determines which (mode, runtype) combination is feasible on a given course, as well as its\nranked status and difficulty.",
-        "required": [
-          "id",
-          "mode",
-          "runtype",
-          "tier",
-          "ranked"
-        ],
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The ID of this filter.",
-            "minimum": 0
-          },
-          "mode": {
-            "$ref": "#/components/schemas/Mode"
-          },
-          "runtype": {
-            "$ref": "#/components/schemas/Runtype"
-          },
-          "tier": {
-            "$ref": "#/components/schemas/Tier"
-          },
-          "ranked": {
-            "type": "boolean",
-            "description": "Whether this course with the given (mode, runtype) combination is ranked."
-          }
-        }
-      },
-      "CreatedBan": {
-        "type": "object",
-        "description": "Information about a newly created ban.",
-        "required": [
-          "id"
-        ],
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The ban's ID.",
-            "minimum": 0
-          }
-        }
-      },
-      "CreatedCourse": {
-        "type": "object",
-        "description": "A newly created course on a KZ map.",
-        "required": [
-          "id",
-          "map_stage",
-          "filters"
-        ],
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The ID of the course.",
-            "minimum": 0
-          },
-          "map_stage": {
-            "type": "integer",
-            "format": "uint8",
-            "description": "The stage this course corresponds to.",
-            "minimum": 0
-          },
-          "filters": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CreatedFilter"
+        },
+        "example": {
+          "filters": [
+            {
+              "has_teleports": true,
+              "mode": "kz_modded",
+              "ranked": true,
+              "tier": 3
             },
-            "description": "A list of filters on this course."
-          }
-        }
-      },
-      "CreatedFilter": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Filter"
-          },
-          {
-            "type": "object",
-            "required": [
-              "id"
-            ],
-            "properties": {
-              "id": {
-                "type": "integer",
-                "format": "uint32",
-                "description": "The ID of the filter.",
-                "minimum": 0
-              }
+            {
+              "has_teleports": false,
+              "mode": "kz_modded",
+              "ranked": true,
+              "tier": 4
             }
-          }
-        ],
-        "description": "A newly created filter on a KZ map course."
-      },
-      "CreatedMap": {
-        "type": "object",
-        "description": "Information about a newly created KZ map.",
-        "required": [
-          "id",
-          "courses"
-        ],
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The ID of the map.",
-            "minimum": 0
-          },
-          "courses": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CreatedCourse"
-            },
-            "description": "List of courses."
-          }
+          ],
+          "id": 1,
+          "mappers": [
+            {
+              "name": "GameChaos",
+              "steam_id": "STEAM_1:0:102468802"
+            }
+          ],
+          "stage": 0
         }
       },
-      "CreatedRecord": {
+      "CourseUpdate": {
         "type": "object",
-        "description": "A newly created KZ record.",
+        "description": "An update to a course.",
         "required": [
-          "id"
-        ],
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "uint64",
-            "description": "The record's ID.",
-            "minimum": 0
-          }
-        }
-      },
-      "CreatedServer": {
-        "type": "object",
-        "description": "Information about a newly created KZ server.",
-        "required": [
-          "id"
-        ],
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The ID of the server.",
-            "minimum": 0
-          }
-        }
-      },
-      "Filter": {
-        "type": "object",
-        "description": "A filter for a KZ map course.\n\nIt describes which combination of mode and style are allowed to submit records, and how\ndifficult it is to complete a course with that combination.",
-        "required": [
-          "mode",
-          "runtype",
-          "tier"
-        ],
-        "properties": {
-          "mode": {
-            "$ref": "#/components/schemas/Mode"
-          },
-          "runtype": {
-            "$ref": "#/components/schemas/Runtype"
-          },
-          "tier": {
-            "$ref": "#/components/schemas/Tier"
-          }
-        }
-      },
-      "FilterWithCourseId": {
-        "type": "object",
-        "description": "Information about a filter.",
-        "required": [
-          "course_id",
-          "mode",
-          "style"
+          "course_id"
         ],
         "properties": {
           "course_id": {
             "type": "integer",
             "format": "uint32",
-            "description": "The ID of the course this filter belongs to.",
+            "description": "The course's ID.",
+            "minimum": 0
+          },
+          "added_mappers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SteamID"
+            },
+            "description": "List of new mappers.",
+            "nullable": true
+          },
+          "removed_mappers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SteamID"
+            },
+            "description": "List of old mappers to be removed.",
+            "nullable": true
+          },
+          "added_filters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Filter"
+            },
+            "description": "List of new filters.",
+            "nullable": true
+          },
+          "removed_filters": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "description": "List of filter IDs to be removed.",
+            "nullable": true
+          },
+          "filter_updates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterUpdate"
+            },
+            "description": "List of updates for existing filters.",
+            "nullable": true
+          }
+        },
+        "example": {
+          "added_mappers": [
+            "STEAM_1:0:102468802"
+          ],
+          "course_id": 1
+        }
+      },
+      "CourseWithFilter": {
+        "type": "object",
+        "description": "Combination of a course and filter.",
+        "required": [
+          "id",
+          "map_id",
+          "map_name",
+          "map_stage",
+          "mode",
+          "style",
+          "tier"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The course's ID.",
+            "minimum": 0
+          },
+          "map_id": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "The ID of the map the course belongs to.",
+            "minimum": 0
+          },
+          "map_name": {
+            "type": "string",
+            "description": "The name of the map the course belongs to."
+          },
+          "map_stage": {
+            "type": "integer",
+            "format": "uint8",
+            "description": "The stage of the map this course corresponds to.",
             "minimum": 0
           },
           "mode": {
@@ -2202,7 +2258,429 @@
           },
           "style": {
             "$ref": "#/components/schemas/Style"
+          },
+          "tier": {
+            "$ref": "#/components/schemas/Tier"
           }
+        }
+      },
+      "CreateCourse": {
+        "type": "object",
+        "description": "A new course.",
+        "required": [
+          "stage",
+          "mappers",
+          "filters"
+        ],
+        "properties": {
+          "stage": {
+            "type": "integer",
+            "format": "uint8",
+            "description": "The stage of the map this course corresponds to.",
+            "minimum": 0
+          },
+          "mappers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SteamID"
+            },
+            "description": "List of the players who created this course."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Filter"
+            },
+            "description": "List of filters that apply to this course."
+          }
+        },
+        "example": {
+          "filters": [
+            {
+              "has_teleports": true,
+              "mode": "kz_modded",
+              "ranked": true,
+              "tier": 3
+            },
+            {
+              "has_teleports": false,
+              "mode": "kz_modded",
+              "ranked": true,
+              "tier": 4
+            }
+          ],
+          "mappers": [
+            "STEAM_1:0:102468802"
+          ],
+          "stage": 0
+        }
+      },
+      "CreateJumpstatRequest": {
+        "type": "object",
+        "description": "A jumpstat.",
+        "required": [
+          "kind",
+          "distance",
+          "mode",
+          "style"
+        ],
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/Jumpstat"
+          },
+          "distance": {
+            "type": "number",
+            "format": "double"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/Mode"
+          },
+          "style": {
+            "$ref": "#/components/schemas/Style"
+          }
+        },
+        "example": {
+          "distance": 230.3418,
+          "kind": "longjump",
+          "mode": "kz_vanilla",
+          "style": "backwards"
+        }
+      },
+      "CreateMapRequest": {
+        "type": "object",
+        "description": "A new map.",
+        "required": [
+          "name",
+          "workshop_id",
+          "filesize",
+          "mappers",
+          "courses"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The map's name."
+          },
+          "workshop_id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The map's Steam Workshop ID.",
+            "minimum": 0
+          },
+          "filesize": {
+            "type": "integer",
+            "format": "uint64",
+            "description": "The map's filesize in bytes.",
+            "minimum": 0
+          },
+          "mappers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SteamID"
+            },
+            "description": "List of players who have contributed to creating this map."
+          },
+          "courses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateCourse"
+            },
+            "description": "List of courses on this map."
+          }
+        },
+        "example": {
+          "courses": [
+            {
+              "filters": [
+                {
+                  "has_teleports": true,
+                  "mode": "kz_modded",
+                  "ranked": true,
+                  "tier": 3
+                },
+                {
+                  "has_teleports": false,
+                  "mode": "kz_modded",
+                  "ranked": true,
+                  "tier": 4
+                }
+              ],
+              "mappers": [
+                "STEAM_1:0:102468802"
+              ],
+              "stage": 0
+            }
+          ],
+          "filesize": 190335000,
+          "mappers": [
+            "STEAM_1:0:102468802"
+          ],
+          "name": "kz_checkmate",
+          "workshop_id": 3070194623
+        }
+      },
+      "CreateMapResponse": {
+        "type": "object",
+        "description": "A newly created map.",
+        "required": [
+          "map_id"
+        ],
+        "properties": {
+          "map_id": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "The map's ID.",
+            "minimum": 0
+          }
+        },
+        "example": {
+          "map_id": 1
+        }
+      },
+      "CreatePlayerRequest": {
+        "type": "object",
+        "description": "A new player.\n\nThis is expected to be sent by a CS2KZ server when a player joins for the first time.",
+        "required": [
+          "steam_id",
+          "name",
+          "ip_address"
+        ],
+        "properties": {
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ip_address": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "ip_address": "255.255.255.255",
+          "name": "AlphaKeks",
+          "steam_id": "STEAM_1:1:161178172"
+        }
+      },
+      "CreateRecordRequest": {
+        "type": "object",
+        "description": "A record.",
+        "required": [
+          "steam_id",
+          "map_id",
+          "map_stage",
+          "mode",
+          "style",
+          "teleports",
+          "time",
+          "bhop_stats"
+        ],
+        "properties": {
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
+          },
+          "map_id": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "The ID of the map the record was set on.",
+            "minimum": 0
+          },
+          "map_stage": {
+            "type": "integer",
+            "format": "uint8",
+            "description": "The stage the record was set on.",
+            "minimum": 0
+          },
+          "mode": {
+            "$ref": "#/components/schemas/Mode"
+          },
+          "style": {
+            "$ref": "#/components/schemas/Style"
+          },
+          "teleports": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The amount of teleports used for setting this records.",
+            "minimum": 0
+          },
+          "time": {
+            "type": "number",
+            "format": "double",
+            "description": "The time taken to finish this run."
+          },
+          "bhop_stats": {
+            "$ref": "#/components/schemas/BhopStats"
+          }
+        },
+        "example": {
+          "bhop_stats": {
+            "bhops_tick0": 100,
+            "bhops_tick1": 100,
+            "bhops_tick2": 30,
+            "bhops_tick3": 10,
+            "bhops_tick4": 10,
+            "bhops_tick5": 0,
+            "bhops_tick6": 0,
+            "bhops_tick7": 0,
+            "bhops_tick8": 0,
+            "perfs": 200
+          },
+          "map_id": 1,
+          "map_stage": 1,
+          "mode": "kz_vanilla",
+          "steam_id": "STEAM_1:1:161178172",
+          "style": "normal",
+          "teleports": 69,
+          "time": 420.69
+        }
+      },
+      "CreateServerRequest": {
+        "type": "object",
+        "description": "A new server.",
+        "required": [
+          "name",
+          "ip_address",
+          "owned_by"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The server's name."
+          },
+          "ip_address": {
+            "type": "string",
+            "description": "The server's IP address and port."
+          },
+          "owned_by": {
+            "$ref": "#/components/schemas/SteamID"
+          }
+        },
+        "example": {
+          "ip_address": "255.255.255.255:1337",
+          "name": "Alpha's KZ",
+          "owned_by": "STEAM_1:1:161178172"
+        }
+      },
+      "CreateServerResponse": {
+        "type": "object",
+        "description": "A newly created server.",
+        "required": [
+          "server_id"
+        ],
+        "properties": {
+          "server_id": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "The server's ID.",
+            "minimum": 0
+          }
+        },
+        "example": {
+          "server_id": 1
+        }
+      },
+      "CreatedJumpstatResponse": {
+        "type": "object",
+        "description": "A new jumpstat.",
+        "required": [
+          "id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "uint64",
+            "description": "The jumpstat's ID.",
+            "minimum": 0
+          }
+        },
+        "example": {
+          "id": 69420
+        }
+      },
+      "CreatedRecordResponse": {
+        "type": "object",
+        "description": "A new record.",
+        "required": [
+          "record_id"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "integer",
+            "format": "uint64",
+            "description": "The record's ID.",
+            "minimum": 0
+          }
+        },
+        "example": {
+          "record_id": 69420
+        }
+      },
+      "Filter": {
+        "type": "object",
+        "description": "Information about a course filter.",
+        "required": [
+          "mode",
+          "has_teleports",
+          "tier",
+          "ranked"
+        ],
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/Mode"
+          },
+          "has_teleports": {
+            "type": "boolean",
+            "description": "Whether this filter applies to runs with teleports."
+          },
+          "tier": {
+            "type": "integer",
+            "format": "uint8",
+            "description": "The difficulty of the course with this filter.",
+            "maximum": 10,
+            "minimum": 1
+          },
+          "ranked": {
+            "type": "boolean",
+            "description": "Whether the course is ranked with this filter."
+          }
+        },
+        "example": {
+          "has_teleports": true,
+          "mode": "kz_modded",
+          "ranked": true,
+          "tier": 3
+        }
+      },
+      "FilterUpdate": {
+        "type": "object",
+        "description": "An update to a filter.",
+        "required": [
+          "filter_id"
+        ],
+        "properties": {
+          "filter_id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The filter's ID.",
+            "minimum": 0
+          },
+          "tier": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Tier"
+              }
+            ],
+            "nullable": true
+          },
+          "ranked": {
+            "type": "boolean",
+            "description": "A new ranked status.",
+            "nullable": true
+          }
+        },
+        "example": {
+          "filter_id": 1,
+          "tier": 7
         }
       },
       "Jumpstat": {
@@ -2217,17 +2695,78 @@
           "ladderhop"
         ]
       },
-      "KZMap": {
+      "JumpstatResponse": {
         "type": "object",
-        "description": "A KZ map.",
+        "description": "A jumpstat.",
         "required": [
           "id",
-          "name",
+          "kind",
+          "distance",
+          "mode",
+          "style",
+          "player",
+          "server",
+          "created_on"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          },
+          "kind": {
+            "$ref": "#/components/schemas/Jumpstat"
+          },
+          "distance": {
+            "type": "number",
+            "format": "double"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/Mode"
+          },
+          "style": {
+            "$ref": "#/components/schemas/Style"
+          },
+          "player": {
+            "$ref": "#/components/schemas/Player"
+          },
+          "server": {
+            "$ref": "#/components/schemas/ServerSummary"
+          },
+          "created_on": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "example": {
+          "created_on": "2023-12-10T10:41:01Z",
+          "distance": 269.7274,
+          "id": 1,
+          "kind": "longjump",
+          "mode": "kz_modded",
+          "player": {
+            "name": "AlphaKeks",
+            "steam_id": "STEAM_1:1:161178172"
+          },
+          "server": {
+            "id": 1,
+            "name": "Alpha's KZ"
+          },
+          "style": "normal"
+        }
+      },
+      "KZMap": {
+        "type": "object",
+        "description": "Information about a map.",
+        "required": [
+          "id",
           "workshop_id",
-          "filesize",
+          "name",
           "mappers",
           "courses",
-          "created_on"
+          "filesize",
+          "created_on",
+          "updated_on"
         ],
         "properties": {
           "id": {
@@ -2236,79 +2775,86 @@
             "description": "The map's ID.",
             "minimum": 0
           },
+          "workshop_id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The map's Steam Workshop ID.",
+            "minimum": 0
+          },
           "name": {
             "type": "string",
             "description": "The map's name."
           },
-          "workshop_id": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The map's Steam workshop ID.",
-            "minimum": 0
-          },
-          "filesize": {
-            "type": "integer",
-            "format": "uint64",
-            "description": "The filesize of the map.",
-            "minimum": 0
-          },
           "mappers": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/PlayerInfo"
+              "$ref": "#/components/schemas/Mapper"
             },
-            "description": "The players who created this map."
+            "description": "List of the players who created this map."
           },
           "courses": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/MapCourse"
+              "$ref": "#/components/schemas/Course"
             },
-            "description": "A list of the courses on this map."
+            "description": "List of courses on this map."
+          },
+          "filesize": {
+            "type": "integer",
+            "format": "uint64",
+            "description": "The filesize of this map in bytes.",
+            "minimum": 0
           },
           "created_on": {
             "type": "string",
             "format": "date-time",
-            "description": "Timestamp of when this map was globalled."
+            "description": "Timestamp of when this map was initially approved."
+          },
+          "updated_on": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of when this map was last updated."
           }
-        }
-      },
-      "MapCourse": {
-        "type": "object",
-        "description": "A course on a KZ map.",
-        "required": [
-          "id",
-          "stage",
-          "mappers",
-          "filters"
-        ],
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The ID of the course.",
-            "minimum": 0
-          },
-          "stage": {
-            "type": "integer",
-            "format": "uint8",
-            "description": "The stage this course corresponds to.",
-            "minimum": 0
-          },
-          "mappers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PlayerInfo"
-            },
-            "description": "The players who created this course."
-          },
-          "filters": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CourseFilter"
-            },
-            "description": "List of filters."
-          }
+        },
+        "example": {
+          "courses": [
+            {
+              "filters": [
+                {
+                  "has_teleports": true,
+                  "mode": "kz_modded",
+                  "ranked": true,
+                  "tier": 3
+                },
+                {
+                  "has_teleports": false,
+                  "mode": "kz_modded",
+                  "ranked": true,
+                  "tier": 4
+                }
+              ],
+              "id": 1,
+              "mappers": [
+                {
+                  "name": "GameChaos",
+                  "steam_id": "STEAM_1:0:102468802"
+                }
+              ],
+              "stage": 0
+            }
+          ],
+          "created_on": "2023-12-10T10:41:01Z",
+          "filesize": 190335000,
+          "id": 1,
+          "mappers": [
+            {
+              "name": "GameChaos",
+              "steam_id": "STEAM_1:0:102468802"
+            }
+          ],
+          "name": "kz_checkmate",
+          "updated_on": "2023-12-10T10:41:01Z",
+          "workshop_id": 3070194623
         }
       },
       "MapIdentifier": {
@@ -2323,40 +2869,25 @@
           }
         ]
       },
-      "MapUpdate": {
+      "Mapper": {
         "type": "object",
-        "description": "Updated information about a KZ map.",
+        "description": "Information about a mapper.",
+        "required": [
+          "steam_id",
+          "name"
+        ],
         "properties": {
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
+          },
           "name": {
             "type": "string",
-            "description": "The new name of the map.",
-            "nullable": true
-          },
-          "workshop_id": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The new Steam workshop ID of the map.",
-            "nullable": true,
-            "minimum": 0
-          },
-          "filters_added": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FilterWithCourseId"
-            },
-            "description": "A list of new additional filters.",
-            "nullable": true
-          },
-          "filters_removed": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0
-            },
-            "description": "A list of IDs for filters that should be removed.",
-            "nullable": true
+            "description": "The mapper's name."
           }
+        },
+        "example": {
+          "name": "AlphaKeks",
+          "steam_id": "STEAM_1:1:161178172"
         }
       },
       "Mode": {
@@ -2366,290 +2897,25 @@
           "kz_modded"
         ]
       },
-      "NewBan": {
-        "type": "object",
-        "description": "Submissions for a player ban.",
-        "required": [
-          "steam_id",
-          "ip_address",
-          "reason"
-        ],
-        "properties": {
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
-          },
-          "ip_address": {
-            "type": "string",
-            "description": "The player's IP address at the time of the ban."
-          },
-          "reason": {
-            "$ref": "#/components/schemas/BanReason"
-          },
-          "banned_by": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SteamID"
-              }
-            ],
-            "nullable": true
-          },
-          "expires_on": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of when this ban expires.",
-            "nullable": true
-          }
-        }
-      },
-      "NewMap": {
-        "type": "object",
-        "description": "Information about a new KZ map.",
-        "required": [
-          "name",
-          "workshop_id",
-          "courses",
-          "filesize",
-          "mappers"
-        ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The name of the map."
-          },
-          "workshop_id": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The Steam workshop ID of the map.",
-            "minimum": 0
-          },
-          "courses": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Course"
-            },
-            "description": "A list of the map's courses."
-          },
-          "filesize": {
-            "type": "integer",
-            "format": "uint64",
-            "description": "The filesize of the map.",
-            "minimum": 0
-          },
-          "mappers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SteamID"
-            },
-            "description": "The `SteamID`s of the players who made this map."
-          }
-        }
-      },
-      "NewPlayer": {
-        "type": "object",
-        "description": "Information about a new KZ player.",
-        "required": [
-          "steam_id",
-          "name",
-          "ip_address"
-        ],
-        "properties": {
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
-          },
-          "name": {
-            "type": "string",
-            "description": "The player's Steam name."
-          },
-          "ip_address": {
-            "type": "string",
-            "description": "The player's IP address."
-          }
-        }
-      },
-      "NewRecord": {
-        "type": "object",
-        "description": "A newly submitted KZ record.",
-        "required": [
-          "steam_id",
-          "course_id",
-          "mode",
-          "style",
-          "teleports",
-          "time",
-          "bhop_stats"
-        ],
-        "properties": {
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
-          },
-          "course_id": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The ID of the course this record was performed on.",
-            "minimum": 0
-          },
-          "mode": {
-            "$ref": "#/components/schemas/Mode"
-          },
-          "style": {
-            "$ref": "#/components/schemas/Style"
-          },
-          "teleports": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The amount of teleports used in this run.",
-            "minimum": 0
-          },
-          "time": {
-            "type": "number",
-            "format": "double",
-            "description": "The time it took to finish this run (in seconds)."
-          },
-          "bhop_stats": {
-            "$ref": "#/components/schemas/BhopStats"
-          }
-        }
-      },
-      "NewServer": {
-        "type": "object",
-        "description": "Information about a new KZ server.",
-        "required": [
-          "name",
-          "owned_by",
-          "ip_address",
-          "port"
-        ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The name of the server."
-          },
-          "owned_by": {
-            "$ref": "#/components/schemas/SteamID"
-          },
-          "ip_address": {
-            "type": "string",
-            "description": "The IP address of this server."
-          },
-          "port": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The port of this server.",
-            "minimum": 0
-          }
-        }
-      },
       "Player": {
         "type": "object",
-        "description": "A KZ player.",
+        "description": "Information about a player.",
         "required": [
-          "name",
           "steam_id",
-          "time_active",
-          "time_spectating",
-          "time_afk",
-          "is_banned",
-          "perfs",
-          "bhops_tick0",
-          "bhops_tick1",
-          "bhops_tick2",
-          "bhops_tick3",
-          "bhops_tick4",
-          "bhops_tick5",
-          "bhops_tick6",
-          "bhops_tick7",
-          "bhops_tick8"
+          "name"
         ],
         "properties": {
-          "name": {
-            "type": "string",
-            "description": "The player's Steam name."
-          },
           "steam_id": {
             "$ref": "#/components/schemas/SteamID"
           },
-          "time_active": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The player's total active time spent on verified servers.",
-            "minimum": 0
-          },
-          "time_spectating": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The player's total time spent spectating on verified servers.",
-            "minimum": 0
-          },
-          "time_afk": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The player's total AFK time spent on verified servers.",
-            "minimum": 0
-          },
-          "is_banned": {
-            "type": "boolean",
-            "description": "Whether the player is banned."
-          },
-          "perfs": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "How many perfect bhops the player has hit in total.",
-            "minimum": 0
-          },
-          "bhops_tick0": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "How many bhops the player has hit 0 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick1": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "How many bhops the player has hit 1 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick2": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "How many bhops the player has hit 2 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick3": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "How many bhops the player has hit 3 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick4": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "How many bhops the player has hit 4 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick5": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "How many bhops the player has hit 5 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick6": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "How many bhops the player has hit 6 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick7": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "How many bhops the player has hit 7 ticks after landing.",
-            "minimum": 0
-          },
-          "bhops_tick8": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "How many bhops the player has hit 8 ticks after landing.",
-            "minimum": 0
+          "name": {
+            "type": "string",
+            "description": "The player's name."
           }
+        },
+        "example": {
+          "name": "AlphaKeks",
+          "steam_id": "STEAM_1:1:161178172"
         }
       },
       "PlayerIdentifier": {
@@ -2662,169 +2928,144 @@
           }
         ]
       },
-      "PlayerInfo": {
-        "type": "object",
-        "description": "Information about a player.",
-        "required": [
-          "name",
-          "steam_id"
-        ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The player's Steam name."
-          },
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
-          }
-        }
-      },
-      "PlayerUpdate": {
-        "type": "object",
-        "description": "Updated information about a KZ player.",
-        "required": [
-          "ip_address",
-          "session_data"
-        ],
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The player's new name.",
-            "nullable": true
-          },
-          "ip_address": {
-            "type": "string",
-            "description": "The player's new IP address."
-          },
-          "session_data": {
-            "$ref": "#/components/schemas/SessionData"
-          }
-        }
-      },
       "Record": {
         "type": "object",
         "description": "A KZ record.",
         "required": [
           "id",
-          "map",
-          "mode",
-          "style",
           "player",
-          "server",
+          "course",
           "teleports",
-          "time",
+          "server",
+          "bhop_stats",
           "created_on"
         ],
         "properties": {
           "id": {
             "type": "integer",
             "format": "uint64",
-            "description": "The ID of the record.",
+            "description": "The record's ID.",
             "minimum": 0
           },
-          "map": {
-            "$ref": "#/components/schemas/RecordMap"
-          },
-          "mode": {
-            "$ref": "#/components/schemas/Mode"
-          },
-          "style": {
-            "$ref": "#/components/schemas/Style"
-          },
           "player": {
-            "$ref": "#/components/schemas/RecordPlayer"
+            "$ref": "#/components/schemas/Player"
           },
-          "server": {
-            "$ref": "#/components/schemas/RecordServer"
+          "course": {
+            "$ref": "#/components/schemas/CourseWithFilter"
           },
           "teleports": {
             "type": "integer",
-            "format": "uint16",
-            "description": "The amount of teleports used during this run.",
+            "format": "uint32",
+            "description": "The amount of teleports used in this run.",
             "minimum": 0
           },
-          "time": {
-            "type": "number",
-            "format": "double",
-            "description": "The time it took to complete this run (in seconds)."
+          "server": {
+            "$ref": "#/components/schemas/ServerSummary"
+          },
+          "bhop_stats": {
+            "$ref": "#/components/schemas/BhopStats"
           },
           "created_on": {
             "type": "string",
             "format": "date-time",
-            "description": "Timestamp of when this record was submitted."
+            "description": "When this record was set."
           }
+        },
+        "example": {
+          "bhop_stats": {
+            "bhops_tick0": 100,
+            "bhops_tick1": 100,
+            "bhops_tick2": 30,
+            "bhops_tick3": 10,
+            "bhops_tick4": 10,
+            "bhops_tick5": 0,
+            "bhops_tick6": 0,
+            "bhops_tick7": 0,
+            "bhops_tick8": 0,
+            "perfs": 200
+          },
+          "course": {
+            "id": 1,
+            "map_id": 1,
+            "map_name": "kz_checkmate",
+            "map_stage": 1,
+            "mode": "kz_modded",
+            "style": "normal",
+            "tier": 3
+          },
+          "created_on": "2023-12-10T10:41:01Z",
+          "id": 1,
+          "player": {
+            "name": "AlphaKeks",
+            "steam_id": "STEAM_1:1:161178172"
+          },
+          "server": {
+            "id": 1,
+            "name": "Alpha's KZ"
+          },
+          "teleports": 69
         }
       },
-      "RecordCourse": {
-        "type": "object",
-        "description": "A KZ course.",
-        "required": [
-          "id",
-          "stage",
-          "tier"
-        ],
-        "properties": {
-          "id": {
+      "ServerIdentifier": {
+        "oneOf": [
+          {
             "type": "integer",
-            "format": "uint32",
-            "description": "The ID of the course.",
+            "format": "uint16",
             "minimum": 0
           },
-          "stage": {
-            "type": "integer",
-            "format": "uint8",
-            "description": "The stage this course corresponds to.",
-            "minimum": 0
-          },
-          "tier": {
-            "$ref": "#/components/schemas/Tier"
+          {
+            "type": "string"
           }
-        }
+        ]
       },
-      "RecordMap": {
+      "ServerResponse": {
         "type": "object",
-        "description": "A KZ map.",
+        "description": "Information about a server.",
         "required": [
           "id",
           "name",
-          "course"
+          "ip_address",
+          "owned_by",
+          "approved_on"
         ],
         "properties": {
           "id": {
             "type": "integer",
             "format": "uint16",
-            "description": "The ID of the map.",
+            "description": "The server's ID.",
             "minimum": 0
           },
           "name": {
             "type": "string",
-            "description": "The name of the map."
+            "description": "The server's name."
           },
-          "course": {
-            "$ref": "#/components/schemas/RecordCourse"
-          }
-        }
-      },
-      "RecordPlayer": {
-        "type": "object",
-        "description": "A KZ player.",
-        "required": [
-          "name",
-          "steam_id"
-        ],
-        "properties": {
-          "name": {
+          "ip_address": {
             "type": "string",
-            "description": "The player's Steam name."
+            "description": "The server's IP address and port."
           },
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
+          "owned_by": {
+            "$ref": "#/components/schemas/Player"
+          },
+          "approved_on": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this server was approved."
+          }
+        },
+        "example": {
+          "approved_on": "2023-12-10T10:41:01Z",
+          "id": 1,
+          "ip_address": "255.255.255.255:1337",
+          "name": "Alpha's KZ",
+          "owned_by": {
+            "name": "AlphaKeks",
+            "steam_id": "STEAM_1:1:161178172"
           }
         }
       },
-      "RecordServer": {
+      "ServerSummary": {
         "type": "object",
-        "description": "A KZ server.",
+        "description": "A server ID and name.",
         "required": [
           "id",
           "name"
@@ -2840,96 +3081,15 @@
             "type": "string",
             "description": "The server's name."
           }
+        },
+        "example": {
+          "id": 1,
+          "name": "Alpha's KZ"
         }
       },
-      "Runtype": {
-        "type": "string",
-        "enum": [
-          "pro",
-          "tp"
-        ]
-      },
-      "Server": {
+      "Session": {
         "type": "object",
-        "description": "A KZ server.",
-        "required": [
-          "id",
-          "name",
-          "owned_by",
-          "ip_address",
-          "port"
-        ],
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The ID of the server.",
-            "minimum": 0
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the server."
-          },
-          "owned_by": {
-            "$ref": "#/components/schemas/PlayerInfo"
-          },
-          "ip_address": {
-            "type": "string",
-            "description": "The IP address of this server."
-          },
-          "port": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The port of this server.",
-            "minimum": 0
-          }
-        }
-      },
-      "ServerIdentifier": {
-        "oneOf": [
-          {
-            "type": "integer",
-            "format": "uint16",
-            "minimum": 0
-          },
-          {
-            "type": "string"
-          }
-        ]
-      },
-      "ServerUpdate": {
-        "type": "object",
-        "description": "Updated information about a KZ server.",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The new name of the server.",
-            "nullable": true
-          },
-          "owned_by": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SteamID"
-              }
-            ],
-            "nullable": true
-          },
-          "ip_address": {
-            "type": "string",
-            "description": "The new IP address of the server.",
-            "nullable": true
-          },
-          "port": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The new port of the server.",
-            "nullable": true,
-            "minimum": 0
-          }
-        }
-      },
-      "SessionData": {
-        "type": "object",
+        "description": "A player session.\n\nThis route is reserved for CS2KZ servers!\n\nAnytime a player connects, a session is started. This session ends either when the map changes\nor when the player disconnects.",
         "required": [
           "time_active",
           "time_spectating",
@@ -2947,83 +3107,79 @@
         ],
         "properties": {
           "time_active": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "Amount of seconds spent with a running timer.",
-            "minimum": 0
+            "type": "string"
           },
           "time_spectating": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "Amount of seconds spent spectating.",
-            "minimum": 0
+            "type": "string"
           },
           "time_afk": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "Amount of seconds spent inactive.",
-            "minimum": 0
+            "type": "string"
           },
           "perfs": {
             "type": "integer",
             "format": "uint16",
-            "description": "How many perfect bhops the player has hit in total.",
             "minimum": 0
           },
           "bhops_tick0": {
             "type": "integer",
             "format": "uint16",
-            "description": "How many bhops the player has hit 0 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick1": {
             "type": "integer",
             "format": "uint16",
-            "description": "How many bhops the player has hit 1 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick2": {
             "type": "integer",
             "format": "uint16",
-            "description": "How many bhops the player has hit 2 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick3": {
             "type": "integer",
             "format": "uint16",
-            "description": "How many bhops the player has hit 3 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick4": {
             "type": "integer",
             "format": "uint16",
-            "description": "How many bhops the player has hit 4 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick5": {
             "type": "integer",
             "format": "uint16",
-            "description": "How many bhops the player has hit 5 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick6": {
             "type": "integer",
             "format": "uint16",
-            "description": "How many bhops the player has hit 6 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick7": {
             "type": "integer",
             "format": "uint16",
-            "description": "How many bhops the player has hit 7 ticks after landing.",
             "minimum": 0
           },
           "bhops_tick8": {
             "type": "integer",
             "format": "uint16",
-            "description": "How many bhops the player has hit 8 ticks after landing.",
             "minimum": 0
           }
+        },
+        "example": {
+          "bhops_tick0": 100,
+          "bhops_tick1": 100,
+          "bhops_tick2": 30,
+          "bhops_tick3": 10,
+          "bhops_tick4": 10,
+          "bhops_tick5": 0,
+          "bhops_tick6": 0,
+          "bhops_tick7": 0,
+          "bhops_tick8": 0,
+          "perfs": 250,
+          "time_active": 600,
+          "time_afk": 900,
+          "time_spectating": 51
         }
       },
       "SteamID": {
@@ -3035,7 +3191,7 @@
           "normal",
           "backwards",
           "sideways",
-          "w_only"
+          "wonly"
         ]
       },
       "Tier": {
@@ -3052,14 +3208,158 @@
           "unfeasible",
           "impossible"
         ]
+      },
+      "UpdateMapRequest": {
+        "type": "object",
+        "description": "A map udpate.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The map's new name.",
+            "nullable": true
+          },
+          "workshop_id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The map's new Steam Workshop ID.",
+            "nullable": true,
+            "minimum": 0
+          },
+          "filesize": {
+            "type": "integer",
+            "format": "uint64",
+            "description": "The map's new filesize.",
+            "nullable": true,
+            "minimum": 0
+          },
+          "added_mappers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SteamID"
+            },
+            "description": "List of new mappers.",
+            "nullable": true
+          },
+          "removed_mappers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SteamID"
+            },
+            "description": "List of old mappers to be removed.",
+            "nullable": true
+          },
+          "added_courses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateCourse"
+            },
+            "description": "List of new courses.",
+            "nullable": true
+          },
+          "removed_courses": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "description": "List of course IDs to be removed.",
+            "nullable": true
+          },
+          "course_updates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CourseUpdate"
+            },
+            "description": "List of updates to existing courses.",
+            "nullable": true
+          }
+        },
+        "example": {
+          "name": "kz_checkmate_v2_final_fix_global_new"
+        }
+      },
+      "UpdatePlayerRequest": {
+        "type": "object",
+        "description": "An update to a player.",
+        "required": [
+          "session"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "ip_address": {
+            "type": "string",
+            "nullable": true
+          },
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          }
+        },
+        "example": {
+          "ip_address": "255.255.255.255",
+          "name": "AlphaKeks",
+          "session": {
+            "bhops_tick0": 100,
+            "bhops_tick1": 100,
+            "bhops_tick2": 30,
+            "bhops_tick3": 10,
+            "bhops_tick4": 10,
+            "bhops_tick5": 0,
+            "bhops_tick6": 0,
+            "bhops_tick7": 0,
+            "bhops_tick8": 0,
+            "perfs": 200,
+            "time_active": 600,
+            "time_afk": 900,
+            "time_spectating": 51
+          }
+        }
+      },
+      "UpdateServerRequest": {
+        "type": "object",
+        "description": "A server update.",
+        "required": [
+          "ip_address"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The server's new name.",
+            "nullable": true
+          },
+          "ip_address": {
+            "type": "string",
+            "description": "The server's new IP address."
+          },
+          "port": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "The server's new port.",
+            "nullable": true,
+            "minimum": 0
+          },
+          "owned_by": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SteamID"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "example": {
+          "ip_address": "255.255.255.255",
+          "name": "Alpha's KZ",
+          "owned_by": "STEAM_1:1:161178172",
+          "port": 1337
+        }
       }
     },
     "securitySchemes": {
-      "API Token": {
-        "type": "http",
-        "scheme": "bearer"
-      },
-      "Steam User": {
+      "GameServer JWT": {
         "type": "http",
         "scheme": "bearer"
       }

@@ -1,257 +1,172 @@
-use axum::extract::{Path, Query};
-use axum::{Extension, Json};
-use cs2kz::{MapIdentifier, Mode, PlayerIdentifier, Runtype, ServerIdentifier, SteamID, Style};
+//! This module holds all HTTP handlers related to records.
+
+use axum::extract::Query;
+use axum::routing::{get, post};
+use axum::{Extension, Json, Router};
+use cs2kz::{MapIdentifier, Mode, PlayerIdentifier, ServerIdentifier, SteamID, Style};
 use serde::{Deserialize, Serialize};
+use sqlx::{FromRow, QueryBuilder};
 use utoipa::{IntoParams, ToSchema};
 
-use super::BoundedU64;
-use crate::middleware::auth::jwt::GameServerToken;
-use crate::res::{records as res, responses, Created};
-use crate::{Error, Result, State};
+use crate::jwt::ServerClaims;
+use crate::models::{BhopStats, Record};
+use crate::responses::Created;
+use crate::{openapi as R, sql, AppState, Error, Result, State};
 
-/// Query parameters for fetching records.
-#[derive(Debug, Deserialize, IntoParams)]
-pub struct GetRecordsParams<'a> {
-	/// A map's ID or name.
-	map: Option<MapIdentifier<'a>>,
+/// This function returns the router for the `/records` routes.
+pub fn router(state: &'static AppState) -> Router {
+	let verify_gameserver =
+		|| axum::middleware::from_fn_with_state(state, crate::middleware::auth::verify_gameserver);
 
-	/// A map stage.
-	stage: Option<u8>,
-
-	/// A course ID.
-	course_id: Option<u8>,
-
-	/// A player's `SteamID` or name.
-	player: Option<PlayerIdentifier<'a>>,
-
-	/// A mode.
-	mode: Option<Mode>,
-
-	/// A runtype (Pro/TP).
-	runtype: Option<Runtype>,
-
-	/// A server's ID or name.
-	server: Option<ServerIdentifier<'a>>,
-
-	/// Only include personal bests.
-	top_only: Option<bool>,
-
-	/// Only include records from (non) banned players.
-	allow_banned: Option<bool>,
-
-	/// Only include records on (non) ranked courses.
-	allow_non_ranked: Option<bool>,
-
-	#[param(value_type = Option<u64>, default = 0)]
-	offset: BoundedU64,
-
-	/// Return at most this many results.
-	#[param(value_type = Option<u64>, default = 100, maximum = 500)]
-	limit: BoundedU64<100, 500>,
+	Router::new()
+		.route("/", get(get_records))
+		.route("/", post(create_record).layer(verify_gameserver()))
+		.with_state(state)
 }
 
-#[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Records", context_path = "/api", path = "/records",
+/// This endpoint allows you to fetch records.
+#[tracing::instrument]
+#[utoipa::path(
+	get,
+	tag = "Records",
+	path = "/records",
 	params(GetRecordsParams),
 	responses(
-		responses::Created<res::Record>,
-		responses::NoContent,
-		responses::BadRequest,
-		responses::InternalServerError,
+		R::Ok<Record>,
+		R::NoContent,
+		R::BadRequest,
+		R::InternalServerError,
 	),
 )]
-#[allow(unused_variables)] // TODO: implement this handler
 pub async fn get_records(
 	state: State,
-	Query(GetRecordsParams {
-		map,
-		stage,
-		course_id,
-		player,
-		mode,
-		runtype,
-		server,
-		top_only,
-		allow_banned,
-		allow_non_ranked,
-		offset,
-		limit,
-	}): Query<GetRecordsParams<'_>>,
-) -> Result<Json<Vec<res::Record>>> {
-	todo!();
-}
-
-#[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Records", context_path = "/api", path = "/records/{id}",
-	params(("id" = u32, Path, description = "The records's ID")),
-	responses(
-		responses::Ok<res::Record>,
-		responses::NoContent,
-		responses::BadRequest,
-		responses::InternalServerError,
-	),
-)]
-pub async fn get_record(state: State, Path(record_id): Path<u64>) -> Result<Json<res::Record>> {
-	sqlx::query! {
+	Query(params): Query<GetRecordsParams<'_>>,
+) -> Result<Json<Vec<Record>>> {
+	let mut query = QueryBuilder::new(
 		r#"
 		SELECT
 			r.id,
+			p.steam_id player_id,
+			p.name player_name,
+			f.course_id,
 			m.id map_id,
 			m.name map_name,
-			c.id course_id,
-			c.map_stage course_stage,
-			f.tier course_tier,
+			c.map_stage,
 			f.mode_id,
-			r.teleports > 0 `runtype: bool`,
 			r.style_id,
-			p.name player_name,
-			p.steam_id,
+			f.tier,
+			r.teleports,
 			s.id server_id,
 			s.name server_name,
-			r.teleports,
-			r.time,
+			r.perfs,
+			r.bhops_tick0,
+			r.bhops_tick1,
+			r.bhops_tick2,
+			r.bhops_tick3,
+			r.bhops_tick4,
+			r.bhops_tick5,
+			r.bhops_tick6,
+			r.bhops_tick7,
+			r.bhops_tick8,
 			r.created_on
 		FROM
 			Records r
-			JOIN CourseFilters f ON f.id = r.filter_id
+			JOIN Players p ON p.steam_id = r.player_id
+			JOIN CourseFilters f on f.id = r.filter_id
 			JOIN Courses c ON c.id = f.course_id
 			JOIN Maps m ON m.id = c.map_id
-			JOIN Players p ON p.steam_id = r.player_id
 			JOIN Servers s ON s.id = r.server_id
-		WHERE
-			r.id = ?
 		"#,
-		record_id,
+	);
+
+	let mut filter = sql::Filter::new();
+
+	if let Some(player) = params.player {
+		let steam_id = sql::fetch_steam_id(&player, state.database()).await?;
+
+		query
+			.push(filter)
+			.push(" r.player_id = ")
+			.push_bind(steam_id);
+
+		filter.switch();
 	}
-	.fetch_optional(state.database())
-	.await?
-	.map(|record| res::Record {
-		id: record.id,
-		map: res::RecordMap {
-			id: record.map_id,
-			name: record.map_name,
-			course: res::RecordCourse {
-				id: record.course_id,
-				stage: record.course_stage,
-				tier: record.course_tier.try_into().expect("found invalid tier"),
-			},
-		},
-		mode: record.mode_id.try_into().expect("found invalid mode"),
-		style: record.style_id.try_into().expect("found invalid style"),
-		player: res::RecordPlayer {
-			name: record.player_name,
-			steam_id: SteamID::from_id32(record.steam_id).expect("found invalid SteamID"),
-		},
-		server: res::RecordServer { id: record.server_id, name: record.server_name },
-		teleports: record.teleports,
-		time: record.time,
-		created_on: record.created_on,
-	})
-	.map(Json)
-	.ok_or(Error::NoContent)
+
+	if let Some(map) = params.map {
+		let map_id = sql::fetch_map_id(&map, state.database()).await?;
+
+		query.push(filter).push(" m.id = ").push_bind(map_id);
+
+		filter.switch();
+	}
+
+	if let Some(server) = params.server {
+		let server_id = sql::fetch_server_id(&server, state.database()).await?;
+
+		query.push(filter).push(" s.id = ").push_bind(server_id);
+
+		filter.switch();
+	}
+
+	sql::push_limits::<100>(params.limit, params.offset, &mut query);
+
+	let records = query
+		.build_query_as::<Record>()
+		.fetch_all(state.database())
+		.await?;
+
+	if records.is_empty() {
+		return Err(Error::NoContent);
+	}
+
+	Ok(Json(records))
 }
 
-#[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Records", context_path = "/api", path = "/records/{id}/replay",
-	params(("id" = u32, Path, description = "The records's ID")),
+/// This endpoint is used by servers to send records.
+#[tracing::instrument]
+#[utoipa::path(
+	post,
+	tag = "Records",
+	path = "/records",
+	security(("GameServer JWT" = [])),
+	request_body = CreateRecordRequest,
 	responses(
-		responses::Ok<()>,
-		responses::NoContent,
-		responses::BadRequest,
-		responses::InternalServerError,
+		R::Created<CreatedRecordResponse>,
+		R::BadRequest,
+		R::Unauthorized,
+		R::Conflict,
+		R::InternalServerError,
 	),
-)]
-#[allow(unused_variables)] // TODO: implement this handler
-pub async fn get_replay(state: State, Path(record_id): Path<u32>) -> Result<&'static str> {
-	Ok("not yet implemented")
-}
-
-/// A newly submitted KZ record.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct NewRecord {
-	/// The `SteamID` of the player who performed this record.
-	steam_id: SteamID,
-
-	/// The ID of the course this record was performed on.
-	course_id: u32,
-
-	/// The mode this record was performed in.
-	mode: Mode,
-
-	/// The style this record was performed in.
-	style: Style,
-
-	/// The amount of teleports used in this run.
-	teleports: u16,
-
-	/// The time it took to finish this run (in seconds).
-	time: f64,
-
-	/// Statistics about how many perfect bhops the player hit during the run.
-	bhop_stats: BhopStats,
-}
-
-/// Bhop statistics.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct BhopStats {
-	perfs: u16,
-	bhops_tick0: u16,
-	bhops_tick1: u16,
-	bhops_tick2: u16,
-	bhops_tick3: u16,
-	bhops_tick4: u16,
-	bhops_tick5: u16,
-	bhops_tick6: u16,
-	bhops_tick7: u16,
-	bhops_tick8: u16,
-}
-
-/// A newly created KZ record.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct CreatedRecord {
-	/// The record's ID.
-	id: u64,
-}
-
-#[tracing::instrument(skip(state))]
-#[utoipa::path(post, tag = "Records", context_path = "/api", path = "/records",
-	request_body = NewRecord,
-	responses(
-		responses::Created<CreatedRecord>,
-		responses::BadRequest,
-		responses::Unauthorized,
-		responses::InternalServerError,
-	),
-	security(("API Token" = [])),
 )]
 pub async fn create_record(
 	state: State,
-	Extension(server): Extension<GameServerToken>,
-	Json(NewRecord { course_id, mode, style, steam_id, time, teleports, bhop_stats }): Json<
-		NewRecord,
-	>,
-) -> Result<Created<Json<CreatedRecord>>> {
-	let filter_id = sqlx::query! {
+	Extension(server): Extension<ServerClaims>,
+	Json(body): Json<CreateRecordRequest>,
+) -> Result<Created<Json<CreatedRecordResponse>>> {
+	let mut transaction = state.begin_transaction().await?;
+
+	let filter = sqlx::query! {
 		r#"
 		SELECT
-			id
+			f.*
 		FROM
-			CourseFilters
+			CourseFilters f
+			JOIN Courses c ON c.id = f.course_id
+			JOIN Maps m ON m.id = c.map_id
 		WHERE
-			course_id = ?
-			AND mode_id = ?
-			AND has_teleports = ?
+			m.id = ?
+			AND c.map_stage = ?
+			AND f.mode_id = ?
+			AND f.has_teleports = ?
 		"#,
-		course_id,
-		mode as u8,
-		teleports > 0,
+		body.map_id,
+		body.map_stage,
+		body.mode,
+		body.teleports > 0,
 	}
-	.fetch_optional(state.database())
+	.fetch_optional(transaction.as_mut())
 	.await?
-	.map(|row| row.id)
-	.ok_or(Error::MissingFilter)?;
-
-	let mut transaction = state.transaction().await?;
+	.ok_or(Error::InvalidFilter)?;
 
 	sqlx::query! {
 		r#"
@@ -278,34 +193,100 @@ pub async fn create_record(
 		VALUES
 			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		"#,
-		steam_id.as_u32(),
-		filter_id,
-		style as u8,
-		teleports,
-		time,
+		body.steam_id,
+		filter.id,
+		body.style,
+		body.teleports,
+		body.time,
 		server.id,
-		bhop_stats.perfs,
-		bhop_stats.bhops_tick0,
-		bhop_stats.bhops_tick1,
-		bhop_stats.bhops_tick2,
-		bhop_stats.bhops_tick3,
-		bhop_stats.bhops_tick4,
-		bhop_stats.bhops_tick5,
-		bhop_stats.bhops_tick6,
-		bhop_stats.bhops_tick7,
-		bhop_stats.bhops_tick8,
+		body.bhop_stats.perfs,
+		body.bhop_stats.bhops_tick0,
+		body.bhop_stats.bhops_tick1,
+		body.bhop_stats.bhops_tick2,
+		body.bhop_stats.bhops_tick3,
+		body.bhop_stats.bhops_tick4,
+		body.bhop_stats.bhops_tick5,
+		body.bhop_stats.bhops_tick6,
+		body.bhop_stats.bhops_tick7,
+		body.bhop_stats.bhops_tick8,
 		server.plugin_version,
 	}
 	.execute(transaction.as_mut())
 	.await?;
 
-	let id = sqlx::query!("SELECT MAX(id) id FROM Records")
+	let record_id = sqlx::query!("SELECT MAX(id) `id!: u64` FROM Records")
 		.fetch_one(transaction.as_mut())
 		.await?
-		.id
-		.expect("we just inserted a record");
+		.id;
 
-	transaction.commit().await?;
+	Ok(Created(Json(CreatedRecordResponse { record_id })))
+}
 
-	Ok(Created(Json(CreatedRecord { id })))
+/// Query parameters for retrieving records.
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct GetRecordsParams<'a> {
+	player: Option<PlayerIdentifier<'a>>,
+	map: Option<MapIdentifier<'a>>,
+	server: Option<ServerIdentifier<'a>>,
+
+	#[param(minimum = 0, maximum = 500)]
+	limit: Option<u64>,
+	offset: Option<i64>,
+}
+
+/// A record.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+	"steam_id": "STEAM_1:1:161178172",
+	"map_id": 1,
+	"map_stage": 1,
+	"mode": "kz_vanilla",
+	"style": "normal",
+	"teleports": 69,
+	"time": 420.69,
+	"bhop_stats": {
+		"perfs": 200,
+		"bhops_tick0": 100,
+		"bhops_tick1": 100,
+		"bhops_tick2": 30,
+		"bhops_tick3": 10,
+		"bhops_tick4": 10,
+		"bhops_tick5": 0,
+		"bhops_tick6": 0,
+		"bhops_tick7": 0,
+		"bhops_tick8": 0
+	},
+}))]
+pub struct CreateRecordRequest {
+	/// The SteamID of the player who set this record.
+	steam_id: SteamID,
+
+	/// The ID of the map the record was set on.
+	map_id: u16,
+
+	/// The stage the record was set on.
+	map_stage: u8,
+
+	/// The mode the record was set with.
+	mode: Mode,
+
+	/// The style the record was set with.
+	style: Style,
+
+	/// The amount of teleports used for setting this records.
+	teleports: u32,
+
+	/// The time taken to finish this run.
+	time: f64,
+
+	/// BunnyHop statistics about this run.
+	bhop_stats: BhopStats,
+}
+
+/// A new record.
+#[derive(Debug, Serialize, FromRow, ToSchema)]
+#[schema(example = json!({ "record_id": 69420 }))]
+pub struct CreatedRecordResponse {
+	/// The record's ID.
+	pub record_id: u64,
 }

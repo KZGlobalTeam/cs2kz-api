@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT MAX(id) `id!: u64` FROM Records",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!: u64",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "UNSIGNED | BINARY",
+          "char_set": 63,
+          "max_size": 20
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "b532e43e6cff4d1380671a745542a007fe9dcf63a2a9a42717631bf876945dff"
+}

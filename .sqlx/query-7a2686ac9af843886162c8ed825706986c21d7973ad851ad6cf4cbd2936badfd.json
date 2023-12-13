@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT MAX(id) `id!: u64` FROM Jumpstats",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!: u64",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "UNSIGNED | BINARY",
+          "char_set": 63,
+          "max_size": 20
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "7a2686ac9af843886162c8ed825706986c21d7973ad851ad6cf4cbd2936badfd"
+}

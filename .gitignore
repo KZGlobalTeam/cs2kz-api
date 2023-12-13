@@ -1,4 +1,4 @@
-.direnv
 target
-database/volumes/**
+database/volumes
+.direnv
 .env

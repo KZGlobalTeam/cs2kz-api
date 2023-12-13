@@ -1,14 +1,13 @@
-# Editor-agnostic settings.
-#
-# See <https://editorconfig.org/> for more information.
+# https://editorconfig.org
 
 root = true
 
 [*]
 charset = utf-8
 end_of_line = lf
+insert_final_newline = true
 indent_style = tab
 
-[*.{nix,toml,yml,md}]
+[*.{md,toml,yml,nix}]
 indent_style = space
 indent_size = 2

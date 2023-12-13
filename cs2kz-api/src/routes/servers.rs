@@ -1,119 +1,102 @@
-use std::net::Ipv4Addr;
+//! This module holds all HTTP handlers related to servers.
+
+use std::net::{Ipv4Addr, SocketAddrV4};
 
 use axum::extract::{Path, Query};
-use axum::Json;
-use chrono::{DateTime, Utc};
+use axum::routing::{get, patch, post};
+use axum::{Json, Router};
 use cs2kz::{PlayerIdentifier, ServerIdentifier, SteamID};
 use serde::{Deserialize, Serialize};
 use sqlx::QueryBuilder;
 use utoipa::{IntoParams, ToSchema};
 
-use super::{BoundedU64, Filter};
-use crate::res::{responses, servers as res, Created};
-use crate::{Error, Result, State};
+use crate::models::ServerResponse;
+use crate::responses::Created;
+use crate::{openapi as R, sql, AppState, Error, Result, State};
 
-static ROOT_GET_BASE_QUERY: &str = r#"
+static GET_BASE_QUERY: &str = r#"
 	SELECT
 		s.id,
 		s.name,
-		p.name player_name,
-		p.steam_id,
 		s.ip_address,
-		s.port
+		s.port,
+		o.steam_id owner_steam_id,
+		o.name owner_name,
+		s.approved_on
 	FROM
 		Servers s
-		JOIN Players p ON p.steam_id = s.owned_by
+		JOIN Players o ON o.steam_id = s.owned_by
 "#;
 
-/// Query parameters for fetching servers.
-#[derive(Debug, Deserialize, IntoParams)]
-pub struct GetServersParams<'a> {
-	/// A server name.
-	name: Option<String>,
+/// This function returns the router for the `/servers` routes.
+pub fn router(state: &'static AppState) -> Router {
+	let verify_admin =
+		|| axum::middleware::from_fn_with_state(state, crate::middleware::auth::verify_admin);
 
-	/// `SteamID` or name of a player.
-	owned_by: Option<PlayerIdentifier<'a>>,
-
-	/// Only include servers that were approved after a certain date.
-	created_after: Option<DateTime<Utc>>,
-
-	/// Only include servers that were approved before a certain date.
-	created_before: Option<DateTime<Utc>>,
-
-	#[param(value_type = Option<u64>, default = 0)]
-	offset: BoundedU64,
-
-	/// Return at most this many results.
-	#[param(value_type = Option<u64>, default = 100, maximum = 500)]
-	limit: BoundedU64<100, 500>,
+	Router::new()
+		.route("/", get(get_servers))
+		.route("/", post(create_server).layer(verify_admin()))
+		.route("/:ident", get(get_server_by_ident))
+		.route("/:ident", patch(update_server).layer(verify_admin()))
+		.with_state(state)
 }
 
-#[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Servers", context_path = "/api", path = "/servers",
+/// This endpoint allows you to fetch servers.
+#[tracing::instrument]
+#[utoipa::path(
+	get,
+	tag = "Servers",
+	path = "/servers",
 	params(GetServersParams),
 	responses(
-		responses::Ok<res::Server>,
-		responses::NoContent,
-		responses::BadRequest,
-		responses::InternalServerError,
+		R::Ok<ServerResponse>,
+		R::NoContent,
+		R::BadRequest,
+		R::InternalServerError,
 	),
 )]
 pub async fn get_servers(
 	state: State,
-	Query(GetServersParams { name, owned_by, created_after, created_before, offset, limit }): Query<
-		GetServersParams<'_>,
-	>,
-) -> Result<Json<Vec<res::Server>>> {
-	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
-	let mut filter = Filter::new();
+	Query(params): Query<GetServersParams<'_>>,
+) -> Result<Json<Vec<ServerResponse>>> {
+	let mut query = QueryBuilder::new(GET_BASE_QUERY);
+	let mut filter = sql::Filter::new();
 
-	if let Some(ref name) = name {
-		query.push(filter).push(" s.name LIKE ").push_bind(name);
+	if let Some(name) = params.name {
+		query
+			.push(filter)
+			.push(" s.name LIKE ")
+			.push_bind(format!("%{name}%)"));
 
 		filter.switch();
 	}
 
-	if let Some(player) = owned_by {
-		let steam32_id = match player {
-			PlayerIdentifier::SteamID(steam_id) => steam_id.as_u32(),
-			PlayerIdentifier::Name(name) => {
-				sqlx::query!("SELECT steam_id FROM Players WHERE name LIKE ?", name)
-					.fetch_one(state.database())
-					.await?
-					.steam_id
-			}
-		};
+	if let Some(player_ident) = params.owned_by {
+		let steam_id = sql::fetch_steam_id(&player_ident, state.database()).await?;
 
 		query
 			.push(filter)
-			.push(" p.steam_id = ")
-			.push_bind(steam32_id);
+			.push(" s.owned_by = ")
+			.push_bind(steam_id);
 
 		filter.switch();
 	}
 
-	if let Some(created_after) = created_after {
-		query
-			.push(filter)
-			.push(" s.approved_on > ")
-			.push_bind(created_after);
+	if let Some(approved) = params.approved {
+		query.push(filter).push(" s.api_key IS ");
 
+		if approved {
+			query.push(" NOT ");
+		}
+
+		query.push(" NULL ");
 		filter.switch();
 	}
 
-	if let Some(created_before) = created_before {
-		query
-			.push(filter)
-			.push(" s.approved_on < ")
-			.push_bind(created_before);
-
-		filter.switch();
-	}
-
-	super::push_limit(&mut query, offset, limit);
+	sql::push_limits::<500>(params.limit, params.offset, &mut query);
 
 	let servers = query
-		.build_query_as::<res::Server>()
+		.build_query_as::<ServerResponse>()
 		.fetch_all(state.database())
 		.await?;
 
@@ -124,23 +107,71 @@ pub async fn get_servers(
 	Ok(Json(servers))
 }
 
-#[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Servers", context_path = "/api", path = "/servers/{ident}",
-	params(("ident" = ServerIdentifier, Path, description = "The servers's ID or name")),
+/// This endpoint is used for creating new servers.
+///
+/// It is intended to be used by admins and one-time-use tokens given to players.
+#[tracing::instrument]
+#[utoipa::path(
+	post,
+	tag = "Servers",
+	path = "/servers",
+	request_body = CreateServerRequest,
 	responses(
-		responses::Ok<res::Server>,
-		responses::NoContent,
-		responses::BadRequest,
-		responses::InternalServerError,
+		R::Created<CreateServerResponse>,
+		R::BadRequest,
+		R::Conflict,
+		R::Unauthorized,
+		R::InternalServerError,
 	),
 )]
-pub async fn get_server(
+pub async fn create_server(
+	state: State,
+	Json(body): Json<CreateServerRequest>,
+) -> Result<Created<Json<CreateServerResponse>>> {
+	let mut transaction = state.begin_transaction().await?;
+
+	sqlx::query! {
+		r#"
+		INSERT INTO
+			Servers (name, ip_address, port, owned_by)
+		VALUES
+			(?, ?, ?, ?)
+		"#,
+		body.name,
+		body.ip_address.ip().to_string(),
+		body.ip_address.port(),
+		body.owned_by,
+	}
+	.execute(transaction.as_mut())
+	.await?;
+
+	let server_id = sqlx::query!("SELECT MAX(id) `id!: u16` FROM Servers")
+		.fetch_one(transaction.as_mut())
+		.await?
+		.id;
+
+	Ok(Created(Json(CreateServerResponse { server_id })))
+}
+
+/// This endpoint allows you to fetch a single server by its ID or (parts of its) name.
+#[tracing::instrument]
+#[utoipa::path(
+	get,
+	tag = "Servers",
+	path = "/servers/{ident}",
+	params(("ident" = ServerIdentifier<'_>, Path, description = "A server's ID or name.")),
+	responses(
+		R::Ok<ServerResponse>,
+		R::NoContent,
+		R::BadRequest,
+		R::InternalServerError,
+	),
+)]
+pub async fn get_server_by_ident(
 	state: State,
 	Path(ident): Path<ServerIdentifier<'_>>,
-) -> Result<Json<res::Server>> {
-	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
-
-	query.push(" WHERE ");
+) -> Result<Json<ServerResponse>> {
+	let mut query = QueryBuilder::new(format!("{GET_BASE_QUERY} WHERE"));
 
 	match ident {
 		ServerIdentifier::ID(id) => {
@@ -149,149 +180,141 @@ pub async fn get_server(
 		ServerIdentifier::Name(name) => {
 			query.push(" s.name LIKE ").push_bind(format!("%{name}%"));
 		}
-	};
+	}
 
-	let server = query
-		.build_query_as::<res::Server>()
+	query
+		.build_query_as::<ServerResponse>()
 		.fetch_optional(state.database())
 		.await?
-		.ok_or(Error::NoContent)?;
-
-	Ok(Json(server))
+		.ok_or(Error::NoContent)
+		.map(Json)
 }
 
-/// Information about a new KZ server.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct NewServer {
-	/// The name of the server.
-	name: String,
-
-	/// The `SteamID` of the player who owns this server.
-	owned_by: SteamID,
-
-	/// The IP address of this server.
-	#[schema(value_type = String)]
-	ip_address: Ipv4Addr,
-
-	/// The port of this server.
-	port: u16,
-}
-
-/// Information about a newly created KZ server.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct CreatedServer {
-	/// The ID of the server.
-	id: u16,
-}
-
-#[tracing::instrument(skip(state))]
-#[utoipa::path(post, tag = "Servers", context_path = "/api", path = "/servers",
-	request_body = NewServer,
+/// This endpoint allows you to update a single server by its ID.
+#[tracing::instrument]
+#[utoipa::path(
+	patch,
+	tag = "Servers",
+	path = "/servers/{id}",
+	params(("id" = u16, Path, description = "A server's ID.")),
+	request_body = UpdateServerRequest,
 	responses(
-		responses::Created<CreatedServer>,
-		responses::Unauthorized,
-		responses::BadRequest,
-		responses::InternalServerError,
-	),
-)]
-pub async fn create_server(
-	state: State,
-	Json(NewServer { name, owned_by, ip_address, port }): Json<NewServer>,
-) -> Result<Created<Json<CreatedServer>>> {
-	let api_key = rand::random::<u32>();
-	let mut transaction = state.transaction().await?;
-
-	sqlx::query! {
-		r#"
-		INSERT INTO
-			Servers (name, ip_address, port, owned_by, api_key)
-		VALUES
-			(?, ?, ?, ?, ?)
-		"#,
-		name,
-		ip_address.to_string(),
-		port,
-		owned_by.as_u32(),
-		api_key,
-	}
-	.execute(transaction.as_mut())
-	.await?;
-
-	let id = sqlx::query!("SELECT MAX(id) id FROM Servers")
-		.fetch_one(transaction.as_mut())
-		.await?
-		.id
-		.expect("server was just inserted");
-
-	transaction.commit().await?;
-
-	Ok(Created(Json(CreatedServer { id })))
-}
-
-/// Updated information about a KZ server.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct ServerUpdate {
-	/// The new name of the server.
-	name: Option<String>,
-
-	/// The `SteamID` of the new server owner.
-	owned_by: Option<SteamID>,
-
-	/// The new IP address of the server.
-	#[schema(value_type = Option<String>)]
-	ip_address: Option<Ipv4Addr>,
-
-	/// The new port of the server.
-	port: Option<u16>,
-}
-
-#[tracing::instrument(skip(state))]
-#[utoipa::path(patch, tag = "Servers", context_path = "/api", path = "/servers/{id}",
-	params(("id" = u16, Path, description = "The server's ID")),
-	request_body = ServerUpdate,
-	responses(
-		responses::Ok<()>,
-		responses::BadRequest,
-		responses::Unauthorized,
-		responses::InternalServerError,
+		R::Ok,
+		R::BadRequest,
+		R::Unauthorized,
+		R::InternalServerError,
 	),
 )]
 pub async fn update_server(
 	state: State,
 	Path(server_id): Path<u16>,
-	Json(ServerUpdate { name, owned_by, ip_address, port }): Json<ServerUpdate>,
+	Json(body): Json<UpdateServerRequest>,
 ) -> Result<()> {
-	let mut transaction = state.transaction().await?;
+	let mut update_server = QueryBuilder::new("UPDATE Servers");
+	let mut delimiter = " SET ";
 
-	if let Some(name) = name {
-		sqlx::query!("UPDATE Servers SET name = ? WHERE id = ?", name, server_id)
-			.execute(transaction.as_mut())
-			.await?;
+	if let Some(name) = body.name {
+		update_server
+			.push(delimiter)
+			.push(" name = ")
+			.push_bind(name);
+
+		delimiter = ",";
 	}
 
-	if let Some(steam_id) = owned_by {
-		sqlx::query!(
-			"UPDATE Servers SET owned_by = ? WHERE id = ?",
-			steam_id.as_u32(),
-			server_id
-		)
-		.execute(transaction.as_mut())
-		.await?;
+	if let Some(ip_address) = body.ip_address {
+		update_server
+			.push(delimiter)
+			.push(" ip_address = ")
+			.push_bind(ip_address.to_string());
+
+		delimiter = ",";
 	}
 
-	if let Some(ip_addr) = ip_address.map(|ip| ip.to_string()) {
-		sqlx::query!("UPDATE Servers SET ip_address = ? WHERE id = ?", ip_addr, server_id)
-			.execute(transaction.as_mut())
-			.await?;
+	if let Some(port) = body.port {
+		update_server
+			.push(delimiter)
+			.push(" port = ")
+			.push_bind(port);
+
+		delimiter = ",";
 	}
 
-	if let Some(port) = port {
-		sqlx::query!("UPDATE Servers SET port = ? WHERE id = ?", port, server_id)
-			.execute(transaction.as_mut())
-			.await?;
+	if let Some(steam_id) = body.owned_by {
+		update_server
+			.push(delimiter)
+			.push(" owned_by = ")
+			.push_bind(steam_id);
 	}
 
-	transaction.commit().await?;
+	update_server.build().execute(state.database()).await?;
 
 	Ok(())
+}
+
+/// Query parameters for retrieving information about servers.
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct GetServersParams<'a> {
+	/// The name of the server.
+	name: Option<String>,
+
+	/// Only include servers owned by this player.
+	owned_by: Option<PlayerIdentifier<'a>>,
+
+	/// Only include servers that are (not) approved (have an API key).
+	approved: Option<bool>,
+
+	#[param(minimum = 0, maximum = 500)]
+	limit: Option<u64>,
+	offset: Option<i64>,
+}
+
+/// A new server.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+	"name": "Alpha's KZ",
+	"ip_address": "255.255.255.255:1337",
+	"owned_by": "STEAM_1:1:161178172"
+}))]
+pub struct CreateServerRequest {
+	/// The server's name.
+	name: String,
+
+	/// The server's IP address and port.
+	#[schema(value_type = String)]
+	ip_address: SocketAddrV4,
+
+	/// The SteamID of the player who owns this server.
+	owned_by: SteamID,
+}
+
+/// A server update.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+	"name": "Alpha's KZ",
+	"ip_address": "255.255.255.255",
+	"port": 1337,
+	"owned_by": "STEAM_1:1:161178172"
+}))]
+pub struct UpdateServerRequest {
+	/// The server's new name.
+	name: Option<String>,
+
+	/// The server's new IP address.
+	#[schema(value_type = String)]
+	ip_address: Option<Ipv4Addr>,
+
+	/// The server's new port.
+	port: Option<u16>,
+
+	/// The server's new owner.
+	owned_by: Option<SteamID>,
+}
+
+/// A newly created server.
+#[derive(Debug, Serialize, ToSchema)]
+#[schema(example = json!({ "server_id": 1 }))]
+pub struct CreateServerResponse {
+	/// The server's ID.
+	server_id: u16,
 }

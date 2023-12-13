@@ -1,0 +1,36 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t\tid,\n\t\t\tmap_stage\n\t\tFROM\n\t\t\tCourses\n\t\tWHERE\n\t\t\tmap_id = ?\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 10
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "map_stage",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 3
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "cc0e333af5e8eb880a41cd9a1f33aabefa5ab56a06f3ec5b79729f0a109efa01"
+}

@@ -1,4 +1,4 @@
-name: CS2KZ API CI
+name: CS2KZ API
 
 on:
   push:
@@ -9,18 +9,18 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  lint:
-    name: Clippy
+  compile:
+    name: Compilation and Linting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: moonrepo/setup-rust@v1
         with:
           components: clippy
-      - run: make lint
+      - run: cargo clippy --all-features --workspace -- -D warnings
 
   format:
-    name: RustFmt
+    name: Formatting
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -28,7 +28,7 @@ jobs:
         with:
           channel: nightly
           components: rustfmt
-      - run: make format-check
+      - run: cargo +nightly fmt --all
 
   docs:
     name: Documentation
@@ -36,12 +36,5 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: moonrepo/setup-rust@v1
-      - run: make docs
-
-  spech-check:
-    name: OpenAPI Spec Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: moonrepo/setup-rust@v1
-      - run: make spec-check
+      - run: cargo doc --all-features --workspace --document-private-items --no-deps
+      - run: cargo run --package cs2kz-api-spec-generator -- --check api-spec.json

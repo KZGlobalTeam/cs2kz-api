@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\t\t\tUPDATE\n\t\t\t\t\t\t\tCourseFilters\n\t\t\t\t\t\tSET\n\t\t\t\t\t\t\tranked = ?\n\t\t\t\t\t\tWHERE\n\t\t\t\t\t\t\tid = ?\n\t\t\t\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "182e362fc0d45c02e44d00b1cb0d00ff74e4b784a5a23e0e32816f33fe3764a3"
+}

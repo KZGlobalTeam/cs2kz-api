@@ -1,34 +1,33 @@
-use cs2kz_api::state::AppState;
-use cs2kz_api::API;
+use color_eyre::Result;
+use cs2kz_api::{Config, API};
+use tracing::info;
 
-use crate::config::Config;
-
-mod config;
+mod logging;
 
 #[tokio::main]
-async fn main() -> color_eyre::Result<()> {
-	// Setup fatal error handling
+async fn main() -> Result<()> {
+	// Setup error handling
 	color_eyre::install()?;
 
-	// Load `.env` variables
-	if let Err(error) = dotenvy::dotenv() {
-		eprintln!("Failed to load `.env` file: {error:?}");
+	// Load environment variables.
+	//
+	// If the `.env` file does not exist, it's not a fatal error, since the user could still
+	// set all the variables manually.
+	if let Err(err) = dotenvy::dotenv() {
+		eprintln!("Failed to load `.env` file: {err}");
+		eprintln!("Did you forget to create one?");
 	}
 
-	// Initialize logging
-	cs2kz_api::logging::init();
+	// Setup logging
+	crate::logging::init();
 
-	// Parse environment variables
-	let config = Config::load()?;
+	// Load API configuration
+	let config = Config::new().await?;
 
-	// Create application state
-	let state = AppState::new(&config.database_url, &config.jwt_secret, config.public_url).await?;
+	info!(?config, "Loaded API configuration");
 
-	// Create axum router
-	let router = API::router(state);
-
-	// Run the server
-	API::run(router, config.socket_addr).await?;
+	// Run the API
+	API::run(config).await?;
 
 	Ok(())
 }

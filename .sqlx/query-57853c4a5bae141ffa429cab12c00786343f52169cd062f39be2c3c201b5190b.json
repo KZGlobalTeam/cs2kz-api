@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT MAX(id) `id!: u16` FROM Servers",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!: u16",
+        "type_info": {
+          "type": "Short",
+          "flags": "UNSIGNED | BINARY",
+          "char_set": 63,
+          "max_size": 5
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "57853c4a5bae141ffa429cab12c00786343f52169cd062f39be2c3c201b5190b"
+}

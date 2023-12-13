@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT MAX(id) `id!: u16` FROM Maps",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!: u16",
+        "type_info": {
+          "type": "Short",
+          "flags": "UNSIGNED | BINARY",
+          "char_set": 63,
+          "max_size": 5
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "487363e7302a73920169e527dae54bc33c6102d28b0df88a0d59b87b54411589"
+}

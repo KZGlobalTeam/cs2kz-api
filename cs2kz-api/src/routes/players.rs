@@ -1,111 +1,71 @@
+//! This module holds all HTTP handlers related to players.
+
+use std::cmp;
 use std::net::Ipv4Addr;
+use std::time::Duration;
 
 use axum::extract::{Path, Query};
-use axum::{Extension, Json};
+use axum::routing::{get, patch, post};
+use axum::{Extension, Json, Router};
 use cs2kz::{PlayerIdentifier, SteamID};
-use serde::{Deserialize, Serialize};
-use sqlx::QueryBuilder;
+use serde::Deserialize;
 use utoipa::{IntoParams, ToSchema};
 
-use super::{BoundedU64, Filter};
-use crate::middleware::auth::jwt::GameServerToken;
-use crate::res::{player as res, responses, Created};
-use crate::{database, Error, Result, State};
+use crate::jwt::ServerClaims;
+use crate::models::Player;
+use crate::responses::Created;
+use crate::{openapi as R, AppState, Error, Result, State};
 
-static ROOT_GET_BASE_QUERY: &str = r#"
-	SELECT
-		p.*,
-		s.time_active,
-		s.time_spectating,
-		s.time_afk,
-		s.perfs,
-		s.bhops_tick0,
-		s.bhops_tick1,
-		s.bhops_tick2,
-		s.bhops_tick3,
-		s.bhops_tick4,
-		s.bhops_tick5,
-		s.bhops_tick6,
-		s.bhops_tick7,
-		s.bhops_tick8
-	FROM
-		Players p
-		JOIN Sessions s ON s.player_id = p.steam_id
-"#;
+/// This function returns the router for the `/players` routes.
+pub fn router(state: &'static AppState) -> Router {
+	let verify_gameserver =
+		|| axum::middleware::from_fn_with_state(state, crate::middleware::auth::verify_gameserver);
 
-/// Query parameters for fetching players.
-#[derive(Debug, Deserialize, IntoParams)]
-pub struct GetPlayersParams {
-	/// Name of a player.
-	name: Option<String>,
-
-	/// A minimum amount of playtime.
-	playtime: Option<u32>,
-
-	/// Only include (not) banned players.
-	is_banned: Option<bool>,
-
-	#[param(value_type = Option<u64>, default = 0)]
-	offset: BoundedU64,
-
-	/// Return at most this many results.
-	#[param(value_type = Option<u64>, default = 100, maximum = 500)]
-	limit: BoundedU64<100, 500>,
+	Router::new()
+		.route("/", get(get_players))
+		.route("/", post(create_player).layer(verify_gameserver()))
+		.route("/:ident", get(get_player_by_ident))
+		.route("/:ident", patch(update_player).layer(verify_gameserver()))
+		.with_state(state)
 }
 
-#[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Players", context_path = "/api", path = "/players",
+/// This endpoint allows you to fetch players.
+#[tracing::instrument]
+#[utoipa::path(
+	get,
+	tag = "Players",
+	path = "/players",
 	params(GetPlayersParams),
 	responses(
-		responses::Ok<res::Player>,
-		responses::NoContent,
-		responses::BadRequest,
-		responses::InternalServerError,
+		R::Ok<Player>,
+		R::NoContent,
+		R::BadRequest,
+		R::InternalServerError,
 	),
 )]
 pub async fn get_players(
 	state: State,
-	Query(GetPlayersParams { name, playtime, is_banned, offset, limit }): Query<GetPlayersParams>,
-) -> Result<Json<Vec<res::Player>>> {
-	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
-	let mut filter = Filter::new();
+	Query(params): Query<GetPlayersParams>,
+) -> Result<Json<Vec<Player>>> {
+	let limit = params.limit.map_or(100, |limit| cmp::min(limit, 500));
+	let offset = params.offset.unwrap_or_default();
 
-	if let Some(name) = name {
-		query
-			.push(filter)
-			.push(" p.name LIKE ")
-			.push_bind(format!("%{name}%"));
-
-		filter.switch();
+	let players = sqlx::query_as! {
+		Player,
+		r#"
+		SELECT
+			steam_id AS `steam_id: _`,
+			name
+		FROM
+			Players
+		LIMIT
+			? OFFSET ?
+		"#,
+		limit,
+		offset,
 	}
-
-	if let Some(playtime) = playtime {
-		query
-			.push(filter)
-			.push(" s.time_active >= ")
-			.push_bind(playtime);
-
-		filter.switch();
-	}
-
-	if let Some(is_banned) = is_banned {
-		query
-			.push(filter)
-			.push(" p.is_banned = ")
-			.push_bind(is_banned);
-
-		filter.switch();
-	}
-
-	super::push_limit(&mut query, offset, limit);
-
-	let players = query
-		.build_query_as::<database::PlayerWithPlaytime>()
-		.fetch_all(state.database())
-		.await?
-		.into_iter()
-		.map(Into::into)
-		.collect::<Vec<res::Player>>();
+	.fetch_all(state.database())
+	.await?;
 
 	if players.is_empty() {
 		return Err(Error::NoContent);
@@ -114,72 +74,27 @@ pub async fn get_players(
 	Ok(Json(players))
 }
 
-#[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Players", context_path = "/api", path = "/players/{ident}",
-	params(("ident" = PlayerIdentifier, Path, description = "The player's `SteamID` or name")),
+/// Creates a new player.
+///
+/// Servers are expected to make a `GET` request for every joining player. If one of these requests
+/// returns a `204` status code, the server should make a request to this endpoint to register the
+/// player.
+#[tracing::instrument]
+#[utoipa::path(
+	post,
+	tag = "Players",
+	path = "/players",
+	security(("GameServer JWT" = [])),
+	request_body = CreatePlayerRequest,
 	responses(
-		responses::Ok<res::Player>,
-		responses::NoContent,
-		responses::BadRequest,
-		responses::InternalServerError,
+		R::Created,
+		R::BadRequest,
+		R::Unauthorized,
+		R::Conflict,
+		R::InternalServerError,
 	),
 )]
-pub async fn get_player(
-	state: State,
-	Path(ident): Path<PlayerIdentifier<'_>>,
-) -> Result<Json<res::Player>> {
-	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
-
-	query.push(" WHERE ");
-
-	match ident {
-		PlayerIdentifier::SteamID(steam_id) => {
-			query.push(" p.steam_id = ").push_bind(steam_id.as_u32());
-		}
-		PlayerIdentifier::Name(name) => {
-			query.push(" p.name LIKE ").push_bind(format!("%{name}%"));
-		}
-	};
-
-	let player = query
-		.build_query_as::<database::PlayerWithPlaytime>()
-		.fetch_optional(state.database())
-		.await?
-		.ok_or(Error::NoContent)?
-		.into();
-
-	Ok(Json(player))
-}
-
-/// Information about a new KZ player.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct NewPlayer {
-	/// The player's `SteamID`.
-	steam_id: SteamID,
-
-	/// The player's Steam name.
-	name: String,
-
-	/// The player's IP address.
-	#[schema(value_type = String)]
-	ip_address: Ipv4Addr,
-}
-
-#[tracing::instrument(skip(state))]
-#[utoipa::path(post, tag = "Players", context_path = "/api", path = "/players",
-	request_body = NewPlayer,
-	responses(
-		responses::Created<()>,
-		responses::BadRequest,
-		responses::Unauthorized,
-		responses::InternalServerError,
-	),
-	security(("API Token" = [])),
-)]
-pub async fn create_player(
-	state: State,
-	Json(NewPlayer { steam_id, name, ip_address }): Json<NewPlayer>,
-) -> Result<Created<()>> {
+pub async fn create_player(state: State, Json(body): Json<CreatePlayerRequest>) -> Result<Created> {
 	sqlx::query! {
 		r#"
 		INSERT INTO
@@ -187,9 +102,9 @@ pub async fn create_player(
 		VALUES
 			(?, ?, ?)
 		"#,
-		steam_id.as_u32(),
-		name,
-		ip_address.to_string(),
+		body.steam_id,
+		body.name,
+		body.ip_address.to_string(),
 	}
 	.execute(state.database())
 	.await?;
@@ -197,103 +112,153 @@ pub async fn create_player(
 	Ok(Created(()))
 }
 
-/// Updated information about a KZ player.
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct PlayerUpdate {
-	/// The player's new name.
-	name: Option<String>,
-
-	/// The player's new IP address.
-	#[schema(value_type = String)]
-	ip_address: Option<Ipv4Addr>,
-
-	session_data: SessionData,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-pub struct SessionData {
-	/// Amount of seconds spent with a running timer.
-	time_active: u32,
-
-	/// Amount of seconds spent spectating.
-	time_spectating: u32,
-
-	/// Amount of seconds spent inactive.
-	time_afk: u32,
-
-	/// How many perfect bhops the player has hit in total.
-	perfs: u16,
-
-	/// How many bhops the player has hit 0 ticks after landing.
-	bhops_tick0: u16,
-
-	/// How many bhops the player has hit 1 ticks after landing.
-	bhops_tick1: u16,
-
-	/// How many bhops the player has hit 2 ticks after landing.
-	bhops_tick2: u16,
-
-	/// How many bhops the player has hit 3 ticks after landing.
-	bhops_tick3: u16,
-
-	/// How many bhops the player has hit 4 ticks after landing.
-	bhops_tick4: u16,
-
-	/// How many bhops the player has hit 5 ticks after landing.
-	bhops_tick5: u16,
-
-	/// How many bhops the player has hit 6 ticks after landing.
-	bhops_tick6: u16,
-
-	/// How many bhops the player has hit 7 ticks after landing.
-	bhops_tick7: u16,
-
-	/// How many bhops the player has hit 8 ticks after landing.
-	bhops_tick8: u16,
-}
-
-#[tracing::instrument(skip(state))]
-#[utoipa::path(patch, tag = "Players", context_path = "/api", path = "/players/{steam_id}",
-	params(("steam_id" = SteamID, Path, description = "The player's SteamID")),
-	request_body = PlayerUpdate,
+/// This endpoint allows you to fetch a single player by their SteamID or (parts of their) name.
+#[tracing::instrument]
+#[utoipa::path(
+	get,
+	tag = "Players",
+	path = "/players/{ident}",
+	params(("ident" = PlayerIdentifier<'_>, Path, description = "A player's SteamID or name.")),
 	responses(
-		responses::Ok<()>,
-		responses::BadRequest,
-		responses::Unauthorized,
-		responses::InternalServerError,
+		R::Ok<Player>,
+		R::NoContent,
+		R::BadRequest,
+		R::InternalServerError,
 	),
-	security(("API Token" = [])),
+)]
+pub async fn get_player_by_ident(
+	state: State,
+	Path(ident): Path<PlayerIdentifier<'_>>,
+) -> Result<Json<Player>> {
+	match ident {
+		PlayerIdentifier::SteamID(steam_id) => {
+			sqlx::query_as! {
+				Player,
+				r#"
+				SELECT
+					steam_id AS `steam_id: _`,
+					name
+				FROM
+					Players
+				WHERE
+					steam_id = ?
+				LIMIT
+					1
+				"#,
+				steam_id,
+			}
+			.fetch_optional(state.database())
+			.await?
+		}
+		PlayerIdentifier::Name(name) => {
+			sqlx::query_as! {
+				Player,
+				r#"
+				SELECT
+					steam_id AS `steam_id: _`,
+					name
+				FROM
+					Players
+				WHERE
+					name LIKE ?
+				LIMIT
+					1
+				"#,
+				format!("%{name}%"),
+			}
+			.fetch_optional(state.database())
+			.await?
+		}
+	}
+	.ok_or(Error::NoContent)
+	.map(Json)
+}
+
+/// Updates a player.
+///
+/// This route is reserved for CS2KZ servers!
+///
+/// Every time a map change happens, the server should make a request to this endpoint for every
+/// player currently on the server.
+///
+/// Every time a player disconnects, the server should make a request to this endpoint for that
+/// player.
+#[tracing::instrument]
+#[utoipa::path(
+	patch,
+	tag = "Players",
+	path = "/players/{steam_id}",
+	security(("GameServer JWT" = [])),
+	params(("steam_id", Path, description = "The player's SteamID.")),
+	request_body = UpdatePlayerRequest,
+	responses(
+		R::Ok,
+		R::BadRequest,
+		R::Unauthorized,
+		R::InternalServerError,
+	),
 )]
 pub async fn update_player(
 	state: State,
-	Extension(server): Extension<GameServerToken>,
+	Extension(server): Extension<ServerClaims>,
 	Path(steam_id): Path<SteamID>,
-	Json(PlayerUpdate { name, ip_address, session_data }): Json<PlayerUpdate>,
+	Json(body): Json<UpdatePlayerRequest>,
 ) -> Result<()> {
-	let steam32_id = steam_id.as_u32();
-	let mut transaction = state.transaction().await?;
+	match (body.name, body.ip_address) {
+		(None, None) => {}
 
-	if let Some(name) = name {
-		sqlx::query!("UPDATE Players SET name = ? WHERE steam_id = ?", name, steam32_id)
-			.execute(transaction.as_mut())
+		(Some(name), Some(ip_address)) => {
+			sqlx::query! {
+				r#"
+				UPDATE
+					Players
+				SET
+					name = ?,
+					last_known_ip_address = ?
+				WHERE
+					steam_id = ?
+				"#,
+				name,
+				ip_address.to_string(),
+				steam_id,
+			}
+			.execute(state.database())
 			.await?;
-	}
-
-	if let Some(ip_address) = ip_address.map(|ip| ip.to_string()) {
-		sqlx::query! {
-			r#"
-			UPDATE
-				Players
-			SET
-				last_known_ip_address = ?
-			WHERE
-				steam_id = ?
-			"#,
-			ip_address,
-			steam32_id
 		}
-		.execute(transaction.as_mut())
-		.await?;
+
+		(Some(name), None) => {
+			sqlx::query! {
+				r#"
+				UPDATE
+					Players
+				SET
+					name = ?
+				WHERE
+					steam_id = ?
+				"#,
+				name,
+				steam_id,
+			}
+			.execute(state.database())
+			.await?;
+		}
+
+		(None, Some(ip_address)) => {
+			sqlx::query! {
+				r#"
+				UPDATE
+					Players
+				SET
+					last_known_ip_address = ?
+				WHERE
+					steam_id = ?
+				"#,
+				ip_address.to_string(),
+				steam_id,
+			}
+			.execute(state.database())
+			.await?;
+		}
 	}
 
 	sqlx::query! {
@@ -319,26 +284,123 @@ pub async fn update_player(
 		VALUES
 			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		"#,
-		steam32_id,
+		steam_id,
 		server.id,
-		session_data.time_active,
-		session_data.time_spectating,
-		session_data.time_afk,
-		session_data.perfs,
-		session_data.bhops_tick0,
-		session_data.bhops_tick1,
-		session_data.bhops_tick2,
-		session_data.bhops_tick3,
-		session_data.bhops_tick4,
-		session_data.bhops_tick5,
-		session_data.bhops_tick6,
-		session_data.bhops_tick7,
-		session_data.bhops_tick8,
+		body.session.time_active.as_secs(),
+		body.session.time_spectating.as_secs(),
+		body.session.time_afk.as_secs(),
+		body.session.perfs,
+		body.session.bhops_tick0,
+		body.session.bhops_tick1,
+		body.session.bhops_tick2,
+		body.session.bhops_tick3,
+		body.session.bhops_tick4,
+		body.session.bhops_tick5,
+		body.session.bhops_tick6,
+		body.session.bhops_tick7,
+		body.session.bhops_tick8,
 	}
-	.execute(transaction.as_mut())
+	.execute(state.database())
 	.await?;
 
-	transaction.commit().await?;
-
 	Ok(())
+}
+
+/// Query parameters for retrieving information about players.
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct GetPlayersParams {
+	#[param(minimum = 0, maximum = 500)]
+	limit: Option<u64>,
+	offset: Option<i64>,
+}
+
+/// A new player.
+///
+/// This is expected to be sent by a CS2KZ server when a player joins for the first time.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+	"steam_id": "STEAM_1:1:161178172",
+	"name": "AlphaKeks",
+	"ip_address": "255.255.255.255"
+}))]
+pub struct CreatePlayerRequest {
+	steam_id: SteamID,
+	name: String,
+
+	#[schema(value_type = String)]
+	ip_address: Ipv4Addr,
+}
+
+/// An update to a player.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+	"name": "AlphaKeks",
+	"ip_address": "255.255.255.255",
+	"session": {
+		"time_active": 600,
+		"time_spectating": 51,
+		"time_afk": 900,
+		"perfs": 200,
+		"bhops_tick0": 100,
+		"bhops_tick1": 100,
+		"bhops_tick2": 30,
+		"bhops_tick3": 10,
+		"bhops_tick4": 10,
+		"bhops_tick5": 0,
+		"bhops_tick6": 0,
+		"bhops_tick7": 0,
+		"bhops_tick8": 0
+	}
+}))]
+pub struct UpdatePlayerRequest {
+	name: Option<String>,
+
+	#[schema(value_type = Option<String>)]
+	ip_address: Option<Ipv4Addr>,
+
+	session: Session,
+}
+
+/// A player session.
+///
+/// This route is reserved for CS2KZ servers!
+///
+/// Anytime a player connects, a session is started. This session ends either when the map changes
+/// or when the player disconnects.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+	"time_active": 600,
+	"time_spectating": 51,
+	"time_afk": 900,
+	"perfs": 250,
+	"bhops_tick0": 100,
+	"bhops_tick1": 100,
+	"bhops_tick2": 30,
+	"bhops_tick3": 10,
+	"bhops_tick4": 10,
+	"bhops_tick5": 0,
+	"bhops_tick6": 0,
+	"bhops_tick7": 0,
+	"bhops_tick8": 0
+}))]
+pub struct Session {
+	#[serde(with = "crate::serde::duration_as_secs")]
+	time_active: Duration,
+
+	#[serde(with = "crate::serde::duration_as_secs")]
+	time_spectating: Duration,
+
+	#[serde(with = "crate::serde::duration_as_secs")]
+	time_afk: Duration,
+
+	perfs: u16,
+	bhops_tick0: u16,
+	bhops_tick1: u16,
+	bhops_tick2: u16,
+	bhops_tick3: u16,
+	bhops_tick4: u16,
+	bhops_tick5: u16,
+	bhops_tick6: u16,
+	bhops_tick7: u16,
+	bhops_tick8: u16,
 }

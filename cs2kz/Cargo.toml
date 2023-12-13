@@ -1,20 +1,40 @@
 [package]
 name = "cs2kz"
-version = "0.0.0"
+version = "1.0.0"
+authors = ["AlphaKeks <alphakeks@dawn.sh>"]
 edition = "2021"
+description = "The main API for CS2KZ"
+readme = "../README.md"
+homepage = "https://cs2.kz"
+repository = "https://github.com/KZGlobalTeam/cs2kz-api.git"
+license-file = "../LICENSE"
+publish = false # FIXME
 
 [features]
 serde = ["dep:serde", "dep:serde_json"]
-utoipa = ["dep:utoipa", "serde"]
+utoipa = ["dep:utoipa"]
+sqlx = ["dep:sqlx"]
 
-[dependencies]
-thiserror = { version = "1" }
-serde = { version = "1", optional = true }
-serde_json = { version = "1", optional = true }
-utoipa = { version = "4", optional = true }
-lazy-regex = "3"
+[dependencies.thiserror]
+version = "1"
 
-[dev-dependencies]
-color-eyre = "0.6.2"
-ctor = "0.2.5"
-pretty_assertions = "1.4.0"
+[dependencies.serde]
+version = "1"
+features = ["derive"]
+optional = true
+
+[dependencies.serde_json]
+version = "1"
+optional = true
+
+[dependencies.derive_more]
+version = "1.0.0-beta.6"
+features = ["display", "as_ref", "deref"]
+
+[dependencies.utoipa]
+version = "4"
+optional = true
+
+[dependencies.sqlx]
+version = "0.7"
+optional = true

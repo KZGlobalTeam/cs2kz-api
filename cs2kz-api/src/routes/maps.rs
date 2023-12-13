@@ -1,85 +1,82 @@
+//! This module holds all HTTP handlers related to maps.
+
 use axum::extract::{Path, Query};
-use axum::Json;
+use axum::routing::{get, patch, post};
+use axum::{Json, Router};
 use chrono::{DateTime, Utc};
-use cs2kz::{MapIdentifier, Mode, Runtype, SteamID, Style, Tier};
+use cs2kz::{MapIdentifier, PlayerIdentifier, SteamID, Tier};
 use serde::{Deserialize, Serialize};
-use sqlx::QueryBuilder;
+use sqlx::{FromRow, MySqlConnection, QueryBuilder};
 use utoipa::{IntoParams, ToSchema};
 
-use super::BoundedU64;
-use crate::res::{maps as res, responses, Created};
-use crate::{Error, Result, State};
+use crate::models::{Course, Filter, KZMap};
+use crate::responses::Created;
+use crate::{openapi as R, sql, AppState, Error, Result, State};
 
-static ROOT_GET_BASE_QUERY: &str = r#"
+static GET_BASE_QUERY: &str = r#"
 	SELECT
 		m.id,
-		m.name,
 		m.workshop_id,
-		m.filesize,
-		mapper.name mapper_name,
-		mapper.steam_id mapper_steam_id,
+		m.name,
+		p2.steam_id mapper_steam_id,
+		p2.name mapper_name,
 		c.id course_id,
 		c.map_stage course_stage,
-		c_mapper.name course_mapper_name,
-		c_mapper.steam_id course_mapper_steam_id,
-		f.id filter_id,
+		p4.steam_id course_mapper_steam_id,
+		p4.name course_mapper_name,
 		f.mode_id filter_mode,
 		f.has_teleports filter_has_teleports,
 		f.tier filter_tier,
 		f.ranked filter_ranked,
-		m.created_on
+		m.filesize,
+		m.created_on,
+		m.updated_on
 	FROM
 		Maps m
-		JOIN Mappers mapper_ ON mapper_.map_id = m.id
-		JOIN Players mapper ON mapper.steam_id = mapper_.player_id
+		JOIN Mappers p1 ON p1.map_id = m.id
+		JOIN Players p2 ON p2.steam_id = p1.player_id
 		JOIN Courses c ON c.map_id = m.id
-		JOIN CourseMappers c_mapper_ ON c_mapper_.course_id = c.id
-		JOIN Players c_mapper ON c_mapper.steam_id = c_mapper_.player_id
+		JOIN CourseMappers p3 ON p3.course_id = c.id
+		JOIN Players p4 ON p4.steam_id = p3.player_id
 		JOIN CourseFilters f ON f.course_id = c.id
 "#;
 
-/// Query parameters for fetching maps.
-#[derive(Debug, Deserialize, IntoParams)]
-pub struct GetMapsParams {
-	/// A map's name.
-	pub name: Option<String>,
+/// This function returns the router for the `/maps` routes.
+pub fn router(state: &'static AppState) -> Router {
+	let verify_map_admin =
+		|| axum::middleware::from_fn_with_state(state, crate::middleware::auth::verify_map_admin);
 
-	/// Only include maps that were globalled after a certain date.
-	pub created_after: Option<DateTime<Utc>>,
-
-	/// Only include maps that were globalled before a certain date.
-	pub created_before: Option<DateTime<Utc>>,
-
-	#[param(value_type = Option<u64>, default = 0)]
-	pub offset: BoundedU64,
-
-	/// Return at most this many results.
-	///
-	/// Defaults to 100 and caps out at 1000.
-	#[param(value_type = Option<u64>, default = 100, maximum = 1000)]
-	pub limit: BoundedU64<100, 1000>,
+	Router::new()
+		.route("/", get(get_maps))
+		.route("/", post(create_map).layer(verify_map_admin()))
+		.route("/:ident", get(get_map_by_ident))
+		.route("/:ident", patch(update_map).layer(verify_map_admin()))
+		.route("/workshop/:id", get(get_map_by_workshop_id))
+		.with_state(state)
 }
 
-#[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Maps", context_path = "/api", path = "/maps",
+/// This endpoint allows you to fetch globally approved maps.
+#[tracing::instrument]
+#[utoipa::path(
+	get,
+	tag = "Maps",
+	path = "/maps",
 	params(GetMapsParams),
 	responses(
-		responses::Ok<res::KZMap>,
-		responses::NoContent,
-		responses::BadRequest,
-		responses::InternalServerError,
-	)
+		R::Ok<KZMap>,
+		R::NoContent,
+		R::BadRequest,
+		R::InternalServerError,
+	),
 )]
 pub async fn get_maps(
 	state: State,
-	Query(GetMapsParams { name, created_after, created_before, offset, limit }): Query<
-		GetMapsParams,
-	>,
-) -> Result<Json<Vec<res::KZMap>>> {
-	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
-	let mut filter = super::Filter::new();
+	Query(params): Query<GetMapsParams<'_>>,
+) -> Result<Json<Vec<KZMap>>> {
+	let mut query = QueryBuilder::new(GET_BASE_QUERY);
+	let mut filter = sql::Filter::new();
 
-	if let Some(name) = name {
+	if let Some(name) = params.name {
 		query
 			.push(filter)
 			.push(" m.name LIKE ")
@@ -88,7 +85,16 @@ pub async fn get_maps(
 		filter.switch();
 	}
 
-	if let Some(created_after) = created_after {
+	if let Some(player) = params.mapper {
+		query.push(filter).push(" p1.player_id = ");
+
+		let steam_id = sql::fetch_steam_id(&player, state.database()).await?;
+
+		query.push_bind(steam_id);
+		filter.switch();
+	}
+
+	if let Some(created_after) = params.created_after {
 		query
 			.push(filter)
 			.push(" m.created_on > ")
@@ -97,7 +103,7 @@ pub async fn get_maps(
 		filter.switch();
 	}
 
-	if let Some(created_before) = created_before {
+	if let Some(created_before) = params.created_before {
 		query
 			.push(filter)
 			.push(" m.created_on < ")
@@ -106,17 +112,21 @@ pub async fn get_maps(
 		filter.switch();
 	}
 
-	super::push_limit(&mut query, offset, limit);
+	sql::push_limits::<500>(params.limit, params.offset, &mut query);
 
-	let map_rows = query
-		.build_query_as::<res::KZMap>()
+	let rows = query
+		.build_query_as::<KZMap>()
 		.fetch_all(state.database())
 		.await?;
 
-	let mut maps = Vec::<res::KZMap>::new();
+	if rows.is_empty() {
+		return Err(Error::NoContent);
+	}
 
-	for mut row in map_rows {
-		let Some(map) = maps.iter_mut().rfind(|map| map.id == row.id) else {
+	let mut maps = Vec::<KZMap>::new();
+
+	for mut row in rows {
+		let Some(map) = maps.last_mut().filter(|m| m.id == row.id) else {
 			maps.push(row);
 			continue;
 		};
@@ -124,180 +134,48 @@ pub async fn get_maps(
 		map.mappers.append(&mut row.mappers);
 		map.mappers.dedup_by_key(|p| p.steam_id);
 		map.courses.append(&mut row.courses);
-		map.courses = map
-			.courses
-			.drain(..)
-			.fold(Vec::new(), |mut courses, mut course| {
-				if let Some(c) = courses.iter_mut().rfind(|c| c.id == course.id) {
-					c.filters.append(&mut course.filters);
-					c.mappers.dedup_by_key(|p| p.steam_id);
-				} else {
-					courses.push(course);
-				}
 
-				courses
-			});
-	}
+		let mut courses = Vec::<Course>::new();
 
-	if maps.is_empty() {
-		return Err(Error::NoContent);
+		for mut row in map.courses.drain(..) {
+			let Some(course) = courses.last_mut().filter(|c| c.id == row.id) else {
+				courses.push(row);
+				continue;
+			};
+
+			course.filters.append(&mut row.filters);
+			course.mappers.dedup_by_key(|p| p.steam_id);
+		}
+
+		map.courses = courses;
 	}
 
 	Ok(Json(maps))
 }
 
-#[tracing::instrument(skip(state))]
-#[utoipa::path(get, tag = "Maps", context_path = "/api", path = "/maps/{ident}",
-	params(("ident" = MapIdentifier, Path, description = "The map's ID or name")),
-	responses(
-		responses::Ok<res::KZMap>,
-		responses::NoContent,
-		responses::BadRequest,
-		responses::InternalServerError,
-	),
-)]
-pub async fn get_map(
-	state: State,
-	Path(ident): Path<MapIdentifier<'_>>,
-) -> Result<Json<res::KZMap>> {
-	let mut query = QueryBuilder::new(ROOT_GET_BASE_QUERY);
-
-	query.push(" WHERE ");
-
-	match ident {
-		MapIdentifier::ID(id) => {
-			query.push(" m.id = ").push_bind(id);
-		}
-		MapIdentifier::Name(name) => {
-			query.push(" m.name LIKE ").push_bind(format!("%{name}%"));
-		}
-	};
-
-	let map = query
-		.build_query_as::<res::KZMap>()
-		.fetch_all(state.database())
-		.await?
-		.into_iter()
-		.reduce(|mut map, mut row| {
-			map.courses.append(&mut row.courses);
-			map.courses = map
-				.courses
-				.drain(..)
-				.fold(Vec::new(), |mut courses, mut course| {
-					if let Some(c) = courses.iter_mut().rfind(|c| c.id == course.id) {
-						c.filters.append(&mut course.filters);
-					} else {
-						courses.push(course);
-					}
-
-					courses
-				});
-
-			map
-		})
-		.ok_or(Error::NoContent)?;
-
-	Ok(Json(map))
-}
-
-/// Information about a new KZ map.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct NewMap {
-	/// The name of the map.
-	name: String,
-
-	/// The Steam workshop ID of the map.
-	workshop_id: u32,
-
-	/// A list of the map's courses.
-	courses: Vec<Course>,
-
-	/// The filesize of the map.
-	filesize: u64,
-
-	/// The `SteamID`s of the players who made this map.
-	mappers: Vec<SteamID>,
-}
-
-/// A course on a KZ map.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct Course {
-	/// The stage this course corresponds to.
-	map_stage: u8,
-
-	/// The `SteamID` of the player who created this course.
-	created_by: SteamID,
-
-	/// List of filters on this course.
-	filters: Vec<Filter>,
-}
-
-/// A filter for a KZ map course.
+/// This endpoint is used for creating new maps.
 ///
-/// It describes which combination of mode and style are allowed to submit records, and how
-/// difficult it is to complete a course with that combination.
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub struct Filter {
-	/// A KZ mode.
-	mode: Mode,
-
-	/// Whether teleports can be used.
-	runtype: Runtype,
-
-	/// A difficulty rating.
-	tier: Tier,
-}
-
-/// Information about a newly created KZ map.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct CreatedMap {
-	/// The ID of the map.
-	id: u16,
-
-	/// List of courses.
-	courses: Vec<CreatedCourse>,
-}
-
-/// A newly created course on a KZ map.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct CreatedCourse {
-	/// The ID of the course.
-	id: u32,
-
-	/// The stage this course corresponds to.
-	map_stage: u8,
-
-	/// A list of filters on this course.
-	filters: Vec<CreatedFilter>,
-}
-
-/// A newly created filter on a KZ map course.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct CreatedFilter {
-	/// The ID of the filter.
-	id: u32,
-
-	#[serde(flatten)]
-	filter: Filter,
-}
-
-#[tracing::instrument(skip(state))]
-#[utoipa::path(post, tag = "Maps", context_path = "/api", path = "/maps",
-	request_body = NewMap,
+/// It is intended to be used by admins and the map approval team.
+#[tracing::instrument]
+#[utoipa::path(
+	post,
+	tag = "Maps",
+	path = "/maps",
+	request_body = CreateMapRequest,
 	responses(
-		responses::Created<CreatedMap>,
-		responses::BadRequest,
-		responses::Unauthorized,
-		responses::InternalServerError,
+		R::Created<CreateMapResponse>,
+		R::NoContent,
+		R::BadRequest,
+		R::Conflict,
+		R::Unauthorized,
+		R::InternalServerError,
 	),
 )]
 pub async fn create_map(
 	state: State,
-	Json(NewMap { name, workshop_id, courses, filesize, mappers }): Json<NewMap>,
-) -> Result<Created<Json<CreatedMap>>> {
-	validate_courses(&courses)?;
-
-	let mut transaction = state.transaction().await?;
+	Json(mut body): Json<CreateMapRequest>,
+) -> Result<Created<Json<CreateMapResponse>>> {
+	let mut transaction = state.begin_transaction().await?;
 
 	sqlx::query! {
 		r#"
@@ -306,221 +184,627 @@ pub async fn create_map(
 		VALUES
 			(?, ?, ?)
 		"#,
-		name,
-		workshop_id,
-		filesize,
+		body.name,
+		body.workshop_id,
+		body.filesize,
 	}
 	.execute(transaction.as_mut())
 	.await?;
 
-	let map = sqlx::query!("SELECT * FROM Maps WHERE id = (SELECT MAX(id) id FROM Maps)")
+	let map_id = sqlx::query!("SELECT MAX(id) `id!: u16` FROM Maps")
 		.fetch_one(transaction.as_mut())
-		.await?;
+		.await?
+		.id;
 
-	let mut create_mappers = QueryBuilder::new("INSERT INTO Mappers (map_id, player_id)");
+	body.courses.sort_by_key(|c| c.stage);
 
-	create_mappers.push_values(mappers, |mut query, mapper| {
-		query.push_bind(mapper.as_u32());
-	});
+	create_mappers(map_id, &body.mappers, transaction.as_mut()).await?;
+	create_courses(map_id, body.courses.iter().map(|c| c.stage), transaction.as_mut()).await?;
 
-	create_mappers.build().execute(transaction.as_mut()).await?;
+	let courses = fetch_courses_for_map(map_id, transaction.as_mut()).await?;
 
-	let mut create_courses = QueryBuilder::new("INSERT INTO Courses (map_id, stage, created_by)");
-
-	create_courses.push_values(&courses, |mut query, course| {
-		query
-			.push_bind(map.id)
-			.push_bind(course.map_stage)
-			.push_bind(course.created_by.as_u32());
-	});
-
-	create_courses.build().execute(transaction.as_mut()).await?;
-
-	let db_courses = sqlx::query! {
-		r#"
-		SELECT
-			*
-		FROM
-			Courses
-		WHERE
-			map_id = ?
-		ORDER BY
-			id ASC
-		"#,
-		map.id,
-	}
-	.fetch_all(transaction.as_mut())
-	.await?;
-
-	let mut create_filters =
-		QueryBuilder::new("INSERT INTO CourseFilters (course_id, mode_id, has_teleports, tier)");
-
-	let filters = courses.iter().flat_map(|course| {
-		course.filters.iter().map(|filter| {
-			let course = db_courses
-				.iter()
-				.find(|c| c.map_stage == course.map_stage)
-				.expect("we just inserted all the courses");
-
-			(course.id, filter)
-		})
-	});
-
-	create_filters.push_values(filters, |mut query, (course_id, filter)| {
-		query
-			.push_bind(course_id)
-			.push_bind(filter.mode as u8)
-			.push_bind(bool::from(filter.runtype))
-			.push_bind(filter.tier as u8);
-	});
-
-	create_filters.build().execute(transaction.as_mut()).await?;
+	create_course_mappers(&courses, &body.courses, transaction.as_mut()).await?;
+	create_course_filters(&courses, &body.courses, transaction.as_mut()).await?;
 
 	transaction.commit().await?;
 
-	let db_filters = sqlx::query!(
-		r#"
-		SELECT
-			f.*
-		FROM
-			CourseFilters f
-			JOIN Courses c ON c.id = f.course_id
-		WHERE
-			c.map_id = ?
-		"#,
-		map.id,
-	)
-	.fetch_all(state.database())
-	.await?;
-
-	let courses = db_courses
-		.into_iter()
-		.map(|course| CreatedCourse {
-			id: course.id,
-			map_stage: course.map_stage,
-			filters: db_filters
-				.iter()
-				.filter(|filter| filter.course_id == course.id)
-				.map(|filter| CreatedFilter {
-					id: filter.id,
-					filter: Filter {
-						mode: filter.mode_id.try_into().expect("invalid mode in database"),
-						runtype: (filter.has_teleports == 1).into(),
-						tier: filter.tier.try_into().expect("invalid tier in database"),
-					},
-				})
-				.collect(),
-		})
-		.collect();
-
-	Ok(Created(Json(CreatedMap { id: map.id, courses })))
+	Ok(Created(Json(CreateMapResponse { map_id })))
 }
 
-/// Makes sure courses correspond to valid stages.
-fn validate_courses(courses: &[Course]) -> Result<()> {
-	let mut counters = vec![0_usize; courses.len()];
-
-	for course in courses {
-		counters[course.map_stage as usize] += 1;
-	}
-
-	for (stage, &count) in counters.iter().enumerate() {
-		let stage = stage as u8;
-
-		if count == 0 {
-			return Err(Error::MissingCourse { stage });
-		}
-
-		if count > 1 {
-			return Err(Error::DuplicateCourse { stage });
-		}
-	}
-
-	Ok(())
-}
-
-/// Updated information about a KZ map.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct MapUpdate {
-	/// The new name of the map.
-	name: Option<String>,
-
-	/// The new Steam workshop ID of the map.
-	workshop_id: Option<u32>,
-
-	/// A list of new additional filters.
-	filters_added: Option<Vec<FilterWithCourseId>>,
-
-	/// A list of IDs for filters that should be removed.
-	filters_removed: Option<Vec<u32>>,
-}
-
-/// Information about a filter.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct FilterWithCourseId {
-	/// The ID of the course this filter belongs to.
-	course_id: u32,
-
-	/// A KZ mode.
-	mode: Mode,
-
-	/// A KZ style.
-	style: Style,
-}
-
-#[tracing::instrument(skip(state))]
-#[utoipa::path(patch, tag = "Maps", context_path = "/api", path = "/maps/{id}",
-	params(("id" = u16, Path, description = "The map's ID")),
-	request_body = MapUpdate,
+/// This endpoint allows you to fetch a single map by its ID or (parts of its) name.
+#[tracing::instrument]
+#[utoipa::path(
+	get,
+	tag = "Maps",
+	path = "/maps/{ident}",
+	params(("ident" = MapIdentifier<'_>, Path, description = "The map's ID or name.")),
 	responses(
-		responses::Ok<()>,
-		responses::BadRequest,
-		responses::Unauthorized,
-		responses::InternalServerError,
+		R::Ok<KZMap>,
+		R::NoContent,
+		R::BadRequest,
+		R::InternalServerError,
+	),
+)]
+pub async fn get_map_by_ident(
+	state: State,
+	Path(ident): Path<MapIdentifier<'_>>,
+) -> Result<Json<KZMap>> {
+	let mut query = QueryBuilder::new(format!("{GET_BASE_QUERY} WHERE "));
+
+	match ident {
+		MapIdentifier::ID(id) => {
+			query.push(" m.id = ").push_bind(id);
+		}
+		MapIdentifier::Name(name) => {
+			query.push(" m.name LIKE ").push_bind(format!("%{name}%"));
+		}
+	}
+
+	query
+		.build_query_as::<KZMap>()
+		.fetch_all(state.database())
+		.await?
+		.into_iter()
+		.reduce(reduce_to_map)
+		.ok_or(Error::NoContent)
+		.map(Json)
+}
+
+/// This endpoint allows you to fetch a map by its Steam Workshop ID.
+#[tracing::instrument]
+#[utoipa::path(
+	get,
+	tag = "Maps",
+	path = "/maps/workshop/{id}",
+	params(("id" = u32, Path, description = "The map's Steam Workshop ID.")),
+	responses(
+		R::Ok<KZMap>,
+		R::NoContent,
+		R::BadRequest,
+		R::InternalServerError,
+	),
+)]
+pub async fn get_map_by_workshop_id(
+	state: State,
+	Path(workshop_id): Path<u32>,
+) -> Result<Json<KZMap>> {
+	sqlx::query_as(&format!("{GET_BASE_QUERY} WHERE m.workshop_id = ?"))
+		.bind(workshop_id)
+		.fetch_all(state.database())
+		.await?
+		.into_iter()
+		.reduce(reduce_to_map)
+		.ok_or(Error::NoContent)
+		.map(Json)
+}
+
+/// This endpoint is used for updating maps.
+///
+/// It is intended to be used by admins and the map approval team.
+#[tracing::instrument]
+#[utoipa::path(
+	patch,
+	tag = "Maps",
+	path = "/maps/{id}",
+	params(("id", Path, description = "The ID of the map you wish to update.")),
+	request_body = UpdateMapRequest,
+	responses(
+		R::Ok,
+		R::NoContent,
+		R::BadRequest,
+		R::Unauthorized,
+		R::Conflict,
+		R::InternalServerError,
 	),
 )]
 pub async fn update_map(
 	state: State,
 	Path(map_id): Path<u16>,
-	Json(MapUpdate { name, workshop_id, filters_added, filters_removed }): Json<MapUpdate>,
+	Json(body): Json<UpdateMapRequest>,
 ) -> Result<()> {
-	let mut transaction = state.transaction().await?;
+	let mut transaction = state.begin_transaction().await?;
+	let mut update_map = QueryBuilder::new("UPDATE Maps");
+	let mut delimiter = " SET ";
 
-	if let Some(name) = name {
-		sqlx::query!("UPDATE Maps SET name = ? WHERE id = ?", name, map_id)
-			.execute(transaction.as_mut())
-			.await?;
+	if let Some(name) = body.name {
+		update_map.push(delimiter).push(" name = ").push_bind(name);
+		delimiter = ",";
 	}
 
-	if let Some(workshop_id) = workshop_id {
-		sqlx::query!("UPDATE Maps SET workshop_id = ? WHERE id = ?", workshop_id, map_id)
-			.execute(transaction.as_mut())
-			.await?;
+	if let Some(workshop_id) = body.workshop_id {
+		update_map
+			.push(delimiter)
+			.push(" workshop_id = ")
+			.push_bind(workshop_id);
+
+		delimiter = ",";
 	}
 
-	if let Some(filters) = filters_added {
-		let mut create_filters =
-			QueryBuilder::new("INSERT INTO Filters (course_id, mode_id, style_id)");
-
-		create_filters.push_values(filters, |mut query, filter| {
-			query
-				.push_bind(filter.course_id)
-				.push_bind(filter.mode as u8)
-				.push_bind(filter.style as u8);
-		});
-
-		create_filters.build().execute(transaction.as_mut()).await?;
+	if let Some(filesize) = body.filesize {
+		update_map
+			.push(delimiter)
+			.push(" filesize = ")
+			.push_bind(filesize);
 	}
 
-	if let Some(filters) = filters_removed {
-		for filter_id in filters {
-			sqlx::query!("DELETE FROM CourseFilters WHERE id = ?", filter_id)
-				.execute(transaction.as_mut())
-				.await?;
+	update_map.push(" WHERE id = ").push_bind(map_id);
+	update_map.build().execute(transaction.as_mut()).await?;
+
+	if let Some(added_mappers) = body.added_mappers {
+		create_mappers(map_id, &added_mappers, transaction.as_mut()).await?;
+	}
+
+	let mut remove_mappers = QueryBuilder::new("DELETE FROM Mappers WHERE (map_id, player_id) IN");
+
+	remove_mappers.push_tuples(body.removed_mappers.iter().flatten(), |mut query, steam_id| {
+		query.push_bind(map_id).push_bind(steam_id);
+	});
+
+	remove_mappers.build().execute(transaction.as_mut()).await?;
+
+	if let Some(added_courses) = body.added_courses {
+		create_courses(map_id, added_courses.iter().map(|c| c.stage), transaction.as_mut()).await?;
+
+		let courses = fetch_courses_for_map(map_id, transaction.as_mut()).await?;
+
+		create_course_mappers(&courses, &added_courses, transaction.as_mut()).await?;
+		create_course_filters(&courses, &added_courses, transaction.as_mut()).await?;
+	}
+
+	let mut remove_courses = QueryBuilder::new("DELETE FROM Courses WHERE (id) IN");
+
+	remove_courses.push_tuples(body.removed_courses.iter().flatten(), |mut query, course_id| {
+		query.push_bind(course_id);
+	});
+
+	remove_courses.build().execute(transaction.as_mut()).await?;
+
+	for course_update in body.course_updates.iter().flatten() {
+		if let Some(added_mappers) = &course_update.added_mappers {
+			let mut create_mappers =
+				QueryBuilder::new("INSERT INTO CourseMappers (course_id, player_id)");
+
+			create_mappers.push_values(added_mappers, |mut query, steam_id| {
+				query.push_bind(course_update.course_id).push_bind(steam_id);
+			});
+
+			create_mappers.build().execute(transaction.as_mut()).await?;
+		}
+
+		if let Some(removed_mappers) = &course_update.removed_mappers {
+			let mut remove_mappers =
+				QueryBuilder::new("DELETE FROM CourseMappers WHERE (course_id, player_id) IN");
+
+			remove_mappers.push_tuples(removed_mappers, |mut query, steam_id| {
+				query.push_bind(course_update.course_id).push_bind(steam_id);
+			});
+
+			remove_mappers.build().execute(transaction.as_mut()).await?;
+		}
+
+		if let Some(added_filters) = &course_update.added_filters {
+			let mut create_filters = QueryBuilder::new(
+				r#"
+				INSERT INTO
+					CourseFilters (course_id, mode_id, has_teleports, tier, ranked)
+				"#,
+			);
+
+			create_filters.push_values(added_filters, |mut query, filter| {
+				query
+					.push_bind(course_update.course_id)
+					.push_bind(filter.mode)
+					.push_bind(filter.has_teleports)
+					.push_bind(filter.tier)
+					.push_bind(filter.ranked);
+			});
+
+			create_filters.build().execute(transaction.as_mut()).await?;
+		}
+
+		if let Some(removed_filters) = &course_update.removed_filters {
+			let mut remove_filters = QueryBuilder::new("DELETE FROM CourseFilters WHERE (id) IN");
+
+			remove_filters.push_tuples(removed_filters, |mut query, filter_id| {
+				query.push_bind(filter_id);
+			});
+
+			remove_filters.build().execute(transaction.as_mut()).await?;
+		}
+
+		for FilterUpdate { filter_id, tier, ranked } in
+			course_update.filter_updates.iter().flatten()
+		{
+			match (tier, ranked) {
+				(None, None) => {}
+
+				(Some(tier), None) => {
+					sqlx::query! {
+						r#"
+						UPDATE
+							CourseFilters
+						SET
+							tier = ?
+						WHERE
+							id = ?
+						"#,
+						tier,
+						filter_id,
+					}
+					.execute(transaction.as_mut())
+					.await?;
+				}
+
+				(None, Some(ranked)) => {
+					sqlx::query! {
+						r#"
+						UPDATE
+							CourseFilters
+						SET
+							ranked = ?
+						WHERE
+							id = ?
+						"#,
+						ranked,
+						filter_id,
+					}
+					.execute(transaction.as_mut())
+					.await?;
+				}
+
+				(Some(tier), Some(ranked)) => {
+					sqlx::query! {
+						r#"
+						UPDATE
+							CourseFilters
+						SET
+							tier = ?,
+							ranked = ?
+						WHERE
+							id = ?
+						"#,
+						tier,
+						ranked,
+						filter_id,
+					}
+					.execute(transaction.as_mut())
+					.await?;
+				}
+			}
 		}
 	}
 
-	transaction.commit().await?;
+	Ok(())
+}
+
+/// Query parameters for retrieving information about maps.
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct GetMapsParams<'a> {
+	/// The map's name.
+	name: Option<String>,
+
+	/// A player's SteamID or name.
+	mapper: Option<PlayerIdentifier<'a>>,
+
+	/// Only include maps created after this date.
+	created_after: Option<DateTime<Utc>>,
+
+	/// Only include maps created before this date.
+	created_before: Option<DateTime<Utc>>,
+
+	#[param(minimum = 0, maximum = 500)]
+	limit: Option<u64>,
+	offset: Option<i64>,
+}
+
+/// A new map.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+	"name": "kz_checkmate",
+	"workshop_id": 3070194623_u32,
+	"filesize": 190335000,
+	"mappers": ["STEAM_1:0:102468802"],
+	"courses": [
+		{
+			"stage": 0,
+			"mappers": ["STEAM_1:0:102468802"],
+			"filters": [
+				{
+					"mode": "kz_modded",
+					"has_teleports": true,
+					"tier": 3,
+					"ranked": true
+				},
+				{
+					"mode": "kz_modded",
+					"has_teleports": false,
+					"tier": 4,
+					"ranked": true
+				}
+			]
+		}
+	]
+}))]
+pub struct CreateMapRequest {
+	/// The map's name.
+	name: String,
+
+	/// The map's Steam Workshop ID.
+	workshop_id: u32,
+
+	/// The map's filesize in bytes.
+	filesize: u64,
+
+	/// List of players who have contributed to creating this map.
+	mappers: Vec<SteamID>,
+
+	/// List of courses on this map.
+	courses: Vec<CreateCourse>,
+}
+
+/// A new course.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+	"stage": 0,
+	"mappers": ["STEAM_1:0:102468802"],
+	"filters": [
+		{
+			"mode": "kz_modded",
+			"has_teleports": true,
+			"tier": 3,
+			"ranked": true
+		},
+		{
+			"mode": "kz_modded",
+			"has_teleports": false,
+			"tier": 4,
+			"ranked": true
+		}
+	]
+}))]
+pub struct CreateCourse {
+	/// The stage of the map this course corresponds to.
+	pub stage: u8,
+
+	/// List of the players who created this course.
+	pub mappers: Vec<SteamID>,
+
+	/// List of filters that apply to this course.
+	pub filters: Vec<Filter>,
+}
+
+/// A map udpate.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({ "name": "kz_checkmate_v2_final_fix_global_new" }))]
+pub struct UpdateMapRequest {
+	/// The map's new name.
+	name: Option<String>,
+
+	/// The map's new Steam Workshop ID.
+	workshop_id: Option<u32>,
+
+	/// The map's new filesize.
+	filesize: Option<u64>,
+
+	/// List of new mappers.
+	added_mappers: Option<Vec<SteamID>>,
+
+	/// List of old mappers to be removed.
+	removed_mappers: Option<Vec<SteamID>>,
+
+	/// List of new courses.
+	added_courses: Option<Vec<CreateCourse>>,
+
+	/// List of course IDs to be removed.
+	removed_courses: Option<Vec<u32>>,
+
+	/// List of updates to existing courses.
+	course_updates: Option<Vec<CourseUpdate>>,
+}
+
+/// An update to a course.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+	"course_id": 1,
+	"added_mappers": ["STEAM_1:0:102468802"]
+}))]
+pub struct CourseUpdate {
+	/// The course's ID.
+	course_id: u32,
+
+	/// List of new mappers.
+	added_mappers: Option<Vec<SteamID>>,
+
+	/// List of old mappers to be removed.
+	removed_mappers: Option<Vec<SteamID>>,
+
+	/// List of new filters.
+	added_filters: Option<Vec<Filter>>,
+
+	/// List of filter IDs to be removed.
+	removed_filters: Option<Vec<u32>>,
+
+	/// List of updates for existing filters.
+	filter_updates: Option<Vec<FilterUpdate>>,
+}
+
+/// An update to a filter.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+	"filter_id": 1,
+	"tier": 7
+}))]
+pub struct FilterUpdate {
+	/// The filter's ID.
+	filter_id: u32,
+
+	/// A different tier.
+	tier: Option<Tier>,
+
+	/// A new ranked status.
+	ranked: Option<bool>,
+}
+
+/// A newly created map.
+#[derive(Debug, Serialize, ToSchema)]
+#[schema(example = json!({ "map_id": 1 }))]
+pub struct CreateMapResponse {
+	/// The map's ID.
+	map_id: u16,
+}
+
+#[derive(Clone, Copy, FromRow)]
+struct CourseRow {
+	id: u32,
+	map_stage: u8,
+}
+
+fn reduce_to_map(mut map: KZMap, mut row: KZMap) -> KZMap {
+	map.courses.append(&mut row.courses);
+
+	let mut courses = Vec::<Course>::new();
+
+	for mut row in map.courses.drain(..) {
+		let Some(course) = courses.last_mut().filter(|c| c.id == row.id) else {
+			courses.push(row);
+			continue;
+		};
+
+		course.filters.append(&mut row.filters);
+		course.mappers.dedup_by_key(|p| p.steam_id);
+	}
+
+	KZMap { courses, ..map }
+}
+
+async fn create_mappers(
+	map_id: u16,
+	mappers: &[SteamID],
+	connection: &mut MySqlConnection,
+) -> Result<()> {
+	let mut create_mappers = QueryBuilder::new("INSERT INTO Mappers (map_id, player_id)");
+
+	create_mappers.push_values(mappers, |mut query, mapper| {
+		query.push_bind(map_id).push_bind(mapper);
+	});
+
+	create_mappers.build().execute(connection).await?;
 
 	Ok(())
+}
+
+async fn create_courses(
+	map_id: u16,
+	stages: impl Iterator<Item = u8>,
+	connection: &mut MySqlConnection,
+) -> Result<()> {
+	let mut create_courses = QueryBuilder::new("INSERT INTO Courses (map_id, map_stage)");
+
+	create_courses.push_values(stages, |mut query, stage| {
+		query.push_bind(map_id).push_bind(stage);
+	});
+
+	create_courses.build().execute(connection).await?;
+
+	Ok(())
+}
+
+async fn create_course_mappers(
+	courses: &[CourseRow],
+	new_courses: &[CreateCourse],
+	connection: &mut MySqlConnection,
+) -> Result<()> {
+	let mut create_course_mappers =
+		QueryBuilder::new("INSERT INTO CourseMappers (course_id, player_id)");
+
+	let iter = new_courses
+		.iter()
+		.map(|course| {
+			let course_id = find_course_by_stage(courses.iter().copied(), course.stage)?;
+
+			Ok(course
+				.mappers
+				.iter()
+				.map(move |steam_id| (course_id, steam_id)))
+		})
+		.collect::<Result<Vec<_>>>()? // Maybe we can do better here?
+		.into_iter()
+		.flatten();
+
+	create_course_mappers.push_values(iter, |mut query, (course_id, mapper)| {
+		query.push_bind(course_id).push_bind(mapper);
+	});
+
+	create_course_mappers.build().execute(connection).await?;
+
+	Ok(())
+}
+
+async fn create_course_filters(
+	courses: &[CourseRow],
+	new_courses: &[CreateCourse],
+	connection: &mut MySqlConnection,
+) -> Result<()> {
+	let mut create_course_filters = QueryBuilder::new(
+		r#"
+		INSERT INTO
+			CourseFilters (course_id, mode_id, has_teleports, tier, ranked)
+		"#,
+	);
+
+	let iter = new_courses
+		.iter()
+		.map(|course| {
+			let course_id = find_course_by_stage(courses.iter().copied(), course.stage)?;
+
+			Ok(course
+				.filters
+				.iter()
+				.map(move |filter| (course_id, filter)))
+		})
+		.collect::<Result<Vec<_>>>()? // Maybe we can do better here?
+		.into_iter()
+		.flatten();
+
+	create_course_filters.push_values(iter, |mut query, (course_id, filter)| {
+		query
+			.push_bind(course_id)
+			.push_bind(filter.mode)
+			.push_bind(filter.has_teleports)
+			.push_bind(filter.tier)
+			.push_bind(filter.ranked);
+	});
+
+	create_course_filters.build().execute(connection).await?;
+
+	Ok(())
+}
+
+fn find_course_by_stage(mut courses: impl Iterator<Item = CourseRow>, stage: u8) -> Result<u32> {
+	courses
+		.find(|course| course.map_stage == stage)
+		.map(|course| course.id)
+		.ok_or(Error::MissingCourse { stage })
+}
+
+async fn fetch_courses_for_map(
+	map_id: u16,
+	connection: &mut MySqlConnection,
+) -> Result<Vec<CourseRow>> {
+	sqlx::query_as! {
+		CourseRow,
+		r#"
+		SELECT
+			id,
+			map_stage
+		FROM
+			Courses
+		WHERE
+			map_id = ?
+		"#,
+		map_id,
+	}
+	.fetch_all(connection)
+	.await
+	.map_err(Into::into)
 }

@@ -1,65 +1,60 @@
 [package]
 name = "cs2kz-api"
-version = "0.0.0"
+version = "1.0.0"
+authors = ["AlphaKeks <alphakeks@dawn.sh>"]
 edition = "2021"
-
-[features]
-prod = []
+description = "The main API for CS2KZ"
+readme = "../README.md"
+homepage = "https://cs2.kz"
+repository = "https://github.com/KZGlobalTeam/cs2kz-api.git"
+license-file = "../LICENSE"
+publish = false
 
 [dependencies]
+dotenvy = { workspace = true }
 color-eyre = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-dotenvy = { workspace = true }
-clap = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-serde_urlencoded = { workspace = true }
-rand = { workspace = true }
+time = { workspace = true }
 chrono = { workspace = true }
 tokio = { workspace = true }
 sqlx = { workspace = true }
-utoipa = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
 
 [dependencies.cs2kz]
-path = "../cs2kz/"
-features = ["serde", "utoipa"]
+path = "../cs2kz"
+features = ["serde", "utoipa", "sqlx"]
 
 [dependencies.axum]
 version = "0.7"
 default-features = false
-features = ["http1", "json", "query", "tokio", "macros"]
+features = ["http1", "http2", "json", "query", "tokio", "tracing", "macros"]
 
 [dependencies.axum-extra]
 version = "0.9"
-default-features = false
 features = ["typed-header", "cookie"]
-
-[dependencies.hyper]
-version = "1"
-
-[dependencies.http-body-util]
-version = "0.1"
-
-[dependencies.tower-http]
-version = "0.5"
-features = ["cors"]
-
-[dependencies.tower-layer]
-version = "0.3"
-
-[dependencies.url]
-version = "2.5"
-features = ["serde"]
 
 [dependencies.reqwest]
 version = "0.11"
 default-features = false
-features = ["rustls-tls", "json"]
+features = ["tokio-rustls", "rustls-tls", "json"]
 
-[dependencies.jsonwebtoken]
+[dependencies.url]
+version = "2"
+features = ["serde"]
+
+[dependencies.serde_urlencoded]
+version = "0.7"
+
+[dependencies.jwt]
+package = "jsonwebtoken"
 version = "9"
+
+[dependencies.utoipa]
+version = "4"
+features = ["axum_extras", "non_strict_integers", "preserve_order", "preserve_path_order", "chrono", "debug"]
 
 [dependencies.utoipa-swagger-ui]
 version = "5"

@@ -1,57 +1,70 @@
+include .env.example
+-include .env
+export
+
+balls:
+	@echo $${DATABASE_URL}
+
 default:
-	make db
-	make migrations
-	make api
-	@echo ""
-	@echo "Finished setting up. You can run the API container via \`make run\`."
-	@echo ""
-
-clean:
-	docker compose down --rmi all
-
-db-clean:
-	sudo rm -rf ./database/volumes/cs2kz-database/
+	@make db
+	@echo "Waiting for the database to spin up..."
+	@sleep 10s
+	@make migrations
+	@make api
 
 db:
-	docker compose up -d --wait cs2kz-database
+	@echo "Starting database container..."
+	@docker compose up -d --wait cs2kz-database
+
+db-clean:
+	rm -rf ./database/volumes/cs2kz
+
+db-connect:
+	@echo "Connecting to database..."
+	@mariadb \
+		-u kz \
+		-pcsgo-kz-is-dead-boys \
+		-h 127.0.0.1 \
+		-P $${KZ_API_DATABASE_PORT:-8070} \
+		-D cs2kz
 
 migrations:
-	sqlx migrate run \
+	@echo "Running migrations..."
+	@sqlx migrate run \
 		--source ./database/migrations/ \
-		--database-url mysql://kz:csgo-kz-is-dead-boys@127.0.0.1:8070/cs2kz-api
-
-sqlx-data:
-	cargo sqlx prepare --workspace
+		--database-url $${DATABASE_URL}
 
 api:
-	docker compose build cs2kz-api
+	@echo "Building API container..."
+	@docker compose build cs2kz-api
+	@echo "Running API..."
+	@docker compose up -d --wait cs2kz-api
+	@docker compose logs --follow cs2kz-api
 
-run:
-	docker compose up
+api-spec:
+	@echo "Generating OpenAPI docs..."
+	cargo run --package cs2kz-api-spec-generator -- --output api-spec.json
+
+sqlx-cache:
+	cargo sqlx prepare \
+		--workspace \
+		--database-url $${DATABASE_URL}
 
 dev:
-	DATABASE_URL=mysql://kz:csgo-kz-is-dead-boys@127.0.0.1:8070/cs2kz-api cargo run -p cs2kz-api
+	cargo run -p cs2kz-api
 
-lint:
+check:
 	cargo clippy --all-features --workspace -- -D warnings
 
-format:
+fmt:
 	cargo +nightly fmt --all
 
-format-check:
+fmt-check:
 	cargo +nightly fmt --all --check
 
 docs:
+	@echo "Documenting all crates..."
 	cargo doc --all-features --workspace --document-private-items --no-deps
+	@echo "Checking if the OpenAPI docs are up to date..."
+	cargo run --package cs2kz-api-spec-generator -- --check api-spec.json
 
-spec:
-	cargo run -p cs2kz-api-spec-generator -- json
-
-spec-check:
-	cargo run -p cs2kz-api-spec-generator -- check
-
-pre-push:
-	make lint
-	make format
-	make docs
-	make spec-check

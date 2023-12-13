@@ -1,65 +1,38 @@
 use std::result::Result as StdResult;
 
-use thiserror::Error as ThisError;
+use thiserror::Error;
 
 pub type Result<T> = StdResult<T, Error>;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, ThisError)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum Error {
-	/// An invalid input was passed to a [`SteamID`] constructor.
-	///
-	/// [`SteamID`]: crate::SteamID
-	#[error("`{}` is not a valid SteamID.{}", input, match reason {
-		None => String::new(),
-		Some(reason) => format!(" ({reason})"),
-	})]
-	InvalidSteamID {
-		input: String,
-		reason: Option<String>,
-	},
+	#[error("`{value}` is out of bounds for a valid SteamID.")]
+	OutOfBoundsSteamID { value: u64 },
 
-	#[error("`{}` is not a valid Mode.{}", input, match reason {
-		None => String::new(),
-		Some(reason) => format!(" ({reason})"),
-	})]
-	InvalidMode {
-		input: String,
-		reason: Option<String>,
-	},
+	#[error("`{value}` was assumed to be a Steam3ID, but was invalid: {reason}")]
+	InvalidSteam3ID { value: String, reason: &'static str },
 
-	#[error("`{}` is not a valid Style.{}", input, match reason {
-		None => String::new(),
-		Some(reason) => format!(" ({reason})"),
-	})]
-	InvalidStyle {
-		input: String,
-		reason: Option<String>,
-	},
+	#[error("`{value}` was assumed to be a standard SteamID, but was invalid: {reason}")]
+	InvalidSteamID { value: String, reason: &'static str },
 
-	#[error("`{}` is not a valid Jumpstat.{}", input, match reason {
-		None => String::new(),
-		Some(reason) => format!(" ({reason})"),
-	})]
-	InvalidJumpstat {
-		input: String,
-		reason: Option<String>,
-	},
+	#[error("`{value}` is not a valid Mode ID.")]
+	InvalidModeID { value: u8 },
 
-	#[error("`{}` is not a valid Tier.{}", input, match reason {
-		None => String::new(),
-		Some(reason) => format!(" ({reason})"),
-	})]
-	InvalidTier {
-		input: String,
-		reason: Option<String>,
-	},
+	#[error("`{value}` is not a valid Mode.")]
+	InvalidMode { value: String },
 
-	#[error("`{}` is not a valid Runtype.{}", input, match reason {
-		None => String::new(),
-		Some(reason) => format!(" ({reason})"),
-	})]
-	InvalidRuntype {
-		input: String,
-		reason: Option<String>,
-	},
+	#[error("`{value}` is not a valid Style ID.")]
+	InvalidStyleID { value: u8 },
+
+	#[error("`{value}` is not a valid Style.")]
+	InvalidStyle { value: String },
+
+	#[error("`{value}` is not a valid Jumpstat ID.")]
+	InvalidJumpstatID { value: u8 },
+
+	#[error("`{value}` is not a valid Jumpstat.")]
+	InvalidJumpstat { value: String },
+
+	#[error("`{value}` is not a valid Tier.")]
+	InvalidTier { value: String },
 }

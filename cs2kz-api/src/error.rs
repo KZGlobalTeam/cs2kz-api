@@ -1,77 +1,135 @@
+//! This module contains the main error type for the API.
+//!
+//! Any runtime errors that are expected to happen are defined in here.
+
+use std::error::Error as StdError;
 use std::result::Result as StdResult;
 
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response as AxumResponse};
+use axum::response::IntoResponse;
 use axum::Json;
-use jsonwebtoken as jwt;
-use serde::{Serialize, Serializer};
 use serde_json::json;
-use thiserror::Error as ThisError;
+use thiserror::Error;
 use tracing::error;
 
+/// Convenience type alias for the crate's main error type.
 pub type Result<T> = StdResult<T, Error>;
 
-#[derive(Debug, Clone, PartialEq, Eq, ThisError)]
+/// The main error type of this crate.
+///
+/// These errors might occurr during runtime.
+#[derive(Debug, Error)]
 pub enum Error {
-	#[error("There is no data available for this query.")]
+	/// Something unexpected happened.
+	///
+	/// This is a catch-all error type and will always result in a 500 when returned from
+	/// an HTTP handler.
+	#[error("Something unexpected happened. This is a bug.")]
+	Unexpected(Box<dyn StdError>),
+
+	/// A database query returned 0 rows.
+	#[error("No data available for the given query.")]
 	NoContent,
 
-	#[error("Invalid request body.")]
+	/// Request body could not be parsed.
+	#[error("Invalid request body. Expected bytes.")]
 	InvalidRequestBody,
 
-	#[error("You do not have access to this resource.")]
+	/// A request had missing / invalid credentials.
+	///
+	/// This error usually occurrs in authentication middelware.
+	#[error("You do not have the required permissions to access this resource.")]
 	Unauthorized,
 
-	#[error("Missing course for stage {stage}.")]
-	MissingCourse { stage: u8 },
+	/// A request for creating a new map was missing a course for a specific stage.
+	#[error("Missing course for stage `{stage}`.")]
+	MissingCourse {
+		/// The stage in question.
+		stage: u8,
+	},
 
-	#[error("Cannot create duplicate course for stage {stage}.")]
-	DuplicateCourse { stage: u8 },
-
-	#[error("Filter for this record does not exist.")]
-	MissingFilter,
-
-	#[error("Something went wrong. This is a bug.")]
-	InternalServerError,
+	/// A request for creating a record had an invalid (course, mode, has_teleports)
+	/// combination.
+	#[error("The submitted record does not have a filter.")]
+	InvalidFilter,
 }
 
 impl IntoResponse for Error {
-	fn into_response(self) -> AxumResponse {
+	fn into_response(self) -> axum::response::Response {
+		let message = self.to_string();
 		let code = match self {
+			Self::Unexpected(err) => {
+				error!(error = ?err, "Unexpected error happened");
+
+				StatusCode::INTERNAL_SERVER_ERROR
+			}
+
 			Self::NoContent => StatusCode::NO_CONTENT,
-			Self::InvalidRequestBody
-			| Self::MissingCourse { .. }
-			| Self::DuplicateCourse { .. }
-			| Self::MissingFilter => StatusCode::BAD_REQUEST,
+			Self::InvalidRequestBody => StatusCode::BAD_REQUEST,
+			Self::MissingCourse { .. } | Self::InvalidFilter => StatusCode::CONFLICT,
 			Self::Unauthorized => StatusCode::UNAUTHORIZED,
-			Self::InternalServerError => StatusCode::INTERNAL_SERVER_ERROR,
 		};
 
-		(code, Json(self)).into_response()
-	}
-}
-
-impl Serialize for Error {
-	fn serialize<S>(&self, serializer: S) -> StdResult<S::Ok, S::Error>
-	where
-		S: Serializer,
-	{
-		// TODO(AlphaKeks): include a custom error code here?
-		json!({ "message": self.to_string() }).serialize(serializer)
+		(code, Json(json!({ "message": message }))).into_response()
 	}
 }
 
 impl From<sqlx::Error> for Error {
 	fn from(error: sqlx::Error) -> Self {
-		error!(?error, "database error");
-		Self::InternalServerError
+		use sqlx::Error as E;
+
+		#[allow(clippy::wildcard_in_or_patterns)]
+		match error {
+			E::RowNotFound => Self::NoContent,
+
+			E::Database(_)
+			| E::PoolTimedOut
+			| E::PoolClosed
+			| E::WorkerCrashed
+			| E::AnyDriverError(_)
+			| E::Migrate(_) => panic!("Fatal database error: {error}"),
+
+			E::Configuration(_)
+			| E::Io(_)
+			| E::Tls(_)
+			| E::Protocol(_)
+			| E::TypeNotFound { .. }
+			| E::ColumnIndexOutOfBounds { .. }
+			| E::ColumnNotFound(_)
+			| E::ColumnDecode { .. }
+			| E::Decode(_)
+			| _ => Self::Unexpected(Box::new(error)),
+		}
 	}
 }
 
 impl From<jwt::errors::Error> for Error {
 	fn from(error: jwt::errors::Error) -> Self {
-		error!(error = ?error.kind(), "failed to decode jwt");
+		use jwt::errors::ErrorKind as E;
 
-		Self::Unauthorized
+		#[allow(clippy::wildcard_in_or_patterns)]
+		match error.kind() {
+			E::InvalidToken
+			| E::InvalidSignature
+			| E::MissingRequiredClaim(_)
+			| E::ExpiredSignature
+			| E::InvalidIssuer
+			| E::InvalidAudience
+			| E::InvalidSubject
+			| E::ImmatureSignature
+			| E::InvalidAlgorithm
+			| E::MissingAlgorithm => Self::Unauthorized,
+
+			E::Base64(_)
+			| E::Json(_)
+			| E::Utf8(_)
+			| E::Crypto(_)
+			| E::InvalidEcdsaKey
+			| E::InvalidRsaKey(_)
+			| E::RsaFailedSigning
+			| E::InvalidAlgorithmName
+			| E::InvalidKeyFormat
+			| _ => Self::Unexpected(Box::new(error)),
+		}
 	}
 }

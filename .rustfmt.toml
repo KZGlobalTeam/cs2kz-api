@@ -1,5 +1,3 @@
-# For details on what these mean visit this website:
-#
 # https://rust-lang.github.io/rustfmt?version=v1.7.0
 
 edition = "2021"

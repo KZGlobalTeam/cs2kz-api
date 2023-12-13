@@ -1,407 +1,233 @@
 use std::borrow::Borrow;
-use std::fmt::Display;
-use std::hash::{Hash, Hasher};
-use std::ops::Deref;
 use std::str::FromStr;
-use std::{cmp, fmt};
 
-use lazy_regex::{regex, Lazy, Regex};
+use derive_more::{AsRef, Deref, Display};
 
 use crate::{Error, Result};
 
-/// A regex to match [`SteamID`]s in the format of `STEAM_1:1:161178172`.
-pub static STANDARD_REGEX: &Lazy<Regex> = regex!(r"^STEAM_[01]:[01]:\d+$");
-
-/// A regex to match [`SteamID`]s in the format of `U:1:322356345` or `[U:1:322356345]`.
-pub static STEAM3_ID_REGEX: &Lazy<Regex> = regex!(r"^(\[U:1:\d+\]|U:1:\d+)$");
-
 #[repr(transparent)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Display, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, AsRef, Deref)]
+#[display("STEAM_1:{}:{}", self.as_u64() & 1, self.account_number())]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "utoipa", schema(value_type = String))]
 pub struct SteamID(u64);
 
 impl SteamID {
-	pub const MIN: u64 = 76561197960265729_u64;
-	pub const MAX: u64 = 76561202255233023_u64;
-	pub const MAGIC_OFFSET: u64 = Self::MIN - 1_u64;
-	pub const ACCOUNT_UNIVERSE: u64 = 1;
-	pub const ACCOUNT_TYPE: u64 = 1;
+	/// The minimum value for a legal [`SteamID`].
+	pub const MIN: Self = Self(76561197960265729_u64);
 
-	/// 4294967296 (0x100_000_000)
-	const MSB_9_BITS: u64 = 1 << 32;
+	/// The maximum value for a legal [`SteamID`].
+	pub const MAX: Self = Self(76561202255233023_u64);
 
-	/// 4503599627370496 (0x010_000_000_000_000)
-	const MSB_14_BITS: u64 = 1 << 52;
-}
-
-macro_rules! invalid {
-	($input:expr) => {
-		return Err($crate::Error::InvalidSteamID {
-			input: $input.to_string(),
-			reason: None,
-		})
-	};
-
-	($input:expr, $($t:tt)*) => {
-		return Err($crate::Error::InvalidSteamID {
-			input: $input.to_string(),
-			reason: Some(format!($($t)*)),
-		})
-	};
-}
-
-impl SteamID {
-	pub fn new<S>(input: S) -> Result<Self>
-	where
-		S: AsRef<str>,
-	{
-		let input = input.as_ref();
-
-		if STANDARD_REGEX.is_match(input) {
-			Self::from_standard(input)
-		} else if STEAM3_ID_REGEX.is_match(input) {
-			Self::from_id3(input)
-		} else if let Ok(int) = input.parse::<u64>() {
-			Self::try_from(int)
-		} else {
-			invalid!(input);
-		}
-	}
-
+	/// Returns a 64-bit representation of the inner SteamID.
 	#[inline]
 	pub const fn as_u64(&self) -> u64 {
 		self.0
 	}
 
+	/// Returns a 32-bit representation of the inner SteamID.
 	#[inline]
 	pub const fn as_u32(&self) -> u32 {
-		let account_number = self.account_number();
-		let account_type = self.account_type() as u32;
-
-		((account_number + account_type) * 2) - account_type
+		((self.account_number() + 1) * 2) - 1
 	}
 
+	/// Returns the "Steam3ID" representation of the inner SteamID.
 	#[inline]
-	pub fn as_steam3_id(&self, brackets: bool) -> String {
-		let id32 = self.as_u32();
-
-		if brackets {
-			format!("[U:1:{id32}]")
-		} else {
-			format!("U:1:{id32}")
-		}
+	pub fn as_id3(&self) -> String {
+		format!("U:1:{}", self.as_u32())
 	}
 
-	#[inline]
-	pub const fn account_universe(&self) -> u64 {
-		Self::ACCOUNT_UNIVERSE
-	}
-
-	#[inline]
-	pub const fn account_type(&self) -> u64 {
-		Self::ACCOUNT_TYPE
-	}
-
-	#[inline]
-	pub const fn lsb(&self) -> u64 {
-		self.as_u64() & 1
-	}
-
+	/// Returns the `Z` part of `STEAM_X:Y:Z`.
 	#[inline]
 	pub const fn account_number(&self) -> u32 {
-		let offset = self.as_u64() - Self::MAGIC_OFFSET;
-		let account_type = self.account_type();
-		let account_number = (offset - account_type) / 2;
+		let account_number = (self.as_u64() - Self::MAGIC_OFFSET) / 2;
 
-		assert!(account_number <= u32::MAX as u64);
+		debug_assert!(account_number <= u32::MAX as u64);
 
 		account_number as u32
 	}
 }
 
 impl SteamID {
-	pub fn from_standard<S>(input: S) -> Result<Self>
-	where
-		S: AsRef<str>,
-	{
-		let input = input.as_ref();
+	const MAGIC_OFFSET: u64 = Self::MIN.0 - 1;
 
-		if !STANDARD_REGEX.is_match(input) {
-			invalid!(input, "does not match \"standard\" regex");
+	/// Constructs a [`SteamID`] from a 64-bit integer `value`.
+	#[inline]
+	pub const fn from_u64(value: u64) -> Result<Self> {
+		if value < Self::MIN.0 || value > Self::MAX.0 {
+			return Err(Error::OutOfBoundsSteamID { value });
 		}
 
-		assert!(input.is_ascii(), "SteamID must be valid ASCII.");
+		Ok(Self(value))
+	}
 
-		// (X, Y, Z) parts of STEAM_X:Y:Z
+	/// Constructs a [`SteamID`] from a 32-bit integer `value`.
+	#[inline]
+	pub const fn from_u32(value: u32) -> Result<Self> {
+		if value == 0 {
+			return Err(Error::OutOfBoundsSteamID { value: value as u64 });
+		}
+
+		let steam_id = value as u64 + Self::MAGIC_OFFSET;
+
+		if steam_id > Self::MAX.0 {
+			return Err(Error::OutOfBoundsSteamID { value: value as u64 });
+		}
+
+		Ok(Self(steam_id))
+	}
+
+	/// Parses a [`SteamID`] as the "Steam3ID" format.
+	pub fn from_id3(value: impl AsRef<str>) -> Result<Self> {
+		let value = value.as_ref();
+		let err = |reason: &'static str| Error::InvalidSteam3ID { value: value.to_owned(), reason };
+
+		let (_, mut steam_id) = value.rsplit_once(':').ok_or_else(|| err("missing `:`"))?;
+
+		if steam_id.ends_with(']') {
+			steam_id = &steam_id[..(steam_id.len() - 1)];
+		}
+
+		steam_id
+			.parse::<u32>()
+			.map_err(|_| err("invalid ID part"))
+			.and_then(Self::from_u32)
+	}
+
+	/// Parses a [`SteamID`] as the "standard" `STEAM_X:Y:Z` format.
+	pub fn from_standard(value: impl AsRef<str>) -> Result<Self> {
+		let value = value.as_ref();
+		let err = |reason: &'static str| Error::InvalidSteamID { value: value.to_owned(), reason };
+
+		let mut segments = value
+			.split_once('_')
+			.ok_or_else(|| err("missing `_`"))?
+			.1
+			.split(':');
+
+		// Parse the `X` part.
 		//
-		// Assuming we start with "STEAM_1:1:161178172":
-		let mut segments = input
-			.split_once('_') // ("STEAM", "1:1:161178172")
-			.expect("SteamID contains an underscore.")
-			.1 // "1:1:161178172"
-			.split(':'); // ("1", "1", "16117817")
+		// This is always `1` for Counter-Strike, but some websites might display a `0`, so
+		// we allow either and just proceed with `1`.
+		if !matches!(segments.next(), Some("0" | "1")) {
+			return Err(err("invalid `X` segment"));
+		}
 
-		// `X` is always 0 or 1.
-		//
-		// For Counter-Strike this is really always 1, but websites might give players their
-		// SteamID with a 0 in the first position, so we just make sure it's either one and
-		// proceed with 1.
-		let account_universe = {
-			assert!(matches!(segments.next(), Some("0" | "1")));
-			Self::ACCOUNT_UNIVERSE
-		};
-
-		// `Y` is also always 0 or 1.
-		let y_bit = segments
+		// Parse the `Y` part.
+		let y = segments
 			.next()
-			.expect("There are two segments left.")
+			.ok_or_else(|| err("missing `Y` segment"))?
 			.parse::<u64>()
-			.expect("The second segment is either 0 or 1.");
+			.map_err(|_| err("invalid `Y` segment"))?;
 
-		assert!(y_bit < 2, "The `Y` bit should always be either 0 or 1.");
+		if y > 1 {
+			return Err(err("invalid `Y` segment"));
+		}
 
-		// `Z` part
-		let account_number = segments
+		// Parse the `Z` part.
+		let z = segments
 			.next()
-			.expect("There is a single segment left.")
+			.ok_or_else(|| err("missing `Z` segment"))?
 			.parse::<u64>()
-			.expect("The last segment is an integer.");
+			.map_err(|_| err("invalid `Z` segment"))?;
 
 		// At this point we should be done.
-		assert!(segments.next().is_none(), "There should be no more segments left.");
-
-		if y_bit == 0 && account_number == 0 {
-			invalid!(input, "is 0");
+		if segments.next().is_some() {
+			return Err(err("trailing characters"));
 		}
 
-		if account_number + Self::MAGIC_OFFSET > Self::MAX {
-			invalid!(input, "too large");
+		if y == 0 && z == 0 {
+			return Err(err("is 0"));
 		}
 
-		let steam64_id = account_universe << 56
-			| Self::MSB_14_BITS
-			| Self::MSB_9_BITS
-			| account_number << 1
-			| y_bit;
-
-		assert!((Self::MIN..=Self::MAX).contains(&steam64_id));
-
-		Ok(Self(steam64_id))
-	}
-
-	pub fn from_id3<S>(input: S) -> Result<Self>
-	where
-		S: AsRef<str>,
-	{
-		let input = input.as_ref();
-
-		if !STEAM3_ID_REGEX.is_match(input) {
-			invalid!(input, "does not match \"Steam3 ID\" regex");
+		if z + Self::MAGIC_OFFSET > Self::MAX.0 {
+			return Err(Error::OutOfBoundsSteamID { value: z });
 		}
 
-		assert!(input.is_ascii(), "SteamID must be valid ASCII.");
+		let steam_id = Self::MAGIC_OFFSET | y | z << 1;
 
-		let (_, mut id32) = input
-			.rsplit_once(':')
-			.expect("Steam3 ID always contains a `:`.");
-
-		if id32.ends_with(']') {
-			id32 = &id32[..(id32.len() - 1)];
-		}
-
-		let steam32_id = id32.parse::<u32>().expect("Only digits are left.");
-
-		Self::try_from(steam32_id)
-	}
-
-	#[inline]
-	pub fn from_id32(input: u32) -> Result<Self> {
-		if input == 0 {
-			invalid!(input, "is 0");
-		}
-
-		let steam64_id = input as u64 + Self::MAGIC_OFFSET;
-
-		if steam64_id > Self::MAX {
-			invalid!(steam64_id, "too large");
-		}
-
-		Ok(Self(steam64_id))
-	}
-
-	#[inline]
-	pub fn from_id64(input: u64) -> Result<Self> {
-		let allowed_range = Self::MIN..=Self::MAX;
-
-		if !allowed_range.contains(&input) {
-			invalid!(input, "out of bounds");
-		}
-
-		Ok(Self(input))
-	}
-}
-
-impl TryFrom<u32> for SteamID {
-	type Error = Error;
-
-	fn try_from(input: u32) -> Result<Self> {
-		Self::from_id32(input)
-	}
-}
-
-impl TryFrom<i32> for SteamID {
-	type Error = Error;
-
-	fn try_from(input: i32) -> Result<Self> {
-		if let Ok(input) = u32::try_from(input) {
-			Self::try_from(input)
-		} else {
-			invalid!(input, "is negative");
-		}
-	}
-}
-
-impl TryFrom<u64> for SteamID {
-	type Error = Error;
-
-	fn try_from(input: u64) -> Result<Self> {
-		if let Ok(id32) = u32::try_from(input) {
-			Self::try_from(id32)
-		} else {
-			Self::from_id64(input)
-		}
-	}
-}
-
-impl TryFrom<i64> for SteamID {
-	type Error = Error;
-
-	fn try_from(input: i64) -> Result<Self> {
-		if let Ok(id32) = u32::try_from(input) {
-			Self::try_from(id32)
-		} else if let Ok(id64) = u64::try_from(input) {
-			Self::from_id64(id64)
-		} else {
-			invalid!(input, "is negative");
-		}
-	}
-}
-
-impl TryFrom<u128> for SteamID {
-	type Error = Error;
-
-	fn try_from(input: u128) -> Result<Self> {
-		if let Ok(id64) = u64::try_from(input) {
-			Self::from_id64(id64)
-		} else {
-			invalid!(input, "too large");
-		}
-	}
-}
-
-impl TryFrom<i128> for SteamID {
-	type Error = Error;
-
-	fn try_from(input: i128) -> Result<Self> {
-		if let Ok(id64) = u64::try_from(input) {
-			Self::from_id64(id64)
-		} else {
-			invalid!(input, "out of bounds");
-		}
-	}
-}
-
-impl TryFrom<&str> for SteamID {
-	type Error = Error;
-
-	fn try_from(input: &str) -> Result<Self> {
-		input.parse()
-	}
-}
-
-impl TryFrom<String> for SteamID {
-	type Error = Error;
-
-	fn try_from(input: String) -> Result<Self> {
-		Self::try_from(input.as_str())
+		Self::from_u64(steam_id)
 	}
 }
 
 impl FromStr for SteamID {
 	type Err = Error;
 
-	fn from_str(input: &str) -> Result<Self> {
-		Self::new(input)
+	fn from_str(value: &str) -> Result<Self> {
+		Self::from_standard(value)
+			.or_else(|_| Self::from_id3(value))
+			.or_else(|_| {
+				if let Ok(value) = value.parse::<u32>() {
+					Self::from_u32(value)
+				} else if let Ok(value) = value.parse::<u64>() {
+					Self::from_u64(value)
+				} else {
+					Err(Error::InvalidSteamID {
+						value: value.to_owned(),
+						reason: "unrecognized format",
+					})
+				}
+			})
 	}
 }
 
-impl From<SteamID> for u64 {
-	fn from(steam_id: SteamID) -> Self {
-		steam_id.as_u64()
+impl TryFrom<u32> for SteamID {
+	type Error = Error;
+
+	fn try_from(value: u32) -> Result<Self> {
+		Self::from_u32(value)
 	}
 }
 
 impl From<SteamID> for u32 {
-	fn from(steam_id: SteamID) -> Self {
-		steam_id.as_u32()
+	fn from(value: SteamID) -> Self {
+		value.as_u32()
 	}
 }
 
-impl PartialEq<u64> for SteamID {
-	fn eq(&self, other: &u64) -> bool {
-		&self.as_u64() == other
+impl TryFrom<u64> for SteamID {
+	type Error = Error;
+
+	fn try_from(value: u64) -> Result<Self> {
+		if value <= u32::MAX as u64 {
+			return Self::from_u32(value as u32);
+		}
+
+		Self::from_u64(value)
 	}
 }
 
-impl PartialEq<u32> for SteamID {
-	fn eq(&self, other: &u32) -> bool {
-		&self.as_u32() == other
-	}
-}
-
-impl PartialOrd<u64> for SteamID {
-	fn partial_cmp(&self, other: &u64) -> Option<cmp::Ordering> {
-		self.as_u64().partial_cmp(other)
-	}
-}
-
-impl PartialOrd<u32> for SteamID {
-	fn partial_cmp(&self, other: &u32) -> Option<cmp::Ordering> {
-		self.as_u32().partial_cmp(other)
-	}
-}
-
-impl Hash for SteamID {
-	fn hash<H>(&self, hasher: &mut H)
-	where
-		H: Hasher,
-	{
-		self.0.hash(hasher);
+impl From<SteamID> for u64 {
+	fn from(value: SteamID) -> Self {
+		value.as_u64()
 	}
 }
 
 impl Borrow<u64> for SteamID {
+	#[inline]
 	fn borrow(&self) -> &u64 {
 		&self.0
 	}
 }
 
-impl Deref for SteamID {
-	type Target = u64;
+#[cfg(test)]
+mod tests {
+	use super::SteamID;
 
-	fn deref(&self) -> &Self::Target {
-		&self.0
-	}
-}
+	#[test]
+	fn it_works() {
+		let steam_id = SteamID(76561198282622073_u64);
+		let u32 = 322356345_u32;
+		let u64 = 76561198282622073_u64;
+		let id3_1 = "U:1:322356345";
+		let id3_2 = "[U:1:322356345]";
+		let standard = "STEAM_1:1:161178172";
 
-impl Display for SteamID {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let x = self.account_universe();
-		let y = self.lsb();
-		let z = self.account_number();
-
-		write!(f, "STEAM_{x}:{y}:{z}")
+		assert_eq!(SteamID::from_u32(u32), Ok(steam_id));
+		assert_eq!(SteamID::from_u64(u64), Ok(steam_id));
+		assert_eq!(SteamID::from_id3(id3_1), Ok(steam_id));
+		assert_eq!(SteamID::from_id3(id3_2), Ok(steam_id));
+		assert_eq!(SteamID::from_standard(standard), Ok(steam_id));
 	}
 }
 
@@ -411,166 +237,145 @@ mod serde_impls {
 
 	use super::SteamID;
 
-	macro_rules! serialize {
-		($name:ident, $name_opt:ident, | $steam_id:ident | $impl:block) => {
-			/// Helper function for use with [`serde`].
-			///
-			/// You can pass this function to the [`#[serde(serialize_with = "...")]`](https://serde.rs/field-attrs.html#serialize_with)
-			/// attribute to control how a [`SteamID`] will be serialized.
-			///
-			/// Example:
-			///
-			/// ```
-			/// use cs2kz::SteamID;
-			/// use serde::Serialize;
-			///
-			/// #[derive(Serialize)]
-			/// struct HoldsSteamID {
-			///     #[serde(serialize_with = "SteamID::serialize_id3")]
-			///     steam_id: SteamID,
-			/// }
-			/// ```
-			///
-			/// By default the [`serialize_standard`] function will be used.
-			///
-			/// [`serialize_standard`]: SteamID::serialize_standard
-			pub fn $name<S: ::serde::Serializer>(
-				$steam_id: &Self,
-				serializer: S,
-			) -> Result<S::Ok, S::Error> {
-				use ::serde::Serialize as _;
-				($impl).serialize(serializer)
-			}
-
-			/// Helper function for use with [`serde`].
-			///
-			/// You can pass this function to the [`#[serde(serialize_with = "...")]`](https://serde.rs/field-attrs.html#serialize_with)
-			/// attribute to control how an [`Option<SteamID>`] will be serialized.
-			///
-			/// Example:
-			///
-			/// ```
-			/// use cs2kz::SteamID;
-			/// use serde::Serialize;
-			///
-			/// #[derive(Serialize)]
-			/// struct HoldsSteamID {
-			///     #[serde(serialize_with = "SteamID::serialize_id3_opt")]
-			///     steam_id: Option<SteamID>,
-			/// }
-			/// ```
-			///
-			/// By default the [`serialize_standard_opt`] function will be used.
-			///
-			/// [`serialize_standard_opt`]: SteamID::serialize_standard_opt
-			pub fn $name_opt<S: ::serde::Serializer>(
-				$steam_id: &Option<Self>,
-				serializer: S,
-			) -> Result<S::Ok, S::Error> {
-				use ::serde::Serialize as _;
-				$steam_id.map(|$steam_id| $impl).serialize(serializer)
-			}
-		};
-	}
-
-	#[rustfmt::skip]
 	impl SteamID {
-		serialize!(serialize_standard, serialize_standard_opt, |steam_id| {
-			steam_id.to_string()
-		});
+		/// Serializes the given `steam_id` using the standard `STEAM_X:Y:Z` format.
+		pub fn serialize_standard<S: Serializer>(
+			steam_id: &Self,
+			serializer: S,
+		) -> Result<S::Ok, S::Error> {
+			steam_id.to_string().serialize(serializer)
+		}
 
-		serialize!(serialize_id3, serialize_id3_opt, |steam_id| {
-			steam_id.as_steam3_id(false)
-		});
+		/// Serializes the given `steam_id` using the "Steam3ID" format.
+		pub fn serialize_id3<S: Serializer>(
+			steam_id: &Self,
+			serializer: S,
+		) -> Result<S::Ok, S::Error> {
+			steam_id.as_id3().serialize(serializer)
+		}
 
-		serialize!(serialize_id3_with_brackets, serialize_id3_with_brackets_opt, |steam_id| {
-			steam_id.as_steam3_id(true)
-		});
+		/// Serializes the given `steam_id` as a 32-bit integer.
+		pub fn serialize_u32<S: Serializer>(
+			steam_id: &Self,
+			serializer: S,
+		) -> Result<S::Ok, S::Error> {
+			steam_id.as_u32().serialize(serializer)
+		}
 
-		serialize!(serialize_u32, serialize_u32_opt, |steam_id| {
-			steam_id.as_u32()
-		});
-
-		serialize!(serialize_u64, serialize_u64_opt, |steam_id| {
-			steam_id.as_u64()
-		});
+		/// Serializes the given `steam_id` as a 64-bit integer.
+		pub fn serialize_u64<S: Serializer>(
+			steam_id: &Self,
+			serializer: S,
+		) -> Result<S::Ok, S::Error> {
+			steam_id.as_u64().serialize(serializer)
+		}
 	}
 
 	impl Serialize for SteamID {
-		fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-		where
-			S: Serializer,
-		{
+		/// By default [`SteamID::serialize_standard`] is used for serialization, but you
+		/// can use any of the `serialize_*` functions and pass them to
+		/// `#[serde(serialize_with = "...")]` if you need a different method.
+		fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
 			Self::serialize_standard(self, serializer)
 		}
 	}
 
-	#[derive(Deserialize)]
-	#[serde(untagged)]
-	enum Deserializable {
-		U32(u32),
-		U64(u64),
-		String(String),
+	impl SteamID {
+		/// Deserializes a string in the standard `STEAM_X:Y:Z` format into a [`SteamID`].
+		pub fn deserialize_standard<'de, D: Deserializer<'de>>(
+			deserializer: D,
+		) -> Result<Self, D::Error> {
+			let value = <&str as Deserialize>::deserialize(deserializer)?;
+
+			Self::from_standard(value).map_err(serde::de::Error::custom)
+		}
+
+		/// Deserializes a string in the "Steam3ID" format into a [`SteamID`].
+		pub fn deserialize_id3<'de, D: Deserializer<'de>>(
+			deserializer: D,
+		) -> Result<Self, D::Error> {
+			let value = <&str as Deserialize>::deserialize(deserializer)?;
+
+			Self::from_id3(value).map_err(serde::de::Error::custom)
+		}
+
+		/// Deserializes a 32-bit integer into a [`SteamID`].
+		pub fn deserialize_u32<'de, D: Deserializer<'de>>(
+			deserializer: D,
+		) -> Result<Self, D::Error> {
+			let value = <u32 as Deserialize>::deserialize(deserializer)?;
+
+			Self::from_u32(value).map_err(serde::de::Error::custom)
+		}
+
+		/// Deserializes a 64-bit integer into a [`SteamID`].
+		pub fn deserialize_u64<'de, D: Deserializer<'de>>(
+			deserializer: D,
+		) -> Result<Self, D::Error> {
+			let value = <u64 as Deserialize>::deserialize(deserializer)?;
+
+			Self::from_u64(value).map_err(serde::de::Error::custom)
+		}
 	}
 
 	impl<'de> Deserialize<'de> for SteamID {
-		fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-		where
-			D: Deserializer<'de>,
-		{
-			match Deserializable::deserialize(deserializer)? {
-				Deserializable::U32(id32) => Self::try_from(id32),
-				Deserializable::U64(id64) => Self::try_from(id64),
-				Deserializable::String(input) => Self::new(input),
+		/// The default [`Deserialize`] implementation is a best-effort.
+		///
+		/// This means it considers as many cases as possible; if you want / need
+		/// a specific format, consider using `#[serde(deserialize_with = "...")]` in
+		/// combination with any of the `deserialize_*` methods on [`SteamID`].
+		fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+			#[derive(Deserialize)]
+			#[serde(untagged)]
+			enum Helper<'a> {
+				U32(u32),
+				U64(u64),
+				Str(&'a str),
+			}
+
+			match <Helper as Deserialize<'de>>::deserialize(deserializer)? {
+				Helper::U32(value) => Self::from_u32(value),
+				Helper::U64(value) => Self::from_u64(value),
+				Helper::Str(value) => value.parse(),
 			}
 			.map_err(serde::de::Error::custom)
 		}
 	}
 }
 
-#[cfg(test)]
-mod tests {
-	use color_eyre::Result;
+#[cfg(feature = "sqlx")]
+mod sqlx_impls {
+	use sqlx::database::{HasArguments, HasValueRef};
+	use sqlx::encode::IsNull;
+	use sqlx::error::BoxDynError;
+	use sqlx::{Database, Decode, Encode, Type};
 
-	use super::*;
+	use super::SteamID;
 
-	macro_rules! case {
-		(AlphaKeks $name:ident, $input:expr) => {
-			case!(__internal, SteamID(76561198282622073_u64), $name, $input);
-		};
-
-		(MIN $name:ident, $input:expr) => {
-			case!(__internal, SteamID(SteamID::MIN), $name, $input);
-		};
-
-		(__internal, $cmp:expr, $name:ident, $input:expr) => {
-			#[test]
-			fn $name() -> Result<()> {
-				assert_eq!($cmp, $input?);
-				Ok(())
-			}
-		};
+	impl<DB: Database> Type<DB> for SteamID
+	where
+		u32: Type<DB>,
+	{
+		fn type_info() -> <DB as Database>::TypeInfo {
+			<u32 as Type<DB>>::type_info()
+		}
 	}
 
-	mod alphakeks {
-		use super::*;
-
-		case!(AlphaKeks from_u64, SteamID::try_from(76561198282622073_u64));
-		case!(AlphaKeks from_u32, SteamID::try_from(322356345_u32));
-		case!(AlphaKeks from_standard_0, SteamID::new("STEAM_0:1:161178172"));
-		case!(AlphaKeks from_standard_1, SteamID::new("STEAM_1:1:161178172"));
-		case!(AlphaKeks from_id3, SteamID::new("U:1:322356345"));
-		case!(AlphaKeks from_id3_brackets, SteamID::new("[U:1:322356345]"));
+	impl<'row, DB: Database> Decode<'row, DB> for SteamID
+	where
+		u32: Decode<'row, DB>,
+	{
+		fn decode(value: <DB as HasValueRef<'row>>::ValueRef) -> Result<Self, BoxDynError> {
+			Self::from_u32(<u32 as Decode<'row, DB>>::decode(value)?).map_err(Into::into)
+		}
 	}
 
-	mod min {
-		use super::*;
-
-		case!(MIN from_u64, SteamID::try_from(76561197960265729_u64));
-		case!(MIN from_u32, SteamID::try_from(1_u32));
-		case!(MIN from_standard_0, SteamID::new("STEAM_0:1:0"));
-		case!(MIN from_standard_1, SteamID::new("STEAM_1:1:0"));
-		case!(MIN from_id3, SteamID::new("U:1:1"));
-		case!(MIN from_id3_brackets, SteamID::new("[U:1:1]"));
+	impl<'query, DB: Database> Encode<'query, DB> for SteamID
+	where
+		u32: Encode<'query, DB>,
+	{
+		fn encode_by_ref(&self, buf: &mut <DB as HasArguments<'query>>::ArgumentBuffer) -> IsNull {
+			<u32 as Encode<'query, DB>>::encode(self.as_u32(), buf)
+		}
 	}
 }
