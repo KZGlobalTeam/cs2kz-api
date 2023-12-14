@@ -165,7 +165,7 @@ impl API {
 
 		info!("{routes}");
 		info!("Hosting SwaggerUI at: <http://{socket_addr}/docs/swagger-ui>");
-		info!("Hosting OpenAPI spect at: <http://{socket_addr}/docs/openapi.json>");
+		info!("Hosting OpenAPI spec at: <http://{socket_addr}/docs/openapi.json>");
 
 		axum::serve(tcp_listener, api_service)
 			.await
