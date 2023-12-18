@@ -423,13 +423,13 @@
                         "filters": [
                           {
                             "has_teleports": true,
-                            "mode": "kz_modded",
+                            "mode": "kz_classic",
                             "ranked": true,
                             "tier": 3
                           },
                           {
                             "has_teleports": false,
-                            "mode": "kz_modded",
+                            "mode": "kz_classic",
                             "ranked": true,
                             "tier": 4
                           }
@@ -624,13 +624,13 @@
                         "filters": [
                           {
                             "has_teleports": true,
-                            "mode": "kz_modded",
+                            "mode": "kz_classic",
                             "ranked": true,
                             "tier": 3
                           },
                           {
                             "has_teleports": false,
-                            "mode": "kz_modded",
+                            "mode": "kz_classic",
                             "ranked": true,
                             "tier": 4
                           }
@@ -828,13 +828,13 @@
                         "filters": [
                           {
                             "has_teleports": true,
-                            "mode": "kz_modded",
+                            "mode": "kz_classic",
                             "ranked": true,
                             "tier": 3
                           },
                           {
                             "has_teleports": false,
-                            "mode": "kz_modded",
+                            "mode": "kz_classic",
                             "ranked": true,
                             "tier": 4
                           }
@@ -1365,7 +1365,7 @@
                     "distance": 269.7274,
                     "id": 1,
                     "kind": "longjump",
-                    "mode": "kz_modded",
+                    "mode": "kz_classic",
                     "player": {
                       "name": "AlphaKeks",
                       "steam_id": "STEAM_1:1:161178172"
@@ -1604,7 +1604,7 @@
                       "map_id": 1,
                       "map_name": "kz_checkmate",
                       "map_stage": 1,
-                      "mode": "kz_modded",
+                      "mode": "kz_classic",
                       "style": "normal",
                       "tier": 3
                     },
@@ -2134,13 +2134,13 @@
           "filters": [
             {
               "has_teleports": true,
-              "mode": "kz_modded",
+              "mode": "kz_classic",
               "ranked": true,
               "tier": 3
             },
             {
               "has_teleports": false,
-              "mode": "kz_modded",
+              "mode": "kz_classic",
               "ranked": true,
               "tier": 4
             }
@@ -2298,13 +2298,13 @@
           "filters": [
             {
               "has_teleports": true,
-              "mode": "kz_modded",
+              "mode": "kz_classic",
               "ranked": true,
               "tier": 3
             },
             {
               "has_teleports": false,
-              "mode": "kz_modded",
+              "mode": "kz_classic",
               "ranked": true,
               "tier": 4
             }
@@ -2394,13 +2394,13 @@
               "filters": [
                 {
                   "has_teleports": true,
-                  "mode": "kz_modded",
+                  "mode": "kz_classic",
                   "ranked": true,
                   "tier": 3
                 },
                 {
                   "has_teleports": false,
-                  "mode": "kz_modded",
+                  "mode": "kz_classic",
                   "ranked": true,
                   "tier": 4
                 }
@@ -2646,7 +2646,7 @@
         },
         "example": {
           "has_teleports": true,
-          "mode": "kz_modded",
+          "mode": "kz_classic",
           "ranked": true,
           "tier": 3
         }
@@ -2743,7 +2743,7 @@
           "distance": 269.7274,
           "id": 1,
           "kind": "longjump",
-          "mode": "kz_modded",
+          "mode": "kz_classic",
           "player": {
             "name": "AlphaKeks",
             "steam_id": "STEAM_1:1:161178172"
@@ -2822,13 +2822,13 @@
               "filters": [
                 {
                   "has_teleports": true,
-                  "mode": "kz_modded",
+                  "mode": "kz_classic",
                   "ranked": true,
                   "tier": 3
                 },
                 {
                   "has_teleports": false,
-                  "mode": "kz_modded",
+                  "mode": "kz_classic",
                   "ranked": true,
                   "tier": 4
                 }
@@ -2894,7 +2894,7 @@
         "type": "string",
         "enum": [
           "kz_vanilla",
-          "kz_modded"
+          "kz_classic"
         ]
       },
       "Player": {
@@ -2989,7 +2989,7 @@
             "map_id": 1,
             "map_name": "kz_checkmate",
             "map_stage": 1,
-            "mode": "kz_modded",
+            "mode": "kz_classic",
             "style": "normal",
             "tier": 3
           },

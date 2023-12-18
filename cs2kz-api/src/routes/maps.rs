@@ -443,13 +443,13 @@ pub struct GetMapsParams<'a> {
       "mappers": ["STEAM_1:0:102468802"],
       "filters": [
         {
-          "mode": "kz_modded",
+          "mode": "kz_classic",
           "has_teleports": true,
           "tier": 3,
           "ranked": true
         },
         {
-          "mode": "kz_modded",
+          "mode": "kz_classic",
           "has_teleports": false,
           "tier": 4,
           "ranked": true

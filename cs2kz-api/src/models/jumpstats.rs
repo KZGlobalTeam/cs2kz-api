@@ -16,7 +16,7 @@ use super::servers::ServerSummary;
   "id": 1,
   "kind": "longjump",
   "distance": 269.7274,
-  "mode": "kz_modded",
+  "mode": "kz_classic",
   "style": "normal",
   "player": {
     "steam_id": "STEAM_1:1:161178172",

@@ -24,8 +24,9 @@ VALUES
 
 /**
  * Heavily modified movement compared to vanilla gameplay.
+ * It is somewhat similar to the old modes in CS:GO KZ.
  */
 INSERT INTO
 	Modes (`name`)
 VALUES
-	("kz_modded");
+	("kz_classic");

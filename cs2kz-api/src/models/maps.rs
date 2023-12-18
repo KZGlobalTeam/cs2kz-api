@@ -33,13 +33,13 @@ use crate::{Error, Result};
       ],
       "filters": [
         {
-          "mode": "kz_modded",
+          "mode": "kz_classic",
           "has_teleports": true,
           "tier": 3,
           "ranked": true
         },
         {
-          "mode": "kz_modded",
+          "mode": "kz_classic",
           "has_teleports": false,
           "tier": 4,
           "ranked": true
@@ -240,13 +240,13 @@ pub struct Mapper {
   ],
   "filters": [
     {
-      "mode": "kz_modded",
+      "mode": "kz_classic",
       "has_teleports": true,
       "tier": 3,
       "ranked": true
     },
     {
-      "mode": "kz_modded",
+      "mode": "kz_classic",
       "has_teleports": false,
       "tier": 4,
       "ranked": true
@@ -360,13 +360,13 @@ impl CourseRow {
   "mappers": ["STEAM_1:0:102468802"],
   "filters": [
     {
-      "mode": "kz_modded",
+      "mode": "kz_classic",
       "has_teleports": true,
       "tier": 3,
       "ranked": true
     },
     {
-      "mode": "kz_modded",
+      "mode": "kz_classic",
       "has_teleports": false,
       "tier": 4,
       "ranked": true
@@ -387,7 +387,7 @@ pub struct CreateCourseParams {
 /// Information about a course filter.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
-  "mode": "kz_modded",
+  "mode": "kz_classic",
   "has_teleports": true,
   "tier": 3,
   "ranked": true

@@ -13,9 +13,9 @@ pub enum Mode {
 	#[cfg_attr(feature = "utoipa", schema(rename = "kz_vanilla"))]
 	Vanilla = 1,
 
-	#[display("MKZ")]
-	#[cfg_attr(feature = "utoipa", schema(rename = "kz_modded"))]
-	Modded = 2,
+	#[display("CKZ")]
+	#[cfg_attr(feature = "utoipa", schema(rename = "kz_classic"))]
+	Classic = 2,
 }
 
 impl Mode {
@@ -24,7 +24,7 @@ impl Mode {
 	pub const fn api(&self) -> &'static str {
 		match self {
 			Self::Vanilla => "kz_vanilla",
-			Self::Modded => "kz_modded",
+			Self::Classic => "kz_classic",
 		}
 	}
 
@@ -33,7 +33,7 @@ impl Mode {
 	pub const fn short(&self) -> &'static str {
 		match self {
 			Self::Vanilla => "VNL",
-			Self::Modded => "MKZ",
+			Self::Classic => "CKZ",
 		}
 	}
 }
@@ -51,7 +51,7 @@ impl TryFrom<u8> for Mode {
 	fn try_from(value: u8) -> Result<Self> {
 		match value {
 			1 => Ok(Self::Vanilla),
-			2 => Ok(Self::Modded),
+			2 => Ok(Self::Classic),
 			_ => Err(Error::InvalidModeID { value }),
 		}
 	}
@@ -65,8 +65,8 @@ impl FromStr for Mode {
 			return Ok(Self::Vanilla);
 		}
 
-		if value.eq_ignore_ascii_case("kz_modded") || value.eq_ignore_ascii_case("mkz") {
-			return Ok(Self::Modded);
+		if value.eq_ignore_ascii_case("kz_classic") || value.eq_ignore_ascii_case("ckz") {
+			return Ok(Self::Classic);
 		}
 
 		Err(Error::InvalidMode { value: value.to_owned() })

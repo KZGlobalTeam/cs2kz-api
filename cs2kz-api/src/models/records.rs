@@ -24,7 +24,7 @@ use super::{CourseWithFilter, Player, ServerSummary};
     "map_id": 1,
     "map_name": "kz_checkmate",
     "map_stage": 1,
-    "mode": "kz_modded",
+    "mode": "kz_classic",
     "style": "normal",
     "tier": 3
   },
