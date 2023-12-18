@@ -14,8 +14,8 @@ use super::players::Player;
 /// A server ID and name.
 #[derive(Debug, Serialize, ToSchema)]
 #[schema(example = json!({
-	"id": 1,
-	"name": "Alpha's KZ",
+  "id": 1,
+  "name": "Alpha's KZ",
 }))]
 pub struct ServerSummary {
 	/// The server's ID.
@@ -28,14 +28,14 @@ pub struct ServerSummary {
 /// Information about a server.
 #[derive(Debug, Serialize, ToSchema)]
 #[schema(example = json!({
-	"id": 1,
-	"name": "Alpha's KZ",
-	"ip_address": "255.255.255.255:1337",
-	"owned_by": {
-		"steam_id": "STEAM_1:1:161178172",
-		"name": "AlphaKeks"
-	},
-	"approved_on": "2023-12-10T10:41:01Z"
+  "id": 1,
+  "name": "Alpha's KZ",
+  "ip_address": "255.255.255.255:1337",
+  "owned_by": {
+    "steam_id": "STEAM_1:1:161178172",
+    "name": "AlphaKeks"
+  },
+  "approved_on": "2023-12-10T10:41:01Z"
 }))]
 pub struct ServerResponse {
 	/// The server's ID.

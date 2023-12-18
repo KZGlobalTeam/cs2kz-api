@@ -500,30 +500,30 @@ pub struct GetMapsParams<'a> {
 /// A new map.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"name": "kz_checkmate",
-	"workshop_id": 3070194623_u32,
-	"filesize": 190335000,
-	"mappers": ["STEAM_1:0:102468802"],
-	"courses": [
-		{
-			"stage": 0,
-			"mappers": ["STEAM_1:0:102468802"],
-			"filters": [
-				{
-					"mode": "kz_modded",
-					"has_teleports": true,
-					"tier": 3,
-					"ranked": true
-				},
-				{
-					"mode": "kz_modded",
-					"has_teleports": false,
-					"tier": 4,
-					"ranked": true
-				}
-			]
-		}
-	]
+  "name": "kz_checkmate",
+  "workshop_id": 3070194623_u32,
+  "filesize": 190335000,
+  "mappers": ["STEAM_1:0:102468802"],
+  "courses": [
+    {
+      "stage": 0,
+      "mappers": ["STEAM_1:0:102468802"],
+      "filters": [
+        {
+          "mode": "kz_modded",
+          "has_teleports": true,
+          "tier": 3,
+          "ranked": true
+        },
+        {
+          "mode": "kz_modded",
+          "has_teleports": false,
+          "tier": 4,
+          "ranked": true
+        }
+      ]
+    }
+  ]
 }))]
 pub struct CreateMapRequest {
 	/// The map's name.
@@ -545,22 +545,22 @@ pub struct CreateMapRequest {
 /// A new course.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"stage": 0,
-	"mappers": ["STEAM_1:0:102468802"],
-	"filters": [
-		{
-			"mode": "kz_modded",
-			"has_teleports": true,
-			"tier": 3,
-			"ranked": true
-		},
-		{
-			"mode": "kz_modded",
-			"has_teleports": false,
-			"tier": 4,
-			"ranked": true
-		}
-	]
+  "stage": 0,
+  "mappers": ["STEAM_1:0:102468802"],
+  "filters": [
+    {
+      "mode": "kz_modded",
+      "has_teleports": true,
+      "tier": 3,
+      "ranked": true
+    },
+    {
+      "mode": "kz_modded",
+      "has_teleports": false,
+      "tier": 4,
+      "ranked": true
+    }
+  ]
 }))]
 pub struct CreateCourse {
 	/// The stage of the map this course corresponds to.
@@ -605,8 +605,8 @@ pub struct UpdateMapRequest {
 /// An update to a course.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"course_id": 1,
-	"added_mappers": ["STEAM_1:0:102468802"]
+  "course_id": 1,
+  "added_mappers": ["STEAM_1:0:102468802"]
 }))]
 pub struct CourseUpdate {
 	/// The course's ID.
@@ -631,8 +631,8 @@ pub struct CourseUpdate {
 /// An update to a filter.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"filter_id": 1,
-	"tier": 7
+  "filter_id": 1,
+  "tier": 7
 }))]
 pub struct FilterUpdate {
 	/// The filter's ID.

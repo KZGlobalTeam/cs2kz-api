@@ -211,10 +211,10 @@ pub struct GetJumpstatsParams<'a> {
 /// A jumpstat.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"kind": "longjump",
-	"distance": 230.3418,
-	"mode": "kz_vanilla",
-	"style": "backwards"
+  "kind": "longjump",
+  "distance": 230.3418,
+  "mode": "kz_vanilla",
+  "style": "backwards"
 }))]
 pub struct CreateJumpstatRequest {
 	kind: Jumpstat,

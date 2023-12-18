@@ -10,44 +10,44 @@ use utoipa::ToSchema;
 /// Information about a map.
 #[derive(Debug, Serialize, ToSchema)]
 #[schema(example = json!({
-	"id": 1,
-	"workshop_id": 3070194623_u32,
-	"name": "kz_checkmate",
-	"mappers": [
-		{
-			"steam_id": "STEAM_1:0:102468802",
-			"name": "GameChaos"
-		}
-	],
-	"courses": [
-		{
-			"id": 1,
-			"stage": 0,
-			"mappers": [
-				{
-					"steam_id": "STEAM_1:0:102468802",
-					"name": "GameChaos"
-				}
-			],
-			"filters": [
-				{
-					"mode": "kz_modded",
-					"has_teleports": true,
-					"tier": 3,
-					"ranked": true
-				},
-				{
-					"mode": "kz_modded",
-					"has_teleports": false,
-					"tier": 4,
-					"ranked": true
-				}
-			]
-		}
-	],
-	"filesize": 190335000,
-	"created_on": "2023-12-10T10:41:01Z",
-	"updated_on": "2023-12-10T10:41:01Z"
+  "id": 1,
+  "workshop_id": 3070194623_u32,
+  "name": "kz_checkmate",
+  "mappers": [
+    {
+      "steam_id": "STEAM_1:0:102468802",
+      "name": "GameChaos"
+    }
+  ],
+  "courses": [
+    {
+      "id": 1,
+      "stage": 0,
+      "mappers": [
+        {
+          "steam_id": "STEAM_1:0:102468802",
+          "name": "GameChaos"
+        }
+      ],
+      "filters": [
+        {
+          "mode": "kz_modded",
+          "has_teleports": true,
+          "tier": 3,
+          "ranked": true
+        },
+        {
+          "mode": "kz_modded",
+          "has_teleports": false,
+          "tier": 4,
+          "ranked": true
+        }
+      ]
+    }
+  ],
+  "filesize": 190335000,
+  "created_on": "2023-12-10T10:41:01Z",
+  "updated_on": "2023-12-10T10:41:01Z"
 }))]
 pub struct KZMap {
 	/// The map's ID.
@@ -78,8 +78,8 @@ pub struct KZMap {
 /// Information about a mapper.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"steam_id": "STEAM_1:1:161178172",
-	"name": "AlphaKeks"
+  "steam_id": "STEAM_1:1:161178172",
+  "name": "AlphaKeks"
 }))]
 pub struct Mapper {
 	/// The mapper's SteamID.
@@ -92,28 +92,28 @@ pub struct Mapper {
 /// Information about a course.
 #[derive(Debug, Serialize, ToSchema)]
 #[schema(example = json!({
-	"id": 1,
-	"stage": 0,
-	"mappers": [
-		{
-			"steam_id": "STEAM_1:0:102468802",
-			"name": "GameChaos"
-		}
-	],
-	"filters": [
-		{
-			"mode": "kz_modded",
-			"has_teleports": true,
-			"tier": 3,
-			"ranked": true
-		},
-		{
-			"mode": "kz_modded",
-			"has_teleports": false,
-			"tier": 4,
-			"ranked": true
-		}
-	]
+  "id": 1,
+  "stage": 0,
+  "mappers": [
+    {
+      "steam_id": "STEAM_1:0:102468802",
+      "name": "GameChaos"
+    }
+  ],
+  "filters": [
+    {
+      "mode": "kz_modded",
+      "has_teleports": true,
+      "tier": 3,
+      "ranked": true
+    },
+    {
+      "mode": "kz_modded",
+      "has_teleports": false,
+      "tier": 4,
+      "ranked": true
+    }
+  ]
 }))]
 pub struct Course {
 	/// The course's ID.
@@ -132,10 +132,10 @@ pub struct Course {
 /// Information about a course filter.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"mode": "kz_modded",
-	"has_teleports": true,
-	"tier": 3,
-	"ranked": true
+  "mode": "kz_modded",
+  "has_teleports": true,
+  "tier": 3,
+  "ranked": true
 }))]
 pub struct Filter {
 	/// The mode for this filter.

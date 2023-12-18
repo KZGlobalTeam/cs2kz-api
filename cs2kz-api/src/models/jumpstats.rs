@@ -13,20 +13,20 @@ use super::servers::ServerSummary;
 /// A jumpstat.
 #[derive(Debug, Serialize, ToSchema)]
 #[schema(example = json!({
-	"id": 1,
-	"kind": "longjump",
-	"distance": 269.7274,
-	"mode": "kz_modded",
-	"style": "normal",
-	"player": {
-		"steam_id": "STEAM_1:1:161178172",
-		"name": "AlphaKeks"
-	},
-	"server": {
-		"id": 1,
-		"name": "Alpha's KZ"
-	},
-	"created_on": "2023-12-10T10:41:01Z"
+  "id": 1,
+  "kind": "longjump",
+  "distance": 269.7274,
+  "mode": "kz_modded",
+  "style": "normal",
+  "player": {
+    "steam_id": "STEAM_1:1:161178172",
+    "name": "AlphaKeks"
+  },
+  "server": {
+    "id": 1,
+    "name": "Alpha's KZ"
+  },
+  "created_on": "2023-12-10T10:41:01Z"
 }))]
 pub struct JumpstatResponse {
 	id: u64,

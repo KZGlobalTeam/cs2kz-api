@@ -237,25 +237,25 @@ pub struct GetRecordsParams<'a> {
 /// A record.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"steam_id": "STEAM_1:1:161178172",
-	"map_id": 1,
-	"map_stage": 1,
-	"mode": "kz_vanilla",
-	"style": "normal",
-	"teleports": 69,
-	"time": 420.69,
-	"bhop_stats": {
-		"perfs": 200,
-		"bhops_tick0": 100,
-		"bhops_tick1": 100,
-		"bhops_tick2": 30,
-		"bhops_tick3": 10,
-		"bhops_tick4": 10,
-		"bhops_tick5": 0,
-		"bhops_tick6": 0,
-		"bhops_tick7": 0,
-		"bhops_tick8": 0
-	},
+  "steam_id": "STEAM_1:1:161178172",
+  "map_id": 1,
+  "map_stage": 1,
+  "mode": "kz_vanilla",
+  "style": "normal",
+  "teleports": 69,
+  "time": 420.69,
+  "bhop_stats": {
+    "perfs": 200,
+    "bhops_tick0": 100,
+    "bhops_tick1": 100,
+    "bhops_tick2": 30,
+    "bhops_tick3": 10,
+    "bhops_tick4": 10,
+    "bhops_tick5": 0,
+    "bhops_tick6": 0,
+    "bhops_tick7": 0,
+    "bhops_tick8": 0
+  },
 }))]
 pub struct CreateRecordRequest {
 	/// The SteamID of the player who set this record.

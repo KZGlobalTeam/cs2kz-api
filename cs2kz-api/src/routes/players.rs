@@ -319,9 +319,9 @@ pub struct GetPlayersParams {
 /// This is expected to be sent by a CS2KZ server when a player joins for the first time.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"steam_id": "STEAM_1:1:161178172",
-	"name": "AlphaKeks",
-	"ip_address": "255.255.255.255"
+  "steam_id": "STEAM_1:1:161178172",
+  "name": "AlphaKeks",
+  "ip_address": "255.255.255.255"
 }))]
 pub struct CreatePlayerRequest {
 	steam_id: SteamID,
@@ -334,23 +334,23 @@ pub struct CreatePlayerRequest {
 /// An update to a player.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"name": "AlphaKeks",
-	"ip_address": "255.255.255.255",
-	"session": {
-		"time_active": 600,
-		"time_spectating": 51,
-		"time_afk": 900,
-		"perfs": 200,
-		"bhops_tick0": 100,
-		"bhops_tick1": 100,
-		"bhops_tick2": 30,
-		"bhops_tick3": 10,
-		"bhops_tick4": 10,
-		"bhops_tick5": 0,
-		"bhops_tick6": 0,
-		"bhops_tick7": 0,
-		"bhops_tick8": 0
-	}
+  "name": "AlphaKeks",
+  "ip_address": "255.255.255.255",
+  "session": {
+    "time_active": 600,
+    "time_spectating": 51,
+    "time_afk": 900,
+    "perfs": 200,
+    "bhops_tick0": 100,
+    "bhops_tick1": 100,
+    "bhops_tick2": 30,
+    "bhops_tick3": 10,
+    "bhops_tick4": 10,
+    "bhops_tick5": 0,
+    "bhops_tick6": 0,
+    "bhops_tick7": 0,
+    "bhops_tick8": 0
+  }
 }))]
 pub struct UpdatePlayerRequest {
 	name: Option<String>,
@@ -369,19 +369,19 @@ pub struct UpdatePlayerRequest {
 /// or when the player disconnects.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"time_active": 600,
-	"time_spectating": 51,
-	"time_afk": 900,
-	"perfs": 250,
-	"bhops_tick0": 100,
-	"bhops_tick1": 100,
-	"bhops_tick2": 30,
-	"bhops_tick3": 10,
-	"bhops_tick4": 10,
-	"bhops_tick5": 0,
-	"bhops_tick6": 0,
-	"bhops_tick7": 0,
-	"bhops_tick8": 0
+  "time_active": 600,
+  "time_spectating": 51,
+  "time_afk": 900,
+  "perfs": 250,
+  "bhops_tick0": 100,
+  "bhops_tick1": 100,
+  "bhops_tick2": 30,
+  "bhops_tick3": 10,
+  "bhops_tick4": 10,
+  "bhops_tick5": 0,
+  "bhops_tick6": 0,
+  "bhops_tick7": 0,
+  "bhops_tick8": 0
 }))]
 pub struct Session {
 	#[serde(with = "crate::serde::duration_as_secs")]

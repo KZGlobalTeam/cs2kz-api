@@ -272,9 +272,9 @@ pub struct GetServersParams<'a> {
 /// A new server.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"name": "Alpha's KZ",
-	"ip_address": "255.255.255.255:1337",
-	"owned_by": "STEAM_1:1:161178172"
+  "name": "Alpha's KZ",
+  "ip_address": "255.255.255.255:1337",
+  "owned_by": "STEAM_1:1:161178172"
 }))]
 pub struct CreateServerRequest {
 	/// The server's name.
@@ -291,10 +291,10 @@ pub struct CreateServerRequest {
 /// A server update.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-	"name": "Alpha's KZ",
-	"ip_address": "255.255.255.255",
-	"port": 1337,
-	"owned_by": "STEAM_1:1:161178172"
+  "name": "Alpha's KZ",
+  "ip_address": "255.255.255.255",
+  "port": 1337,
+  "owned_by": "STEAM_1:1:161178172"
 }))]
 pub struct UpdateServerRequest {
 	/// The server's new name.

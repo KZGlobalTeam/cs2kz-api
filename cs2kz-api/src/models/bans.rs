@@ -14,17 +14,17 @@ use super::{Player, ServerSummary};
 /// A KZ record.
 #[derive(Debug, Serialize, ToSchema)]
 #[schema(example = json!({
-	"id": 1,
-	"player": {
-		"steam_id": "STEAM_1:1:161178172",
-		"name": "AlphaKeks"
-	},
-	"reason": "bhop_hack",
-	"server": {
-		"id": 1,
-		"name": "Alpha's KZ"
-	},
-	"created_on": "2023-12-10T10:41:01Z"
+  "id": 1,
+  "player": {
+    "steam_id": "STEAM_1:1:161178172",
+    "name": "AlphaKeks"
+  },
+  "reason": "bhop_hack",
+  "server": {
+    "id": 1,
+    "name": "Alpha's KZ"
+  },
+  "created_on": "2023-12-10T10:41:01Z"
 }))]
 pub struct Ban {
 	/// The ban's ID.

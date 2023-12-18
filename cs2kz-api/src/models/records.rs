@@ -14,38 +14,38 @@ use super::{CourseWithFilter, Player, ServerSummary};
 /// A KZ record.
 #[derive(Debug, Serialize, ToSchema)]
 #[schema(example = json!({
-	"id": 1,
-	"player": {
-		"steam_id": "STEAM_1:1:161178172",
-		"name": "AlphaKeks"
-	},
-	"course": {
-		"id": 1,
-		"map_id": 1,
-		"map_name": "kz_checkmate",
-		"map_stage": 1,
-		"mode": "kz_modded",
-		"style": "normal",
-		"tier": 3
-	},
-	"teleports": 69,
-	"server": {
-		"id": 1,
-		"name": "Alpha's KZ"
-	},
-	"bhop_stats": {
-		"perfs": 200,
-		"bhops_tick0": 100,
-		"bhops_tick1": 100,
-		"bhops_tick2": 30,
-		"bhops_tick3": 10,
-		"bhops_tick4": 10,
-		"bhops_tick5": 0,
-		"bhops_tick6": 0,
-		"bhops_tick7": 0,
-		"bhops_tick8": 0
-	},
-	"created_on": "2023-12-10T10:41:01Z",
+  "id": 1,
+  "player": {
+    "steam_id": "STEAM_1:1:161178172",
+    "name": "AlphaKeks"
+  },
+  "course": {
+    "id": 1,
+    "map_id": 1,
+    "map_name": "kz_checkmate",
+    "map_stage": 1,
+    "mode": "kz_modded",
+    "style": "normal",
+    "tier": 3
+  },
+  "teleports": 69,
+  "server": {
+    "id": 1,
+    "name": "Alpha's KZ"
+  },
+  "bhop_stats": {
+    "perfs": 200,
+    "bhops_tick0": 100,
+    "bhops_tick1": 100,
+    "bhops_tick2": 30,
+    "bhops_tick3": 10,
+    "bhops_tick4": 10,
+    "bhops_tick5": 0,
+    "bhops_tick6": 0,
+    "bhops_tick7": 0,
+    "bhops_tick8": 0
+  },
+  "created_on": "2023-12-10T10:41:01Z",
 }))]
 pub struct Record {
 	/// The record's ID.
