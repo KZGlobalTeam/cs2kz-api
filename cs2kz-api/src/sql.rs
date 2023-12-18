@@ -64,6 +64,36 @@ pub fn push_limits<const LIMIT: u64>(
 		.push_bind(offset);
 }
 
+// TODO(AlphaKeks): make this an async trait once they're stable
+//
+// pub trait FetchID {
+//     type ID;
+//
+//     fn fetch_id<'e>(
+//         &self,
+//         connection: impl MySqlExecutor<'e>,
+//     ) -> impl Future<Output = Result<Self::ID>>;
+// }
+//
+// impl FetchID for PlayerIdentifier<'_> {
+//     type ID = SteamID;
+//
+//     async fn fetch_id<'e>(&self, connection: impl MySqlExecutor<'e>) -> Result<Self::ID> {
+//         match self {
+//             PlayerIdentifier::SteamID(steam_id) => Ok(steam_id),
+//             PlayerIdentifier::Name(name) => {
+//                 sqlx::query!("SELECT steam_id FROM Players WHERE name LIKE ?", format!("%{name}%"))
+//                     .fetch_optional(connection)
+//                     .await?
+//                     .ok_or(Error::NoContent)?
+//                     .steam_id
+//                     .try_into()
+//                     .map_err(|err| Error::Unexpected(Box::new(err)))
+//             }
+//         }
+//     }
+// }
+
 /// Fetches a [`SteamID`] for the given `player`.
 pub async fn fetch_steam_id(
 	player: &PlayerIdentifier<'_>,

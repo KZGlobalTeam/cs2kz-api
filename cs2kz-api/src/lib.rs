@@ -64,6 +64,7 @@ pub mod middleware;
 			models::Course,
 			models::Filter,
 			models::CourseWithFilter,
+			models::CreateCourseParams,
 			models::ServerSummary,
 			models::ServerResponse,
 			models::JumpstatResponse,
@@ -76,7 +77,6 @@ pub mod middleware;
 			routes::players::Session,
 
 			routes::maps::CreateMapRequest,
-			routes::maps::CreateCourse,
 			routes::maps::UpdateMapRequest,
 			routes::maps::CourseUpdate,
 			routes::maps::FilterUpdate,

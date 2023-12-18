@@ -2264,7 +2264,7 @@
           }
         }
       },
-      "CreateCourse": {
+      "CreateCourseParams": {
         "type": "object",
         "description": "A new course.",
         "required": [
@@ -2383,7 +2383,7 @@
           "courses": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CreateCourse"
+              "$ref": "#/components/schemas/CreateCourseParams"
             },
             "description": "List of courses on this map."
           }
@@ -3251,7 +3251,7 @@
           "added_courses": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CreateCourse"
+              "$ref": "#/components/schemas/CreateCourseParams"
             },
             "description": "List of new courses.",
             "nullable": true

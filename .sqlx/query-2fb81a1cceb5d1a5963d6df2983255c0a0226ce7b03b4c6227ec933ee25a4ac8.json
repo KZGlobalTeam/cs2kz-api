@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t\tid,\n\t\t\tmap_stage\n\t\tFROM\n\t\t\tCourses\n\t\tWHERE\n\t\t\tmap_id = ?\n\t\t",
+  "query": "\n\t\t\tSELECT\n\t\t\t\tid,\n\t\t\t\tmap_stage\n\t\t\tFROM\n\t\t\t\tCourses\n\t\t\tWHERE\n\t\t\t\tmap_id = ?\n\t\t\t",
   "describe": {
     "columns": [
       {
@@ -32,5 +32,5 @@
       false
     ]
   },
-  "hash": "cc0e333af5e8eb880a41cd9a1f33aabefa5ab56a06f3ec5b79729f0a109efa01"
+  "hash": "2fb81a1cceb5d1a5963d6df2983255c0a0226ce7b03b4c6227ec933ee25a4ac8"
 }
