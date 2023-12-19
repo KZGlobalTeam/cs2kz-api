@@ -21,7 +21,7 @@ db-clean:
 
 db-connect:
 	@echo "Connecting to database..."
-	@mariadb \
+	@$(if $(shell command -v mycli 2> /dev/null), mycli, mariadb) \
 		-u kz \
 		-pcsgo-kz-is-dead-boys \
 		-h 127.0.0.1 \
