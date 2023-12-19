@@ -59,3 +59,6 @@ features = ["axum_extras", "non_strict_integers", "preserve_order", "preserve_pa
 [dependencies.utoipa-swagger-ui]
 version = "5"
 features = ["axum"]
+
+[dev-dependencies]
+ctor = "0.2.6"

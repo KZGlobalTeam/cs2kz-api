@@ -7,7 +7,6 @@ use std::fmt;
 use axum::response::Redirect;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::mysql::MySqlPoolOptions;
 use sqlx::{MySql, MySqlPool, Transaction};
 use url::Url;
 
@@ -20,7 +19,7 @@ static STEAM_OPEN_ID_URL: &str = "https://steamcommunity.com/openid/login";
 
 /// The API's main application state.
 pub struct AppState {
-	database_pool: MySqlPool,
+	database: MySqlPool,
 	http_client: reqwest::Client,
 	jwt_header: jwt::Header,
 	jwt_encoding_key: jwt::EncodingKey,
@@ -32,11 +31,11 @@ pub struct AppState {
 impl AppState {
 	/// Constructs an [`AppState`] object.
 	#[tracing::instrument]
-	pub async fn new(database_url: Url, jwt_secret: String, api_url: Url) -> Result<&'static Self> {
-		let database_pool = MySqlPoolOptions::new()
-			.connect(database_url.as_str())
-			.await?;
-
+	pub async fn new(
+		database: MySqlPool,
+		jwt_secret: String,
+		api_url: Url,
+	) -> Result<&'static Self> {
 		let http_client = reqwest::Client::new();
 
 		let jwt_header = jwt::Header::default();
@@ -51,7 +50,7 @@ impl AppState {
 		steam_login_url.set_query(Some(&steam_login_query));
 
 		let state = Self {
-			database_pool,
+			database,
 			http_client,
 			jwt_header,
 			jwt_encoding_key,
@@ -65,7 +64,7 @@ impl AppState {
 
 	/// Provides access to the API's database connection pool.
 	pub const fn database(&self) -> &MySqlPool {
-		&self.database_pool
+		&self.database
 	}
 
 	/// Provides access to an HTTP client for making requests to other APIs.

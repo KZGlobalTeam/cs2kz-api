@@ -44,7 +44,7 @@ impl Config {
 	}
 
 	/// Loads the given `variable` from the environment and parses it.
-	fn load_var<T>(variable: &'static str) -> Result<T>
+	pub(crate) fn load_var<T>(variable: &'static str) -> Result<T>
 	where
 		T: FromStr,
 	{

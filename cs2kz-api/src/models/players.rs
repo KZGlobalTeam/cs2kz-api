@@ -6,6 +6,7 @@ use utoipa::ToSchema;
 
 /// Information about a player.
 #[derive(Debug, Serialize, ToSchema)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 #[schema(example = json!({
   "steam_id": "STEAM_1:1:161178172",
   "name": "AlphaKeks"

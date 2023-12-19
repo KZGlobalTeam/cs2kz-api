@@ -3,10 +3,14 @@
 #![warn(missing_debug_implementations, rust_2018_idioms, clippy::style)]
 #![deny(missing_docs)]
 
+#[cfg(test)]
+mod tests;
+
 use std::fmt::Write;
 use std::net::SocketAddr;
 
 use color_eyre::eyre::Context;
+use sqlx::MySqlPool;
 use tokio::net::TcpListener;
 use tracing::{debug, info};
 use utoipa::OpenApi;
@@ -133,8 +137,12 @@ pub struct API;
 impl API {
 	/// Starts an [`axum`] server to serve the API.
 	#[tracing::instrument]
-	pub async fn run(config: Config) -> color_eyre::Result<()> {
-		let state = AppState::new(config.database_url, config.jwt_secret, config.api_url).await?;
+	pub async fn run(
+		config: Config,
+		database: MySqlPool,
+		tcp_listener: TcpListener,
+	) -> color_eyre::Result<()> {
+		let state = AppState::new(database, config.jwt_secret, config.api_url).await?;
 
 		debug!("Initialized application state.");
 
@@ -145,18 +153,6 @@ impl API {
 
 		debug!("Initialized API service.");
 
-		let tcp_listener = TcpListener::bind(&config.socket_addr)
-			.await
-			.context("Failed to bind TCP socket.")?;
-
-		debug!("Bound to TCP socket on {}.", config.socket_addr);
-
-		let socket_addr = tcp_listener
-			.local_addr()
-			.context("Failed to get TCP socket address.")?;
-
-		info!("Listening on {socket_addr}...");
-
 		let mut routes = String::from("Routes:\n");
 
 		for route in Self::routes() {
@@ -164,6 +160,11 @@ impl API {
 		}
 
 		info!("{routes}");
+
+		let socket_addr = tcp_listener
+			.local_addr()
+			.context("Failed to get TCP socket address.")?;
+
 		info!("Hosting SwaggerUI at: <http://{socket_addr}/docs/swagger-ui>");
 		info!("Hosting OpenAPI spec at: <http://{socket_addr}/docs/openapi.json>");
 
