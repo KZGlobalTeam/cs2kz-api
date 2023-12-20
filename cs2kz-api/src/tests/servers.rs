@@ -1,25 +1,14 @@
 use std::net::Ipv4Addr;
 
-use color_eyre::Result;
 use cs2kz::SteamID;
-use sqlx::MySqlPool;
 
-use super::Context;
 use crate::models::{Player, Server};
 
-#[sqlx::test(
-	migrator = "super::MIGRATOR",
-	fixtures(
-		path = "../../../database/fixtures",
-		scripts("players.sql", "servers.sql"),
-	)
-)]
-async fn get(pool: MySqlPool) -> Result<()> {
-	let cx = Context::new(pool).await?;
-
-	let all_servers = cx
+#[crate::test("players.sql", "servers.sql")]
+async fn get(ctx: Context) -> Result<()> {
+	let all_servers = ctx
 		.client
-		.get(cx.url("/servers"))
+		.get(ctx.url("/servers"))
 		.send()
 		.await?
 		.json::<Vec<Server>>()
@@ -27,9 +16,9 @@ async fn get(pool: MySqlPool) -> Result<()> {
 
 	assert_eq!(all_servers.len(), 1, "incorrect amount of servers: {all_servers:#?}");
 
-	let alphas_kz = cx
+	let alphas_kz = ctx
 		.client
-		.get(cx.url("/servers/alpha"))
+		.get(ctx.url("/servers/alpha"))
 		.send()
 		.await?
 		.json::<Server>()

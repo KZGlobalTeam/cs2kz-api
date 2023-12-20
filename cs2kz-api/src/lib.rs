@@ -6,6 +6,10 @@
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+#[rustfmt::skip]
+pub(crate) use cs2kz_api_macros::test;
+
 use std::fmt::Write;
 use std::net::SocketAddr;
 
