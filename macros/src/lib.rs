@@ -87,11 +87,12 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 		error!(argument_type.path, "Invalid argument type. Expected `Context`.");
 	}
 
+	let test_name = &function.sig.ident;
 	let inner_fn = &function.block;
 
 	quote! {
 		#[test]
-		fn balls() -> ::color_eyre::Result<()> {
+		fn #test_name() -> ::color_eyre::Result<()> {
 			use ::color_eyre::eyre::Context as _;
 			use ::sqlx::migrate::MigrateDatabase as _;
 			use ::std::fmt::Write as _;
