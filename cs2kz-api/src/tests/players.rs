@@ -1,7 +1,7 @@
 use crate::models::Player;
 
 #[crate::test("players.sql")]
-async fn get(ctx: Context) -> Result<()> {
+async fn get(ctx: Context) {
 	let all_players = ctx
 		.client
 		.get(ctx.url("/players"))

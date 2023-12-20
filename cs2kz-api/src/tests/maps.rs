@@ -4,7 +4,7 @@ use cs2kz::SteamID;
 use crate::models::{KZMap, Player};
 
 #[crate::test("players.sql", "maps.sql")]
-async fn get(ctx: Context) -> Result<()> {
+async fn get(ctx: Context) {
 	let all_maps = ctx
 		.client
 		.get(ctx.url("/maps"))

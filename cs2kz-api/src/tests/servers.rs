@@ -5,7 +5,7 @@ use cs2kz::SteamID;
 use crate::models::{Player, Server};
 
 #[crate::test("players.sql", "servers.sql")]
-async fn get(ctx: Context) -> Result<()> {
+async fn get(ctx: Context) {
 	let all_servers = ctx
 		.client
 		.get(ctx.url("/servers"))
