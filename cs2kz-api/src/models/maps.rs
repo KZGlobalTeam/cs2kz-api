@@ -2,15 +2,18 @@
 
 use chrono::{DateTime, Utc};
 use cs2kz::{Mode, SteamID, Style, Tier};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use sqlx::mysql::{MySqlQueryResult, MySqlRow};
 use sqlx::{FromRow, MySqlExecutor, QueryBuilder, Row};
 use utoipa::ToSchema;
 
+use super::Player;
 use crate::{Error, Result};
 
 /// Information about a map.
 #[derive(Debug, Serialize, ToSchema)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 #[schema(example = json!({
   "id": 1,
   "workshop_id": 3070194623_u32,
@@ -62,7 +65,7 @@ pub struct KZMap {
 	pub name: String,
 
 	/// List of the players who created this map.
-	pub mappers: Vec<Mapper>,
+	pub mappers: Vec<Player>,
 
 	/// List of courses on this map.
 	pub courses: Vec<Course>,
@@ -161,74 +164,49 @@ impl KZMap {
 	}
 
 	/// [`Iterator::reduce`] function for folding multiple [`KZMap`]s into one.
-	pub fn reduce(mut self, mut other: Self) -> Self {
-		self.courses.append(&mut other.courses);
+	pub fn reduce(mut self, other: Self) -> Self {
+		for mapper in other.mappers {
+			if !self.mappers.iter().any(|m| m.steam_id == mapper.steam_id) {
+				self.mappers.push(mapper);
+			}
+		}
 
-		let mut courses = Vec::<Course>::new();
-
-		for mut row in self.courses.drain(..) {
-			let Some(course) = courses.last_mut().filter(|c| c.id == row.id) else {
-				courses.push(row);
+		for course in other.courses {
+			let Some(c) = self.courses.iter_mut().find(|c| c.id == course.id) else {
+				self.courses.push(course);
 				continue;
 			};
 
-			course.filters.append(&mut row.filters);
-			course.mappers.dedup_by_key(|p| p.steam_id);
+			for mapper in course.mappers {
+				if !c.mappers.iter().any(|m| m.steam_id == mapper.steam_id) {
+					c.mappers.push(mapper);
+				}
+			}
+
+			for filter in course.filters {
+				if !c.filters.iter().any(|f| f == &filter) {
+					c.filters.push(filter);
+				}
+			}
 		}
 
-		Self { courses, ..self }
+		self
 	}
 
 	/// Flattens a list of maps with different mappers and courses but otherwise duplicate
 	/// data.
 	pub fn flatten(maps: Vec<Self>) -> Vec<Self> {
-		let mut flattened = Vec::<Self>::new();
-
-		for mut row in maps {
-			let Some(map) = flattened.last_mut().filter(|m| m.id == row.id) else {
-				flattened.push(row);
-				continue;
-			};
-
-			map.mappers.append(&mut row.mappers);
-			map.mappers.dedup_by_key(|p| p.steam_id);
-			map.courses.append(&mut row.courses);
-
-			let mut courses = Vec::<Course>::new();
-
-			for mut row in map.courses.drain(..) {
-				let Some(course) = courses.last_mut().filter(|c| c.id == row.id) else {
-					courses.push(row);
-					continue;
-				};
-
-				course.filters.append(&mut row.filters);
-				course.mappers.dedup_by_key(|p| p.steam_id);
-			}
-
-			map.courses = courses;
-		}
-
-		flattened
+		maps.into_iter()
+			.group_by(|map| map.id)
+			.into_iter()
+			.filter_map(|(_, maps)| maps.reduce(Self::reduce))
+			.collect()
 	}
-}
-
-/// Information about a mapper.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-#[schema(example = json!({
-  "steam_id": "STEAM_1:1:161178172",
-  "name": "AlphaKeks"
-}))]
-pub struct Mapper {
-	/// The mapper's SteamID.
-	pub steam_id: SteamID,
-
-	/// The mapper's name.
-	pub name: String,
 }
 
 /// Information about a course.
 #[derive(Debug, Serialize, ToSchema)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 #[schema(example = json!({
   "id": 1,
   "stage": 0,
@@ -261,7 +239,7 @@ pub struct Course {
 	pub stage: u8,
 
 	/// List of the players who created this course.
-	pub mappers: Vec<Mapper>,
+	pub mappers: Vec<Player>,
 
 	/// List of filters that apply to this course.
 	pub filters: Vec<Filter>,
@@ -385,7 +363,7 @@ pub struct CreateCourseParams {
 }
 
 /// Information about a course filter.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
   "mode": "kz_classic",
   "has_teleports": true,
@@ -422,7 +400,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 			SteamID::from_u32(mapper_steam_id).map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
 		let mapper_name = row.try_get("mapper_name")?;
-		let mappers = vec![Mapper { steam_id: mapper_steam_id, name: mapper_name }];
+		let mappers = vec![Player { steam_id: mapper_steam_id, name: mapper_name }];
 
 		let course_id = row.try_get("course_id")?;
 		let course_stage = row.try_get("course_stage")?;
@@ -444,7 +422,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 		let courses = vec![Course {
 			id: course_id,
 			stage: course_stage,
-			mappers: vec![Mapper { steam_id: course_mapper_steam_id, name: course_mapper_name }],
+			mappers: vec![Player { steam_id: course_mapper_steam_id, name: course_mapper_name }],
 			filters: vec![Filter {
 				mode: filter_mode,
 				has_teleports: filter_has_teleports,

@@ -7,7 +7,7 @@ use crate::{Error, Result};
 
 #[repr(transparent)]
 #[derive(Debug, Display, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, AsRef, Deref)]
-#[display("STEAM_1:{}:{}", self.as_u64() & 1, self.account_number())]
+#[display("STEAM_{}:{}:{}", self.account_universe(), self.account_type(), self.account_number())]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "utoipa", schema(value_type = String))]
 pub struct SteamID(u64);
@@ -28,7 +28,9 @@ impl SteamID {
 	/// Returns a 32-bit representation of the inner SteamID.
 	#[inline]
 	pub const fn as_u32(&self) -> u32 {
-		((self.account_number() + 1) * 2) - 1
+		let account_type = self.account_type() as u32;
+
+		((self.account_number() + account_type) * 2) - account_type
 	}
 
 	/// Returns the "Steam3ID" representation of the inner SteamID.
@@ -37,10 +39,20 @@ impl SteamID {
 		format!("U:1:{}", self.as_u32())
 	}
 
+	#[inline]
+	pub const fn account_universe(&self) -> u64 {
+		self.as_u64() >> 56
+	}
+
+	#[inline]
+	pub const fn account_type(&self) -> u64 {
+		self.as_u64() & 1
+	}
+
 	/// Returns the `Z` part of `STEAM_X:Y:Z`.
 	#[inline]
 	pub const fn account_number(&self) -> u32 {
-		let account_number = (self.as_u64() - Self::MAGIC_OFFSET) / 2;
+		let account_number = (self.as_u64() - Self::MAGIC_OFFSET - self.account_type()) / 2;
 
 		debug_assert!(account_number <= u32::MAX as u64);
 

@@ -68,3 +68,6 @@ docs:
 	@echo "Checking if the OpenAPI docs are up to date..."
 	cargo run --package cs2kz-api-spec-generator -- --check api-spec.json
 
+test:
+	@make db
+	DATABASE_URL=$${TEST_DATABASE_URL} cargo test --package cs2kz-api $(ARGS) -- --nocapture
