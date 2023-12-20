@@ -521,6 +521,7 @@ dependencies = [
  "chrono",
  "color-eyre",
  "cs2kz",
+ "cs2kz-api-macros",
  "ctor",
  "dotenvy",
  "itertools",
@@ -538,6 +539,16 @@ dependencies = [
  "url",
  "utoipa",
  "utoipa-swagger-ui",
+]
+
+[[package]]
+name = "cs2kz-api-macros"
+version = "0.0.0"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]

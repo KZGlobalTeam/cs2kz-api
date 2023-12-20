@@ -1,19 +1,10 @@
-use color_eyre::Result;
-use sqlx::MySqlPool;
-
-use super::Context;
 use crate::models::Player;
 
-#[sqlx::test(
-	migrator = "super::MIGRATOR",
-	fixtures(path = "../../../database/fixtures", scripts("players.sql"))
-)]
-async fn get(pool: MySqlPool) -> Result<()> {
-	let cx = Context::new(pool).await?;
-
-	let all_players = cx
+#[crate::test("players.sql")]
+async fn get(ctx: Context) {
+	let all_players = ctx
 		.client
-		.get(cx.url("/players"))
+		.get(ctx.url("/players"))
 		.send()
 		.await?
 		.json::<Vec<Player>>()
@@ -27,9 +18,9 @@ async fn get(pool: MySqlPool) -> Result<()> {
 
 	assert!(has_ibrahizy, "missing iBrahizy");
 
-	let ibrahizy = cx
+	let ibrahizy = ctx
 		.client
-		.get(cx.url("/players/304674089"))
+		.get(ctx.url("/players/304674089"))
 		.send()
 		.await?
 		.json::<Player>()
@@ -38,9 +29,9 @@ async fn get(pool: MySqlPool) -> Result<()> {
 	assert_eq!(ibrahizy.steam_id.as_u32(), 304674089);
 	assert_eq!(ibrahizy.name, "iBrahizy");
 
-	let alphakeks = cx
+	let alphakeks = ctx
 		.client
-		.get(cx.url("/players/STEAM_1:1:161178172"))
+		.get(ctx.url("/players/STEAM_1:1:161178172"))
 		.send()
 		.await?
 		.json::<Player>()
@@ -49,9 +40,9 @@ async fn get(pool: MySqlPool) -> Result<()> {
 	assert_eq!(alphakeks.steam_id.as_u32(), 322356345);
 	assert_eq!(alphakeks.name, "AlphaKeks");
 
-	let zer0k = cx
+	let zer0k = ctx
 		.client
-		.get(cx.url("/players/er0."))
+		.get(ctx.url("/players/er0."))
 		.send()
 		.await?
 		.json::<Player>()
@@ -59,6 +50,4 @@ async fn get(pool: MySqlPool) -> Result<()> {
 
 	assert_eq!(zer0k.steam_id.as_u32(), 158416176);
 	assert_eq!(zer0k.name, "zer0.k");
-
-	Ok(())
 }

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["cs2kz", "cs2kz-api", "spec-generator"]
+members = ["cs2kz", "cs2kz-api", "spec-generator", "macros"]
 
 [workspace.dependencies.dotenvy]
 version = "0.15"

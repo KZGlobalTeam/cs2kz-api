@@ -1,24 +1,13 @@
 use color_eyre::eyre::ContextCompat;
-use color_eyre::Result;
 use cs2kz::SteamID;
-use sqlx::MySqlPool;
 
-use super::Context;
 use crate::models::{KZMap, Player};
 
-#[sqlx::test(
-	migrator = "super::MIGRATOR",
-	fixtures(
-		path = "../../../database/fixtures",
-		scripts("players.sql", "maps.sql"),
-	)
-)]
-async fn get(pool: MySqlPool) -> Result<()> {
-	let cx = Context::new(pool).await?;
-
-	let all_maps = cx
+#[crate::test("players.sql", "maps.sql")]
+async fn get(ctx: Context) {
+	let all_maps = ctx
 		.client
-		.get(cx.url("/maps"))
+		.get(ctx.url("/maps"))
 		.send()
 		.await?
 		.json::<Vec<KZMap>>()
@@ -26,9 +15,9 @@ async fn get(pool: MySqlPool) -> Result<()> {
 
 	assert_eq!(all_maps.len(), 2, "incorrect amount of maps: {all_maps:#?}");
 
-	let victoria = cx
+	let victoria = ctx
 		.client
-		.get(cx.url("/maps/victoria"))
+		.get(ctx.url("/maps/victoria"))
 		.send()
 		.await?
 		.json::<KZMap>()
@@ -48,6 +37,4 @@ async fn get(pool: MySqlPool) -> Result<()> {
 		steam_id: SteamID::from_u32(117087881)?,
 		name: String::from("Kiwi"),
 	}]);
-
-	Ok(())
 }

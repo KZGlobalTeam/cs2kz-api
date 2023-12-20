@@ -65,3 +65,4 @@ version = "0.12"
 
 [dev-dependencies]
 ctor = "0.2.6"
+cs2kz-api-macros = { path = "../macros" }
