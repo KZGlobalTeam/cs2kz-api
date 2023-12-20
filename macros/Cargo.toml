@@ -7,7 +7,9 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1"
-proc-macro-error = "1"
-quote = "1"
-syn = { version = "1", features = ["extra-traits"] }
+proc-macro-error = { version = "1", default-features = false }
+quote = { version = "1", default-features = false }
+syn = { version = "2", default-features = false, features = ["parsing", "proc-macro"] }
+
+[dev-dependencies]
+syn = { version = "2", default-features = false, features = ["parsing", "proc-macro", "printing", "extra-traits"] }
