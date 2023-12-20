@@ -389,7 +389,7 @@
                     "mappers": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Mapper"
+                        "$ref": "#/components/schemas/Player"
                       },
                       "description": "List of the players who created this map."
                     },
@@ -590,7 +590,7 @@
                     "mappers": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Mapper"
+                        "$ref": "#/components/schemas/Player"
                       },
                       "description": "List of the players who created this map."
                     },
@@ -794,7 +794,7 @@
                     "mappers": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Mapper"
+                        "$ref": "#/components/schemas/Player"
                       },
                       "description": "List of the players who created this map."
                     },
@@ -2118,7 +2118,7 @@
           "mappers": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Mapper"
+              "$ref": "#/components/schemas/Player"
             },
             "description": "List of the players who created this course."
           },
@@ -2788,7 +2788,7 @@
           "mappers": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Mapper"
+              "$ref": "#/components/schemas/Player"
             },
             "description": "List of the players who created this map."
           },
@@ -2868,27 +2868,6 @@
             "type": "string"
           }
         ]
-      },
-      "Mapper": {
-        "type": "object",
-        "description": "Information about a mapper.",
-        "required": [
-          "steam_id",
-          "name"
-        ],
-        "properties": {
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
-          },
-          "name": {
-            "type": "string",
-            "description": "The mapper's name."
-          }
-        },
-        "example": {
-          "name": "AlphaKeks",
-          "steam_id": "STEAM_1:1:161178172"
-        }
       },
       "Mode": {
         "type": "string",
@@ -3006,19 +2985,7 @@
           "teleports": 69
         }
       },
-      "ServerIdentifier": {
-        "oneOf": [
-          {
-            "type": "integer",
-            "format": "uint16",
-            "minimum": 0
-          },
-          {
-            "type": "string"
-          }
-        ]
-      },
-      "ServerResponse": {
+      "Server": {
         "type": "object",
         "description": "Information about a server.",
         "required": [
@@ -3062,6 +3029,18 @@
             "steam_id": "STEAM_1:1:161178172"
           }
         }
+      },
+      "ServerIdentifier": {
+        "oneOf": [
+          {
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0
+          },
+          {
+            "type": "string"
+          }
+        ]
       },
       "ServerSummary": {
         "type": "object",
