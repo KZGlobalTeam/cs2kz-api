@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::QueryBuilder;
 use utoipa::{IntoParams, ToSchema};
 
-use crate::models::ServerResponse;
+use crate::models::Server;
 use crate::responses::Created;
 use crate::{openapi as R, sql, AppState, Error, Result, State};
 
@@ -49,7 +49,7 @@ pub fn router(state: &'static AppState) -> Router {
 	path = "/servers",
 	params(GetServersParams),
 	responses(
-		R::Ok<ServerResponse>,
+		R::Ok<Server>,
 		R::NoContent,
 		R::BadRequest,
 		R::InternalServerError,
@@ -58,7 +58,7 @@ pub fn router(state: &'static AppState) -> Router {
 pub async fn get_servers(
 	state: State,
 	Query(params): Query<GetServersParams<'_>>,
-) -> Result<Json<Vec<ServerResponse>>> {
+) -> Result<Json<Vec<Server>>> {
 	let mut query = QueryBuilder::new(GET_BASE_QUERY);
 	let mut filter = sql::Filter::new();
 
@@ -96,7 +96,7 @@ pub async fn get_servers(
 	sql::push_limits::<500>(params.limit, params.offset, &mut query);
 
 	let servers = query
-		.build_query_as::<ServerResponse>()
+		.build_query_as::<Server>()
 		.fetch_all(state.database())
 		.await?;
 
@@ -161,7 +161,7 @@ pub async fn create_server(
 	path = "/servers/{ident}",
 	params(("ident" = ServerIdentifier<'_>, Path, description = "A server's ID or name.")),
 	responses(
-		R::Ok<ServerResponse>,
+		R::Ok<Server>,
 		R::NoContent,
 		R::BadRequest,
 		R::InternalServerError,
@@ -170,7 +170,7 @@ pub async fn create_server(
 pub async fn get_server_by_ident(
 	state: State,
 	Path(ident): Path<ServerIdentifier<'_>>,
-) -> Result<Json<ServerResponse>> {
+) -> Result<Json<Server>> {
 	let mut query = QueryBuilder::new(format!("{GET_BASE_QUERY} WHERE"));
 
 	match ident {
@@ -183,7 +183,7 @@ pub async fn get_server_by_ident(
 	}
 
 	query
-		.build_query_as::<ServerResponse>()
+		.build_query_as::<Server>()
 		.fetch_optional(state.database())
 		.await?
 		.ok_or(Error::NoContent)

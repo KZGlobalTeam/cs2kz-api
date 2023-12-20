@@ -27,6 +27,7 @@ pub struct ServerSummary {
 
 /// Information about a server.
 #[derive(Debug, Serialize, ToSchema)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 #[schema(example = json!({
   "id": 1,
   "name": "Alpha's KZ",
@@ -37,25 +38,25 @@ pub struct ServerSummary {
   },
   "approved_on": "2023-12-10T10:41:01Z"
 }))]
-pub struct ServerResponse {
+pub struct Server {
 	/// The server's ID.
-	id: u16,
+	pub id: u16,
 
 	/// The server's name.
-	name: String,
+	pub name: String,
 
 	/// The server's IP address and port.
 	#[schema(value_type = String)]
-	ip_address: SocketAddrV4,
+	pub ip_address: SocketAddrV4,
 
 	/// The player who owns this server.
-	owned_by: Player,
+	pub owned_by: Player,
 
 	/// When this server was approved.
-	approved_on: DateTime<Utc>,
+	pub approved_on: DateTime<Utc>,
 }
 
-impl FromRow<'_, MySqlRow> for ServerResponse {
+impl FromRow<'_, MySqlRow> for Server {
 	fn from_row(row: &'_ MySqlRow) -> Result<Self, sqlx::Error> {
 		let id = row.try_get("id")?;
 		let name = row.try_get("name")?;

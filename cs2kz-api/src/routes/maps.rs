@@ -113,6 +113,8 @@ pub async fn get_maps(
 		filter.switch();
 	}
 
+	query.push(" ORDER BY m.id ASC ");
+
 	sql::push_limits::<500>(params.limit, params.offset, &mut query);
 
 	let maps = query

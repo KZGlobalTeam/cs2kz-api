@@ -4,10 +4,10 @@ pub mod players;
 pub use players::Player;
 
 pub mod maps;
-pub use maps::{Course, CourseWithFilter, CreateCourseParams, Filter, KZMap, Mapper};
+pub use maps::{Course, CourseWithFilter, CreateCourseParams, Filter, KZMap};
 
 pub mod servers;
-pub use servers::{ServerResponse, ServerSummary};
+pub use servers::{Server, ServerSummary};
 
 pub mod jumpstats;
 pub use jumpstats::JumpstatResponse;

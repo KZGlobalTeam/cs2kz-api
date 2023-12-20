@@ -70,4 +70,4 @@ docs:
 
 test:
 	@make db
-	DATABASE_URL=$${TEST_DATABASE_URL} cargo test --package cs2kz-api
+	DATABASE_URL=$${TEST_DATABASE_URL} cargo test --package cs2kz-api $(ARGS) -- --nocapture

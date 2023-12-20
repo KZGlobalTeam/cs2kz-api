@@ -523,6 +523,7 @@ dependencies = [
  "cs2kz",
  "ctor",
  "dotenvy",
+ "itertools",
  "jsonwebtoken",
  "reqwest",
  "serde",

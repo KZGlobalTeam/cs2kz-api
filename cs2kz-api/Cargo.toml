@@ -60,5 +60,8 @@ features = ["axum_extras", "non_strict_integers", "preserve_order", "preserve_pa
 version = "5"
 features = ["axum"]
 
+[dependencies.itertools]
+version = "0.12"
+
 [dev-dependencies]
 ctor = "0.2.6"

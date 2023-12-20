@@ -14,6 +14,8 @@ use crate::{Config, API};
 
 mod status;
 mod players;
+mod maps;
+mod servers;
 
 static MIGRATOR: Migrator = sqlx::migrate!("../database/migrations");
 

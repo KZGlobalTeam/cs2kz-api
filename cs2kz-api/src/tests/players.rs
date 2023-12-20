@@ -19,7 +19,7 @@ async fn get(pool: MySqlPool) -> Result<()> {
 		.json::<Vec<Player>>()
 		.await?;
 
-	assert_eq!(all_players.len(), 5, "incorrect amount of players");
+	assert_eq!(all_players.len(), 8, "incorrect amount of players");
 
 	let has_ibrahizy = all_players
 		.iter()
@@ -38,27 +38,27 @@ async fn get(pool: MySqlPool) -> Result<()> {
 	assert_eq!(ibrahizy.steam_id.as_u32(), 304674089);
 	assert_eq!(ibrahizy.name, "iBrahizy");
 
-	let ibrahizy = cx
+	let alphakeks = cx
 		.client
-		.get(cx.url("/players/STEAM_0:1:152337044"))
+		.get(cx.url("/players/STEAM_1:1:161178172"))
 		.send()
 		.await?
 		.json::<Player>()
 		.await?;
 
-	assert_eq!(ibrahizy.steam_id.as_u32(), 304674089);
-	assert_eq!(ibrahizy.name, "iBrahizy");
+	assert_eq!(alphakeks.steam_id.as_u32(), 322356345);
+	assert_eq!(alphakeks.name, "AlphaKeks");
 
-	let ibrahizy = cx
+	let zer0k = cx
 		.client
-		.get(cx.url("/players/brahi"))
+		.get(cx.url("/players/er0."))
 		.send()
 		.await?
 		.json::<Player>()
 		.await?;
 
-	assert_eq!(ibrahizy.steam_id.as_u32(), 304674089);
-	assert_eq!(ibrahizy.name, "iBrahizy");
+	assert_eq!(zer0k.steam_id.as_u32(), 158416176);
+	assert_eq!(zer0k.name, "zer0.k");
 
 	Ok(())
 }
