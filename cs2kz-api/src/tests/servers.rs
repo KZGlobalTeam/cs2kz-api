@@ -32,6 +32,4 @@ async fn get(ctx: Context) {
 		steam_id: SteamID::from_u32(322356345)?,
 		name: String::from("AlphaKeks"),
 	});
-
-	Ok(())
 }

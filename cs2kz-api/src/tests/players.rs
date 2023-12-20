@@ -50,6 +50,4 @@ async fn get(ctx: Context) {
 
 	assert_eq!(zer0k.steam_id.as_u32(), 158416176);
 	assert_eq!(zer0k.name, "zer0.k");
-
-	Ok(())
 }

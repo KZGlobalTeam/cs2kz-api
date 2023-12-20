@@ -159,7 +159,7 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 						addr,
 					};
 
-					if let err @ Err(_) = { #inner_fn } {
+					if let err @ ::color_eyre::Result::Err(_) = { #inner_fn ::color_eyre::Result::Ok(()) } {
 						return err;
 					}
 
