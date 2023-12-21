@@ -1,5 +1,11 @@
 //! CS2KZ
 
+#[cfg(feature = "serde")]
+pub(crate) mod serde;
+
+#[cfg(feature = "sqlx")]
+pub(crate) mod sqlx;
+
 pub mod error;
 pub use error::{Error, Result};
 

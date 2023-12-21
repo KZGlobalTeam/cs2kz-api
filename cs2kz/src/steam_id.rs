@@ -248,6 +248,7 @@ mod serde_impls {
 	use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 	use super::SteamID;
+	use crate::serde::IntOrStr;
 
 	impl SteamID {
 		/// Serializes the given `steam_id` using the standard `STEAM_X:Y:Z` format.
@@ -337,18 +338,10 @@ mod serde_impls {
 		/// a specific format, consider using `#[serde(deserialize_with = "...")]` in
 		/// combination with any of the `deserialize_*` methods on [`SteamID`].
 		fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-			#[derive(Deserialize)]
-			#[serde(untagged)]
-			enum Helper<'a> {
-				U32(u32),
-				U64(u64),
-				Str(&'a str),
-			}
-
-			match <Helper as Deserialize<'de>>::deserialize(deserializer)? {
-				Helper::U32(value) => Self::from_u32(value),
-				Helper::U64(value) => Self::from_u64(value),
-				Helper::Str(value) => value.parse(),
+			match <IntOrStr<u64> as Deserialize<'de>>::deserialize(deserializer)? {
+				IntOrStr::Int(value) if value <= (u32::MAX as u64) => Self::from_u32(value as u32),
+				IntOrStr::Int(value) => Self::from_u64(value),
+				IntOrStr::Str(value) => value.parse(),
 			}
 			.map_err(serde::de::Error::custom)
 		}
@@ -357,37 +350,10 @@ mod serde_impls {
 
 #[cfg(feature = "sqlx")]
 mod sqlx_impls {
-	use sqlx::database::{HasArguments, HasValueRef};
-	use sqlx::encode::IsNull;
-	use sqlx::error::BoxDynError;
-	use sqlx::{Database, Decode, Encode, Type};
-
 	use super::SteamID;
 
-	impl<DB: Database> Type<DB> for SteamID
-	where
-		u32: Type<DB>,
-	{
-		fn type_info() -> <DB as Database>::TypeInfo {
-			<u32 as Type<DB>>::type_info()
-		}
-	}
-
-	impl<'row, DB: Database> Decode<'row, DB> for SteamID
-	where
-		u32: Decode<'row, DB>,
-	{
-		fn decode(value: <DB as HasValueRef<'row>>::ValueRef) -> Result<Self, BoxDynError> {
-			Self::from_u32(<u32 as Decode<'row, DB>>::decode(value)?).map_err(Into::into)
-		}
-	}
-
-	impl<'query, DB: Database> Encode<'query, DB> for SteamID
-	where
-		u32: Encode<'query, DB>,
-	{
-		fn encode_by_ref(&self, buf: &mut <DB as HasArguments<'query>>::ArgumentBuffer) -> IsNull {
-			<u32 as Encode<'query, DB>>::encode(self.as_u32(), buf)
-		}
-	}
+	crate::sqlx::from_row_as!(SteamID as u32 {
+		encode: |steam_id| { steam_id.as_u32() }
+		decode: |int| { SteamID::from_u32(int) }
+	});
 }

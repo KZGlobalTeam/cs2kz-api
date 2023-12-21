@@ -125,6 +125,7 @@ mod serde_impls {
 	use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 	use super::Jumpstat;
+	use crate::serde::IntOrStr;
 
 	impl Jumpstat {
 		/// Serializes the given `jumpstat` in the standardized API format.
@@ -180,16 +181,9 @@ mod serde_impls {
 		/// a specific format, consider using `#[serde(deserialize_with = "...")]` in
 		/// combination with any of the `deserialize_*` methods on [`Jumpstat`].
 		fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-			#[derive(Deserialize)]
-			#[serde(untagged)]
-			enum Helper<'a> {
-				U8(u8),
-				Str(&'a str),
-			}
-
-			match <Helper as Deserialize<'de>>::deserialize(deserializer)? {
-				Helper::U8(value) => value.try_into(),
-				Helper::Str(value) => value.parse(),
+			match <IntOrStr<u8> as Deserialize<'de>>::deserialize(deserializer)? {
+				IntOrStr::Int(value) => value.try_into(),
+				IntOrStr::Str(value) => value.parse(),
 			}
 			.map_err(serde::de::Error::custom)
 		}
@@ -198,37 +192,10 @@ mod serde_impls {
 
 #[cfg(feature = "sqlx")]
 mod sqlx_impls {
-	use sqlx::database::{HasArguments, HasValueRef};
-	use sqlx::encode::IsNull;
-	use sqlx::error::BoxDynError;
-	use sqlx::{Database, Decode, Encode, Type};
-
 	use super::Jumpstat;
 
-	impl<DB: Database> Type<DB> for Jumpstat
-	where
-		u8: Type<DB>,
-	{
-		fn type_info() -> <DB as Database>::TypeInfo {
-			<u8 as Type<DB>>::type_info()
-		}
-	}
-
-	impl<'row, DB: Database> Decode<'row, DB> for Jumpstat
-	where
-		u8: Decode<'row, DB>,
-	{
-		fn decode(value: <DB as HasValueRef<'row>>::ValueRef) -> Result<Self, BoxDynError> {
-			Self::try_from(<u8 as Decode<'row, DB>>::decode(value)?).map_err(Into::into)
-		}
-	}
-
-	impl<'query, DB: Database> Encode<'query, DB> for Jumpstat
-	where
-		u8: Encode<'query, DB>,
-	{
-		fn encode_by_ref(&self, buf: &mut <DB as HasArguments<'query>>::ArgumentBuffer) -> IsNull {
-			<u8 as Encode<'query, DB>>::encode(*self as u8, buf)
-		}
-	}
+	crate::sqlx::from_row_as!(Jumpstat as u8 {
+		encode: |jumpstat| { *jumpstat as u8 }
+		decode: |int| { Jumpstat::try_from(int) }
+	});
 }

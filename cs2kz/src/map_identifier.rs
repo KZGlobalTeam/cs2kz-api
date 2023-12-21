@@ -56,19 +56,14 @@ mod serde_impls {
 	use serde::{Deserialize, Deserializer};
 
 	use super::MapIdentifier;
+	use crate::serde::IntOrStr;
 
 	impl<'de> Deserialize<'de> for MapIdentifier<'_> {
+		#[rustfmt::skip]
 		fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-			#[derive(Deserialize)]
-			#[serde(untagged)]
-			enum Helper {
-				U16(u16),
-				Str(String),
-			}
-
-			Ok(match <Helper as Deserialize<'de>>::deserialize(deserializer)? {
-				Helper::U16(value) => value.into(),
-				Helper::Str(value) => value.parse().unwrap_or_else(|_| value.into()),
+			Ok(match <IntOrStr<u16> as Deserialize<'de>>::deserialize(deserializer)? {
+				IntOrStr::Int(value) => value.into(),
+				IntOrStr::Str(value) => value.parse().unwrap_or_else(|_| value.into()),
 			})
 		}
 	}
