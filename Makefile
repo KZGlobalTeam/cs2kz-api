@@ -2,9 +2,6 @@ include .env.example
 -include .env
 export
 
-balls:
-	@echo $${DATABASE_URL}
-
 default:
 	@make db
 	@echo "Waiting for the database to spin up..."
