@@ -11,6 +11,7 @@ use utoipa::{IntoParams, ToSchema};
 use crate::jwt::ServerClaims;
 use crate::models::JumpstatResponse;
 use crate::responses::Created;
+use crate::sql::FetchID;
 use crate::{openapi as R, sql, AppState, Error, Result, State};
 
 /// This function returns the router for the `/jumpstats` routes.
@@ -92,7 +93,7 @@ pub async fn get_jumpstats(
 	}
 
 	if let Some(player) = params.player {
-		let steam_id = sql::fetch_steam_id(&player, state.database()).await?;
+		let steam_id = player.fetch_id(state.database()).await?;
 
 		query
 			.push(filter)
@@ -103,7 +104,7 @@ pub async fn get_jumpstats(
 	}
 
 	if let Some(server) = params.server {
-		let id = sql::fetch_server_id(&server, state.database()).await?;
+		let id = server.fetch_id(state.database()).await?;
 
 		query.push(filter).push(" j.server_id = ").push_bind(id);
 

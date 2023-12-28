@@ -12,6 +12,7 @@ use utoipa::{IntoParams, ToSchema};
 use crate::models::maps::CreateCourseParams;
 use crate::models::{Course, Filter, KZMap};
 use crate::responses::Created;
+use crate::sql::FetchID;
 use crate::{openapi as R, sql, AppState, Error, Result, State};
 
 static GET_BASE_QUERY: &str = r#"
@@ -89,7 +90,7 @@ pub async fn get_maps(
 	if let Some(player) = params.mapper {
 		query.push(filter).push(" p1.player_id = ");
 
-		let steam_id = sql::fetch_steam_id(&player, state.database()).await?;
+		let steam_id = player.fetch_id(state.database()).await?;
 
 		query.push_bind(steam_id);
 		filter.switch();

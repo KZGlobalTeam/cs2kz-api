@@ -1,5 +1,6 @@
 //! This module holds utility types and functions for SQL queries.
 
+use std::future::Future;
 use std::{cmp, fmt};
 
 use cs2kz::{MapIdentifier, PlayerIdentifier, ServerIdentifier, SteamID};
@@ -65,84 +66,68 @@ pub fn push_limits<const LIMIT: u64>(
 }
 
 // TODO(AlphaKeks): make this an async trait once they're stable
-//
-// pub trait FetchID {
-//     type ID;
-//
-//     fn fetch_id<'e>(
-//         &self,
-//         connection: impl MySqlExecutor<'e>,
-//     ) -> impl Future<Output = Result<Self::ID>>;
-// }
-//
-// impl FetchID for PlayerIdentifier<'_> {
-//     type ID = SteamID;
-//
-//     async fn fetch_id<'e>(&self, connection: impl MySqlExecutor<'e>) -> Result<Self::ID> {
-//         match self {
-//             PlayerIdentifier::SteamID(steam_id) => Ok(steam_id),
-//             PlayerIdentifier::Name(name) => {
-//                 sqlx::query!("SELECT steam_id FROM Players WHERE name LIKE ?", format!("%{name}%"))
-//                     .fetch_optional(connection)
-//                     .await?
-//                     .ok_or(Error::NoContent)?
-//                     .steam_id
-//                     .try_into()
-//                     .map_err(|err| Error::Unexpected(Box::new(err)))
-//             }
-//         }
-//     }
-// }
 
-/// Fetches a [`SteamID`] for the given `player`.
-pub async fn fetch_steam_id(
-	player: &PlayerIdentifier<'_>,
-	connection: impl MySqlExecutor<'_>,
-) -> Result<SteamID> {
-	match *player {
-		PlayerIdentifier::SteamID(steam_id) => Ok(steam_id),
-		PlayerIdentifier::Name(ref name) => {
-			sqlx::query!("SELECT steam_id FROM Players WHERE name LIKE ?", format!("%{name}%"))
-				.fetch_optional(connection)
-				.await?
-				.ok_or(Error::NoContent)?
-				.steam_id
-				.try_into()
-				.map_err(|err| Error::Unexpected(Box::new(err)))
+/// A convenience trait for fetching IDs from the database.
+pub trait FetchID {
+	/// The ID to be fetched.
+	type ID;
+
+	/// Fetches the type's ID from a database connection.
+	fn fetch_id<'c>(
+		&self,
+		connection: impl MySqlExecutor<'c>,
+	) -> impl Future<Output = Result<Self::ID>>;
+}
+
+impl FetchID for PlayerIdentifier<'_> {
+	type ID = SteamID;
+
+	async fn fetch_id<'c>(&self, connection: impl MySqlExecutor<'c>) -> Result<Self::ID> {
+		match self {
+			PlayerIdentifier::SteamID(steam_id) => Ok(*steam_id),
+			PlayerIdentifier::Name(name) => {
+				sqlx::query!("SELECT steam_id FROM Players WHERE name LIKE ?", format!("%{name}%"))
+					.fetch_optional(connection)
+					.await?
+					.ok_or(Error::NoContent)?
+					.steam_id
+					.try_into()
+					.map_err(|err| Error::Unexpected(Box::new(err)))
+			}
 		}
 	}
 }
 
-/// Fetches a Server ID for the given `server`.
-pub async fn fetch_server_id(
-	server: &ServerIdentifier<'_>,
-	connection: impl MySqlExecutor<'_>,
-) -> Result<u16> {
-	match *server {
-		ServerIdentifier::ID(id) => Ok(id),
-		ServerIdentifier::Name(ref name) => {
-			sqlx::query!("SELECT id FROM Servers WHERE name LIKE ?", format!("%{name}%"))
-				.fetch_optional(connection)
-				.await?
-				.ok_or(Error::NoContent)
-				.map(|row| row.id)
+impl FetchID for ServerIdentifier<'_> {
+	type ID = u16;
+
+	async fn fetch_id<'c>(&self, connection: impl MySqlExecutor<'c>) -> Result<u16> {
+		match self {
+			ServerIdentifier::ID(id) => Ok(*id),
+			ServerIdentifier::Name(name) => {
+				sqlx::query!("SELECT id FROM Servers WHERE name LIKE ?", format!("%{name}%"))
+					.fetch_optional(connection)
+					.await?
+					.ok_or(Error::NoContent)
+					.map(|row| row.id)
+			}
 		}
 	}
 }
 
-/// Fetches a Map ID for the given `map`.
-pub async fn fetch_map_id(
-	map: &MapIdentifier<'_>,
-	connection: impl MySqlExecutor<'_>,
-) -> Result<u16> {
-	match *map {
-		MapIdentifier::ID(id) => Ok(id),
-		MapIdentifier::Name(ref name) => {
-			sqlx::query!("SELECT id FROM Maps WHERE name LIKE ?", format!("%{name}%"))
-				.fetch_optional(connection)
-				.await?
-				.ok_or(Error::NoContent)
-				.map(|row| row.id)
+impl FetchID for MapIdentifier<'_> {
+	type ID = u16;
+
+	async fn fetch_id<'c>(&self, connection: impl MySqlExecutor<'c>) -> Result<u16> {
+		match self {
+			MapIdentifier::ID(id) => Ok(*id),
+			MapIdentifier::Name(name) => {
+				sqlx::query!("SELECT id FROM Maps WHERE name LIKE ?", format!("%{name}%"))
+					.fetch_optional(connection)
+					.await?
+					.ok_or(Error::NoContent)
+					.map(|row| row.id)
+			}
 		}
 	}
 }

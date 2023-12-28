@@ -12,6 +12,7 @@ use utoipa::{IntoParams, ToSchema};
 
 use crate::models::Server;
 use crate::responses::Created;
+use crate::sql::FetchID;
 use crate::{openapi as R, sql, AppState, Error, Result, State};
 
 static GET_BASE_QUERY: &str = r#"
@@ -72,7 +73,7 @@ pub async fn get_servers(
 	}
 
 	if let Some(player_ident) = params.owned_by {
-		let steam_id = sql::fetch_steam_id(&player_ident, state.database()).await?;
+		let steam_id = player_ident.fetch_id(state.database()).await?;
 
 		query
 			.push(filter)
