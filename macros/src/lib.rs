@@ -47,6 +47,10 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 
 			write!(&mut database_url, "-test-{port}")?;
 
+			::sqlx::mysql::MySql::drop_database(&database_url)
+				.await
+				.with_context(|| format!("failed to drop test database {port}"))?;
+
 			::sqlx::mysql::MySql::create_database(&database_url)
 				.await
 				.with_context(|| format!("failed to create test database {port}"))?;
