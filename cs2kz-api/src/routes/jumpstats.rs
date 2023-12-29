@@ -185,7 +185,7 @@ pub async fn create_jumpstat(
 	.execute(transaction.as_mut())
 	.await?;
 
-	let id = sqlx::query!("SELECT MAX(id) `id!: u64` FROM Jumpstats")
+	let id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())
 		.await?
 		.id;

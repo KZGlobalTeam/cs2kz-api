@@ -168,10 +168,10 @@ pub async fn create_map(
 	.execute(transaction.as_mut())
 	.await?;
 
-	let map_id = sqlx::query!("SELECT MAX(id) `id!: u16` FROM Maps")
+	let map_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())
 		.await?
-		.id;
+		.id as _;
 
 	body.courses.sort_by_key(|c| c.stage);
 
