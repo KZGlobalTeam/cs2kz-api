@@ -1955,7 +1955,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "The generated JWT for a server.",
+                  "description": "This data is sent by servers to refresh their JWT.",
                   "required": [
                     "token"
                   ],
@@ -2049,6 +2049,18 @@
           "plugin_version": {
             "type": "string",
             "description": "The CS2KZ version the server is currently running."
+          }
+        }
+      },
+      "AuthResponse": {
+        "type": "object",
+        "description": "This data is sent by servers to refresh their JWT.",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
           }
         }
       },

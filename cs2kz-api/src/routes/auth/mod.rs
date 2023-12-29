@@ -1,6 +1,6 @@
 //! This module holds all HTTP handlers related to authentication.
 
-use axum::routing::get;
+use axum::routing::post;
 use axum::{Json, Router};
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,7 @@ pub mod steam;
 /// This function returns the router for the `/auth` routes.
 pub fn router(state: &'static AppState) -> Router {
 	Router::new()
-		.route("/refresh", get(refresh_token))
+		.route("/refresh", post(refresh_token))
 		.with_state(state)
 		.nest("/steam", steam::router(state))
 }
@@ -59,24 +59,26 @@ pub async fn refresh_token(
 	let claims = ServerClaims::new(data.server_id, data.plugin_version_id);
 	let token = state.encode_jwt(&claims)?;
 
-	trace!(%data.server_id, %token, "generated token for server");
+	trace!(%token, %data.server_id, "generated JWT for server");
 
 	Ok(Created(Json(AuthResponse { token })))
 }
 
 /// This data is sent by servers to refresh their JWT.
 #[derive(Debug, Deserialize, ToSchema)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct AuthRequest {
 	/// The server's "permanent" API key.
-	api_key: u32,
+	pub(crate) api_key: u32,
 
 	/// The CS2KZ version the server is currently running.
 	#[schema(value_type = String)]
-	plugin_version: Version,
+	pub(crate) plugin_version: Version,
 }
 
-/// The generated JWT for a server.
+/// This data is sent by servers to refresh their JWT.
 #[derive(Debug, Serialize, ToSchema)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub struct AuthResponse {
-	token: String,
+	pub(crate) token: String,
 }

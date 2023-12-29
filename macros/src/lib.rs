@@ -82,8 +82,9 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 				.map_err(|_| ::color_eyre::eyre::eyre!("failed to set API port"))?;
 
 			// Spawn API in a background task
+			let database2 = database.clone();
 			::tokio::task::spawn(async move {
-				crate::API::run(config, database, tcp_listener)
+				crate::API::run(config, database2, tcp_listener)
 					.await
 					.expect("Failed to run API.");
 
@@ -95,7 +96,7 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 				::color_eyre::Result::Ok(())
 			}
 
-			let ctx = crate::tests::Context::new(addr);
+			let ctx = crate::tests::Context::new(addr, database);
 
 			// Run the actual test
 			test(ctx).await?;

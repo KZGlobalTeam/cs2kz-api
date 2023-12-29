@@ -3,12 +3,15 @@ use std::net::SocketAddr;
 
 use ctor::ctor;
 use sqlx::migrate::Migrator;
+use sqlx::MySqlPool;
 use tracing_subscriber::EnvFilter;
+use url::Url;
 
 mod status;
 mod players;
 mod maps;
 mod servers;
+mod gameserver_auth;
 
 static MIGRATOR: Migrator = sqlx::migrate!("../database/migrations");
 
@@ -34,15 +37,16 @@ fn setup() {
 struct Context {
 	client: reqwest::Client,
 	addr: SocketAddr,
+	pool: MySqlPool,
 }
 
 impl Context {
-	fn new(addr: SocketAddr) -> Self {
-		Self { client: reqwest::Client::new(), addr }
+	fn new(addr: SocketAddr, pool: MySqlPool) -> Self {
+		Self { client: reqwest::Client::new(), addr, pool }
 	}
 
 	/// Utility method for constructing a request URL to this test's API instance.
-	fn url(&self, path: impl Display) -> String {
-		format!("http://{}{}", self.addr, path)
+	fn url(&self, path: impl Display) -> Url {
+		Url::parse(&format!("http://{}{}", self.addr, path)).unwrap()
 	}
 }
