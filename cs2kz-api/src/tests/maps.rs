@@ -1,9 +1,8 @@
 use color_eyre::eyre::ContextCompat;
-use cs2kz::SteamID;
 
 use crate::models::{KZMap, Player};
 
-#[crate::test("players.sql", "maps.sql")]
+#[crate::test]
 async fn get(ctx: Context) {
 	let all_maps = ctx
 		.client
@@ -13,7 +12,7 @@ async fn get(ctx: Context) {
 		.json::<Vec<KZMap>>()
 		.await?;
 
-	assert_eq!(all_maps.len(), 2, "incorrect amount of maps: {all_maps:#?}");
+	assert_eq!(all_maps.len(), 8, "incorrect amount of maps: {all_maps:#?}");
 
 	let victoria = ctx
 		.client
@@ -23,7 +22,7 @@ async fn get(ctx: Context) {
 		.json::<KZMap>()
 		.await?;
 
-	assert_eq!(victoria.id, 2);
+	assert_eq!(victoria.id, 5);
 	assert_eq!(victoria.name, "kz_victoria");
 	assert_eq!(victoria.courses.len(), 2);
 
@@ -34,7 +33,7 @@ async fn get(ctx: Context) {
 		.context("missing stage 2 on kz_victoria")?;
 
 	assert_eq!(stage_2.mappers, vec![Player {
-		steam_id: SteamID::from_u32(117087881)?,
-		name: String::from("Kiwi"),
+		steam_id: "STEAM_1:1:207612938".parse()?,
+		name: String::from("lars"),
 	}]);
 }

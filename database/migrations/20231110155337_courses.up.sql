@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS Courses (
 	`map_stage` INT1 UNSIGNED NOT NULL,
 	PRIMARY KEY (`id`),
 	FOREIGN KEY (`map_id`) REFERENCES Maps (`id`),
+	UNIQUE (`map_id`, `map_stage`),
 	CONSTRAINT `valid_stage` CHECK(`map_stage` > 0)
 );
 

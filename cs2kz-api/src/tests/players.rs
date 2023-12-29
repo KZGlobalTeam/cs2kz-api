@@ -1,6 +1,6 @@
 use crate::models::Player;
 
-#[crate::test("players.sql")]
+#[crate::test]
 async fn get(ctx: Context) {
 	let all_players = ctx
 		.client
@@ -10,7 +10,7 @@ async fn get(ctx: Context) {
 		.json::<Vec<Player>>()
 		.await?;
 
-	assert_eq!(all_players.len(), 8, "incorrect amount of players");
+	assert_eq!(all_players.len(), 16, "incorrect amount of players");
 
 	let has_ibrahizy = all_players
 		.iter()

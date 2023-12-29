@@ -4,7 +4,7 @@ use cs2kz::SteamID;
 
 use crate::models::{Player, Server};
 
-#[crate::test("players.sql", "servers.sql")]
+#[crate::test]
 async fn get(ctx: Context) {
 	let all_servers = ctx
 		.client
@@ -27,7 +27,7 @@ async fn get(ctx: Context) {
 	assert_eq!(alphas_kz.id, 1);
 	assert_eq!(alphas_kz.name, "Alpha's KZ");
 	assert_eq!(alphas_kz.ip_address.ip(), &Ipv4Addr::new(127, 0, 0, 1));
-	assert_eq!(alphas_kz.ip_address.port(), 1337);
+	assert_eq!(alphas_kz.ip_address.port(), 27015);
 	assert_eq!(alphas_kz.owned_by, Player {
 		steam_id: SteamID::from_u32(322356345)?,
 		name: String::from("AlphaKeks"),

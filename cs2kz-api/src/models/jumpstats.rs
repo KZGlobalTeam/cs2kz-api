@@ -61,7 +61,7 @@ impl FromRow<'_, MySqlRow> for JumpstatResponse {
 	fn from_row(row: &'_ MySqlRow) -> Result<Self, sqlx::Error> {
 		let id = row.try_get("id")?;
 		let kind = row
-			.try_get::<u8, _>("type")?
+			.try_get::<u8, _>("kind")?
 			.try_into()
 			.map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
