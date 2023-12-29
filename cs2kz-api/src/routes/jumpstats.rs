@@ -133,7 +133,7 @@ pub async fn get_jumpstats(
 #[utoipa::path(
 	post,
 	tag = "Jumpstats",
-	path = "/jumpstats/:steam_id",
+	path = "/jumpstats/{steam_id}",
 	security(("GameServer JWT" = [])),
 	params(("steam_id" = SteamID, Path, description = "A player's SteamID.")),
 	request_body = CreateJumpstatRequest,
@@ -180,7 +180,7 @@ pub async fn create_jumpstat(
 		steam_id,
 		body.style,
 		server.id,
-		server.plugin_version,
+		server.plugin_version.to_string(),
 	}
 	.execute(transaction.as_mut())
 	.await?;

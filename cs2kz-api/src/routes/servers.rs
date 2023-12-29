@@ -11,6 +11,7 @@ use sqlx::QueryBuilder;
 use utoipa::{IntoParams, ToSchema};
 
 use crate::models::Server;
+use crate::permissions::Permissions;
 use crate::responses::Created;
 use crate::{openapi as R, sql, AppState, Error, Result, State};
 
@@ -30,14 +31,21 @@ static GET_BASE_QUERY: &str = r#"
 
 /// This function returns the router for the `/servers` routes.
 pub fn router(state: &'static AppState) -> Router {
-	let verify_admin =
-		|| axum::middleware::from_fn_with_state(state, crate::middleware::auth::verify_admin);
+	let add_server = axum::middleware::from_fn_with_state(
+		state,
+		crate::middleware::auth::verify_web_user::<{ Permissions::SERVERS_ADD.0 }>,
+	);
+
+	let edit_server = axum::middleware::from_fn_with_state(
+		state,
+		crate::middleware::auth::verify_web_user::<{ Permissions::SERVERS_EDIT.0 }>,
+	);
 
 	Router::new()
 		.route("/", get(get_servers))
-		.route("/", post(create_server).layer(verify_admin()))
+		.route("/", post(create_server).layer(add_server))
 		.route("/:ident", get(get_server_by_ident))
-		.route("/:ident", patch(update_server).layer(verify_admin()))
+		.route("/:ident", patch(update_server).layer(edit_server))
 		.with_state(state)
 }
 

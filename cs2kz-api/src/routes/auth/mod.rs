@@ -5,6 +5,7 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use axum::routing::get;
 use axum::{Json, Router};
+use semver::Version;
 use serde::Deserialize;
 use tokio::net::UdpSocket;
 use tracing::trace;
@@ -96,5 +97,6 @@ pub struct AuthRequest {
 	api_key: u32,
 
 	/// The CS2KZ version the server is currently running.
-	plugin_version: u16,
+	#[schema(value_type = String)]
+	plugin_version: Version,
 }

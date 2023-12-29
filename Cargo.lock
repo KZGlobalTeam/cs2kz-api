@@ -527,6 +527,7 @@ dependencies = [
  "itertools",
  "jsonwebtoken",
  "reqwest",
+ "semver",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -1955,6 +1956,15 @@ checksum = "da046153aa2352493d6cb7da4b6e5c0c057d8a1d0a9aa8560baffdd945acd414"
 dependencies = [
  "ring",
  "untrusted",
+]
+
+[[package]]
+name = "semver"
+version = "1.0.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "836fa6a3e1e547f9a2c4040802ec865b5d85f4014efe00555d7090a3dcaa1090"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

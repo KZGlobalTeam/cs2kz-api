@@ -63,6 +63,10 @@ features = ["axum"]
 [dependencies.itertools]
 version = "0.12"
 
+[dependencies.semver]
+version = "1"
+features = ["serde"]
+
 [dev-dependencies]
 ctor = "0.2.6"
 cs2kz-api-macros = { path = "../macros" }

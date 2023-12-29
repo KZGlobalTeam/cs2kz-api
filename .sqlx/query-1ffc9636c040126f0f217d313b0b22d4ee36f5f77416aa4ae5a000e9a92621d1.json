@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT LAST_INSERT_ID() id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | UNSIGNED | BINARY",
+          "char_set": 63,
+          "max_size": 21
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1ffc9636c040126f0f217d313b0b22d4ee36f5f77416aa4ae5a000e9a92621d1"
+}

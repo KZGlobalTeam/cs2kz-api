@@ -26,7 +26,7 @@ and the CS2KZ version the server is currently running:
 ```typescript
 type RequestBody = {
   api_key: integer;
-  plugin_version: integer;
+  plugin_version: string; // SemVer
 }
 ```
 
