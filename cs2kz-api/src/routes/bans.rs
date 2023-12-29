@@ -17,6 +17,7 @@ use crate::middleware::auth::web::Admin;
 use crate::models::Ban;
 use crate::permissions::Permissions;
 use crate::responses::Created;
+use crate::sql::FetchID;
 use crate::{openapi as R, sql, AppState, Error, Result, State};
 
 /// This function returns the router for the `/bans` routes.
@@ -80,7 +81,7 @@ pub async fn get_bans(
 	let mut filter = sql::Filter::new();
 
 	if let Some(player) = params.player {
-		let steam_id = sql::fetch_steam_id(&player, state.database()).await?;
+		let steam_id = player.fetch_id(state.database()).await?;
 
 		query
 			.push(filter)
@@ -91,7 +92,7 @@ pub async fn get_bans(
 	}
 
 	if let Some(server) = params.server {
-		let server_id = sql::fetch_server_id(&server, state.database()).await?;
+		let server_id = server.fetch_id(state.database()).await?;
 
 		query.push(filter).push(" s.id = ").push_bind(server_id);
 
@@ -105,7 +106,7 @@ pub async fn get_bans(
 	}
 
 	if let Some(banned_by) = params.banned_by {
-		let steam_id = sql::fetch_steam_id(&banned_by, state.database()).await?;
+		let steam_id = banned_by.fetch_id(state.database()).await?;
 
 		query
 			.push(filter)
