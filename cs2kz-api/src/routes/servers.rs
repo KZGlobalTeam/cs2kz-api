@@ -145,10 +145,10 @@ pub async fn create_server(
 	.execute(transaction.as_mut())
 	.await?;
 
-	let server_id = sqlx::query!("SELECT MAX(id) `id!: u16` FROM Servers")
+	let server_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())
 		.await?
-		.id;
+		.id as _;
 
 	Ok(Created(Json(CreateServerResponse { server_id })))
 }

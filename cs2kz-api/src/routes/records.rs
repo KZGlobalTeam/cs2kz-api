@@ -214,7 +214,7 @@ pub async fn create_record(
 	.execute(transaction.as_mut())
 	.await?;
 
-	let record_id = sqlx::query!("SELECT MAX(id) `id!: u64` FROM Records")
+	let record_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())
 		.await?
 		.id;
