@@ -16,6 +16,16 @@ pub async fn verify_gameserver(
 	mut request: Request,
 	next: Next,
 ) -> Result<Response> {
+	verify(state, token, &mut request).await?;
+
+	Ok(next.run(request).await)
+}
+
+pub(super) async fn verify(
+	state: State,
+	token: TypedHeader<Authorization<Bearer>>,
+	request: &mut Request,
+) -> Result<()> {
 	let claims = state.decode_jwt::<ServerClaims>(token.token())?;
 
 	if claims.expires_at < jwt::get_current_timestamp() {
@@ -24,5 +34,5 @@ pub async fn verify_gameserver(
 
 	request.extensions_mut().insert(claims);
 
-	Ok(next.run(request).await)
+	Ok(())
 }

@@ -209,7 +209,7 @@ pub async fn create_record(
 		body.bhop_stats.bhops_tick6,
 		body.bhop_stats.bhops_tick7,
 		body.bhop_stats.bhops_tick8,
-		server.plugin_version,
+		server.plugin_version.to_string(),
 	}
 	.execute(transaction.as_mut())
 	.await?;

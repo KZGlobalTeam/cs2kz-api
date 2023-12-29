@@ -11,6 +11,7 @@ use utoipa::{IntoParams, ToSchema};
 
 use crate::models::maps::CreateCourseParams;
 use crate::models::{Course, Filter, KZMap};
+use crate::permissions::Permissions;
 use crate::responses::Created;
 use crate::{openapi as R, sql, AppState, Error, Result, State};
 
@@ -44,14 +45,21 @@ static GET_BASE_QUERY: &str = r#"
 
 /// This function returns the router for the `/maps` routes.
 pub fn router(state: &'static AppState) -> Router {
-	let verify_map_admin =
-		|| axum::middleware::from_fn_with_state(state, crate::middleware::auth::verify_map_admin);
+	let add_map = axum::middleware::from_fn_with_state(
+		state,
+		crate::middleware::auth::verify_web_user::<{ Permissions::MAPS_ADD.0 }>,
+	);
+
+	let edit_map = axum::middleware::from_fn_with_state(
+		state,
+		crate::middleware::auth::verify_web_user::<{ Permissions::MAPS_EDIT.0 }>,
+	);
 
 	Router::new()
 		.route("/", get(get_maps))
-		.route("/", post(create_map).layer(verify_map_admin()))
+		.route("/", post(create_map).layer(add_map))
 		.route("/:ident", get(get_map_by_ident))
-		.route("/:ident", patch(update_map).layer(verify_map_admin()))
+		.route("/:ident", patch(update_map).layer(edit_map))
 		.route("/workshop/:id", get(get_map_by_workshop_id))
 		.with_state(state)
 }

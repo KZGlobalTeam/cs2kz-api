@@ -1,0 +1,36 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t\t*\n\t\tFROM\n\t\t\tAdmins\n\t\tWHERE\n\t\t\tsteam_id = (\n\t\t\t\tSELECT\n\t\t\t\t\tsteam_id\n\t\t\t\tFROM\n\t\t\t\t\tWebSessions\n\t\t\t\tWHERE\n\t\t\t\t\ttoken = ?\n\t\t\t\t\tAND subdomain = ?\n\t\t\t\t\tAND expires_on < CURRENT_TIMESTAMP()\n\t\t\t)\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "steam_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 10
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "permissions",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 20
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "c527840210af55ed90687b81b6aeda0ba4c6568e1610be22bba2edad0ef95098"
+}

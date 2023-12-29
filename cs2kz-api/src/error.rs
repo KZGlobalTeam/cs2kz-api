@@ -8,6 +8,7 @@ use std::result::Result as StdResult;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
+use cs2kz::SteamID;
 use serde_json::json;
 use thiserror::Error;
 use tracing::error;
@@ -52,6 +53,13 @@ pub enum Error {
 	/// combination.
 	#[error("The submitted record does not have a filter.")]
 	InvalidFilter,
+
+	/// A request had a body with a SteamID which does not exist in the database.
+	#[error("Unknown Player with SteamID `{steam_id}`.")]
+	UnknownPlayer {
+		/// The player's SteamID.
+		steam_id: SteamID,
+	},
 }
 
 impl IntoResponse for Error {
@@ -65,7 +73,7 @@ impl IntoResponse for Error {
 			}
 
 			Self::NoContent => StatusCode::NO_CONTENT,
-			Self::InvalidRequestBody => StatusCode::BAD_REQUEST,
+			Self::InvalidRequestBody | Self::UnknownPlayer { .. } => StatusCode::BAD_REQUEST,
 			Self::MissingCourse { .. } | Self::InvalidFilter => StatusCode::CONFLICT,
 			Self::Unauthorized => StatusCode::UNAUTHORIZED,
 		};

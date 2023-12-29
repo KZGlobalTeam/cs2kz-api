@@ -35,6 +35,7 @@ pub type State = axum::extract::State<&'static crate::state::AppState>;
 pub mod serde;
 pub mod sql;
 pub mod steam;
+pub mod permissions;
 
 pub mod responses;
 pub mod models;
