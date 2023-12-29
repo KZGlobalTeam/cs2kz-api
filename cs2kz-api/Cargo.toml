@@ -36,6 +36,10 @@ features = ["http1", "http2", "json", "query", "tokio", "tracing", "macros"]
 version = "0.9"
 features = ["typed-header", "cookie"]
 
+[dependencies.tower-http]
+version = "0.5"
+features = ["cors"]
+
 [dependencies.reqwest]
 version = "0.11"
 default-features = false

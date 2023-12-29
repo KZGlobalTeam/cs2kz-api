@@ -2,6 +2,7 @@
 
 use axum::routing::get;
 use axum::Router;
+use tower_http::cors::{self, AllowMethods, CorsLayer};
 
 use crate::state::AppState;
 
@@ -17,6 +18,11 @@ pub mod auth;
 pub fn router(state: &'static AppState) -> Router {
 	let log_request = axum::middleware::from_fn(crate::middleware::log_request);
 
+	// FIXME(AlphaKeks)
+	let cors = CorsLayer::new()
+		.allow_methods(AllowMethods::any())
+		.allow_origin(cors::Any);
+
 	Router::new()
 		.route("/", get(status))
 		.nest("/players", players::router(state))
@@ -26,6 +32,7 @@ pub fn router(state: &'static AppState) -> Router {
 		.nest("/records", records::router(state))
 		.nest("/bans", bans::router(state))
 		.nest("/auth", auth::router(state))
+		.layer(cors)
 		.layer(log_request)
 }
 
