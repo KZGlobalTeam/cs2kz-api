@@ -29,11 +29,6 @@ VALUES
 INSERT INTO
 	JumpstatTypes (`name`)
 VALUES
-	("drop_bhop");
-
-INSERT INTO
-	JumpstatTypes (`name`)
-VALUES
 	("weirdjump");
 
 INSERT INTO

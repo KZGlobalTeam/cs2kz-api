@@ -17,17 +17,14 @@ pub enum Jumpstat {
 	#[cfg_attr(feature = "utoipa", schema(rename = "multi_bhop"))]
 	MultiBhop = 3,
 
-	#[cfg_attr(feature = "utoipa", schema(rename = "drop_bhop"))]
-	DropBhop = 4,
-
 	#[cfg_attr(feature = "utoipa", schema(rename = "weirdjump"))]
-	WeirdJump = 5,
+	WeirdJump = 4,
 
 	#[cfg_attr(feature = "utoipa", schema(rename = "ladderjump"))]
-	LadderJump = 6,
+	LadderJump = 5,
 
 	#[cfg_attr(feature = "utoipa", schema(rename = "ladderhop"))]
-	LadderHop = 7,
+	LadderHop = 6,
 }
 
 impl Jumpstat {
@@ -38,7 +35,6 @@ impl Jumpstat {
 			Self::LongJump => "longjump",
 			Self::SingleBhop => "single_bhop",
 			Self::MultiBhop => "multi_bhop",
-			Self::DropBhop => "drop_bhop",
 			Self::WeirdJump => "weirdjump",
 			Self::LadderJump => "ladderjump",
 			Self::LadderHop => "ladderhop",
@@ -52,7 +48,6 @@ impl Jumpstat {
 			Self::LongJump => "LJ",
 			Self::SingleBhop => "BH",
 			Self::MultiBhop => "MBH",
-			Self::DropBhop => "DBH",
 			Self::WeirdJump => "WJ",
 			Self::LadderJump => "LAJ",
 			Self::LadderHop => "LAH",
@@ -75,10 +70,9 @@ impl TryFrom<u8> for Jumpstat {
 			1 => Ok(Self::LongJump),
 			2 => Ok(Self::SingleBhop),
 			3 => Ok(Self::MultiBhop),
-			4 => Ok(Self::DropBhop),
-			5 => Ok(Self::WeirdJump),
-			6 => Ok(Self::LadderJump),
-			7 => Ok(Self::LadderHop),
+			4 => Ok(Self::WeirdJump),
+			5 => Ok(Self::LadderJump),
+			6 => Ok(Self::LadderHop),
 			_ => Err(Error::InvalidJumpstatID { value }),
 		}
 	}
@@ -98,10 +92,6 @@ impl FromStr for Jumpstat {
 
 		if value.eq_ignore_ascii_case("multi_bhop") {
 			return Ok(Self::MultiBhop);
-		}
-
-		if value.eq_ignore_ascii_case("drop_bhop") {
-			return Ok(Self::DropBhop);
 		}
 
 		if value.eq_ignore_ascii_case("weirdjump") {

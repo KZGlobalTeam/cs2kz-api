@@ -2714,7 +2714,6 @@
           "longjump",
           "single_bhop",
           "multi_bhop",
-          "drop_bhop",
           "weirdjump",
           "ladderjump",
           "ladderhop"
