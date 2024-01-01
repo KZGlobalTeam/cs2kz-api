@@ -25,7 +25,8 @@ pub struct AppState {
 	jwt_encoding_key: jwt::EncodingKey,
 	jwt_decoding_key: jwt::DecodingKey,
 	jwt_validation: jwt::Validation,
-	steam_login_url: Url,
+	api_url: Url,
+	steam_redirect_form: steam::RedirectForm,
 }
 
 impl AppState {
@@ -43,11 +44,7 @@ impl AppState {
 		let jwt_decoding_key = jwt::DecodingKey::from_base64_secret(&jwt_secret)?;
 		let jwt_validation = jwt::Validation::default();
 
-		let steam_login_form = steam::RedirectForm::new(api_url);
-		let steam_login_query = serde_urlencoded::to_string(steam_login_form)?;
-		let mut steam_login_url = Url::parse(STEAM_OPEN_ID_URL)?;
-
-		steam_login_url.set_query(Some(&steam_login_query));
+		let steam_redirect_form = steam::RedirectForm::new(api_url.clone());
 
 		let state = Self {
 			database,
@@ -56,7 +53,8 @@ impl AppState {
 			jwt_encoding_key,
 			jwt_decoding_key,
 			jwt_validation,
-			steam_login_url,
+			api_url,
+			steam_redirect_form,
 		};
 
 		Ok(Box::leak(Box::new(state)))
@@ -70,6 +68,11 @@ impl AppState {
 	/// Provides access to an HTTP client for making requests to other APIs.
 	pub const fn http_client(&self) -> &reqwest::Client {
 		&self.http_client
+	}
+
+	/// Provides access to the API's public URL.
+	pub const fn public_url(&self) -> &Url {
+		&self.api_url
 	}
 
 	/// Starts a new database transaction.
@@ -95,8 +98,17 @@ impl AppState {
 	}
 
 	/// Generates a [`Redirect`] for logging a user into Steam.
-	pub fn steam_login(&self) -> Redirect {
-		Redirect::to(self.steam_login_url.as_str())
+	pub fn steam_login(&self, origin_url: &Url) -> Redirect {
+		let mut form = self.steam_redirect_form.clone();
+		form.callback_url
+			.query_pairs_mut()
+			.append_pair("origin_url", origin_url.as_str());
+
+		let steam_redirect_query = serde_urlencoded::to_string(form).expect("this is a valid form");
+		let mut steam_redirect_url = Url::parse(STEAM_OPEN_ID_URL).expect("this is a valid url");
+		steam_redirect_url.set_query(Some(&steam_redirect_query));
+
+		Redirect::to(steam_redirect_url.as_str())
 	}
 }
 

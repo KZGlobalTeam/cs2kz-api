@@ -1,17 +1,17 @@
 //! This module holds all HTTP handlers related to Steam authentication.
 
-use axum::extract::RawQuery;
+use axum::extract::Query;
 use axum::response::Redirect;
 use axum::routing::get;
 use axum::Router;
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
+use serde::Deserialize;
 use tracing::trace;
+use url::{Host, Url};
+use utoipa::IntoParams;
 
-use crate::jwt::UserClaims;
-use crate::{steam, AppState, Error, Result, State};
-
-static STEAM_LOGIN_VERIFY_URL: &str = "https://steamcommunity.com/openid/login";
+use crate::{openapi as R, steam, AppState, Error, Result, State};
 
 /// This function returns the router for the `/auth/steam` routes.
 pub fn router(state: &'static AppState) -> Router {
@@ -21,54 +21,79 @@ pub fn router(state: &'static AppState) -> Router {
 		.with_state(state)
 }
 
+#[derive(Debug, Deserialize, IntoParams)]
+struct LoginParams {
+	#[param(value_type = String)]
+	origin_url: Url,
+}
+
 /// This is where the frontend will redirect users to when they click "login".
 /// Steam will redirect them back to the API to confirm their identity.
 #[tracing::instrument]
-#[utoipa::path(get, tag = "Auth", path = "/auth/steam/login")]
-pub async fn login(state: State) -> Redirect {
-	state.steam_login()
+#[utoipa::path(
+	get,
+	tag = "Auth",
+	path = "/auth/steam/login",
+	params(LoginParams),
+	responses(R::Redirect, R::BadRequest)
+)]
+pub async fn login(state: State, Query(params): Query<LoginParams>) -> Redirect {
+	state.steam_login(&params.origin_url)
 }
 
 /// This is where Steam will redirect a user back to after logging in.
 /// We verify that the request actually comes from steam and give the user a cookie containing
 /// a JWT.
 #[tracing::instrument]
-#[utoipa::path(get, tag = "Auth", path = "/auth/steam/callback")]
+#[utoipa::path(
+	get,
+	tag = "Auth",
+	path = "/auth/steam/callback",
+	responses(R::Redirect, R::BadRequest, R::Unauthorized)
+)]
 pub async fn callback(
 	state: State,
 	mut cookies: CookieJar,
-	RawQuery(query): RawQuery,
+	Query(payload): Query<steam::AuthResponse>,
 ) -> Result<(CookieJar, Redirect)> {
-	let query = query.ok_or(Error::Unauthorized)?;
-	let data = serde_urlencoded::from_str::<steam::AuthResponse>(&query)
-		.map_err(|_| Error::Unauthorized)?;
-
-	trace!(%data.steam_id, "user logged in with steam, verifying...");
-
-	let validation = state
-		.http_client()
-		.post(STEAM_LOGIN_VERIFY_URL)
-		.header("Content-Type", "application/x-www-form-urlencoded")
-		.body(query)
-		.send()
-		.await
-		.and_then(|res| res.error_for_status());
-
-	if let Err(err) = validation {
-		trace!(?err, "failed to authenticate user");
-
+	if payload.return_to.host() != state.public_url().host() {
+		trace!(%payload.return_to, "invalid return URL");
 		return Err(Error::Unauthorized);
 	}
 
-	let claims = UserClaims::new(data.steam_id);
-	let jwt = state.encode_jwt(&claims)?;
-	let cookie = Cookie::build(("steam-id", jwt))
+	let (steam_id, origin_url) = payload.validate(state.http_client()).await?;
+	let host = origin_url.host().ok_or(Error::Unauthorized)?;
+	let public_host = state.public_url().host().expect("we have a host");
+	let is_known_host = match (&host, &public_host) {
+		(Host::Ipv4(ip), Host::Ipv4(public_ip)) => ip == public_ip,
+		(Host::Ipv6(ip), Host::Ipv6(public_ip)) => ip == public_ip,
+		(Host::Domain(domain), Host::Domain(public_domain)) => {
+			let has_3_segments = domain.bytes().filter(|&b| b == b'.').count() == 3;
+			let contains_public_domain = domain.ends_with(public_domain);
+
+			has_3_segments && contains_public_domain
+		}
+
+		_ => {
+			trace!(%host, %public_host, "mismatching hosts");
+			return Err(Error::Unauthorized);
+		}
+	};
+
+	if !is_known_host {
+		trace!(%host, "unknown host");
+		return Err(Error::Unauthorized);
+	}
+
+	// TODO: create a bunch of cookies depending on the user's permissions and add them to the
+	// correct subdomains
+	let cookie = Cookie::build(("steam_id", steam_id.to_string()))
 		.http_only(true)
 		.secure(true)
-		.permanent()
+		.permanent() // TODO
 		.build();
 
 	cookies = cookies.add(cookie);
 
-	Ok((cookies, Redirect::to("https://cs2.kz")))
+	Ok((cookies, Redirect::to(origin_url.as_str())))
 }

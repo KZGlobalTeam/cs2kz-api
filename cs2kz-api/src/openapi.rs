@@ -21,6 +21,10 @@ pub struct Created<T: ToSchema<'static> = ()>(#[to_schema] T);
 pub struct NoContent;
 
 #[derive(IntoResponses)]
+#[response(status = StatusCode::SEE_OTHER, description = "This is a redirect.")]
+pub struct Redirect;
+
+#[derive(IntoResponses)]
 #[response(status = StatusCode::BAD_REQUEST, description = "Required request data was missing / invalid.")]
 pub struct BadRequest;
 
