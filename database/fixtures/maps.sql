@@ -23,7 +23,7 @@ INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
 		`ranked`
 	)
@@ -34,7 +34,7 @@ INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
 		`ranked`
 	)
@@ -76,7 +76,7 @@ INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
 		`ranked`
 	)
@@ -87,7 +87,7 @@ INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
 		`ranked`
 	)
@@ -108,7 +108,7 @@ INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
 		`ranked`
 	)
@@ -119,7 +119,7 @@ INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
 		`ranked`
 	)

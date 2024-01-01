@@ -37,13 +37,13 @@ use crate::{Error, Result};
       "filters": [
         {
           "mode": "kz_classic",
-          "has_teleports": true,
+          "teleports": true,
           "tier": 3,
           "ranked": true
         },
         {
           "mode": "kz_classic",
-          "has_teleports": false,
+          "teleports": false,
           "tier": 4,
           "ranked": true
         }
@@ -219,13 +219,13 @@ impl KZMap {
   "filters": [
     {
       "mode": "kz_classic",
-      "has_teleports": true,
+      "teleports": true,
       "tier": 3,
       "ranked": true
     },
     {
       "mode": "kz_classic",
-      "has_teleports": false,
+      "teleports": false,
       "tier": 4,
       "ranked": true
     }
@@ -284,7 +284,7 @@ impl Course {
 		let mut query = QueryBuilder::new(
 			r#"
 			INSERT INTO
-				CourseFilters (course_id, mode_id, has_teleports, tier, ranked)
+				CourseFilters (course_id, mode_id, teleports, tier, ranked)
 			"#,
 		);
 
@@ -306,7 +306,7 @@ impl Course {
 			query
 				.push_bind(course_id)
 				.push_bind(filter.mode)
-				.push_bind(filter.has_teleports)
+				.push_bind(filter.teleports)
 				.push_bind(filter.tier)
 				.push_bind(filter.ranked);
 		});
@@ -339,13 +339,13 @@ impl CourseRow {
   "filters": [
     {
       "mode": "kz_classic",
-      "has_teleports": true,
+      "teleports": true,
       "tier": 3,
       "ranked": true
     },
     {
       "mode": "kz_classic",
-      "has_teleports": false,
+      "teleports": false,
       "tier": 4,
       "ranked": true
     }
@@ -366,7 +366,7 @@ pub struct CreateCourseParams {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
   "mode": "kz_classic",
-  "has_teleports": true,
+  "teleports": true,
   "tier": 3,
   "ranked": true
 }))]
@@ -375,7 +375,7 @@ pub struct Filter {
 	pub mode: Mode,
 
 	/// Whether this filter applies to runs with teleports.
-	pub has_teleports: bool,
+	pub teleports: bool,
 
 	/// The difficulty of the course with this filter.
 	#[serde(serialize_with = "Tier::serialize_integer")]
@@ -415,7 +415,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 			.try_into()
 			.map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
-		let filter_has_teleports = row.try_get("filter_has_teleports")?;
+		let filter_teleports = row.try_get("filter_teleports")?;
 		let filter_tier = row.try_get("filter_tier")?;
 		let filter_ranked = row.try_get("filter_ranked")?;
 
@@ -425,7 +425,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 			mappers: vec![Player { steam_id: course_mapper_steam_id, name: course_mapper_name }],
 			filters: vec![Filter {
 				mode: filter_mode,
-				has_teleports: filter_has_teleports,
+				teleports: filter_teleports,
 				tier: filter_tier,
 				ranked: filter_ranked,
 			}],

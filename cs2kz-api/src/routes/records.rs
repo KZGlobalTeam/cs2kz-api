@@ -158,7 +158,7 @@ pub async fn create_record(
 			m.id = ?
 			AND c.map_stage = ?
 			AND f.mode_id = ?
-			AND f.has_teleports = ?
+			AND f.teleports = ?
 		"#,
 		body.map_id,
 		body.map_stage,

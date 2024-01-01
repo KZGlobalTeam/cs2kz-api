@@ -422,15 +422,15 @@
                       {
                         "filters": [
                           {
-                            "has_teleports": true,
                             "mode": "kz_classic",
                             "ranked": true,
+                            "teleports": true,
                             "tier": 3
                           },
                           {
-                            "has_teleports": false,
                             "mode": "kz_classic",
                             "ranked": true,
+                            "teleports": false,
                             "tier": 4
                           }
                         ],
@@ -623,15 +623,15 @@
                       {
                         "filters": [
                           {
-                            "has_teleports": true,
                             "mode": "kz_classic",
                             "ranked": true,
+                            "teleports": true,
                             "tier": 3
                           },
                           {
-                            "has_teleports": false,
                             "mode": "kz_classic",
                             "ranked": true,
+                            "teleports": false,
                             "tier": 4
                           }
                         ],
@@ -827,15 +827,15 @@
                       {
                         "filters": [
                           {
-                            "has_teleports": true,
                             "mode": "kz_classic",
                             "ranked": true,
+                            "teleports": true,
                             "tier": 3
                           },
                           {
-                            "has_teleports": false,
                             "mode": "kz_classic",
                             "ranked": true,
+                            "teleports": false,
                             "tier": 4
                           }
                         ],
@@ -2131,15 +2131,15 @@
         "example": {
           "filters": [
             {
-              "has_teleports": true,
               "mode": "kz_classic",
               "ranked": true,
+              "teleports": true,
               "tier": 3
             },
             {
-              "has_teleports": false,
               "mode": "kz_classic",
               "ranked": true,
+              "teleports": false,
               "tier": 4
             }
           ],
@@ -2295,15 +2295,15 @@
         "example": {
           "filters": [
             {
-              "has_teleports": true,
               "mode": "kz_classic",
               "ranked": true,
+              "teleports": true,
               "tier": 3
             },
             {
-              "has_teleports": false,
               "mode": "kz_classic",
               "ranked": true,
+              "teleports": false,
               "tier": 4
             }
           ],
@@ -2391,15 +2391,15 @@
             {
               "filters": [
                 {
-                  "has_teleports": true,
                   "mode": "kz_classic",
                   "ranked": true,
+                  "teleports": true,
                   "tier": 3
                 },
                 {
-                  "has_teleports": false,
                   "mode": "kz_classic",
                   "ranked": true,
+                  "teleports": false,
                   "tier": 4
                 }
               ],
@@ -2618,7 +2618,7 @@
         "description": "Information about a course filter.",
         "required": [
           "mode",
-          "has_teleports",
+          "teleports",
           "tier",
           "ranked"
         ],
@@ -2626,7 +2626,7 @@
           "mode": {
             "$ref": "#/components/schemas/Mode"
           },
-          "has_teleports": {
+          "teleports": {
             "type": "boolean",
             "description": "Whether this filter applies to runs with teleports."
           },
@@ -2643,9 +2643,9 @@
           }
         },
         "example": {
-          "has_teleports": true,
           "mode": "kz_classic",
           "ranked": true,
+          "teleports": true,
           "tier": 3
         }
       },
@@ -2819,15 +2819,15 @@
             {
               "filters": [
                 {
-                  "has_teleports": true,
                   "mode": "kz_classic",
                   "ranked": true,
+                  "teleports": true,
                   "tier": 3
                 },
                 {
-                  "has_teleports": false,
                   "mode": "kz_classic",
                   "ranked": true,
+                  "teleports": false,
                   "tier": 4
                 }
               ],

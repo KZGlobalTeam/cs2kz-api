@@ -49,7 +49,7 @@ pub enum Error {
 		stage: u8,
 	},
 
-	/// A request for creating a record had an invalid (course, mode, has_teleports)
+	/// A request for creating a record had an invalid (course, mode, teleports)
 	/// combination.
 	#[error("The submitted record does not have a filter.")]
 	InvalidFilter,

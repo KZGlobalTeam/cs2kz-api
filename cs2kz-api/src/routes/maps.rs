@@ -28,7 +28,7 @@ static GET_BASE_QUERY: &str = r#"
 		p4.steam_id course_mapper_steam_id,
 		p4.name course_mapper_name,
 		f.mode_id filter_mode,
-		f.has_teleports filter_has_teleports,
+		f.teleports filter_teleports,
 		f.tier filter_tier,
 		f.ranked filter_ranked,
 		m.filesize,
@@ -366,7 +366,7 @@ pub async fn update_map(
 			let mut create_filters = QueryBuilder::new(
 				r#"
 				INSERT INTO
-					CourseFilters (course_id, mode_id, has_teleports, tier, ranked)
+					CourseFilters (course_id, mode_id, teleports, tier, ranked)
 				"#,
 			);
 
@@ -374,7 +374,7 @@ pub async fn update_map(
 				query
 					.push_bind(course_update.course_id)
 					.push_bind(filter.mode)
-					.push_bind(filter.has_teleports)
+					.push_bind(filter.teleports)
 					.push_bind(filter.tier)
 					.push_bind(filter.ranked);
 			});
@@ -455,13 +455,13 @@ pub struct GetMapsParams<'a> {
       "filters": [
         {
           "mode": "kz_classic",
-          "has_teleports": true,
+          "teleports": true,
           "tier": 3,
           "ranked": true
         },
         {
           "mode": "kz_classic",
-          "has_teleports": false,
+          "teleports": false,
           "tier": 4,
           "ranked": true
         }
