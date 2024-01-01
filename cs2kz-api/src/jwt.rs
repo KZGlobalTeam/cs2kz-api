@@ -1,6 +1,5 @@
 //! This module holds various types that are encoded into JWTs.
 
-use cs2kz::SteamID;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 
@@ -29,23 +28,5 @@ impl ServerClaims {
 			plugin_version,
 			expires_at: jwt::get_current_timestamp() + (60 * 30),
 		}
-	}
-}
-
-/// Information about a user.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub struct UserClaims {
-	/// The user's SteamID.
-	pub steam_id: SteamID,
-
-	/// Timestamp of when this token expires.
-	#[serde(rename = "exp")]
-	pub expires_at: u64,
-}
-
-impl UserClaims {
-	/// Constructs a new token. It will expire after 1 day.
-	pub fn new(steam_id: SteamID) -> Self {
-		Self { steam_id, expires_at: jwt::get_current_timestamp() + (60 * 60 * 24) }
 	}
 }

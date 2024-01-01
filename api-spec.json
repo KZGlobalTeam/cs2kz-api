@@ -1922,7 +1922,24 @@
         "summary": "This is where the frontend will redirect users to when they click \"login\".",
         "description": "This is where the frontend will redirect users to when they click \"login\".\nSteam will redirect them back to the API to confirm their identity.",
         "operationId": "login",
-        "responses": {}
+        "parameters": [
+          {
+            "name": "origin_url",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "This is a redirect."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          }
+        }
       }
     },
     "/auth/steam/callback": {
@@ -1933,7 +1950,17 @@
         "summary": "This is where Steam will redirect a user back to after logging in.",
         "description": "This is where Steam will redirect a user back to after logging in.\nWe verify that the request actually comes from steam and give the user a cookie containing\na JWT.",
         "operationId": "callback",
-        "responses": {}
+        "responses": {
+          "303": {
+            "description": "This is a redirect."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "401": {
+            "description": "You do not have access to this resource."
+          }
+        }
       }
     }
   },
