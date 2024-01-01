@@ -68,7 +68,7 @@ pub async fn callback(
 		(Host::Ipv4(ip), Host::Ipv4(public_ip)) => ip == public_ip,
 		(Host::Ipv6(ip), Host::Ipv6(public_ip)) => ip == public_ip,
 		(Host::Domain(domain), Host::Domain(public_domain)) => {
-			let has_3_segments = domain.bytes().filter(|&b| b == b'.').count() == 3;
+			let has_3_segments = domain.bytes().filter(|&b| b == b'.').count() == 2;
 			let contains_public_domain = domain.ends_with(public_domain);
 
 			has_3_segments && contains_public_domain
