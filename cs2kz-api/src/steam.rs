@@ -51,8 +51,6 @@ impl RedirectForm {
 }
 
 /// This is what Steam sends after redirecting a user back to the API after their login.
-///
-/// There are more fields here, technically, but we don't care about them.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AuthResponse {
 	/// The API's domain, if valid.
@@ -96,12 +94,11 @@ pub struct AuthResponse {
 
 impl AuthResponse {
 	/// Extracts the claimed SteamID from the request body.
-	pub fn steam_id(&self) -> Result<SteamID> {
+	pub fn steam_id(&self) -> Option<SteamID> {
 		self.claimed_id
 			.path_segments()
 			.and_then(|segments| segments.last())
 			.and_then(|steam_id| steam_id.parse().ok())
-			.ok_or(Error::Unauthorized)
 	}
 
 	/// Validates this response with Steam's API and extracts the claimed SteamID
@@ -138,9 +135,9 @@ impl AuthResponse {
 			return Err(Error::Unauthorized);
 		}
 
-		let steam_id = self.steam_id()?;
+		let steam_id = self.steam_id().ok_or(Error::Unauthorized)?;
 
-		trace!(%steam_id, %self.origin_url, "user logged in with steam, verifying...");
+		trace!(%steam_id, %self.origin_url, "user logged in with steam");
 
 		Ok((steam_id, self.origin_url))
 	}
