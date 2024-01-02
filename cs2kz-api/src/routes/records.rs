@@ -189,7 +189,7 @@ pub async fn create_record(
 				bhops_tick6,
 				bhops_tick7,
 				bhops_tick8,
-				plugin_version
+				plugin_version_id
 			)
 		VALUES
 			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -210,7 +210,7 @@ pub async fn create_record(
 		body.bhop_stats.bhops_tick6,
 		body.bhop_stats.bhops_tick7,
 		body.bhop_stats.bhops_tick8,
-		server.plugin_version.to_string(),
+		server.plugin_version_id,
 	}
 	.execute(transaction.as_mut())
 	.await?;

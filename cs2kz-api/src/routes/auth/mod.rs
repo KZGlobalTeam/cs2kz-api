@@ -1,13 +1,9 @@
 //! This module holds all HTTP handlers related to authentication.
 
-use std::io::{self, ErrorKind as IoError};
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-
 use axum::routing::get;
 use axum::{Json, Router};
 use semver::Version;
-use serde::Deserialize;
-use tokio::net::UdpSocket;
+use serde::{Deserialize, Serialize};
 use tracing::trace;
 use utoipa::ToSchema;
 
@@ -33,61 +29,39 @@ pub fn router(state: &'static AppState) -> Router {
 	path = "/auth/refresh",
 	request_body = AuthRequest,
 	responses(
-		R::Ok<()>,
+		R::Created<AuthResponse>,
 		R::BadRequest,
 		R::Unauthorized,
 		R::InternalServerError,
 	),
 )]
-pub async fn refresh_token(state: State, Json(body): Json<AuthRequest>) -> Result<Created<()>> {
-	let server = sqlx::query! {
+pub async fn refresh_token(
+	state: State,
+	Json(body): Json<AuthRequest>,
+) -> Result<Created<Json<AuthResponse>>> {
+	let data = sqlx::query! {
 		r#"
 		SELECT
-			id,
-			ip_address,
-			port
+			s.id server_id,
+			v.id plugin_version_id
 		FROM
-			Servers
-		WHERE
-			api_key = ?
+			Servers s
+			JOIN PluginVersions v ON v.version = ?
+			AND s.api_key = ?
 		"#,
+		body.plugin_version.to_string(),
 		body.api_key,
 	}
 	.fetch_optional(state.database())
 	.await?
 	.ok_or(Error::Unauthorized)?;
 
-	let claims = ServerClaims::new(server.id, body.plugin_version);
+	let claims = ServerClaims::new(data.server_id, data.plugin_version_id);
 	let token = state.encode_jwt(&claims)?;
-	let socket = UdpSocket::bind("127.0.0.1:0")
-		.await
-		.map_err(|err| Error::Unexpected(Box::new(err)))?;
 
-	let server_addr = server
-		.ip_address
-		.parse::<Ipv4Addr>()
-		.map(|ip| SocketAddr::new(IpAddr::V4(ip), server.port))
-		.map_err(|err| Error::Unexpected(Box::new(err)))?;
+	trace!(%data.server_id, %token, "generated token for server");
 
-	let map_err = |err: io::Error| match err.kind() {
-		// If we get any of these it means that the server we expected is either down or
-		// disfunctional, so we'll just count that as "unauthorized".
-		IoError::NotFound
-		| IoError::ConnectionRefused
-		| IoError::ConnectionReset
-		| IoError::ConnectionAborted
-		| IoError::TimedOut => Error::Unauthorized,
-
-		// Anything else is our fault.
-		_ => Error::Unexpected(Box::new(err)),
-	};
-
-	socket.connect(server_addr).await.map_err(map_err)?;
-	socket.send(token.as_bytes()).await.map_err(map_err)?;
-
-	trace!(server_id = %server.id, %server_addr, %token, "sent JWT to server");
-
-	Ok(Created(()))
+	Ok(Created(Json(AuthResponse { token })))
 }
 
 /// This data is sent by servers to refresh their JWT.
@@ -99,4 +73,10 @@ pub struct AuthRequest {
 	/// The CS2KZ version the server is currently running.
 	#[schema(value_type = String)]
 	plugin_version: Version,
+}
+
+/// The generated JWT for a server.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AuthResponse {
+	token: String,
 }

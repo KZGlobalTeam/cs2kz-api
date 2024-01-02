@@ -60,6 +60,10 @@ pub enum Error {
 		/// The player's SteamID.
 		steam_id: SteamID,
 	},
+
+	/// A server submitted a jumpstat that wasn't a player's PB.
+	#[error("The submitted jumpstat is not a personal best.")]
+	NotPersonalBest,
 }
 
 impl IntoResponse for Error {
@@ -74,7 +78,9 @@ impl IntoResponse for Error {
 
 			Self::NoContent => StatusCode::NO_CONTENT,
 			Self::InvalidRequestBody | Self::UnknownPlayer { .. } => StatusCode::BAD_REQUEST,
-			Self::MissingCourse { .. } | Self::InvalidFilter => StatusCode::CONFLICT,
+			Self::MissingCourse { .. } | Self::InvalidFilter | Self::NotPersonalBest => {
+				StatusCode::CONFLICT
+			}
 			Self::Unauthorized => StatusCode::UNAUTHORIZED,
 		};
 

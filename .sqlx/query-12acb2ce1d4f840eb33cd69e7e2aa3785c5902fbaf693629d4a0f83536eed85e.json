@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t\tdistance\n\t\tFROM\n\t\t\tJumpstats\n\t\tWHERE\n\t\t\tmode_id = ?\n\t\tORDER BY\n\t\t\tdistance DESC\n\t\tLIMIT\n\t\t\t1\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "distance",
+        "type_info": {
+          "type": "NewDecimal",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 8
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "12acb2ce1d4f840eb33cd69e7e2aa3785c5902fbaf693629d4a0f83536eed85e"
+}

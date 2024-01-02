@@ -1,0 +1,36 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t\ts.id server_id,\n\t\t\tv.id plugin_version_id\n\t\tFROM\n\t\t\tServers s\n\t\t\tJOIN PluginVersions v ON v.version = ?\n\t\t\tAND s.api_key = ?\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "server_id",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "plugin_version_id",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 5
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "2eeae4a892f27fb9508825c7fcb6135c16c3090bceaf479f227a424f9236f80c"
+}

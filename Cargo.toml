@@ -35,7 +35,7 @@ features = ["macros", "net", "rt", "rt-multi-thread"]
 [workspace.dependencies.sqlx]
 version = "0.7"
 default-features = false
-features = ["macros", "runtime-tokio-rustls", "mysql", "chrono"]
+features = ["macros", "runtime-tokio-rustls", "mysql", "chrono", "rust_decimal"]
 
 [workspace.dependencies.serde]
 version = "1"

@@ -166,27 +166,20 @@ pub async fn create_ban(
 		return Err(Error::Unauthorized);
 	}
 
-	let plugin_version = match server {
-		Some(ref server) => server.plugin_version.to_string(),
+	let plugin_version_id = match server {
+		Some(ref server) => server.plugin_version_id,
 		None => {
 			sqlx::query! {
 				r#"
 				SELECT
-					version
+					MAX(id) `id!: u16`
 				FROM
 					PluginVersions
-				WHERE
-					id = (
-						SELECT
-							MAX(id)
-						FROM
-							PluginVersions
-					)
 				"#,
 			}
 			.fetch_one(state.database())
 			.await?
-			.version
+			.id
 		}
 	};
 
@@ -221,7 +214,7 @@ pub async fn create_ban(
 				player_ip,
 				reason,
 				server_id,
-				plugin_version,
+				plugin_version_id,
 				banned_by,
 				expires_on
 			)
@@ -240,7 +233,7 @@ pub async fn create_ban(
 		player_ip,
 		body.reason,
 		server.map(|claims| claims.id),
-		plugin_version.to_string(),
+		plugin_version_id,
 		admin.map(|admin| admin.steam_id.as_u32()),
 		body.expires_on,
 	}

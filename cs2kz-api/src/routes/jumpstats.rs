@@ -1,10 +1,11 @@
 //! This module holds all HTTP handlers related to jumpstats.
 
-use axum::extract::{Path, Query};
+use axum::extract::Query;
 use axum::routing::{get, post};
 use axum::{Extension, Json, Router};
 use cs2kz::{Jumpstat, Mode, PlayerIdentifier, ServerIdentifier, SteamID, Style};
 use serde::{Deserialize, Serialize};
+use sqlx::types::Decimal;
 use sqlx::{FromRow, QueryBuilder};
 use utoipa::{IntoParams, ToSchema};
 
@@ -48,18 +49,32 @@ pub async fn get_jumpstats(
 		SELECT
 			j.id,
 			j.type kind,
-			j.distance,
 			j.mode_id,
 			j.style_id,
+			j.strafes,
+			j.distance,
+			j.sync,
+			j.pre,
+			j.max,
+			j.overlap,
+			j.bad_air,
+			j.dead_air,
+			j.height,
+			j.airpath,
+			j.deviation,
+			j.average_width,
+			j.airtime,
 			p.steam_id player_id,
 			p.name player_name,
 			s.id server_id,
 			s.name server_name,
+			v.version,
 			j.created_on
 		FROM
 			Jumpstats j
 			JOIN Players p ON p.steam_id = j.player_id
 			JOIN Servers s ON s.id = j.server_id
+			JOIN PluginVersions v ON v.id = j.plugin_version_id
 		"#,
 	);
 
@@ -134,9 +149,8 @@ pub async fn get_jumpstats(
 #[utoipa::path(
 	post,
 	tag = "Jumpstats",
-	path = "/jumpstats/{steam_id}",
+	path = "/jumpstats",
 	security(("GameServer JWT" = [])),
-	params(("steam_id" = SteamID, Path, description = "A player's SteamID.")),
 	request_body = CreateJumpstatRequest,
 	responses(
 		R::Created<CreatedJumpstatResponse>,
@@ -149,39 +163,78 @@ pub async fn get_jumpstats(
 pub async fn create_jumpstat(
 	state: State,
 	Extension(server): Extension<ServerClaims>,
-	Path(steam_id): Path<SteamID>,
 	Json(body): Json<CreateJumpstatRequest>,
 ) -> Result<Created<Json<CreatedJumpstatResponse>>> {
-	let mut transaction = state.begin_transaction().await?;
+	let pb = sqlx::query! {
+		r#"
+		SELECT
+			distance
+		FROM
+			Jumpstats
+		WHERE
+			mode_id = ?
+		ORDER BY
+			distance DESC
+		LIMIT
+			1
+		"#,
+		body.mode,
+	}
+	.fetch_optional(state.database())
+	.await?;
 
-	// TODO(AlphaKeks):
-	//  1. figure out the criteria for jumpstats that should be saved / deleted
-	//  2. make sure this jumpstat should be inserted
-	//  3. check if any old jumpstats need to be deleted
-	//  4. do all of the above in middleware (maybe)
+	if pb.is_some_and(|pb| pb.distance > body.distance) {
+		return Err(Error::NotPersonalBest);
+	}
+
+	let mut transaction = state.begin_transaction().await?;
 
 	sqlx::query! {
 		r#"
 		INSERT INTO
 			Jumpstats (
-				`type`,
-				distance,
+				type,
 				mode_id,
 				style_id,
+				strafes,
+				distance,
+				sync,
+				pre,
+				max,
+				overlap,
+				bad_air,
+				dead_air,
+				height,
+				airpath,
+				deviation,
+				average_width,
+				airtime,
 				player_id,
 				server_id,
-				plugin_version
+				plugin_version_id
 			)
 		VALUES
-			(?, ?, ?, ?, ?, ?, ?)
+			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		"#,
 		body.kind,
-		body.distance,
 		body.mode,
-		steam_id,
 		body.style,
+		body.strafes,
+		body.distance,
+		body.sync,
+		body.pre,
+		body.max,
+		body.overlap,
+		body.bad_air,
+		body.dead_air,
+		body.height,
+		body.airpath,
+		body.deviation,
+		body.average_width,
+		body.airtime,
+		body.steam_id,
 		server.id,
-		server.plugin_version.to_string(),
+		server.plugin_version_id,
 	}
 	.execute(transaction.as_mut())
 	.await?;
@@ -218,10 +271,23 @@ pub struct GetJumpstatsParams<'a> {
   "style": "backwards"
 }))]
 pub struct CreateJumpstatRequest {
+	steam_id: SteamID,
 	kind: Jumpstat,
-	distance: f64,
 	mode: Mode,
 	style: Style,
+	strafes: u8,
+	distance: Decimal,
+	sync: Decimal,
+	pre: Decimal,
+	max: Decimal,
+	overlap: Decimal,
+	bad_air: Decimal,
+	dead_air: Decimal,
+	height: Decimal,
+	airpath: Decimal,
+	deviation: Decimal,
+	average_width: Decimal,
+	airtime: Decimal,
 }
 
 /// A new jumpstat.

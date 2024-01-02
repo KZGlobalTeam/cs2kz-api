@@ -18,14 +18,14 @@ CREATE TABLE IF NOT EXISTS Bans (
 	`player_ip` INET4 NOT NULL,
 	`reason` VARCHAR(255) NOT NULL,
 	`server_id` INT2 UNSIGNED,
-	`plugin_version` INT2 UNSIGNED NOT NULL,
+	`plugin_version_id` INT2 UNSIGNED NOT NULL,
 	`banned_by` INT4 UNSIGNED,
 	`created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	`expires_on` TIMESTAMP,
 	PRIMARY KEY (`id`),
 	FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`),
 	FOREIGN KEY (`server_id`) REFERENCES Servers (`id`),
-	FOREIGN KEY (`plugin_version`) REFERENCES PluginVersions (`id`),
+	FOREIGN KEY (`plugin_version_id`) REFERENCES PluginVersions (`id`),
 	FOREIGN KEY (`banned_by`) REFERENCES Players (`steam_id`)
 );
 

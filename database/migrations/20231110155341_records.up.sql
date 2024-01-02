@@ -27,14 +27,14 @@ CREATE TABLE IF NOT EXISTS Records (
 	`bhops_tick6` INT2 UNSIGNED NOT NULL,
 	`bhops_tick7` INT2 UNSIGNED NOT NULL,
 	`bhops_tick8` INT2 UNSIGNED NOT NULL,
-	`plugin_version` INT2 UNSIGNED NOT NULL,
+	`plugin_version_id` INT2 UNSIGNED NOT NULL,
 	`created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY (`id`),
 	FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`),
 	FOREIGN KEY (`filter_id`) REFERENCES CourseFilters (`id`),
 	FOREIGN KEY (`style_id`) REFERENCES Styles (`id`),
 	FOREIGN KEY (`server_id`) REFERENCES Servers (`id`),
-	FOREIGN KEY (`plugin_version`) REFERENCES PluginVersions (`id`)
+	FOREIGN KEY (`plugin_version_id`) REFERENCES PluginVersions (`id`)
 );
 
 CREATE TABLE IF NOT EXISTS SuspiciousRecords AS

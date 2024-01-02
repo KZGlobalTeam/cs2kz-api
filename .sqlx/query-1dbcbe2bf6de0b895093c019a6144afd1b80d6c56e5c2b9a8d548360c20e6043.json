@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tINSERT INTO\n\t\t\tBans (\n\t\t\t\tplayer_id,\n\t\t\t\tplayer_ip,\n\t\t\t\treason,\n\t\t\t\tserver_id,\n\t\t\t\tplugin_version_id,\n\t\t\t\tbanned_by,\n\t\t\t\texpires_on\n\t\t\t)\n\t\tVALUES\n\t\t\t(\n\t\t\t\t?,\n\t\t\t\t?,\n\t\t\t\t?,\n\t\t\t\t?,\n\t\t\t\t?,\n\t\t\t\t?,\n\t\t\t\t?\n\t\t\t)\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "1dbcbe2bf6de0b895093c019a6144afd1b80d6c56e5c2b9a8d548360c20e6043"
+}

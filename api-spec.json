@@ -1323,11 +1323,24 @@
                   "required": [
                     "id",
                     "kind",
-                    "distance",
                     "mode",
                     "style",
+                    "strafes",
+                    "distance",
+                    "sync",
+                    "pre",
+                    "max",
+                    "overlap",
+                    "bad_air",
+                    "dead_air",
+                    "height",
+                    "airpath",
+                    "deviation",
+                    "average_width",
+                    "airtime",
                     "player",
                     "server",
+                    "plugin_version",
                     "created_on"
                   ],
                   "properties": {
@@ -1339,21 +1352,73 @@
                     "kind": {
                       "$ref": "#/components/schemas/Jumpstat"
                     },
-                    "distance": {
-                      "type": "number",
-                      "format": "double"
-                    },
                     "mode": {
                       "$ref": "#/components/schemas/Mode"
                     },
                     "style": {
                       "$ref": "#/components/schemas/Style"
                     },
+                    "strafes": {
+                      "type": "integer",
+                      "format": "uint8",
+                      "minimum": 0
+                    },
+                    "distance": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "sync": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "pre": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "max": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "overlap": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "bad_air": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "dead_air": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "height": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "airpath": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "deviation": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "average_width": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "airtime": {
+                      "type": "number",
+                      "format": "double"
+                    },
                     "player": {
                       "$ref": "#/components/schemas/Player"
                     },
                     "server": {
                       "$ref": "#/components/schemas/ServerSummary"
+                    },
+                    "plugin_version": {
+                      "type": "string"
                     },
                     "created_on": {
                       "type": "string",
@@ -1390,9 +1455,7 @@
             "description": "A bug in the API."
           }
         }
-      }
-    },
-    "/jumpstats/{steam_id}": {
+      },
       "post": {
         "tags": [
           "Jumpstats"
@@ -1400,17 +1463,6 @@
         "summary": "This endpoint is used by servers to send jumpstats.",
         "description": "This endpoint is used by servers to send jumpstats.\n\nServers are supposed to fetch the player's PBs when they join and only make requests to this\nroute with new PBs, but the endpoint will still validate the jumpstat, so it is expected to\nreturn a 409 occasionally.",
         "operationId": "create_jumpstat",
-        "parameters": [
-          {
-            "name": "steam_id",
-            "in": "path",
-            "description": "A player's SteamID.",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/SteamID"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1891,13 +1943,21 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "The request was successful.",
+          "201": {
+            "description": "A resource has been created.",
             "content": {
               "application/json": {
                 "schema": {
-                  "default": null,
-                  "nullable": true
+                  "type": "object",
+                  "description": "The generated JWT for a server.",
+                  "required": [
+                    "token"
+                  ],
+                  "properties": {
+                    "token": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -2344,24 +2404,89 @@
         "type": "object",
         "description": "A jumpstat.",
         "required": [
+          "steam_id",
           "kind",
-          "distance",
           "mode",
-          "style"
+          "style",
+          "strafes",
+          "distance",
+          "sync",
+          "pre",
+          "max",
+          "overlap",
+          "bad_air",
+          "dead_air",
+          "height",
+          "airpath",
+          "deviation",
+          "average_width",
+          "airtime"
         ],
         "properties": {
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
+          },
           "kind": {
             "$ref": "#/components/schemas/Jumpstat"
-          },
-          "distance": {
-            "type": "number",
-            "format": "double"
           },
           "mode": {
             "$ref": "#/components/schemas/Mode"
           },
           "style": {
             "$ref": "#/components/schemas/Style"
+          },
+          "strafes": {
+            "type": "integer",
+            "format": "uint8",
+            "minimum": 0
+          },
+          "distance": {
+            "type": "number",
+            "format": "double"
+          },
+          "sync": {
+            "type": "number",
+            "format": "double"
+          },
+          "pre": {
+            "type": "number",
+            "format": "double"
+          },
+          "max": {
+            "type": "number",
+            "format": "double"
+          },
+          "overlap": {
+            "type": "number",
+            "format": "double"
+          },
+          "bad_air": {
+            "type": "number",
+            "format": "double"
+          },
+          "dead_air": {
+            "type": "number",
+            "format": "double"
+          },
+          "height": {
+            "type": "number",
+            "format": "double"
+          },
+          "airpath": {
+            "type": "number",
+            "format": "double"
+          },
+          "deviation": {
+            "type": "number",
+            "format": "double"
+          },
+          "average_width": {
+            "type": "number",
+            "format": "double"
+          },
+          "airtime": {
+            "type": "number",
+            "format": "double"
           }
         },
         "example": {
@@ -2725,11 +2850,24 @@
         "required": [
           "id",
           "kind",
-          "distance",
           "mode",
           "style",
+          "strafes",
+          "distance",
+          "sync",
+          "pre",
+          "max",
+          "overlap",
+          "bad_air",
+          "dead_air",
+          "height",
+          "airpath",
+          "deviation",
+          "average_width",
+          "airtime",
           "player",
           "server",
+          "plugin_version",
           "created_on"
         ],
         "properties": {
@@ -2741,21 +2879,73 @@
           "kind": {
             "$ref": "#/components/schemas/Jumpstat"
           },
-          "distance": {
-            "type": "number",
-            "format": "double"
-          },
           "mode": {
             "$ref": "#/components/schemas/Mode"
           },
           "style": {
             "$ref": "#/components/schemas/Style"
           },
+          "strafes": {
+            "type": "integer",
+            "format": "uint8",
+            "minimum": 0
+          },
+          "distance": {
+            "type": "number",
+            "format": "double"
+          },
+          "sync": {
+            "type": "number",
+            "format": "double"
+          },
+          "pre": {
+            "type": "number",
+            "format": "double"
+          },
+          "max": {
+            "type": "number",
+            "format": "double"
+          },
+          "overlap": {
+            "type": "number",
+            "format": "double"
+          },
+          "bad_air": {
+            "type": "number",
+            "format": "double"
+          },
+          "dead_air": {
+            "type": "number",
+            "format": "double"
+          },
+          "height": {
+            "type": "number",
+            "format": "double"
+          },
+          "airpath": {
+            "type": "number",
+            "format": "double"
+          },
+          "deviation": {
+            "type": "number",
+            "format": "double"
+          },
+          "average_width": {
+            "type": "number",
+            "format": "double"
+          },
+          "airtime": {
+            "type": "number",
+            "format": "double"
+          },
           "player": {
             "$ref": "#/components/schemas/Player"
           },
           "server": {
             "$ref": "#/components/schemas/ServerSummary"
+          },
+          "plugin_version": {
+            "type": "string"
           },
           "created_on": {
             "type": "string",

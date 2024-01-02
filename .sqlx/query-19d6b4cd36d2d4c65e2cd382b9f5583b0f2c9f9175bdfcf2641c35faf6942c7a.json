@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tINSERT INTO\n\t\t\tJumpstats (\n\t\t\t\ttype,\n\t\t\t\tmode_id,\n\t\t\t\tstyle_id,\n\t\t\t\tstrafes,\n\t\t\t\tdistance,\n\t\t\t\tsync,\n\t\t\t\tpre,\n\t\t\t\tmax,\n\t\t\t\toverlap,\n\t\t\t\tbad_air,\n\t\t\t\tdead_air,\n\t\t\t\theight,\n\t\t\t\tairpath,\n\t\t\t\tdeviation,\n\t\t\t\taverage_width,\n\t\t\t\tairtime,\n\t\t\t\tplayer_id,\n\t\t\t\tserver_id,\n\t\t\t\tplugin_version_id\n\t\t\t)\n\t\tVALUES\n\t\t\t(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 19
+    },
+    "nullable": []
+  },
+  "hash": "19d6b4cd36d2d4c65e2cd382b9f5583b0f2c9f9175bdfcf2641c35faf6942c7a"
+}

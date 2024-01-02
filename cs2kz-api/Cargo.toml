@@ -58,7 +58,7 @@ version = "9"
 
 [dependencies.utoipa]
 version = "4"
-features = ["axum_extras", "non_strict_integers", "preserve_order", "preserve_path_order", "chrono", "debug"]
+features = ["axum_extras", "non_strict_integers", "preserve_order", "preserve_path_order", "chrono", "debug", "decimal_float"]
 
 [dependencies.utoipa-swagger-ui]
 version = "5"
