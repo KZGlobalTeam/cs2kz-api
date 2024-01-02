@@ -14,6 +14,7 @@ db:
 	@docker compose up -d --wait cs2kz-database
 
 db-clean:
+	docker compose down -t 1 cs2kz-database
 	rm -rf ./database/volumes/cs2kz
 
 db-connect:
