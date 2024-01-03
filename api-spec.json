@@ -423,13 +423,13 @@
                         "filters": [
                           {
                             "mode": "kz_classic",
-                            "ranked": true,
+                            "ranked_status": "ranked",
                             "teleports": true,
                             "tier": 3
                           },
                           {
                             "mode": "kz_classic",
-                            "ranked": true,
+                            "ranked_status": "ranked",
                             "teleports": false,
                             "tier": 4
                           }
@@ -624,13 +624,13 @@
                         "filters": [
                           {
                             "mode": "kz_classic",
-                            "ranked": true,
+                            "ranked_status": "ranked",
                             "teleports": true,
                             "tier": 3
                           },
                           {
                             "mode": "kz_classic",
-                            "ranked": true,
+                            "ranked_status": "ranked",
                             "teleports": false,
                             "tier": 4
                           }
@@ -828,13 +828,13 @@
                         "filters": [
                           {
                             "mode": "kz_classic",
-                            "ranked": true,
+                            "ranked_status": "ranked",
                             "teleports": true,
                             "tier": 3
                           },
                           {
                             "mode": "kz_classic",
-                            "ranked": true,
+                            "ranked_status": "ranked",
                             "teleports": false,
                             "tier": 4
                           }
@@ -2219,13 +2219,13 @@
           "filters": [
             {
               "mode": "kz_classic",
-              "ranked": true,
+              "ranked_status": "ranked",
               "teleports": true,
               "tier": 3
             },
             {
               "mode": "kz_classic",
-              "ranked": true,
+              "ranked_status": "ranked",
               "teleports": false,
               "tier": 4
             }
@@ -2383,13 +2383,13 @@
           "filters": [
             {
               "mode": "kz_classic",
-              "ranked": true,
+              "ranked_status": "ranked",
               "teleports": true,
               "tier": 3
             },
             {
               "mode": "kz_classic",
-              "ranked": true,
+              "ranked_status": "ranked",
               "teleports": false,
               "tier": 4
             }
@@ -2532,13 +2532,13 @@
               "filters": [
                 {
                   "mode": "kz_classic",
-                  "ranked": true,
+                  "ranked_status": "ranked",
                   "teleports": true,
                   "tier": 3
                 },
                 {
                   "mode": "kz_classic",
-                  "ranked": true,
+                  "ranked_status": "ranked",
                   "teleports": false,
                   "tier": 4
                 }
@@ -2758,7 +2758,7 @@
           "mode",
           "teleports",
           "tier",
-          "ranked"
+          "ranked_status"
         ],
         "properties": {
           "mode": {
@@ -2775,14 +2775,13 @@
             "maximum": 10,
             "minimum": 1
           },
-          "ranked": {
-            "type": "boolean",
-            "description": "Whether the course is ranked with this filter."
+          "ranked_status": {
+            "$ref": "#/components/schemas/RankedStatus"
           }
         },
         "example": {
           "mode": "kz_classic",
-          "ranked": true,
+          "ranked_status": "ranked",
           "teleports": true,
           "tier": 3
         }
@@ -2808,9 +2807,12 @@
             ],
             "nullable": true
           },
-          "ranked": {
-            "type": "boolean",
-            "description": "A new ranked status.",
+          "ranked_status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RankedStatus"
+              }
+            ],
             "nullable": true
           }
         },
@@ -3022,13 +3024,13 @@
               "filters": [
                 {
                   "mode": "kz_classic",
-                  "ranked": true,
+                  "ranked_status": "ranked",
                   "teleports": true,
                   "tier": 3
                 },
                 {
                   "mode": "kz_classic",
-                  "ranked": true,
+                  "ranked_status": "ranked",
                   "teleports": false,
                   "tier": 4
                 }
@@ -3105,6 +3107,15 @@
           {
             "type": "string"
           }
+        ]
+      },
+      "RankedStatus": {
+        "type": "string",
+        "description": "The ranked status of a [Filter].",
+        "enum": [
+          "never",
+          "unranked",
+          "ranked"
         ]
       },
       "Record": {

@@ -25,7 +25,7 @@ INSERT
 		`mode_id`,
 		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
 	(1, 2, 1, 3, 1);
@@ -36,7 +36,7 @@ INSERT
 		`mode_id`,
 		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
 	(1, 2, 0, 4, 1);
@@ -78,7 +78,7 @@ INSERT
 		`mode_id`,
 		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
 	(2, 2, 1, 3, 1);
@@ -89,7 +89,7 @@ INSERT
 		`mode_id`,
 		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
 	(2, 2, 0, 4, 1);
@@ -110,10 +110,10 @@ INSERT
 		`mode_id`,
 		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(3, 2, 1, 5, 0);
+	(3, 2, 1, 5, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
@@ -121,7 +121,7 @@ INSERT
 		`mode_id`,
 		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(3, 2, 0, 5, 0);
+	(3, 2, 0, 5, -1);

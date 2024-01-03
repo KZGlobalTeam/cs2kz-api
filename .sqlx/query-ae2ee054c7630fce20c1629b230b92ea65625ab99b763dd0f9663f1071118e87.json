@@ -55,12 +55,12 @@
       },
       {
         "ordinal": 5,
-        "name": "ranked",
+        "name": "ranked_status",
         "type_info": {
           "type": "Tiny",
           "flags": "NOT_NULL | NO_DEFAULT_VALUE",
           "char_set": 63,
-          "max_size": 1
+          "max_size": 4
         }
       }
     ],

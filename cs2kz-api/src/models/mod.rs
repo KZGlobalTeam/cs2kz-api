@@ -4,7 +4,7 @@ pub mod players;
 pub use players::Player;
 
 pub mod maps;
-pub use maps::{Course, CourseWithFilter, CreateCourseParams, Filter, KZMap};
+pub use maps::{Course, CourseWithFilter, CreateCourseParams, Filter, KZMap, RankedStatus};
 
 pub mod servers;
 pub use servers::{Server, ServerSummary};

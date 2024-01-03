@@ -1,5 +1,8 @@
 //! This module holds types related to KZ players.
 
+use std::fmt::Display;
+use std::result::Result as StdResult;
+
 use chrono::{DateTime, Utc};
 use cs2kz::{Mode, SteamID, Style, Tier};
 use itertools::Itertools;
@@ -39,13 +42,13 @@ use crate::{Error, Result};
           "mode": "kz_classic",
           "teleports": true,
           "tier": 3,
-          "ranked": true
+          "ranked_status": "ranked"
         },
         {
           "mode": "kz_classic",
           "teleports": false,
           "tier": 4,
-          "ranked": true
+          "ranked_status": "ranked"
         }
       ]
     }
@@ -221,13 +224,13 @@ impl KZMap {
       "mode": "kz_classic",
       "teleports": true,
       "tier": 3,
-      "ranked": true
+      "ranked_status": "ranked"
     },
     {
       "mode": "kz_classic",
       "teleports": false,
       "tier": 4,
-      "ranked": true
+      "ranked_status": "ranked"
     }
   ]
 }))]
@@ -308,7 +311,7 @@ impl Course {
 				.push_bind(filter.mode)
 				.push_bind(filter.teleports)
 				.push_bind(filter.tier)
-				.push_bind(filter.ranked);
+				.push_bind(filter.ranked_status);
 		});
 
 		query.build().execute(connection).await.map_err(Into::into)
@@ -341,13 +344,13 @@ impl CourseRow {
       "mode": "kz_classic",
       "teleports": true,
       "tier": 3,
-      "ranked": true
+      "ranked_status": "ranked"
     },
     {
       "mode": "kz_classic",
       "teleports": false,
       "tier": 4,
-      "ranked": true
+      "ranked_status": "ranked"
     }
   ]
 }))]
@@ -368,7 +371,7 @@ pub struct CreateCourseParams {
   "mode": "kz_classic",
   "teleports": true,
   "tier": 3,
-  "ranked": true
+  "ranked_status": "ranked",
 }))]
 pub struct Filter {
 	/// The mode for this filter.
@@ -382,8 +385,57 @@ pub struct Filter {
 	#[schema(value_type = u8, minimum = 1, maximum = 10)]
 	pub tier: Tier,
 
-	/// Whether the course is ranked with this filter.
-	pub ranked: bool,
+	/// The ranked status of this filter.
+	pub ranked_status: RankedStatus,
+}
+
+/// The ranked status of a [Filter].
+#[derive(
+	Debug,
+	Clone,
+	Copy,
+	PartialEq,
+	Eq,
+	PartialOrd,
+	Ord,
+	Hash,
+	Serialize,
+	Deserialize,
+	sqlx::Type,
+	ToSchema,
+)]
+#[serde(rename_all = "lowercase")]
+pub enum RankedStatus {
+	/// This filter will never be ranked.
+	///
+	/// This is the case if either the mapper decided they don't want the filter to
+	/// be ranked, or because it doesn't meet the minimum requirements for ranking.
+	Never = -1,
+
+	/// This filter is unranked, because it has no completions yet.
+	Unranked = 0,
+
+	/// This filter is ranked.
+	Ranked = 1,
+}
+
+impl Display for RankedStatus {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		write!(f, "{self:?}")
+	}
+}
+
+impl TryFrom<i8> for RankedStatus {
+	type Error = ();
+
+	fn try_from(value: i8) -> StdResult<Self, Self::Error> {
+		match value {
+			-1 => Ok(Self::Never),
+			0 => Ok(Self::Unranked),
+			1 => Ok(Self::Ranked),
+			_ => Err(()),
+		}
+	}
 }
 
 impl FromRow<'_, MySqlRow> for KZMap {
@@ -417,7 +469,10 @@ impl FromRow<'_, MySqlRow> for KZMap {
 
 		let filter_teleports = row.try_get("filter_teleports")?;
 		let filter_tier = row.try_get("filter_tier")?;
-		let filter_ranked = row.try_get("filter_ranked")?;
+		let filter_ranked = row
+			.try_get::<i8, _>("filter_ranked")?
+			.try_into()
+			.expect("invalid `ranked_status`");
 
 		let courses = vec![Course {
 			id: course_id,
@@ -427,7 +482,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 				mode: filter_mode,
 				teleports: filter_teleports,
 				tier: filter_tier,
-				ranked: filter_ranked,
+				ranked_status: filter_ranked,
 			}],
 		}];
 

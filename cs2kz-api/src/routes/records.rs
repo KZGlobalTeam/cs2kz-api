@@ -169,10 +169,23 @@ pub async fn create_record(
 	.await?
 	.ok_or(Error::InvalidFilter)?;
 
-	sqlx::query! {
+	// Filter was `Unkranked`, but now has a completion, so we need to set it to `Ranked`.
+	if matches!(filter.tier, 7 | 8) && filter.ranked_status == 0 {
+		sqlx::query!("UPDATE CourseFilters SET ranked_status = 1 WHERE id = ?", filter.id)
+			.execute(transaction.as_mut())
+			.await?;
+	}
+
+	let table = if filter.tier > 8 {
+		"SuspiciousRecords"
+	} else {
+		"Records"
+	};
+
+	let query = format!(
 		r#"
 		INSERT INTO
-			Records (
+			{table} (
 				player_id,
 				filter_id,
 				style_id,
@@ -193,27 +206,29 @@ pub async fn create_record(
 			)
 		VALUES
 			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		"#,
-		body.steam_id,
-		filter.id,
-		body.style,
-		body.teleports,
-		body.time,
-		server.id,
-		body.bhop_stats.perfs,
-		body.bhop_stats.bhops_tick0,
-		body.bhop_stats.bhops_tick1,
-		body.bhop_stats.bhops_tick2,
-		body.bhop_stats.bhops_tick3,
-		body.bhop_stats.bhops_tick4,
-		body.bhop_stats.bhops_tick5,
-		body.bhop_stats.bhops_tick6,
-		body.bhop_stats.bhops_tick7,
-		body.bhop_stats.bhops_tick8,
-		server.plugin_version_id,
-	}
-	.execute(transaction.as_mut())
-	.await?;
+		"#
+	);
+
+	sqlx::query(&query)
+		.bind(body.steam_id)
+		.bind(filter.id)
+		.bind(body.style)
+		.bind(body.teleports)
+		.bind(body.time)
+		.bind(server.id)
+		.bind(body.bhop_stats.perfs)
+		.bind(body.bhop_stats.bhops_tick0)
+		.bind(body.bhop_stats.bhops_tick1)
+		.bind(body.bhop_stats.bhops_tick2)
+		.bind(body.bhop_stats.bhops_tick3)
+		.bind(body.bhop_stats.bhops_tick4)
+		.bind(body.bhop_stats.bhops_tick5)
+		.bind(body.bhop_stats.bhops_tick6)
+		.bind(body.bhop_stats.bhops_tick7)
+		.bind(body.bhop_stats.bhops_tick8)
+		.bind(server.plugin_version_id)
+		.execute(transaction.as_mut())
+		.await?;
 
 	let record_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())

@@ -71,6 +71,7 @@ pub mod middleware;
 			models::KZMap,
 			models::Course,
 			models::Filter,
+			models::RankedStatus,
 			models::CourseWithFilter,
 			models::CreateCourseParams,
 			models::ServerSummary,

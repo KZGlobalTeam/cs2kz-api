@@ -10,7 +10,7 @@ use sqlx::QueryBuilder;
 use utoipa::{IntoParams, ToSchema};
 
 use crate::models::maps::CreateCourseParams;
-use crate::models::{Course, Filter, KZMap};
+use crate::models::{Course, Filter, KZMap, RankedStatus};
 use crate::permissions::Permissions;
 use crate::responses::Created;
 use crate::sql::FetchID;
@@ -381,7 +381,7 @@ pub async fn update_map(
 					.push_bind(filter.mode)
 					.push_bind(filter.teleports)
 					.push_bind(filter.tier)
-					.push_bind(filter.ranked);
+					.push_bind(filter.ranked_status);
 			});
 
 			create_filters.build().execute(transaction.as_mut()).await?;
@@ -397,10 +397,10 @@ pub async fn update_map(
 			remove_filters.build().execute(transaction.as_mut()).await?;
 		}
 
-		for FilterUpdate { filter_id, tier, ranked } in
+		for FilterUpdate { filter_id, tier, ranked_status } in
 			course_update.filter_updates.iter().flatten()
 		{
-			if tier.is_none() && ranked.is_none() {
+			if tier.is_none() && ranked_status.is_none() {
 				continue;
 			}
 
@@ -412,8 +412,11 @@ pub async fn update_map(
 				delimiter = ",";
 			}
 
-			if let Some(ranked) = ranked {
-				query.push(delimiter).push(" ranked = ").push_bind(ranked);
+			if let Some(ranked_status) = ranked_status {
+				query
+					.push(delimiter)
+					.push(" ranked_status = ")
+					.push_bind(*ranked_status);
 			}
 
 			query.push(" WHERE id = ").push_bind(filter_id);
@@ -460,13 +463,13 @@ pub struct GetMapsParams<'a> {
           "mode": "kz_classic",
           "teleports": true,
           "tier": 3,
-          "ranked": true
+          "ranked_status": "ranked"
         },
         {
           "mode": "kz_classic",
           "teleports": false,
           "tier": 4,
-          "ranked": true
+          "ranked_status": "ranked"
         }
       ]
     }
@@ -552,7 +555,7 @@ pub struct FilterUpdate {
 	tier: Option<Tier>,
 
 	/// A new ranked status.
-	ranked: Option<bool>,
+	ranked_status: Option<RankedStatus>,
 }
 
 /// A newly created map.
