@@ -37,6 +37,10 @@ struct Context {
 }
 
 impl Context {
+	fn new(addr: SocketAddr) -> Self {
+		Self { client: reqwest::Client::new(), addr }
+	}
+
 	/// Utility method for constructing a request URL to this test's API instance.
 	fn url(&self, path: impl Display) -> String {
 		format!("http://{}{}", self.addr, path)

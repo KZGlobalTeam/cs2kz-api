@@ -7,23 +7,15 @@ use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
-use syn::token::Async;
-use syn::{parse_macro_input, Block, FnArg, Ident, ItemFn, Lit, Pat, Path, Token, Type};
+use syn::{parse_macro_input, Block, FnArg, Ident, ItemFn, Lit, Pat, Token, Type};
 
 static FIXTURES_PATH: &str = "./database/fixtures";
-
-macro_rules! error {
-	($item:expr, $($rest:tt)+) => {
-		return Err(::syn::Error::new($item.span(), format!($($rest)+)));
-	}
-}
 
 #[proc_macro_error]
 #[proc_macro_attribute]
 pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 	let TestArgs { queries } = parse_macro_input!(args as TestArgs);
-	let TestFunction { name, ctx_arg: (ctx, _), body, .. } =
-		parse_macro_input!(item as TestFunction);
+	let TestFunction { name, ctx_arg, body, .. } = parse_macro_input!(item as TestFunction);
 
 	quote! {
 		#[::tokio::test]
@@ -32,6 +24,7 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 			use ::sqlx::migrate::MigrateDatabase as _;
 			use ::std::fmt::Write as _;
 
+			// Create TCP server for the API
 			let tcp_listener = ::tokio::net::TcpListener::bind("127.0.0.1:0")
 				.await
 				.context("failed to bind tcp listener")?;
@@ -42,15 +35,18 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 
 			let port = addr.port();
 
+			// Generate "unique" database URL for this test
 			let mut database_url =
 				::std::env::var("TEST_DATABASE_URL").context("missing `TEST_DATABASE_URL`")?;
 
 			write!(&mut database_url, "-test-{port}")?;
 
+			// Drop the old one, just in case
 			::sqlx::mysql::MySql::drop_database(&database_url)
 				.await
 				.with_context(|| format!("failed to drop test database {port}"))?;
 
+			// Create the test database
 			::sqlx::mysql::MySql::create_database(&database_url)
 				.await
 				.with_context(|| format!("failed to create test database {port}"))?;
@@ -60,11 +56,13 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 				.await
 				.context("failed to connect to database")?;
 
+			// Run migrations
 			crate::tests::MIGRATOR
 				.run(&database)
 				.await
 				.with_context(|| format!("failed to run migrations for {port}"))?;
 
+			// Run fixtures
 			#(
 				::sqlx::query!(#queries)
 					.execute(&database)
@@ -72,6 +70,7 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 					.context("failed to execute post-migration script")?;
 			)*
 
+			// Setup API
 			let mut config = crate::Config::new()
 				.await
 				.context("failed to load API configuration")?;
@@ -82,23 +81,26 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 				.set_port(Some(port))
 				.map_err(|_| ::color_eyre::eyre::eyre!("failed to set API port"))?;
 
+			// Spawn API in a background task
 			::tokio::task::spawn(async move {
 				crate::API::run(config, database, tcp_listener)
 					.await
 					.expect("Failed to run API.");
 
-				unreachable!("API shutdown prematurely.");
+				unreachable!("API shutdown prematurely?");
 			});
 
-			let #ctx = crate::tests::Context {
-				client: ::reqwest::Client::new(),
-				addr,
-			};
-
-			if let err @ ::color_eyre::Result::Err(_) = { #body ::color_eyre::Result::Ok(()) } {
-				return err;
+			async fn test(#ctx_arg: crate::tests::Context) -> ::color_eyre::Result<()> {
+				#body
+				::color_eyre::Result::Ok(())
 			}
 
+			let ctx = crate::tests::Context::new(addr);
+
+			// Run the actual test
+			test(ctx).await?;
+
+			// Drop the test DB
 			::sqlx::mysql::MySql::drop_database(&database_url)
 				.await
 				.with_context(|| format!("failed to drop test database {port}"))?;
@@ -107,6 +109,12 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 		}
 	}
 	.into()
+}
+
+macro_rules! error {
+	($item:expr, $($args:tt)+) => {
+		return Err(::syn::Error::new($item.span(), format!($($args)+)));
+	}
 }
 
 #[derive(Debug)]
@@ -124,7 +132,7 @@ impl Parse for TestArgs {
 				error!(arg, "Invalid attribute argument. Expected one or more file names.");
 			};
 
-			let path = PathBuf::from(FIXTURES_PATH).join(PathBuf::from(filename.value()));
+			let path = PathBuf::from(FIXTURES_PATH).join(filename.value());
 
 			if !path.extension().is_some_and(|ext| ext == "sql") {
 				error!(filename, "Files are expected to end in `.sql`.");
@@ -134,12 +142,15 @@ impl Parse for TestArgs {
 				error!(filename, "`{path:?}` does not exist.");
 			}
 
-			let new_queries = fs::read_to_string(path)
-				.unwrap()
+			let file = fs::read_to_string(path).map_err(|err| {
+				syn::Error::new(filename.span(), format!("Error reading file: {err}"))
+			})?;
+
+			let new_queries = file
 				.split(';')
-				.map(|query| query.trim().to_owned())
+				.map(|query| query.trim())
 				.filter(|query| !query.is_empty())
-				.collect::<Vec<String>>();
+				.map(|query| query.to_owned());
 
 			queries.extend(new_queries);
 		}
@@ -150,9 +161,8 @@ impl Parse for TestArgs {
 
 #[derive(Debug)]
 struct TestFunction {
-	_async_token: Async,
 	name: Ident,
-	ctx_arg: (Ident, Path),
+	ctx_arg: Ident,
 	body: Block,
 }
 
@@ -160,20 +170,21 @@ impl Parse for TestFunction {
 	fn parse(input: ParseStream) -> syn::Result<Self> {
 		let function = input.parse::<ItemFn>()?;
 
-		let async_token = function.sig.asyncness.ok_or_else(|| {
-			syn::Error::new(function.span(), "Test functions need to be marked as `async`.")
-		})?;
+		if function.sig.asyncness.is_none() {
+			error!(function.sig, "Test functions must be marked as `async`.");
+		}
 
 		let name = function.sig.ident;
+		let inputs = function.sig.inputs;
 
-		if function.sig.inputs.len() != 1 {
+		if inputs.len() != 1 {
 			error!(
-				function.sig.inputs,
+				inputs,
 				"Test functions only accept a single argument of type `Context`."
 			);
 		}
 
-		let argument = function.sig.inputs.into_iter().next().unwrap();
+		let argument = inputs.into_iter().next().unwrap();
 
 		let FnArg::Typed(argument) = argument else {
 			error!(argument, "Test functions cannot have a `self` parameter.");
@@ -199,9 +210,9 @@ impl Parse for TestFunction {
 			error!(argument_type.path, "Invalid argument type. Expected `Context`.");
 		}
 
-		let ctx_arg = (argument_identifier.ident, argument_type.path);
+		let ctx_arg = argument_identifier.ident;
 		let body = *function.block;
 
-		Ok(Self { _async_token: async_token, name, ctx_arg, body })
+		Ok(Self { name, ctx_arg, body })
 	}
 }
