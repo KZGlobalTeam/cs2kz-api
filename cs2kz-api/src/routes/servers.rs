@@ -159,6 +159,8 @@ pub async fn create_server(
 		.await?
 		.id as _;
 
+	transaction.commit().await?;
+
 	Ok(Created(Json(CreateServerResponse { server_id })))
 }
 

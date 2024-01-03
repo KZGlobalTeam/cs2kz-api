@@ -244,6 +244,8 @@ pub async fn create_jumpstat(
 		.await?
 		.id;
 
+	transaction.commit().await?;
+
 	Ok(Created(Json(CreatedJumpstatResponse { id })))
 }
 

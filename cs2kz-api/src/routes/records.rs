@@ -220,6 +220,8 @@ pub async fn create_record(
 		.await?
 		.id;
 
+	transaction.commit().await?;
+
 	Ok(Created(Json(CreatedRecordResponse { record_id })))
 }
 

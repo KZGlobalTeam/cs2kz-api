@@ -245,6 +245,8 @@ pub async fn create_ban(
 		.await?
 		.id;
 
+	transaction.commit().await?;
+
 	Ok(Created(Json(CreatedBanResponse { id })))
 }
 
