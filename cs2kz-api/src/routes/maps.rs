@@ -14,6 +14,7 @@ use crate::models::{Course, Filter, KZMap};
 use crate::permissions::Permissions;
 use crate::responses::Created;
 use crate::sql::FetchID;
+use crate::steam::WorkshopMap;
 use crate::{openapi as R, sql, AppState, Error, Result, State};
 
 static GET_BASE_QUERY: &str = r#"
@@ -161,6 +162,10 @@ pub async fn create_map(
 	state: State,
 	Json(mut body): Json<CreateMapRequest>,
 ) -> Result<Created<Json<CreateMapResponse>>> {
+	let workshop_map = WorkshopMap::get(body.workshop_id, state.http_client())
+		.await
+		.ok_or(Error::InvalidWorkshopID(body.workshop_id))?;
+
 	let mut transaction = state.begin_transaction().await?;
 
 	sqlx::query! {
@@ -170,9 +175,9 @@ pub async fn create_map(
 		VALUES
 			(?, ?, ?)
 		"#,
-		body.name,
+		workshop_map.name,
 		body.workshop_id,
-		body.filesize,
+		workshop_map.filesize,
 	}
 	.execute(transaction.as_mut())
 	.await?;
@@ -444,9 +449,7 @@ pub struct GetMapsParams<'a> {
 /// A new map.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-  "name": "kz_checkmate",
   "workshop_id": 3070194623_u32,
-  "filesize": 190335000,
   "mappers": ["STEAM_1:0:102468802"],
   "courses": [
     {
@@ -470,14 +473,8 @@ pub struct GetMapsParams<'a> {
   ]
 }))]
 pub struct CreateMapRequest {
-	/// The map's name.
-	name: String,
-
 	/// The map's Steam Workshop ID.
 	workshop_id: u32,
-
-	/// The map's filesize in bytes.
-	filesize: u64,
 
 	/// List of players who have contributed to creating this map.
 	mappers: Vec<SteamID>,

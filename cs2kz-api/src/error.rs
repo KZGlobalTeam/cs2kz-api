@@ -64,6 +64,10 @@ pub enum Error {
 	/// A server submitted a jumpstat that wasn't a player's PB.
 	#[error("The submitted jumpstat is not a personal best.")]
 	NotPersonalBest,
+
+	/// A submitted map has an invalid Steam Workshop ID.
+	#[error("Workshop ID `{0}` is not a valid ID.")]
+	InvalidWorkshopID(u32),
 }
 
 impl IntoResponse for Error {
@@ -77,7 +81,9 @@ impl IntoResponse for Error {
 			}
 
 			Self::NoContent => StatusCode::NO_CONTENT,
-			Self::InvalidRequestBody | Self::UnknownPlayer { .. } => StatusCode::BAD_REQUEST,
+			Self::InvalidRequestBody | Self::UnknownPlayer { .. } | Self::InvalidWorkshopID(_) => {
+				StatusCode::BAD_REQUEST
+			}
 			Self::MissingCourse { .. } | Self::InvalidFilter | Self::NotPersonalBest => {
 				StatusCode::CONFLICT
 			}

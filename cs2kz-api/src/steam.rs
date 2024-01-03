@@ -1,7 +1,9 @@
 //! This module holds structs specific to communication with the Steam API.
 
 use cs2kz::SteamID;
-use serde::{Deserialize, Serialize};
+use serde::ser::SerializeStruct;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde_json::Value as JsonValue;
 use tracing::trace;
 use url::Url;
 
@@ -140,5 +142,102 @@ impl AuthResponse {
 		trace!(%steam_id, %self.origin_url, "user logged in with steam");
 
 		Ok((steam_id, self.origin_url))
+	}
+}
+
+/// A Steam Workshop map.
+#[derive(Debug)]
+pub struct WorkshopMap {
+	/// The map's name.
+	pub name: String,
+
+	/// The map's filesize.
+	pub filesize: u64,
+}
+
+#[derive(Debug)]
+struct GetWorkshopMapParams(u32);
+
+impl WorkshopMap {
+	const URL: &'static str =
+		"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1";
+
+	/// Fetches the workshop map with the given `id` from Steam.
+	pub async fn get(id: u32, http_client: &reqwest::Client) -> Option<Self> {
+		let params = GetWorkshopMapParams(id);
+		let params = serde_urlencoded::to_string(&params).expect("this is valid");
+
+		let workshop_map = http_client
+			.post(Self::URL)
+			.header("Content-Type", "application/x-www-form-urlencoded")
+			.body(params)
+			.send()
+			.await
+			.ok()?
+			.json()
+			.await
+			.ok()?;
+
+		Some(workshop_map)
+	}
+}
+
+impl<'de> Deserialize<'de> for WorkshopMap {
+	fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		use serde::de::Error as E;
+
+		let object = JsonValue::deserialize(deserializer)
+			.map(|mut object| object["response"].take())
+			.map(|mut object| object["publishedfiledetails"].take())
+			.map(|mut object| object[0].take())?;
+
+		let name = object["title"]
+			.as_str()
+			.ok_or_else(|| E::missing_field("title"))?
+			.to_owned();
+
+		let filesize = object["file_size"]
+			.as_u64()
+			.ok_or_else(|| E::missing_field("file_size"))?;
+
+		Ok(Self { name, filesize })
+	}
+}
+
+impl Serialize for GetWorkshopMapParams {
+	fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		let mut serializer = serializer.serialize_struct("params", 2)?;
+
+		serializer.serialize_field("itemcount", &1)?;
+		serializer.serialize_field("publishedfileids[0]", &self.0)?;
+		serializer.end()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use color_eyre::eyre::ContextCompat;
+	use color_eyre::Result;
+
+	use super::WorkshopMap;
+
+	#[tokio::test]
+	async fn fetch_map() -> Result<()> {
+		let client = reqwest::Client::new();
+		let id = 3121168339;
+		let map = WorkshopMap::get(id, &client)
+			.await
+			.context("Failed to fetch Workshop map.")?;
+
+		assert_eq!(map.name, "kz_grotto");
+		assert!(map.filesize > 0);
+
+		Ok(())
 	}
 }

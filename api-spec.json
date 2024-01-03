@@ -2500,27 +2500,15 @@
         "type": "object",
         "description": "A new map.",
         "required": [
-          "name",
           "workshop_id",
-          "filesize",
           "mappers",
           "courses"
         ],
         "properties": {
-          "name": {
-            "type": "string",
-            "description": "The map's name."
-          },
           "workshop_id": {
             "type": "integer",
             "format": "uint32",
             "description": "The map's Steam Workshop ID.",
-            "minimum": 0
-          },
-          "filesize": {
-            "type": "integer",
-            "format": "uint64",
-            "description": "The map's filesize in bytes.",
             "minimum": 0
           },
           "mappers": {
@@ -2561,11 +2549,9 @@
               "stage": 0
             }
           ],
-          "filesize": 190335000,
           "mappers": [
             "STEAM_1:0:102468802"
           ],
-          "name": "kz_checkmate",
           "workshop_id": 3070194623
         }
       },
