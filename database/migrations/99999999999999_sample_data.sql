@@ -341,529 +341,529 @@ INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(1, 1, TRUE, 6, TRUE);
+	(1, 1, TRUE, 6, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(1, 1, FALSE, 7, TRUE);
+	(1, 1, FALSE, 7, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(1, 2, TRUE, 3, TRUE);
+	(1, 2, TRUE, 3, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(1, 2, FALSE, 4, TRUE);
+	(1, 2, FALSE, 4, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(2, 1, TRUE, 6, TRUE);
+	(2, 1, TRUE, 6, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(2, 1, FALSE, 7, TRUE);
+	(2, 1, FALSE, 7, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(2, 2, TRUE, 3, TRUE);
+	(2, 2, TRUE, 3, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(2, 2, FALSE, 4, TRUE);
+	(2, 2, FALSE, 4, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(3, 1, TRUE, 4, TRUE);
+	(3, 1, TRUE, 4, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(3, 1, FALSE, 5, TRUE);
+	(3, 1, FALSE, 5, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(3, 2, TRUE, 3, TRUE);
+	(3, 2, TRUE, 3, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(3, 2, FALSE, 4, TRUE);
+	(3, 2, FALSE, 4, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(4, 1, TRUE, 10, FALSE);
+	(4, 1, TRUE, 10, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(4, 1, FALSE, 10, FALSE);
+	(4, 1, FALSE, 10, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(4, 2, TRUE, 5, TRUE);
+	(4, 2, TRUE, 5, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(4, 2, FALSE, 6, TRUE);
+	(4, 2, FALSE, 6, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(5, 1, TRUE, 10, FALSE);
+	(5, 1, TRUE, 10, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(5, 1, FALSE, 10, FALSE);
+	(5, 1, FALSE, 10, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(5, 2, TRUE, 3, TRUE);
+	(5, 2, TRUE, 3, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(5, 2, FALSE, 4, TRUE);
+	(5, 2, FALSE, 4, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(6, 1, TRUE, 3, TRUE);
+	(6, 1, TRUE, 3, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(6, 1, FALSE, 4, TRUE);
+	(6, 1, FALSE, 4, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(6, 2, TRUE, 3, TRUE);
+	(6, 2, TRUE, 3, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(6, 2, FALSE, 4, TRUE);
+	(6, 2, FALSE, 4, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(7, 1, TRUE, 3, TRUE);
+	(7, 1, TRUE, 3, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(7, 1, FALSE, 4, TRUE);
+	(7, 1, FALSE, 4, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(7, 2, TRUE, 3, TRUE);
+	(7, 2, TRUE, 3, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(7, 2, FALSE, 4, TRUE);
+	(7, 2, FALSE, 4, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(8, 1, TRUE, 10, FALSE);
+	(8, 1, TRUE, 10, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(8, 1, FALSE, 10, FALSE);
+	(8, 1, FALSE, 10, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(8, 2, TRUE, 2, FALSE);
+	(8, 2, TRUE, 2, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(8, 2, FALSE, 2, FALSE);
+	(8, 2, FALSE, 2, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(9, 1, TRUE, 10, FALSE);
+	(9, 1, TRUE, 10, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(9, 1, FALSE, 10, FALSE);
+	(9, 1, FALSE, 10, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(9, 2, TRUE, 3, FALSE);
+	(9, 2, TRUE, 3, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(9, 2, FALSE, 3, FALSE);
+	(9, 2, FALSE, 3, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(10, 1, TRUE, 4, TRUE);
+	(10, 1, TRUE, 4, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(10, 1, FALSE, 5, TRUE);
+	(10, 1, FALSE, 5, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(10, 2, TRUE, 3, TRUE);
+	(10, 2, TRUE, 3, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(10, 2, FALSE, 4, TRUE);
+	(10, 2, FALSE, 4, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(11, 1, TRUE, 3, FALSE);
+	(11, 1, TRUE, 3, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(11, 1, FALSE, 4, FALSE);
+	(11, 1, FALSE, 4, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(11, 2, TRUE, 2, FALSE);
+	(11, 2, TRUE, 2, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(11, 2, FALSE, 3, FALSE);
+	(11, 2, FALSE, 3, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(12, 1, TRUE, 10, FALSE);
+	(12, 1, TRUE, 10, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(12, 1, FALSE, 10, FALSE);
+	(12, 1, FALSE, 10, -1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(12, 2, TRUE, 3, TRUE);
+	(12, 2, TRUE, 3, 1);
 
 INSERT
 	IGNORE INTO CourseFilters (
 		`course_id`,
 		`mode_id`,
-		`has_teleports`,
+		`teleports`,
 		`tier`,
-		`ranked`
+		`ranked_status`
 	)
 VALUES
-	(12, 2, FALSE, 4, TRUE);
+	(12, 2, FALSE, 4, 1);
 
 
 INSERT
