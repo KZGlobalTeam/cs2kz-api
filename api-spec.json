@@ -422,12 +422,14 @@
                       {
                         "filters": [
                           {
+                            "id": 1,
                             "mode": "kz_classic",
                             "ranked_status": "ranked",
                             "teleports": true,
                             "tier": 3
                           },
                           {
+                            "id": 2,
                             "mode": "kz_classic",
                             "ranked_status": "ranked",
                             "teleports": false,
@@ -623,12 +625,14 @@
                       {
                         "filters": [
                           {
+                            "id": 1,
                             "mode": "kz_classic",
                             "ranked_status": "ranked",
                             "teleports": true,
                             "tier": 3
                           },
                           {
+                            "id": 2,
                             "mode": "kz_classic",
                             "ranked_status": "ranked",
                             "teleports": false,
@@ -827,12 +831,14 @@
                       {
                         "filters": [
                           {
+                            "id": 1,
                             "mode": "kz_classic",
                             "ranked_status": "ranked",
                             "teleports": true,
                             "tier": 3
                           },
                           {
+                            "id": 2,
                             "mode": "kz_classic",
                             "ranked_status": "ranked",
                             "teleports": false,
@@ -2218,12 +2224,14 @@
         "example": {
           "filters": [
             {
+              "id": 1,
               "mode": "kz_classic",
               "ranked_status": "ranked",
               "teleports": true,
               "tier": 3
             },
             {
+              "id": 2,
               "mode": "kz_classic",
               "ranked_status": "ranked",
               "teleports": false,
@@ -2382,12 +2390,14 @@
         "example": {
           "filters": [
             {
+              "id": 1,
               "mode": "kz_classic",
               "ranked_status": "ranked",
               "teleports": true,
               "tier": 3
             },
             {
+              "id": 2,
               "mode": "kz_classic",
               "ranked_status": "ranked",
               "teleports": false,
@@ -3031,12 +3041,14 @@
             {
               "filters": [
                 {
+                  "id": 1,
                   "mode": "kz_classic",
                   "ranked_status": "ranked",
                   "teleports": true,
                   "tier": 3
                 },
                 {
+                  "id": 2,
                   "mode": "kz_classic",
                   "ranked_status": "ranked",
                   "teleports": false,
