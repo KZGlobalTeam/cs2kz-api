@@ -98,11 +98,22 @@ pub async fn get_maps(
 	}
 
 	if let Some(player) = params.mapper {
-		query.push(filter).push(" p1.player_id = ");
+		query.push(filter).push(
+			r#"
+			m.id IN (
+				SELECT
+					m1.id
+				FROM
+					Maps m1
+					JOIN Mappers m2 ON m2.map_id = m1.id
+				WHERE
+					m2.player_id =
+			"#,
+		);
 
 		let steam_id = player.fetch_id(state.database()).await?;
 
-		query.push_bind(steam_id);
+		query.push_bind(steam_id).push(") ");
 		filter.switch();
 	}
 
