@@ -2755,12 +2755,19 @@
         "type": "object",
         "description": "Information about a course filter.",
         "required": [
+          "id",
           "mode",
           "teleports",
           "tier",
           "ranked_status"
         ],
         "properties": {
+          "id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The filter's ID.",
+            "minimum": 0
+          },
           "mode": {
             "$ref": "#/components/schemas/Mode"
           },
@@ -2780,6 +2787,7 @@
           }
         },
         "example": {
+          "id": 1,
           "mode": "kz_classic",
           "ranked_status": "ranked",
           "teleports": true,

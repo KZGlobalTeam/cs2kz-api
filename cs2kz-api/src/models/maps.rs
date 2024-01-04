@@ -368,12 +368,16 @@ pub struct CreateCourseParams {
 /// Information about a course filter.
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
+  "id": 1,
   "mode": "kz_classic",
   "teleports": true,
   "tier": 3,
   "ranked_status": "ranked",
 }))]
 pub struct Filter {
+	/// The filter's ID.
+	pub id: u32,
+
 	/// The mode for this filter.
 	pub mode: Mode,
 
@@ -467,6 +471,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 			.try_into()
 			.map_err(|err| sqlx::Error::Decode(Box::new(err)))?;
 
+		let filter_id = row.try_get("filter_id")?;
 		let filter_teleports = row.try_get("filter_teleports")?;
 		let filter_tier = row.try_get("filter_tier")?;
 		let filter_ranked = row
@@ -479,6 +484,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 			stage: course_stage,
 			mappers: vec![Player { steam_id: course_mapper_steam_id, name: course_mapper_name }],
 			filters: vec![Filter {
+				id: filter_id,
 				mode: filter_mode,
 				teleports: filter_teleports,
 				tier: filter_tier,

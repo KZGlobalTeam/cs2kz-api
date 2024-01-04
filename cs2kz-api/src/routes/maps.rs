@@ -28,6 +28,7 @@ static GET_BASE_QUERY: &str = r#"
 		c.map_stage course_stage,
 		p4.steam_id course_mapper_steam_id,
 		p4.name course_mapper_name,
+		f.id filter_id,
 		f.mode_id filter_mode,
 		f.teleports filter_teleports,
 		f.tier filter_tier,
