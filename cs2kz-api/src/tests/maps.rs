@@ -37,3 +37,35 @@ async fn get(ctx: Context) {
 		name: String::from("lars"),
 	}]);
 }
+
+#[crate::test]
+async fn get_by_mapper(ctx: Context) {
+	let maps = ctx
+		.client
+		.get(ctx.url("/maps"))
+		.query(&[("mapper", "gamechaos")])
+		.send()
+		.await?
+		.json::<Vec<KZMap>>()
+		.await?;
+
+	assert!(maps.len() >= 3);
+
+	let victoria = maps
+		.iter()
+		.find(|map| map.id == 5)
+		.context("missing kz_victoria")?;
+
+	assert_eq!(victoria.mappers.len(), 3);
+
+	let has_mapper = |steam_id: u64| {
+		victoria
+			.mappers
+			.iter()
+			.any(|mapper| mapper.steam_id.as_u64() == steam_id)
+	};
+
+	assert!(has_mapper(76561198165203332), "missing gamechaos");
+	assert!(has_mapper(76561198045869085), "missing mark");
+	assert!(has_mapper(76561198375491605), "missing lars");
+}
