@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tINSERT INTO\n\t\t  Servers (name, ip_address, port, owned_by)\n\t\tVALUES\n\t\t  (?, ?, ?, ?)\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "be0d7569f86b8210c2a76317e0eb62bafe2c433dd766b74b1705ec1317626e7a"
+}

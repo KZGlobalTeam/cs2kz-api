@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t\tf.*\n\t\tFROM\n\t\t\tCourseFilters f\n\t\t\tJOIN Courses c ON c.id = f.course_id\n\t\t\tJOIN Maps m ON m.id = c.map_id\n\t\tWHERE\n\t\t\tm.id = ?\n\t\t\tAND c.map_stage = ?\n\t\t\tAND f.mode_id = ?\n\t\t\tAND f.teleports = ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t  f.*\n\t\tFROM\n\t\t  CourseFilters f\n\t\t  JOIN Courses c ON c.id = f.course_id\n\t\t  JOIN Maps m ON m.id = c.map_id\n\t\tWHERE\n\t\t  m.id = ?\n\t\t  AND c.map_stage = ?\n\t\t  AND f.mode_id = ?\n\t\t  AND f.teleports = ?\n\t\t",
   "describe": {
     "columns": [
       {
@@ -76,5 +76,5 @@
       false
     ]
   },
-  "hash": "ae2ee054c7630fce20c1629b230b92ea65625ab99b763dd0f9663f1071118e87"
+  "hash": "3a240721da64915722be25bb5fcfb2d60461f042e9e3ede7ac3d177ba2e25250"
 }

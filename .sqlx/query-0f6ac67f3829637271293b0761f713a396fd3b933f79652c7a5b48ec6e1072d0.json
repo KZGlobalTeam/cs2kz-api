@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t\tdistance\n\t\tFROM\n\t\t\tJumpstats\n\t\tWHERE\n\t\t\tmode_id = ?\n\t\tORDER BY\n\t\t\tdistance DESC\n\t\tLIMIT\n\t\t\t1\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t  distance\n\t\tFROM\n\t\t  Jumpstats\n\t\tWHERE\n\t\t  mode_id = ?\n\t\tORDER BY\n\t\t  distance DESC\n\t\tLIMIT\n\t\t  1\n\t\t",
   "describe": {
     "columns": [
       {
@@ -21,5 +21,5 @@
       false
     ]
   },
-  "hash": "12acb2ce1d4f840eb33cd69e7e2aa3785c5902fbaf693629d4a0f83536eed85e"
+  "hash": "0f6ac67f3829637271293b0761f713a396fd3b933f79652c7a5b48ec6e1072d0"
 }

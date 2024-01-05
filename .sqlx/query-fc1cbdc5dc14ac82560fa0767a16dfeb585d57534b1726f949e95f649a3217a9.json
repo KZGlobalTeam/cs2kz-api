@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\tUPDATE\n\t\t\t\t  Players\n\t\t\t\tSET\n\t\t\t\t  name = ?\n\t\t\t\tWHERE\n\t\t\t\t  steam_id = ?\n\t\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "fc1cbdc5dc14ac82560fa0767a16dfeb585d57534b1726f949e95f649a3217a9"
+}

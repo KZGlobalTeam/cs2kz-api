@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\t\tSELECT\n\t\t\t\t\tMAX(id) `id!: u16`\n\t\t\t\tFROM\n\t\t\t\t\tPluginVersions\n\t\t\t\t",
+  "query": "\n\t\t\t\tSELECT\n\t\t\t\t  MAX(id) `id!: u16`\n\t\t\t\tFROM\n\t\t\t\t  PluginVersions\n\t\t\t\t",
   "describe": {
     "columns": [
       {
@@ -21,5 +21,5 @@
       true
     ]
   },
-  "hash": "5e34c17399ae1b19a09e9b07c31fa0972c027379a7b6edf3a34936a520c468f7"
+  "hash": "31082802671bfb213d4f7dd0a207cfaa62310c281153e63639ee59bf276658f8"
 }

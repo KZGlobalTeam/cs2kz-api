@@ -310,25 +310,39 @@ pub async fn update_map(
 	let mut update_map = QueryBuilder::new("UPDATE Maps");
 	let mut delimiter = " SET ";
 
-	if let Some(name) = body.name {
-		update_map.push(delimiter).push(" name = ").push_bind(name);
-		delimiter = ",";
-	}
-
-	if let Some(workshop_id) = body.workshop_id {
+	let workshop_id = if let Some(workshop_id) = body.workshop_id {
 		update_map
 			.push(delimiter)
 			.push(" workshop_id = ")
 			.push_bind(workshop_id);
 
 		delimiter = ",";
-	}
+		workshop_id
+	} else {
+		sqlx::query!("SELECT workshop_id FROM Maps WHERE id = ?", map_id)
+			.fetch_one(transaction.as_mut())
+			.await?
+			.workshop_id
+	};
 
-	if let Some(filesize) = body.filesize {
-		update_map
-			.push(delimiter)
-			.push(" filesize = ")
-			.push_bind(filesize);
+	if body.name || body.filesize {
+		let workshop_map = WorkshopMap::get(workshop_id, state.http_client())
+			.await
+			.ok_or(Error::InvalidWorkshopID(workshop_id))?;
+
+		if body.name {
+			update_map
+				.push(delimiter)
+				.push(" name = ")
+				.push_bind(workshop_map.name);
+		}
+
+		if body.filesize {
+			update_map
+				.push(delimiter)
+				.push(" filesize = ")
+				.push_bind(workshop_map.filesize);
+		}
 	}
 
 	update_map.push(" WHERE id = ").push_bind(map_id);
@@ -476,14 +490,16 @@ pub struct CreateMapRequest {
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({ "name": "kz_checkmate_v2_final_fix_global_new" }))]
 pub struct UpdateMapRequest {
-	/// The map's new name.
-	name: Option<String>,
-
 	/// The map's new Steam Workshop ID.
 	workshop_id: Option<u32>,
 
-	/// The map's new filesize.
-	filesize: Option<u64>,
+	/// Update the map's name to the Workshop's version.
+	#[serde(default)]
+	name: bool,
+
+	/// Update the map's filesize to the Workshop's value.
+	#[serde(default)]
+	filesize: bool,
 
 	/// List of new mappers.
 	added_mappers: Option<Vec<SteamID>>,

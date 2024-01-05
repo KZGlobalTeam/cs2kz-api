@@ -3450,11 +3450,6 @@
         "type": "object",
         "description": "A map udpate.",
         "properties": {
-          "name": {
-            "type": "string",
-            "description": "The map's new name.",
-            "nullable": true
-          },
           "workshop_id": {
             "type": "integer",
             "format": "uint32",
@@ -3462,12 +3457,13 @@
             "nullable": true,
             "minimum": 0
           },
+          "name": {
+            "type": "boolean",
+            "description": "Update the map's name to the Workshop's version."
+          },
           "filesize": {
-            "type": "integer",
-            "format": "uint64",
-            "description": "The map's new filesize.",
-            "nullable": true,
-            "minimum": 0
+            "type": "boolean",
+            "description": "Update the map's filesize to the Workshop's value."
           },
           "added_mappers": {
             "type": "array",

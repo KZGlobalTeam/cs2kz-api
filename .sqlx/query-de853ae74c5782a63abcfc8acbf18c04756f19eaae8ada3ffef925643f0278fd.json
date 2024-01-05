@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t\t*\n\t\tFROM\n\t\t\tAdmins\n\t\tWHERE\n\t\t\tsteam_id = (\n\t\t\t\tSELECT\n\t\t\t\t\tsteam_id\n\t\t\t\tFROM\n\t\t\t\t\tWebSessions\n\t\t\t\tWHERE\n\t\t\t\t\ttoken = ?\n\t\t\t\t\tAND subdomain = ?\n\t\t\t\t\tAND expires_on < CURRENT_TIMESTAMP()\n\t\t\t)\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t  *\n\t\tFROM\n\t\t  Admins\n\t\tWHERE\n\t\t  steam_id = (\n\t\t    SELECT\n\t\t      steam_id\n\t\t    FROM\n\t\t      WebSessions\n\t\t    WHERE\n\t\t      token = ?\n\t\t      AND subdomain = ?\n\t\t      AND expires_on < CURRENT_TIMESTAMP()\n\t\t  )\n\t\t",
   "describe": {
     "columns": [
       {
@@ -32,5 +32,5 @@
       false
     ]
   },
-  "hash": "c527840210af55ed90687b81b6aeda0ba4c6568e1610be22bba2edad0ef95098"
+  "hash": "de853ae74c5782a63abcfc8acbf18c04756f19eaae8ada3ffef925643f0278fd"
 }
