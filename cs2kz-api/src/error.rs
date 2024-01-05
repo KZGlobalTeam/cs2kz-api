@@ -91,8 +91,8 @@ impl IntoResponse for Error {
 	fn into_response(self) -> axum::response::Response {
 		let message = self.to_string();
 		let code = match self {
-			Self::Unexpected(err) => {
-				error!(error = ?err, "Unexpected error happened");
+			Self::Unexpected(error) => {
+				error!(audit = true, ?error, "Unexpected error happened");
 
 				StatusCode::INTERNAL_SERVER_ERROR
 			}

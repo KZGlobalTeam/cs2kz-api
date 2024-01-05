@@ -7,6 +7,7 @@ use axum::routing::{get, patch, post};
 use axum::{Json, Router};
 use chrono::{DateTime, Utc};
 use cs2kz::{MapIdentifier, Mode, PlayerIdentifier, SteamID, Tier};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
 use utoipa::{IntoParams, ToSchema};
@@ -17,7 +18,7 @@ use crate::permissions::Permissions;
 use crate::responses::Created;
 use crate::sql::FetchID;
 use crate::steam::WorkshopMap;
-use crate::{openapi as R, sql, AppState, Error, Result, State};
+use crate::{audit, openapi as R, sql, AppState, Error, Result, State};
 
 static GET_BASE_QUERY: &str = r#"
 	SELECT
@@ -207,6 +208,8 @@ pub async fn create_map(
 		.await?
 		.id as _;
 
+	audit!(id = %map_id, %workshop_map.name, %body.workshop_id, "create map");
+
 	create_mappers(map_id, &body.mappers, transaction.as_mut()).await?;
 	create_courses(map_id, &body.courses, &mut transaction).await?;
 
@@ -339,6 +342,8 @@ pub async fn update_map(
 				.push(delimiter)
 				.push(" name = ")
 				.push_bind(workshop_map.name);
+
+			delimiter = ",";
 		}
 
 		if body.filesize {
@@ -352,11 +357,13 @@ pub async fn update_map(
 	update_map.push(" WHERE id = ").push_bind(map_id);
 	update_map.build().execute(transaction.as_mut()).await?;
 
+	audit!(%map_id, update_name = %body.name, update_filesize = %body.filesize, "update map information");
+
 	if let Some(mappers) = body.added_mappers {
 		create_mappers(map_id, &mappers, transaction.as_mut()).await?;
 	}
 
-	if let Some(mappers) = body.removed_mappers {
+	if let Some(ref mappers) = body.removed_mappers {
 		let mut remove_mappers = QueryBuilder::new("DELETE FROM Mappers WHERE player_id IN");
 
 		remove_mappers.push_tuples(mappers, |mut query, steam_id| {
@@ -364,13 +371,15 @@ pub async fn update_map(
 		});
 
 		remove_mappers.build().execute(transaction.as_mut()).await?;
+
+		audit!(?mappers, "remove mappers");
 	}
 
-	if let Some(courses) = body.added_courses {
-		create_courses(map_id, &courses, &mut transaction).await?;
+	if let Some(ref courses) = body.added_courses {
+		create_courses(map_id, courses, &mut transaction).await?;
 	}
 
-	if let Some(courses) = body.removed_courses {
+	if let Some(ref courses) = body.removed_courses {
 		let mut remove_courses = QueryBuilder::new("DELETE FROM Courses WHERE id IN");
 
 		remove_courses.push_tuples(courses, |mut query, course_id| {
@@ -378,6 +387,8 @@ pub async fn update_map(
 		});
 
 		remove_courses.build().execute(transaction.as_mut()).await?;
+
+		audit!(?courses, "remove courses");
 	}
 
 	for course_update in body.course_updates.iter().flatten() {
@@ -385,9 +396,9 @@ pub async fn update_map(
 			let mappers = mappers
 				.iter()
 				.map(|&steam_id| CourseMapper { course_id: course_update.course_id, steam_id })
-				.collect();
+				.collect_vec();
 
-			create_course_mappers(mappers, transaction.as_mut()).await?;
+			create_course_mappers(&mappers, transaction.as_mut()).await?;
 		}
 
 		if let Some(ref mappers) = course_update.removed_mappers {
@@ -403,6 +414,8 @@ pub async fn update_map(
 			});
 
 			remove_mappers.build().execute(transaction.as_mut()).await?;
+
+			audit!(%course_update.course_id, ?mappers, "remove course mappers");
 		}
 
 		for filter in course_update.filter_updates.iter().flatten() {
@@ -434,6 +447,8 @@ pub async fn update_map(
 				.push_bind(filter.filter_id);
 
 			update_filter.build().execute(transaction.as_mut()).await?;
+
+			audit!(?filter, "update course filter");
 		}
 	}
 
@@ -501,6 +516,8 @@ async fn create_mappers(
 
 	query.build().execute(executor).await?;
 
+	audit!(?steam_ids, "create mappers");
+
 	Ok(())
 }
 
@@ -510,13 +527,15 @@ async fn create_courses(
 	transaction: &mut Transaction<'static, MySql>,
 ) -> Result<()> {
 	let mut create_courses = QueryBuilder::new("INSERT INTO Courses (map_id, map_stage)");
-	let stages = courses.iter().map(|course| course.stage);
+	let stages = courses.iter().map(|course| course.stage).collect_vec();
 
-	create_courses.push_values(stages, |mut query, stage| {
+	create_courses.push_values(&stages, |mut query, stage| {
 		query.push_bind(map_id).push_bind(stage);
 	});
 
 	create_courses.build().execute(transaction.as_mut()).await?;
+
+	audit!(%map_id, ?stages, "create courses");
 
 	let first_course_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())
@@ -544,24 +563,27 @@ async fn create_courses(
 				.iter()
 				.map(move |&steam_id| CourseMapper { course_id, steam_id })
 		})
-		.collect();
+		.collect_vec();
 
-	create_course_mappers(course_mappers, transaction.as_mut()).await?;
+	create_course_mappers(&course_mappers, transaction.as_mut()).await?;
 
 	let mut create_course_filters = QueryBuilder::new(
 		"INSERT INTO CourseFilters (course_id, mode_id, teleports, tier, ranked_status)",
 	);
 
-	let course_filters = courses.iter().flat_map(|course| {
-		let course_id = course_ids
-			.get(&course.stage)
-			.copied()
-			.expect("we just inserted this");
+	let course_filters = courses
+		.iter()
+		.flat_map(|course| {
+			let course_id = course_ids
+				.get(&course.stage)
+				.copied()
+				.expect("we just inserted this");
 
-		course.filters.iter().map(move |filter| (course_id, filter))
-	});
+			course.filters.iter().map(move |filter| (course_id, filter))
+		})
+		.collect_vec();
 
-	create_course_filters.push_values(course_filters, |mut query, (course_id, filter)| {
+	create_course_filters.push_values(&course_filters, |mut query, (course_id, filter)| {
 		query
 			.push_bind(course_id)
 			.push_bind(filter.mode)
@@ -575,9 +597,12 @@ async fn create_courses(
 		.execute(transaction.as_mut())
 		.await?;
 
+	audit!(?course_filters, "create course filters");
+
 	Ok(())
 }
 
+#[derive(Debug)]
 struct CourseMapper {
 	course_id: u32,
 	steam_id: SteamID,
@@ -586,7 +611,7 @@ struct CourseMapper {
 async fn create_course_mappers(
 	// NOTE(AlphaKeks): I really wanted to use `impl Iterator` here but that lead to weird
 	// lifetime errors; probably an issue with `QueryBuilder::push_values`, but I don't know.
-	mappers: Vec<CourseMapper>,
+	mappers: &[CourseMapper],
 	executor: impl MySqlExecutor<'_>,
 ) -> Result<()> {
 	let mut query = QueryBuilder::new("INSERT INTO CourseMappers (course_id, player_id)");
@@ -596,6 +621,8 @@ async fn create_course_mappers(
 	});
 
 	query.build().execute(executor).await?;
+
+	audit!(?mappers, "create course mappers");
 
 	Ok(())
 }

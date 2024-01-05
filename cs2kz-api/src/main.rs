@@ -2,8 +2,9 @@ use color_eyre::eyre::Context;
 use color_eyre::Result;
 use cs2kz_api::{Config, API};
 use sqlx::mysql::MySqlPoolOptions;
+use sqlx::{Connection, MySqlConnection};
 use tokio::net::TcpListener;
-use tracing::{debug, info};
+use tracing::debug;
 
 mod logging;
 
@@ -21,13 +22,15 @@ async fn main() -> Result<()> {
 		eprintln!("Did you forget to create one?");
 	}
 
-	// Setup logging
-	crate::logging::init();
-
 	// Load API configuration
 	let config = Config::new().await?;
 
-	info!(?config, "Loaded API configuration");
+	// Setup logging
+	let database = MySqlConnection::connect(config.database_url.as_str())
+		.await
+		.context("Failed to establish database connection.")?;
+
+	crate::logging::init(database);
 
 	// Connect to the database
 	let database = MySqlPoolOptions::new()

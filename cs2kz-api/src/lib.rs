@@ -29,6 +29,8 @@ pub use config::Config;
 pub mod state;
 pub use state::AppState;
 
+pub mod audit_logs;
+
 /// Convenience type alias for extracing [`AppState`] from a handler function parameter.
 pub type State = axum::extract::State<&'static crate::state::AppState>;
 
@@ -158,7 +160,7 @@ impl API {
 			.merge(swagger_ui)
 			.into_make_service_with_connect_info::<SocketAddr>();
 
-		debug!("Initialized API service.");
+		audit!("Initialized API service.");
 
 		let mut routes = String::from("Routes:\n");
 
@@ -208,3 +210,11 @@ impl API {
 			.context("Failed to format API spec as JSON.")
 	}
 }
+
+macro_rules! audit {
+	($($args:tt)*) => {
+		::tracing::info!(audit = true, $($args)*)
+	};
+}
+
+pub(crate) use audit;
