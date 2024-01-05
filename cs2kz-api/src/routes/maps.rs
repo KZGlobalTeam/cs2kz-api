@@ -1,16 +1,18 @@
 //! This module holds all HTTP handlers related to maps.
 
+use std::collections::HashMap;
+
 use axum::extract::{Path, Query};
 use axum::routing::{get, patch, post};
 use axum::{Json, Router};
 use chrono::{DateTime, Utc};
 use cs2kz::{MapIdentifier, PlayerIdentifier, SteamID, Tier};
 use serde::{Deserialize, Serialize};
-use sqlx::QueryBuilder;
+use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
 use utoipa::{IntoParams, ToSchema};
 
 use crate::models::maps::CreateCourseParams;
-use crate::models::{Course, KZMap, RankedStatus};
+use crate::models::{KZMap, RankedStatus};
 use crate::permissions::Permissions;
 use crate::responses::Created;
 use crate::sql::FetchID;
@@ -172,7 +174,7 @@ pub async fn get_maps(
 )]
 pub async fn create_map(
 	state: State,
-	Json(mut body): Json<CreateMapRequest>,
+	Json(body): Json<CreateMapRequest>,
 ) -> Result<Created<Json<CreateMapResponse>>> {
 	let workshop_map = WorkshopMap::get(body.workshop_id, state.http_client())
 		.await
@@ -199,16 +201,8 @@ pub async fn create_map(
 		.await?
 		.id as _;
 
-	body.courses.sort_by_key(|c| c.stage);
-
-	KZMap::create_mappers(map_id, &body.mappers, transaction.as_mut()).await?;
-	KZMap::create_courses(map_id, body.courses.iter().map(|c| c.stage), transaction.as_mut())
-		.await?;
-
-	let courses = KZMap::get_courses(map_id, transaction.as_mut()).await?;
-
-	Course::create_mappers(&courses, &body.courses, transaction.as_mut()).await?;
-	Course::create_filters(&courses, &body.courses, transaction.as_mut()).await?;
+	create_mappers(map_id, &body.mappers, transaction.as_mut()).await?;
+	create_courses(map_id, &body.courses, &mut transaction).await?;
 
 	transaction.commit().await?;
 
@@ -348,79 +342,204 @@ pub async fn update_map(
 	update_map.push(" WHERE id = ").push_bind(map_id);
 	update_map.build().execute(transaction.as_mut()).await?;
 
-	if let Some(added_mappers) = body.added_mappers {
-		KZMap::create_mappers(map_id, &added_mappers, transaction.as_mut()).await?;
+	if let Some(mappers) = body.added_mappers {
+		create_mappers(map_id, &mappers, transaction.as_mut()).await?;
 	}
 
-	if let Some(removed_mappers) = body.removed_mappers {
-		KZMap::delete_mappers(map_id, &removed_mappers, transaction.as_mut()).await?;
+	if let Some(mappers) = body.removed_mappers {
+		let mut remove_mappers = QueryBuilder::new("DELETE FROM Mappers WHERE player_id IN");
+
+		remove_mappers.push_tuples(mappers, |mut query, steam_id| {
+			query.push_bind(steam_id);
+		});
+
+		remove_mappers.build().execute(transaction.as_mut()).await?;
 	}
 
-	if let Some(added_courses) = body.added_courses {
-		KZMap::create_courses(map_id, added_courses.iter().map(|c| c.stage), transaction.as_mut())
-			.await?;
-
-		let courses = KZMap::get_courses(map_id, transaction.as_mut()).await?;
-
-		Course::create_mappers(&courses, &added_courses, transaction.as_mut()).await?;
-		Course::create_filters(&courses, &added_courses, transaction.as_mut()).await?;
+	if let Some(courses) = body.added_courses {
+		create_courses(map_id, &courses, &mut transaction).await?;
 	}
 
-	if let Some(removed_courses) = body.removed_courses {
-		KZMap::delete_courses(&removed_courses, transaction.as_mut()).await?;
+	if let Some(courses) = body.removed_courses {
+		let mut remove_courses = QueryBuilder::new("DELETE FROM Courses WHERE id IN");
+
+		remove_courses.push_tuples(courses, |mut query, course_id| {
+			query.push_bind(course_id);
+		});
+
+		remove_courses.build().execute(transaction.as_mut()).await?;
 	}
 
 	for course_update in body.course_updates.iter().flatten() {
-		if let Some(added_mappers) = &course_update.added_mappers {
-			let mut create_mappers =
-				QueryBuilder::new("INSERT INTO CourseMappers (course_id, player_id)");
+		if let Some(ref mappers) = course_update.added_mappers {
+			let mappers = mappers
+				.iter()
+				.map(|&steam_id| CourseMapper { course_id: course_update.course_id, steam_id })
+				.collect();
 
-			create_mappers.push_values(added_mappers, |mut query, steam_id| {
-				query.push_bind(course_update.course_id).push_bind(steam_id);
-			});
-
-			create_mappers.build().execute(transaction.as_mut()).await?;
+			create_course_mappers(mappers, transaction.as_mut()).await?;
 		}
 
-		if let Some(removed_mappers) = &course_update.removed_mappers {
+		if let Some(ref mappers) = course_update.removed_mappers {
 			let mut remove_mappers =
-				QueryBuilder::new("DELETE FROM CourseMappers WHERE (course_id, player_id) IN");
+				QueryBuilder::new("DELETE FROM CourseMappers WHERE course_id = ");
 
-			remove_mappers.push_tuples(removed_mappers, |mut query, steam_id| {
-				query.push_bind(course_update.course_id).push_bind(steam_id);
+			remove_mappers
+				.push_bind(course_update.course_id)
+				.push(" AND player_id IN ");
+
+			remove_mappers.push_tuples(mappers, |mut query, &steam_id| {
+				query.push_bind(steam_id);
 			});
 
 			remove_mappers.build().execute(transaction.as_mut()).await?;
 		}
 
-		for FilterUpdate { filter_id, tier, ranked_status } in
-			course_update.filter_updates.iter().flatten()
-		{
-			if tier.is_none() && ranked_status.is_none() {
+		for filter in course_update.filter_updates.iter().flatten() {
+			if filter.tier.is_none() && filter.ranked_status.is_none() {
 				continue;
 			}
 
-			let mut query = QueryBuilder::new("UPDATE CourseFilters");
+			let mut update_filter = QueryBuilder::new("UPDATE CourseFilters");
 			let mut delimiter = " SET ";
 
-			if let Some(tier) = tier {
-				query.push(delimiter).push(" tier = ").push_bind(tier);
+			if let Some(tier) = filter.tier {
+				update_filter
+					.push(delimiter)
+					.push(" tier = ")
+					.push_bind(tier);
+
 				delimiter = ",";
 			}
 
-			if let Some(ranked_status) = ranked_status {
-				query
+			if let Some(ranked_status) = filter.ranked_status {
+				update_filter
 					.push(delimiter)
 					.push(" ranked_status = ")
-					.push_bind(*ranked_status);
+					.push_bind(ranked_status);
 			}
 
-			query.push(" WHERE id = ").push_bind(filter_id);
-			query.build().execute(transaction.as_mut()).await?;
+			update_filter
+				.push(" WHERE id = ")
+				.push_bind(filter.filter_id);
+
+			update_filter.build().execute(transaction.as_mut()).await?;
 		}
 	}
 
 	transaction.commit().await?;
+
+	Ok(())
+}
+
+async fn create_mappers(
+	map_id: u16,
+	steam_ids: &[SteamID],
+	executor: impl MySqlExecutor<'_>,
+) -> Result<()> {
+	let mut query = QueryBuilder::new("INSERT INTO Mappers (map_id, player_id)");
+
+	query.push_values(steam_ids, |mut query, &steam_id| {
+		query.push_bind(map_id).push_bind(steam_id);
+	});
+
+	query.build().execute(executor).await?;
+
+	Ok(())
+}
+
+async fn create_courses(
+	map_id: u16,
+	courses: &[CreateCourseParams],
+	transaction: &mut Transaction<'static, MySql>,
+) -> Result<()> {
+	let mut create_courses = QueryBuilder::new("INSERT INTO Courses (map_id, map_stage)");
+	let stages = courses.iter().map(|course| course.stage);
+
+	create_courses.push_values(stages, |mut query, stage| {
+		query.push_bind(map_id).push_bind(stage);
+	});
+
+	create_courses.build().execute(transaction.as_mut()).await?;
+
+	let first_course_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
+		.fetch_one(transaction.as_mut())
+		.await?
+		.id;
+
+	let course_ids =
+		sqlx::query!("SELECT id, map_stage FROM Courses WHERE id >= ?", first_course_id)
+			.fetch_all(transaction.as_mut())
+			.await?
+			.into_iter()
+			.map(|row| (row.map_stage, row.id))
+			.collect::<HashMap<u8, u32>>();
+
+	let course_mappers = courses
+		.iter()
+		.flat_map(|course| {
+			let course_id = course_ids
+				.get(&course.stage)
+				.copied()
+				.expect("we just inserted this");
+
+			course
+				.mappers
+				.iter()
+				.map(move |&steam_id| CourseMapper { course_id, steam_id })
+		})
+		.collect();
+
+	create_course_mappers(course_mappers, transaction.as_mut()).await?;
+
+	let mut create_course_filters = QueryBuilder::new(
+		"INSERT INTO CourseFilters (course_id, mode_id, teleports, tier, ranked_status)",
+	);
+
+	let course_filters = courses.iter().flat_map(|course| {
+		let course_id = course_ids
+			.get(&course.stage)
+			.copied()
+			.expect("we just inserted this");
+
+		course.filters.iter().map(move |filter| (course_id, filter))
+	});
+
+	create_course_filters.push_values(course_filters, |mut query, (course_id, filter)| {
+		query
+			.push_bind(course_id)
+			.push_bind(filter.mode)
+			.push_bind(filter.teleports)
+			.push_bind(filter.tier)
+			.push_bind(filter.ranked_status);
+	});
+
+	create_course_filters
+		.build()
+		.execute(transaction.as_mut())
+		.await?;
+
+	Ok(())
+}
+
+struct CourseMapper {
+	course_id: u32,
+	steam_id: SteamID,
+}
+
+async fn create_course_mappers(
+	// NOTE(AlphaKeks): I really wanted to use `impl Iterator` here but that lead to weird
+	// lifetime errors; probably an issue with `QueryBuilder::push_values`, but I don't know.
+	mappers: Vec<CourseMapper>,
+	executor: impl MySqlExecutor<'_>,
+) -> Result<()> {
+	let mut query = QueryBuilder::new("INSERT INTO CourseMappers (course_id, player_id)");
+
+	query.push_values(mappers, |mut query, CourseMapper { course_id, steam_id }| {
+		query.push_bind(course_id).push_bind(steam_id);
+	});
+
+	query.build().execute(executor).await?;
 
 	Ok(())
 }
