@@ -8,7 +8,7 @@ use std::result::Result as StdResult;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
-use cs2kz::SteamID;
+use cs2kz::{Mode, SteamID, Tier};
 use serde_json::json;
 use thiserror::Error;
 use tracing::error;
@@ -42,13 +42,6 @@ pub enum Error {
 	#[error("You do not have the required permissions to access this resource.")]
 	Unauthorized,
 
-	/// A request for creating a new map was missing a course for a specific stage.
-	#[error("Missing course for stage `{stage}`.")]
-	MissingCourse {
-		/// The stage in question.
-		stage: u8,
-	},
-
 	/// A request for creating a record had an invalid (course, mode, teleports)
 	/// combination.
 	#[error("The submitted record does not have a filter.")]
@@ -64,6 +57,30 @@ pub enum Error {
 	/// A server submitted a jumpstat that wasn't a player's PB.
 	#[error("The submitted jumpstat is not a personal best.")]
 	NotPersonalBest,
+
+	/// A submitted map was missing a required field (empty arrays count as missing fields).
+	#[error("Missing required field `{0}`.")]
+	MissingMapField(&'static str),
+
+	/// A submitted map was missing a particular filter.
+	#[error("Missing ({mode}, {runtype}) filter.", runtype = match teleports {
+		true => "TP",
+		false => "PRO",
+	})]
+	MissingFilter {
+		/// The mode this filter counts for.
+		mode: Mode,
+
+		/// Whether this filter counts for runs with teleports.
+		teleports: bool,
+	},
+
+	/// A submitted filter's tier was too high for it to be ranked.
+	#[error("T{} is too high to be ranked.", *tier as u8)]
+	TooDifficultToRank {
+		/// The tier that is too high for this filter to be ranked.
+		tier: Tier,
+	},
 
 	/// A submitted map has an invalid Steam Workshop ID.
 	#[error("Workshop ID `{0}` is not a valid ID.")]
@@ -81,12 +98,13 @@ impl IntoResponse for Error {
 			}
 
 			Self::NoContent => StatusCode::NO_CONTENT,
-			Self::InvalidRequestBody | Self::UnknownPlayer { .. } | Self::InvalidWorkshopID(_) => {
-				StatusCode::BAD_REQUEST
-			}
-			Self::MissingCourse { .. } | Self::InvalidFilter | Self::NotPersonalBest => {
-				StatusCode::CONFLICT
-			}
+			Self::InvalidRequestBody
+			| Self::UnknownPlayer { .. }
+			| Self::MissingMapField(_)
+			| Self::MissingFilter { .. }
+			| Self::TooDifficultToRank { .. }
+			| Self::InvalidWorkshopID(_) => StatusCode::BAD_REQUEST,
+			Self::InvalidFilter | Self::NotPersonalBest => StatusCode::CONFLICT,
 			Self::Unauthorized => StatusCode::UNAUTHORIZED,
 		};
 

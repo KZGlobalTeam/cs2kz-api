@@ -6,7 +6,7 @@ use axum::extract::{Path, Query};
 use axum::routing::{get, patch, post};
 use axum::{Json, Router};
 use chrono::{DateTime, Utc};
-use cs2kz::{MapIdentifier, PlayerIdentifier, SteamID, Tier};
+use cs2kz::{MapIdentifier, Mode, PlayerIdentifier, SteamID, Tier};
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
 use utoipa::{IntoParams, ToSchema};
@@ -176,6 +176,12 @@ pub async fn create_map(
 	state: State,
 	Json(body): Json<CreateMapRequest>,
 ) -> Result<Created<Json<CreateMapResponse>>> {
+	if body.mappers.is_empty() {
+		return Err(Error::MissingMapField("mappers"));
+	}
+
+	validate_courses(&body.courses)?;
+
 	let workshop_map = WorkshopMap::get(body.workshop_id, state.http_client())
 		.await
 		.ok_or(Error::InvalidWorkshopID(body.workshop_id))?;
@@ -300,6 +306,10 @@ pub async fn update_map(
 	Path(map_id): Path<u16>,
 	Json(body): Json<UpdateMapRequest>,
 ) -> Result<()> {
+	if let Some(ref courses) = body.added_courses {
+		validate_courses(courses)?;
+	}
+
 	let mut transaction = state.begin_transaction().await?;
 	let mut update_map = QueryBuilder::new("UPDATE Maps");
 	let mut delimiter = " SET ";
@@ -428,6 +438,52 @@ pub async fn update_map(
 	}
 
 	transaction.commit().await?;
+
+	Ok(())
+}
+
+fn validate_courses(courses: &[CreateCourseParams]) -> Result<()> {
+	if courses.is_empty() {
+		return Err(Error::MissingMapField("courses"));
+	}
+
+	if courses.iter().any(|course| course.mappers.is_empty()) {
+		return Err(Error::MissingMapField("courses.mappers"));
+	}
+
+	if courses.iter().any(|course| course.filters.len() != 4) {
+		return Err(Error::MissingMapField("courses.filters"));
+	}
+
+	const POSSIBLE_FILTERS: [(Mode, bool); 4] = [
+		(Mode::Vanilla, true),
+		(Mode::Vanilla, false),
+		(Mode::Classic, true),
+		(Mode::Classic, false),
+	];
+
+	if let Some((mode, teleports)) = POSSIBLE_FILTERS.into_iter().find(|&filter| {
+		!courses.iter().all(|course| {
+			course
+				.filters
+				.iter()
+				.any(|f| (f.mode, f.teleports) == filter)
+		})
+	}) {
+		return Err(Error::MissingFilter { mode, teleports });
+	}
+
+	if let Some(tier) = courses.iter().find_map(|course| {
+		course
+			.filters
+			.iter()
+			.find(|filter| {
+				filter.tier > Tier::Death && filter.ranked_status == RankedStatus::Ranked
+			})
+			.map(|filter| filter.tier)
+	}) {
+		return Err(Error::TooDifficultToRank { tier });
+	}
 
 	Ok(())
 }

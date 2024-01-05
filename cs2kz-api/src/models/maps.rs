@@ -7,12 +7,11 @@ use chrono::{DateTime, Utc};
 use cs2kz::{Mode, SteamID, Style, Tier};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
-use sqlx::mysql::{MySqlQueryResult, MySqlRow};
-use sqlx::{FromRow, MySqlExecutor, QueryBuilder, Row};
+use sqlx::mysql::MySqlRow;
+use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
 use super::Player;
-use crate::{Error, Result};
 
 /// Information about a map.
 #[derive(Debug, Serialize, ToSchema)]
@@ -168,92 +167,6 @@ pub struct Course {
 
 	/// List of filters that apply to this course.
 	pub filters: Vec<Filter>,
-}
-
-impl Course {
-	/// Creates mappers for the given `courses` according to the given `params`.
-	pub async fn create_mappers(
-		courses: &[CourseRow],
-		params: &[CreateCourseParams],
-		connection: impl MySqlExecutor<'_>,
-	) -> Result<MySqlQueryResult> {
-		let mut query = QueryBuilder::new("INSERT INTO CourseMappers (course_id, player_id)");
-
-		let iter = params
-			.iter()
-			.map(|course| {
-				let course_id = CourseRow::find_by_stage(course.stage, courses.iter().copied())?;
-
-				Ok(course
-					.mappers
-					.iter()
-					.map(move |steam_id| (course_id, steam_id)))
-			})
-			.collect::<Result<Vec<_>>>()? // Maybe we can do better here?
-			.into_iter()
-			.flatten();
-
-		query.push_values(iter, |mut query, (course_id, mapper)| {
-			query.push_bind(course_id).push_bind(mapper);
-		});
-
-		query.build().execute(connection).await.map_err(Into::into)
-	}
-
-	/// Creates filters for the given `courses` according to the given `params`.
-	pub async fn create_filters(
-		courses: &[CourseRow],
-		params: &[CreateCourseParams],
-		connection: impl MySqlExecutor<'_>,
-	) -> Result<MySqlQueryResult> {
-		let mut query = QueryBuilder::new(
-			r#"
-			INSERT INTO
-				CourseFilters (course_id, mode_id, teleports, tier, ranked)
-			"#,
-		);
-
-		let iter = params
-			.iter()
-			.map(|course| {
-				let course_id = CourseRow::find_by_stage(course.stage,courses.iter().copied())?;
-
-				Ok(course
-					.filters
-					.iter()
-					.map(move |filter| (course_id, filter)))
-			})
-			.collect::<Result<Vec<_>>>()? // Maybe we can do better here?
-			.into_iter()
-			.flatten();
-
-		query.push_values(iter, |mut query, (course_id, filter)| {
-			query
-				.push_bind(course_id)
-				.push_bind(filter.mode)
-				.push_bind(filter.teleports)
-				.push_bind(filter.tier)
-				.push_bind(filter.ranked_status);
-		});
-
-		query.build().execute(connection).await.map_err(Into::into)
-	}
-}
-
-/// A database row representing a course.
-#[derive(Debug, Clone, Copy, FromRow)]
-pub struct CourseRow {
-	id: u32,
-	map_stage: u8,
-}
-
-impl CourseRow {
-	fn find_by_stage(stage: u8, mut courses: impl Iterator<Item = Self>) -> Result<u32> {
-		courses
-			.find(|course| course.map_stage == stage)
-			.map(|course| course.id)
-			.ok_or(Error::MissingCourse { stage })
-	}
 }
 
 /// A new course.
