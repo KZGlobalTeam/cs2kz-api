@@ -368,7 +368,30 @@ pub struct CreateCourseParams {
 	pub mappers: Vec<SteamID>,
 
 	/// List of filters that apply to this course.
-	pub filters: Vec<Filter>,
+	pub filters: Vec<CreateFilterParams>,
+}
+
+/// A new filter.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+  "mode": "kz_classic",
+  "teleports": true,
+  "tier": 3,
+  "ranked_status": "ranked"
+}))]
+pub struct CreateFilterParams {
+	/// The mode for this filter.
+	pub mode: Mode,
+
+	/// Whether this filter applies to runs with teleports.
+	pub teleports: bool,
+
+	/// The difficulty of the course with this filter.
+	#[schema(value_type = u8, minimum = 1, maximum = 10)]
+	pub tier: Tier,
+
+	/// The ranked status of this filter.
+	pub ranked_status: RankedStatus,
 }
 
 /// Information about a course filter.

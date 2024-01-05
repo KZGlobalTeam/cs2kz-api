@@ -2382,7 +2382,7 @@
           "filters": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Filter"
+              "$ref": "#/components/schemas/CreateFilterParams"
             },
             "description": "List of filters that apply to this course."
           }
@@ -2408,6 +2408,41 @@
             "STEAM_1:0:102468802"
           ],
           "stage": 0
+        }
+      },
+      "CreateFilterParams": {
+        "type": "object",
+        "description": "A new filter.",
+        "required": [
+          "mode",
+          "teleports",
+          "tier",
+          "ranked_status"
+        ],
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/Mode"
+          },
+          "teleports": {
+            "type": "boolean",
+            "description": "Whether this filter applies to runs with teleports."
+          },
+          "tier": {
+            "type": "integer",
+            "format": "uint8",
+            "description": "The difficulty of the course with this filter.",
+            "maximum": 10,
+            "minimum": 1
+          },
+          "ranked_status": {
+            "$ref": "#/components/schemas/RankedStatus"
+          }
+        },
+        "example": {
+          "mode": "kz_classic",
+          "ranked_status": "ranked",
+          "teleports": true,
+          "tier": 3
         }
       },
       "CreateJumpstatRequest": {

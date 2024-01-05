@@ -74,6 +74,7 @@ pub mod middleware;
 			models::RankedStatus,
 			models::CourseWithFilter,
 			models::CreateCourseParams,
+			models::CreateFilterParams,
 			models::ServerSummary,
 			models::Server,
 			models::JumpstatResponse,
