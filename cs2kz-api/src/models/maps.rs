@@ -345,14 +345,12 @@ impl CourseRow {
   "mappers": ["STEAM_1:0:102468802"],
   "filters": [
     {
-      "id": 1,
       "mode": "kz_classic",
       "teleports": true,
       "tier": 3,
       "ranked_status": "ranked"
     },
     {
-      "id": 2,
       "mode": "kz_classic",
       "teleports": false,
       "tier": 4,

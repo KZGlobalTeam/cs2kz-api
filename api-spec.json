@@ -2289,24 +2289,6 @@
             "description": "List of old mappers to be removed.",
             "nullable": true
           },
-          "added_filters": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Filter"
-            },
-            "description": "List of new filters.",
-            "nullable": true
-          },
-          "removed_filters": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0
-            },
-            "description": "List of filter IDs to be removed.",
-            "nullable": true
-          },
           "filter_updates": {
             "type": "array",
             "items": {
@@ -2402,14 +2384,12 @@
         "example": {
           "filters": [
             {
-              "id": 1,
               "mode": "kz_classic",
               "ranked_status": "ranked",
               "teleports": true,
               "tier": 3
             },
             {
-              "id": 2,
               "mode": "kz_classic",
               "ranked_status": "ranked",
               "teleports": false,

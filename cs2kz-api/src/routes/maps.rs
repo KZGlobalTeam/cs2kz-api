@@ -10,7 +10,7 @@ use sqlx::QueryBuilder;
 use utoipa::{IntoParams, ToSchema};
 
 use crate::models::maps::CreateCourseParams;
-use crate::models::{Course, Filter, KZMap, RankedStatus};
+use crate::models::{Course, KZMap, RankedStatus};
 use crate::permissions::Permissions;
 use crate::responses::Created;
 use crate::sql::FetchID;
@@ -379,36 +379,6 @@ pub async fn update_map(
 			remove_mappers.build().execute(transaction.as_mut()).await?;
 		}
 
-		if let Some(added_filters) = &course_update.added_filters {
-			let mut create_filters = QueryBuilder::new(
-				r#"
-				INSERT INTO
-					CourseFilters (course_id, mode_id, teleports, tier, ranked)
-				"#,
-			);
-
-			create_filters.push_values(added_filters, |mut query, filter| {
-				query
-					.push_bind(course_update.course_id)
-					.push_bind(filter.mode)
-					.push_bind(filter.teleports)
-					.push_bind(filter.tier)
-					.push_bind(filter.ranked_status);
-			});
-
-			create_filters.build().execute(transaction.as_mut()).await?;
-		}
-
-		if let Some(removed_filters) = &course_update.removed_filters {
-			let mut remove_filters = QueryBuilder::new("DELETE FROM CourseFilters WHERE (id) IN");
-
-			remove_filters.push_tuples(removed_filters, |mut query, filter_id| {
-				query.push_bind(filter_id);
-			});
-
-			remove_filters.build().execute(transaction.as_mut()).await?;
-		}
-
 		for FilterUpdate { filter_id, tier, ranked_status } in
 			course_update.filter_updates.iter().flatten()
 		{
@@ -542,12 +512,6 @@ pub struct CourseUpdate {
 
 	/// List of old mappers to be removed.
 	removed_mappers: Option<Vec<SteamID>>,
-
-	/// List of new filters.
-	added_filters: Option<Vec<Filter>>,
-
-	/// List of filter IDs to be removed.
-	removed_filters: Option<Vec<u32>>,
 
 	/// List of updates for existing filters.
 	filter_updates: Option<Vec<FilterUpdate>>,
