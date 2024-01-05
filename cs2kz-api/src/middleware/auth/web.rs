@@ -76,20 +76,20 @@ pub(super) async fn verify<const MIN_PERMS: u64>(
 	let user = sqlx::query! {
 		r#"
 		SELECT
-			*
+		  *
 		FROM
-			Admins
+		  Admins
 		WHERE
-			steam_id = (
-				SELECT
-					steam_id
-				FROM
-					WebSessions
-				WHERE
-					token = ?
-					AND subdomain = ?
-					AND expires_on < CURRENT_TIMESTAMP()
-			)
+		  steam_id = (
+		    SELECT
+		      steam_id
+		    FROM
+		      WebSessions
+		    WHERE
+		      token = ?
+		      AND subdomain = ?
+		      AND expires_on < CURRENT_TIMESTAMP()
+		  )
 		"#,
 		token,
 		subdomain,

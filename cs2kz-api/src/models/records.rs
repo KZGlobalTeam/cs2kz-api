@@ -45,7 +45,7 @@ use super::{CourseWithFilter, Player, ServerSummary};
     "bhops_tick7": 0,
     "bhops_tick8": 0
   },
-  "created_on": "2023-12-10T10:41:01Z",
+  "created_on": "2023-12-10T10:41:01Z"
 }))]
 pub struct Record {
 	/// The record's ID.

@@ -42,12 +42,12 @@ pub async fn refresh_token(
 	let data = sqlx::query! {
 		r#"
 		SELECT
-			s.id server_id,
-			v.id plugin_version_id
+		  s.id server_id,
+		  v.id plugin_version_id
 		FROM
-			Servers s
-			JOIN PluginVersions v ON v.version = ?
-			AND s.api_key = ?
+		  Servers s
+		  JOIN PluginVersions v ON v.version = ?
+		  AND s.api_key = ?
 		"#,
 		body.plugin_version.to_string(),
 		body.api_key,

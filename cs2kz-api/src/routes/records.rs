@@ -149,16 +149,16 @@ pub async fn create_record(
 	let filter = sqlx::query! {
 		r#"
 		SELECT
-			f.*
+		  f.*
 		FROM
-			CourseFilters f
-			JOIN Courses c ON c.id = f.course_id
-			JOIN Maps m ON m.id = c.map_id
+		  CourseFilters f
+		  JOIN Courses c ON c.id = f.course_id
+		  JOIN Maps m ON m.id = c.map_id
 		WHERE
-			m.id = ?
-			AND c.map_stage = ?
-			AND f.mode_id = ?
-			AND f.teleports = ?
+		  m.id = ?
+		  AND c.map_stage = ?
+		  AND f.mode_id = ?
+		  AND f.teleports = ?
 		"#,
 		body.map_id,
 		body.map_stage,
@@ -273,7 +273,7 @@ pub struct GetRecordsParams<'a> {
     "bhops_tick6": 0,
     "bhops_tick7": 0,
     "bhops_tick8": 0
-  },
+  }
 }))]
 pub struct CreateRecordRequest {
 	/// The SteamID of the player who set this record.

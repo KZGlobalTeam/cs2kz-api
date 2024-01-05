@@ -98,9 +98,9 @@ pub async fn create_player(state: State, Json(body): Json<CreatePlayerRequest>) 
 	sqlx::query! {
 		r#"
 		INSERT INTO
-			Players (steam_id, name, last_known_ip_address)
+		  Players (steam_id, name, last_known_ip_address)
 		VALUES
-			(?, ?, ?)
+		  (?, ?, ?)
 		"#,
 		body.steam_id,
 		body.name,
@@ -211,12 +211,12 @@ pub async fn update_player(
 			sqlx::query! {
 				r#"
 				UPDATE
-					Players
+				  Players
 				SET
-					name = ?,
-					last_known_ip_address = ?
+				  name = ?,
+				  last_known_ip_address = ?
 				WHERE
-					steam_id = ?
+				  steam_id = ?
 				"#,
 				name,
 				ip_address.to_string(),
@@ -230,11 +230,11 @@ pub async fn update_player(
 			sqlx::query! {
 				r#"
 				UPDATE
-					Players
+				  Players
 				SET
-					name = ?
+				  name = ?
 				WHERE
-					steam_id = ?
+				  steam_id = ?
 				"#,
 				name,
 				steam_id,
@@ -247,11 +247,11 @@ pub async fn update_player(
 			sqlx::query! {
 				r#"
 				UPDATE
-					Players
+				  Players
 				SET
-					last_known_ip_address = ?
+				  last_known_ip_address = ?
 				WHERE
-					steam_id = ?
+				  steam_id = ?
 				"#,
 				ip_address.to_string(),
 				steam_id,
@@ -264,25 +264,25 @@ pub async fn update_player(
 	sqlx::query! {
 		r#"
 		INSERT INTO
-			Sessions (
-				player_id,
-				server_id,
-				time_active,
-				time_spectating,
-				time_afk,
-				perfs,
-				bhops_tick0,
-				bhops_tick1,
-				bhops_tick2,
-				bhops_tick3,
-				bhops_tick4,
-				bhops_tick5,
-				bhops_tick6,
-				bhops_tick7,
-				bhops_tick8
-			)
+		  Sessions (
+		    player_id,
+		    server_id,
+		    time_active,
+		    time_spectating,
+		    time_afk,
+		    perfs,
+		    bhops_tick0,
+		    bhops_tick1,
+		    bhops_tick2,
+		    bhops_tick3,
+		    bhops_tick4,
+		    bhops_tick5,
+		    bhops_tick6,
+		    bhops_tick7,
+		    bhops_tick8
+		  )
 		VALUES
-			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		"#,
 		steam_id,
 		server.id,

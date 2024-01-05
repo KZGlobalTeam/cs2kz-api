@@ -172,9 +172,9 @@ pub async fn create_ban(
 			sqlx::query! {
 				r#"
 				SELECT
-					MAX(id) `id!: u16`
+				  MAX(id) `id!: u16`
 				FROM
-					PluginVersions
+				  PluginVersions
 				"#,
 			}
 			.fetch_one(state.database())
@@ -189,11 +189,11 @@ pub async fn create_ban(
 			sqlx::query!(
 				r#"
 				SELECT
-					last_known_ip_address
+				  last_known_ip_address
 				FROM
-					Players
+				  Players
 				WHERE
-					steam_id = ?
+				  steam_id = ?
 				"#,
 				body.steam_id,
 			)
@@ -209,25 +209,25 @@ pub async fn create_ban(
 	sqlx::query! {
 		r#"
 		INSERT INTO
-			Bans (
-				player_id,
-				player_ip,
-				reason,
-				server_id,
-				plugin_version_id,
-				banned_by,
-				expires_on
-			)
+		  Bans (
+		    player_id,
+		    player_ip,
+		    reason,
+		    server_id,
+		    plugin_version_id,
+		    banned_by,
+		    expires_on
+		  )
 		VALUES
-			(
-				?,
-				?,
-				?,
-				?,
-				?,
-				?,
-				?
-			)
+		  (
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?
+		  )
 		"#,
 		body.steam_id.as_u32(),
 		player_ip,

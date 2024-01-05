@@ -142,9 +142,9 @@ pub async fn create_server(
 	sqlx::query! {
 		r#"
 		INSERT INTO
-			Servers (name, ip_address, port, owned_by)
+		  Servers (name, ip_address, port, owned_by)
 		VALUES
-			(?, ?, ?, ?)
+		  (?, ?, ?, ?)
 		"#,
 		body.name,
 		body.ip_address.ip().to_string(),

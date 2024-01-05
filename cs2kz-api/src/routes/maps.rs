@@ -183,9 +183,9 @@ pub async fn create_map(
 	sqlx::query! {
 		r#"
 		INSERT INTO
-			Maps (name, workshop_id, filesize)
+		  Maps (name, workshop_id, filesize)
 		VALUES
-			(?, ?, ?)
+		  (?, ?, ?)
 		"#,
 		workshop_map.name,
 		body.workshop_id,
@@ -435,11 +435,15 @@ pub struct GetMapsParams<'a> {
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
   "workshop_id": 3070194623_u32,
-  "mappers": ["STEAM_1:0:102468802"],
+  "mappers": [
+    "STEAM_1:0:102468802"
+  ],
   "courses": [
     {
       "stage": 0,
-      "mappers": ["STEAM_1:0:102468802"],
+      "mappers": [
+        "STEAM_1:0:102468802"
+      ],
       "filters": [
         {
           "mode": "kz_classic",

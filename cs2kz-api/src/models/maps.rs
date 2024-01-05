@@ -342,7 +342,9 @@ impl CourseRow {
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
   "stage": 0,
-  "mappers": ["STEAM_1:0:102468802"],
+  "mappers": [
+    "STEAM_1:0:102468802"
+  ],
   "filters": [
     {
       "mode": "kz_classic",

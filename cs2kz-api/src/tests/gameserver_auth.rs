@@ -39,9 +39,9 @@ async fn register_player(ctx: Context) {
 	let server = Server::get(&ctx).await?;
 	let steam_id = "STEAM_1:0:448781326".parse::<SteamID>()?;
 	let player = json!({
-		"steam_id": steam_id,
-		"name": "Szwagi",
-		"ip_address": "127.0.0.1"
+	  "steam_id": steam_id,
+	  "name": "Szwagi",
+	  "ip_address": "127.0.0.1"
 	});
 
 	let url = ctx.url("/players");

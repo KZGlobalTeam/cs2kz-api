@@ -168,15 +168,15 @@ pub async fn create_jumpstat(
 	let pb = sqlx::query! {
 		r#"
 		SELECT
-			distance
+		  distance
 		FROM
-			Jumpstats
+		  Jumpstats
 		WHERE
-			mode_id = ?
+		  mode_id = ?
 		ORDER BY
-			distance DESC
+		  distance DESC
 		LIMIT
-			1
+		  1
 		"#,
 		body.mode,
 	}
@@ -192,29 +192,49 @@ pub async fn create_jumpstat(
 	sqlx::query! {
 		r#"
 		INSERT INTO
-			Jumpstats (
-				type,
-				mode_id,
-				style_id,
-				strafes,
-				distance,
-				sync,
-				pre,
-				max,
-				overlap,
-				bad_air,
-				dead_air,
-				height,
-				airpath,
-				deviation,
-				average_width,
-				airtime,
-				player_id,
-				server_id,
-				plugin_version_id
-			)
+		  Jumpstats (
+		    TYPE,
+		    mode_id,
+		    style_id,
+		    strafes,
+		    distance,
+		    sync,
+		    pre,
+		    max,
+		    overlap,
+		    bad_air,
+		    dead_air,
+		    height,
+		    airpath,
+		    deviation,
+		    average_width,
+		    airtime,
+		    player_id,
+		    server_id,
+		    plugin_version_id
+		  )
 		VALUES
-			(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		  (
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?,
+		    ?
+		  )
 		"#,
 		body.kind,
 		body.mode,
