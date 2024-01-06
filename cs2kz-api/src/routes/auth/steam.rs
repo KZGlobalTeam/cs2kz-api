@@ -7,7 +7,7 @@ use axum::Router;
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 use serde::Deserialize;
-use tracing::trace;
+use tracing::{trace, warn};
 use url::{Host, Url};
 use utoipa::IntoParams;
 
@@ -79,6 +79,11 @@ pub async fn callback(
 					false
 				}
 			}
+		}
+
+		_ if state.in_dev() => {
+			warn!(%host, %public_host, "allowing invalid host due to dev mode");
+			true
 		}
 
 		_ => {

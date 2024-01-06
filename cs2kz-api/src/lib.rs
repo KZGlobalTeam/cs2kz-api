@@ -145,11 +145,11 @@ impl API {
 	/// Starts an [`axum`] server to serve the API.
 	#[tracing::instrument]
 	pub async fn run(
-		config: Config,
+		Config { socket_addr, api_url, database_url, jwt_secret, environment }: Config,
 		database: MySqlPool,
 		tcp_listener: TcpListener,
 	) -> color_eyre::Result<()> {
-		let state = AppState::new(database, config.jwt_secret, config.api_url).await?;
+		let state = AppState::new(environment, database, jwt_secret, api_url).await?;
 
 		debug!("Initialized application state.");
 

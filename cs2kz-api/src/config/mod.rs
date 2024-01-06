@@ -4,8 +4,10 @@
 
 use std::env;
 use std::net::{Ipv4Addr, SocketAddrV4};
+use std::result::Result as StdResult;
 use std::str::FromStr;
 
+use thiserror::Error as ThisError;
 use url::Url;
 
 mod error;
@@ -28,6 +30,9 @@ pub struct Config {
 
 	/// Secret key for encoding and decoding JWTs.
 	pub jwt_secret: String,
+
+	/// The environment the API is running in.
+	pub environment: Environment,
 }
 
 impl Config {
@@ -39,8 +44,9 @@ impl Config {
 		let api_url = Self::load_var::<Url>("KZ_API_URL")?;
 		let database_url = Self::load_var::<Url>("DATABASE_URL")?;
 		let jwt_secret = Self::load_var::<String>("KZ_API_JWT_SECRET")?;
+		let environment = Self::load_var::<Environment>("KZ_API_ENVIRONMENT")?;
 
-		Ok(Self { socket_addr, api_url, database_url, jwt_secret })
+		Ok(Self { socket_addr, api_url, database_url, jwt_secret, environment })
 	}
 
 	/// Loads the given `variable` from the environment and parses it.
@@ -55,5 +61,34 @@ impl Config {
 				variable,
 				expected: std::any::type_name::<T>(),
 			})
+	}
+}
+
+/// The environment the API is running in.
+///
+/// This may change runtime behavior.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Environment {
+	/// The API is running locally on the developer's computer.
+	Development,
+
+	/// The API is running in production.
+	Production,
+}
+
+/// A string could not be parsed into a valid [`Environment`].
+#[derive(Debug, ThisError)]
+#[error("`{0}` is not a valid environment to run in. Expected one of: [development, production]")]
+pub struct InvalidEnvironment(String);
+
+impl FromStr for Environment {
+	type Err = InvalidEnvironment;
+
+	fn from_str(s: &str) -> StdResult<Self, Self::Err> {
+		match s {
+			"development" => Ok(Self::Development),
+			"production" => Ok(Self::Production),
+			s => Err(InvalidEnvironment(s.to_owned())),
+		}
 	}
 }
