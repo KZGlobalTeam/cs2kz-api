@@ -13,20 +13,20 @@
  * NULL.
  */
 CREATE TABLE IF NOT EXISTS Bans (
-	`id` INT4 UNSIGNED NOT NULL AUTO_INCREMENT,
-	`player_id` INT4 UNSIGNED NOT NULL,
-	`player_ip` INET4 NOT NULL,
-	`reason` VARCHAR(255) NOT NULL,
-	`server_id` INT2 UNSIGNED,
-	`plugin_version_id` INT2 UNSIGNED NOT NULL,
-	`banned_by` INT4 UNSIGNED,
-	`created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	`expires_on` TIMESTAMP,
-	PRIMARY KEY (`id`),
-	FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`),
-	FOREIGN KEY (`server_id`) REFERENCES Servers (`id`),
-	FOREIGN KEY (`plugin_version_id`) REFERENCES PluginVersions (`id`),
-	FOREIGN KEY (`banned_by`) REFERENCES Players (`steam_id`)
+  `id` INT4 UNSIGNED NOT NULL AUTO_INCREMENT,
+  `player_id` INT4 UNSIGNED NOT NULL,
+  `player_ip` INET4 NOT NULL,
+  `reason` VARCHAR(255) NOT NULL,
+  `server_id` INT2 UNSIGNED,
+  `plugin_version_id` INT2 UNSIGNED NOT NULL,
+  `banned_by` INT4 UNSIGNED,
+  `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `expires_on` TIMESTAMP,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`),
+  FOREIGN KEY (`server_id`) REFERENCES Servers (`id`),
+  FOREIGN KEY (`plugin_version_id`) REFERENCES PluginVersions (`id`),
+  FOREIGN KEY (`banned_by`) REFERENCES Players (`steam_id`)
 );
 
 /**
@@ -35,12 +35,12 @@ CREATE TABLE IF NOT EXISTS Bans (
  * invalid.
  */
 CREATE TABLE IF NOT EXISTS Unbans (
-	`id` INT4 UNSIGNED NOT NULL AUTO_INCREMENT,
-	`ban_id` INT4 UNSIGNED NOT NULL,
-	`reason` VARCHAR(1024) NOT NULL DEFAULT "expired",
-	`unbanned_by` INT4 UNSIGNED,
-	`created_on` TIMESTAMP NOT NULL,
-	PRIMARY KEY (`id`),
-	FOREIGN KEY (`ban_id`) REFERENCES Bans (`id`),
-	FOREIGN KEY (`unbanned_by`) REFERENCES Players (`steam_id`)
+  `id` INT4 UNSIGNED NOT NULL AUTO_INCREMENT,
+  `ban_id` INT4 UNSIGNED NOT NULL,
+  `reason` VARCHAR(1024) NOT NULL DEFAULT "expired",
+  `unbanned_by` INT4 UNSIGNED,
+  `created_on` TIMESTAMP NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`ban_id`) REFERENCES Bans (`id`),
+  FOREIGN KEY (`unbanned_by`) REFERENCES Players (`steam_id`)
 );

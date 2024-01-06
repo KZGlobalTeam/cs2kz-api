@@ -5,19 +5,19 @@
  * See `cs2kz::Style` for more information.
  */
 CREATE TABLE IF NOT EXISTS Styles (
-	`id` INT1 UNSIGNED NOT NULL AUTO_INCREMENT,
-	`name` VARCHAR(16) NOT NULL,
-	`created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	PRIMARY KEY (`id`)
+  `id` INT1 UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(16) NOT NULL,
+  `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
 );
 
 /**
  * The default style.
  */
 INSERT INTO
-	Styles (`name`)
+  Styles (`name`)
 VALUES
-	("normal");
+  ("normal");
 
 /**
  * Directions are inverted.
@@ -28,9 +28,9 @@ VALUES
  * D -> A
  */
 INSERT INTO
-	Styles (`name`)
+  Styles (`name`)
 VALUES
-	("backwards");
+  ("backwards");
 
 /**
  * Directions are rotated by 1 position.
@@ -41,14 +41,14 @@ VALUES
  * D -> S (or W)
  */
 INSERT INTO
-	Styles (`name`)
+  Styles (`name`)
 VALUES
-	("sideways");
+  ("sideways");
 
 /**
  * Only the W key is used for strafing.
  */
 INSERT INTO
-	Styles (`name`)
+  Styles (`name`)
 VALUES
-	("w_only");
+  ("w_only");

@@ -18,16 +18,16 @@ use crate::{openapi as R, sql, AppState, Error, Result, State};
 
 static GET_BASE_QUERY: &str = r#"
 	SELECT
-		s.id,
-		s.name,
-		s.ip_address,
-		s.port,
-		o.steam_id owner_steam_id,
-		o.name owner_name,
-		s.approved_on
+	  s.id,
+	  s.name,
+	  s.ip_address,
+	  s.port,
+	  o.steam_id owner_steam_id,
+	  o.name owner_name,
+	  s.approved_on
 	FROM
-		Servers s
-		JOIN Players o ON o.steam_id = s.owned_by
+	  Servers s
+	  JOIN Players o ON o.steam_id = s.owned_by
 "#;
 
 /// This function returns the router for the `/servers` routes.

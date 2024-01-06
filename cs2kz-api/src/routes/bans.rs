@@ -60,21 +60,21 @@ pub async fn get_bans(
 	let mut query = QueryBuilder::new(
 		r#"
 		SELECT
-			b.id,
-			p1.steam_id player_id,
-			p1.name player_name,
-			b.reason,
-			s.id server_id,
-			s.name server_name,
-			p2.steam_id banned_by_steam_id,
-			p2.name banned_by_name,
-			b.created_on,
-			b.expires_on
+		  b.id,
+		  p1.steam_id player_id,
+		  p1.name player_name,
+		  b.reason,
+		  s.id server_id,
+		  s.name server_name,
+		  p2.steam_id banned_by_steam_id,
+		  p2.name banned_by_name,
+		  b.created_on,
+		  b.expires_on
 		FROM
-			Bans b
-			JOIN Players p1 ON p1.steam_id = b.player_id
-			LEFT JOIN Servers s ON s.id = b.server_id
-			LEFT JOIN Players p2 ON p2.steam_id = b.banned_by
+		  Bans b
+		  JOIN Players p1 ON p1.steam_id = b.player_id
+		  LEFT JOIN Servers s ON s.id = b.server_id
+		  LEFT JOIN Players p2 ON p2.steam_id = b.banned_by
 		"#,
 	);
 

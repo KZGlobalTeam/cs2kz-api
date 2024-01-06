@@ -5,11 +5,11 @@
  * See `cs2kz::Mode` for more information.
  */
 CREATE TABLE IF NOT EXISTS Modes (
-	`id` INT1 UNSIGNED NOT NULL AUTO_INCREMENT,
-	`name` VARCHAR(16) NOT NULL,
-	`created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	PRIMARY KEY (`id`),
-	CONSTRAINT `valid_name` CHECK(`name` LIKE "kz_%")
+  `id` INT1 UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(16) NOT NULL,
+  `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `valid_name` CHECK(`name` LIKE "kz_%")
 );
 
 /**
@@ -18,15 +18,15 @@ CREATE TABLE IF NOT EXISTS Modes (
  * The only changes made to this mode are QoL; nothing that drastically changes the movement itself.
  */
 INSERT INTO
-	Modes (`name`)
+  Modes (`name`)
 VALUES
-	("kz_vanilla");
+  ("kz_vanilla");
 
 /**
  * Heavily modified movement compared to vanilla gameplay.
  * It is somewhat similar to the old modes in CS:GO KZ.
  */
 INSERT INTO
-	Modes (`name`)
+  Modes (`name`)
 VALUES
-	("kz_classic");
+  ("kz_classic");

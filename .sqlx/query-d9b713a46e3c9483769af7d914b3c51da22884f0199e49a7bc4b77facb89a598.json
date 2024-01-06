@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\t\tSELECT\n\t\t\t\t\tsteam_id AS `steam_id: _`,\n\t\t\t\t\tname\n\t\t\t\tFROM\n\t\t\t\t\tPlayers\n\t\t\t\tWHERE\n\t\t\t\t\tsteam_id = ?\n\t\t\t\tLIMIT\n\t\t\t\t\t1\n\t\t\t\t",
+  "query": "\n\t\t\t\tSELECT\n\t\t\t\t  steam_id AS `steam_id: _`,\n\t\t\t\t  name\n\t\t\t\tFROM\n\t\t\t\t  Players\n\t\t\t\tWHERE\n\t\t\t\t  steam_id = ?\n\t\t\t\tLIMIT\n\t\t\t\t  1\n\t\t\t\t",
   "describe": {
     "columns": [
       {
@@ -32,5 +32,5 @@
       false
     ]
   },
-  "hash": "b2f929f1b854292558b2fea51cedffb09a792de47a0f82d5eae27385bcd27e69"
+  "hash": "d9b713a46e3c9483769af7d914b3c51da22884f0199e49a7bc4b77facb89a598"
 }

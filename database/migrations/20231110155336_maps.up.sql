@@ -7,24 +7,24 @@
  * map.
  */
 CREATE TABLE IF NOT EXISTS Maps (
-	`id` INT2 UNSIGNED NOT NULL AUTO_INCREMENT,
-	`name` VARCHAR(32) NOT NULL,
-	`workshop_id` INT4 UNSIGNED NOT NULL,
-	`filesize` INT8 UNSIGNED NOT NULL,
-	`created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	`updated_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	PRIMARY KEY (`id`),
-	UNIQUE (`name`),
-	UNIQUE (`workshop_id`)
+  `id` INT2 UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(32) NOT NULL,
+  `workshop_id` INT4 UNSIGNED NOT NULL,
+  `filesize` INT8 UNSIGNED NOT NULL,
+  `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE (`name`),
+  UNIQUE (`workshop_id`)
 );
 
 /**
  * Any map has one or more mappers.
  */
 CREATE TABLE IF NOT EXISTS Mappers (
-	`map_id` INT2 UNSIGNED NOT NULL,
-	`player_id` INT4 UNSIGNED NOT NULL,
-	PRIMARY KEY (`map_id`, `player_id`),
-	FOREIGN KEY (`map_id`) REFERENCES Maps (`id`),
-	FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`)
+  `map_id` INT2 UNSIGNED NOT NULL,
+  `player_id` INT4 UNSIGNED NOT NULL,
+  PRIMARY KEY (`map_id`, `player_id`),
+  FOREIGN KEY (`map_id`) REFERENCES Maps (`id`),
+  FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`)
 );

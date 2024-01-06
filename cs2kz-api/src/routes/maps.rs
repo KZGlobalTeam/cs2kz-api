@@ -22,31 +22,31 @@ use crate::{audit, openapi as R, sql, AppState, Error, Result, State};
 
 static GET_BASE_QUERY: &str = r#"
 	SELECT
-		m.id,
-		m.workshop_id,
-		m.name,
-		p2.steam_id mapper_steam_id,
-		p2.name mapper_name,
-		c.id course_id,
-		c.map_stage course_stage,
-		p4.steam_id course_mapper_steam_id,
-		p4.name course_mapper_name,
-		f.id filter_id,
-		f.mode_id filter_mode,
-		f.teleports filter_teleports,
-		f.tier filter_tier,
-		f.ranked_status filter_ranked,
-		m.filesize,
-		m.created_on,
-		m.updated_on
+	  m.id,
+	  m.workshop_id,
+	  m.name,
+	  p2.steam_id mapper_steam_id,
+	  p2.name mapper_name,
+	  c.id course_id,
+	  c.map_stage course_stage,
+	  p4.steam_id course_mapper_steam_id,
+	  p4.name course_mapper_name,
+	  f.id filter_id,
+	  f.mode_id filter_mode,
+	  f.teleports filter_teleports,
+	  f.tier filter_tier,
+	  f.ranked_status filter_ranked,
+	  m.filesize,
+	  m.created_on,
+	  m.updated_on
 	FROM
-		Maps m
-		JOIN Mappers p1 ON p1.map_id = m.id
-		JOIN Players p2 ON p2.steam_id = p1.player_id
-		JOIN Courses c ON c.map_id = m.id
-		JOIN CourseMappers p3 ON p3.course_id = c.id
-		JOIN Players p4 ON p4.steam_id = p3.player_id
-		JOIN CourseFilters f ON f.course_id = c.id
+	  Maps m
+	  JOIN Mappers p1 ON p1.map_id = m.id
+	  JOIN Players p2 ON p2.steam_id = p1.player_id
+	  JOIN Courses c ON c.map_id = m.id
+	  JOIN CourseMappers p3 ON p3.course_id = c.id
+	  JOIN Players p4 ON p4.steam_id = p3.player_id
+	  JOIN CourseFilters f ON f.course_id = c.id
 "#;
 
 /// This function returns the router for the `/maps` routes.
@@ -104,13 +104,13 @@ pub async fn get_maps(
 		query.push(filter).push(
 			r#"
 			m.id IN (
-				SELECT
-					m1.id
-				FROM
-					Maps m1
-					JOIN Mappers m2 ON m2.map_id = m1.id
-				WHERE
-					m2.player_id =
+			  SELECT
+			    m1.id
+			  FROM
+			    Maps m1
+			    JOIN Mappers m2 ON m2.map_id = m1.id
+			  WHERE
+			    m2.player_id =
 			"#,
 		);
 

@@ -8,9 +8,9 @@
  * See https://developer.valvesoftware.com/wiki/SteamID
  */
 CREATE TABLE IF NOT EXISTS Players (
-	`steam_id` INT4 UNSIGNED NOT NULL,
-	`name` VARCHAR(32) NOT NULL,
-	`last_known_ip_address` INET4 NOT NULL,
-	`is_banned` BOOLEAN NOT NULL DEFAULT FALSE,
-	PRIMARY KEY (`steam_id`)
+  `steam_id` INT4 UNSIGNED NOT NULL,
+  `name` VARCHAR(32) NOT NULL,
+  `last_known_ip_address` INET4 NOT NULL,
+  `is_banned` BOOLEAN NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`steam_id`)
 );

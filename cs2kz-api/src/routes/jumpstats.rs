@@ -47,34 +47,34 @@ pub async fn get_jumpstats(
 	let mut query = QueryBuilder::new(
 		r#"
 		SELECT
-			j.id,
-			j.type kind,
-			j.mode_id,
-			j.style_id,
-			j.strafes,
-			j.distance,
-			j.sync,
-			j.pre,
-			j.max,
-			j.overlap,
-			j.bad_air,
-			j.dead_air,
-			j.height,
-			j.airpath,
-			j.deviation,
-			j.average_width,
-			j.airtime,
-			p.steam_id player_id,
-			p.name player_name,
-			s.id server_id,
-			s.name server_name,
-			v.version,
-			j.created_on
+		  j.id,
+		  j.type kind,
+		  j.mode_id,
+		  j.style_id,
+		  j.strafes,
+		  j.distance,
+		  j.sync,
+		  j.pre,
+		  j.max,
+		  j.overlap,
+		  j.bad_air,
+		  j.dead_air,
+		  j.height,
+		  j.airpath,
+		  j.deviation,
+		  j.average_width,
+		  j.airtime,
+		  p.steam_id player_id,
+		  p.name player_name,
+		  s.id server_id,
+		  s.name server_name,
+		  v.version,
+		  j.created_on
 		FROM
-			Jumpstats j
-			JOIN Players p ON p.steam_id = j.player_id
-			JOIN Servers s ON s.id = j.server_id
-			JOIN PluginVersions v ON v.id = j.plugin_version_id
+		  Jumpstats j
+		  JOIN Players p ON p.steam_id = j.player_id
+		  JOIN Servers s ON s.id = j.server_id
+		  JOIN PluginVersions v ON v.id = j.plugin_version_id
 		"#,
 	);
 

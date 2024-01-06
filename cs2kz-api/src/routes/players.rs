@@ -54,12 +54,12 @@ pub async fn get_players(
 		Player,
 		r#"
 		SELECT
-			steam_id AS `steam_id: _`,
-			name
+		  steam_id AS `steam_id: _`,
+		  name
 		FROM
-			Players
+		  Players
 		LIMIT
-			? OFFSET ?
+		  ? OFFSET ?
 		"#,
 		limit,
 		offset,
@@ -136,14 +136,14 @@ pub async fn get_player_by_ident(
 				Player,
 				r#"
 				SELECT
-					steam_id AS `steam_id: _`,
-					name
+				  steam_id AS `steam_id: _`,
+				  name
 				FROM
-					Players
+				  Players
 				WHERE
-					steam_id = ?
+				  steam_id = ?
 				LIMIT
-					1
+				  1
 				"#,
 				steam_id,
 			}
@@ -155,14 +155,14 @@ pub async fn get_player_by_ident(
 				Player,
 				r#"
 				SELECT
-					steam_id AS `steam_id: _`,
-					name
+				  steam_id AS `steam_id: _`,
+				  name
 				FROM
-					Players
+				  Players
 				WHERE
-					name LIKE ?
+				  name LIKE ?
 				LIMIT
-					1
+				  1
 				"#,
 				format!("%{name}%"),
 			}

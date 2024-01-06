@@ -46,37 +46,37 @@ pub async fn get_records(
 	let mut query = QueryBuilder::new(
 		r#"
 		SELECT
-			r.id,
-			p.steam_id player_id,
-			p.name player_name,
-			f.course_id,
-			m.id map_id,
-			m.name map_name,
-			c.map_stage,
-			f.mode_id,
-			r.style_id,
-			f.tier,
-			r.teleports,
-			s.id server_id,
-			s.name server_name,
-			r.perfs,
-			r.bhops_tick0,
-			r.bhops_tick1,
-			r.bhops_tick2,
-			r.bhops_tick3,
-			r.bhops_tick4,
-			r.bhops_tick5,
-			r.bhops_tick6,
-			r.bhops_tick7,
-			r.bhops_tick8,
-			r.created_on
+		  r.id,
+		  p.steam_id player_id,
+		  p.name player_name,
+		  f.course_id,
+		  m.id map_id,
+		  m.name map_name,
+		  c.map_stage,
+		  f.mode_id,
+		  r.style_id,
+		  f.tier,
+		  r.teleports,
+		  s.id server_id,
+		  s.name server_name,
+		  r.perfs,
+		  r.bhops_tick0,
+		  r.bhops_tick1,
+		  r.bhops_tick2,
+		  r.bhops_tick3,
+		  r.bhops_tick4,
+		  r.bhops_tick5,
+		  r.bhops_tick6,
+		  r.bhops_tick7,
+		  r.bhops_tick8,
+		  r.created_on
 		FROM
-			Records r
-			JOIN Players p ON p.steam_id = r.player_id
-			JOIN CourseFilters f on f.id = r.filter_id
-			JOIN Courses c ON c.id = f.course_id
-			JOIN Maps m ON m.id = c.map_id
-			JOIN Servers s ON s.id = r.server_id
+		  Records r
+		  JOIN Players p ON p.steam_id = r.player_id
+		  JOIN CourseFilters f ON f.id = r.filter_id
+		  JOIN Courses c ON c.id = f.course_id
+		  JOIN Maps m ON m.id = c.map_id
+		  JOIN Servers s ON s.id = r.server_id
 		"#,
 	);
 

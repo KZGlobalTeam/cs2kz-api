@@ -1,23 +1,44 @@
-DELETE FROM Jumpstats;
-ALTER TABLE Jumpstats AUTO_INCREMENT = 1;
+DELETE FROM
+  Jumpstats;
 
-DELETE FROM PluginVersions;
-ALTER TABLE PluginVersions AUTO_INCREMENT = 1;
+ALTER TABLE
+  Jumpstats AUTO_INCREMENT = 1;
 
-DELETE FROM Servers;
-ALTER TABLE Servers AUTO_INCREMENT = 1;
+DELETE FROM
+  PluginVersions;
 
-DELETE FROM CourseFilters;
-ALTER TABLE CourseFilters AUTO_INCREMENT = 1;
+ALTER TABLE
+  PluginVersions AUTO_INCREMENT = 1;
 
-DELETE FROM CourseMappers;
+DELETE FROM
+  Servers;
 
-DELETE FROM Courses;
-ALTER TABLE Courses AUTO_INCREMENT = 1;
+ALTER TABLE
+  Servers AUTO_INCREMENT = 1;
 
-DELETE FROM Mappers;
+DELETE FROM
+  CourseFilters;
 
-DELETE FROM Maps;
-ALTER TABLE Maps AUTO_INCREMENT = 1;
+ALTER TABLE
+  CourseFilters AUTO_INCREMENT = 1;
 
-DELETE FROM Players;
+DELETE FROM
+  CourseMappers;
+
+DELETE FROM
+  Courses;
+
+ALTER TABLE
+  Courses AUTO_INCREMENT = 1;
+
+DELETE FROM
+  Mappers;
+
+DELETE FROM
+  Maps;
+
+ALTER TABLE
+  Maps AUTO_INCREMENT = 1;
+
+DELETE FROM
+  Players;
