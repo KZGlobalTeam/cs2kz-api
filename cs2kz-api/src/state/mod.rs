@@ -10,6 +10,7 @@ use serde::Serialize;
 use sqlx::{MySql, MySqlPool, Transaction};
 use url::Url;
 
+use crate::config::Environment;
 use crate::steam;
 
 mod error;
@@ -19,6 +20,7 @@ static STEAM_OPEN_ID_URL: &str = "https://steamcommunity.com/openid/login";
 
 /// The API's main application state.
 pub struct AppState {
+	environment: Environment,
 	database: MySqlPool,
 	http_client: reqwest::Client,
 	jwt_header: jwt::Header,
@@ -33,6 +35,7 @@ impl AppState {
 	/// Constructs an [`AppState`] object.
 	#[tracing::instrument]
 	pub async fn new(
+		environment: Environment,
 		database: MySqlPool,
 		jwt_secret: String,
 		api_url: Url,
@@ -47,6 +50,7 @@ impl AppState {
 		let steam_redirect_form = steam::RedirectForm::new(api_url.clone());
 
 		let state = Self {
+			environment,
 			database,
 			http_client,
 			jwt_header,
@@ -58,6 +62,21 @@ impl AppState {
 		};
 
 		Ok(Box::leak(Box::new(state)))
+	}
+
+	/// Determines the environment the API is currently running in.
+	pub const fn environment(&self) -> Environment {
+		self.environment
+	}
+
+	/// Determines whether the API is currently running in development mode.
+	pub const fn in_dev(&self) -> bool {
+		matches!(self.environment, Environment::Development)
+	}
+
+	/// Determines whether the API is currently running in production.
+	pub const fn in_prod(&self) -> bool {
+		matches!(self.environment, Environment::Production)
 	}
 
 	/// Provides access to the API's database connection pool.
