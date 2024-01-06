@@ -30,7 +30,7 @@ async fn main() -> Result<()> {
 		.await
 		.context("Failed to establish database connection.")?;
 
-	crate::logging::init(database);
+	crate::logging::init(database, config.axiom_dataset.clone());
 
 	// Connect to the database
 	let database = MySqlPoolOptions::new()

@@ -27,7 +27,7 @@ pub struct AppState {
 	jwt_encoding_key: jwt::EncodingKey,
 	jwt_decoding_key: jwt::DecodingKey,
 	jwt_validation: jwt::Validation,
-	api_url: Url,
+	public_url: Url,
 	steam_redirect_form: steam::RedirectForm,
 }
 
@@ -41,12 +41,10 @@ impl AppState {
 		api_url: Url,
 	) -> Result<&'static Self> {
 		let http_client = reqwest::Client::new();
-
 		let jwt_header = jwt::Header::default();
 		let jwt_encoding_key = jwt::EncodingKey::from_base64_secret(&jwt_secret)?;
 		let jwt_decoding_key = jwt::DecodingKey::from_base64_secret(&jwt_secret)?;
 		let jwt_validation = jwt::Validation::default();
-
 		let steam_redirect_form = steam::RedirectForm::new(api_url.clone());
 
 		let state = Self {
@@ -57,7 +55,7 @@ impl AppState {
 			jwt_encoding_key,
 			jwt_decoding_key,
 			jwt_validation,
-			api_url,
+			public_url: api_url,
 			steam_redirect_form,
 		};
 
@@ -91,7 +89,7 @@ impl AppState {
 
 	/// Provides access to the API's public URL.
 	pub const fn public_url(&self) -> &Url {
-		&self.api_url
+		&self.public_url
 	}
 
 	/// Starts a new database transaction.

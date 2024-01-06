@@ -147,7 +147,7 @@ impl API {
 	/// Starts an [`axum`] server to serve the API.
 	#[tracing::instrument]
 	pub async fn run(
-		Config { socket_addr, api_url, database_url, jwt_secret, environment }: Config,
+		Config { socket_addr, api_url, jwt_secret, environment, .. }: Config,
 		database: MySqlPool,
 		tcp_listener: TcpListener,
 	) -> color_eyre::Result<()> {

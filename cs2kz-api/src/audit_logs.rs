@@ -9,7 +9,7 @@ use tokio::sync::Mutex;
 use tokio::task;
 use tracing::field::{self, Field};
 use tracing::Subscriber;
-use tracing_subscriber::layer;
+use tracing_subscriber::{layer, Layer};
 
 /// Custom [`tracing-subscriber`] layer for saving critical logs to a database.
 #[allow(missing_debug_implementations)]
@@ -24,7 +24,7 @@ impl AuditLayer {
 	}
 }
 
-impl<S: Subscriber> tracing_subscriber::Layer<S> for AuditLayer {
+impl<S: Subscriber> Layer<S> for AuditLayer {
 	fn on_event(&self, event: &tracing::Event<'_>, _ctx: layer::Context<'_, S>) {
 		if !event.fields().any(|field| field.name() == "audit") {
 			return;
