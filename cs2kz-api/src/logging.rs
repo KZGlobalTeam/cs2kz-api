@@ -78,9 +78,18 @@ impl io::Write for &AxiomWriter {
 		let dataset = self.dataset.clone();
 		let data = serde_json::from_slice::<JsonValue>(buf).expect("invalid json logs");
 
+		if data["fields"]["skip_axiom"] == JsonValue::Bool(true) {
+			return Ok(0);
+		}
+
 		task::spawn(async move {
 			if let Err(error) = client.ingest(dataset, [data]).await {
-				error!(audit = true, ?error, "failed to send logs to axiom");
+				error! {
+					audit = true,
+					skip_axiom = true,
+					?error,
+					"failed to send logs to axiom",
+				};
 			}
 		});
 
