@@ -33,6 +33,9 @@ pub struct Config {
 
 	/// The environment the API is running in.
 	pub environment: Environment,
+
+	/// The name of the dataset to send the logs to.
+	pub axiom_dataset: String,
 }
 
 impl Config {
@@ -45,8 +48,16 @@ impl Config {
 		let database_url = Self::load_var::<Url>("DATABASE_URL")?;
 		let jwt_secret = Self::load_var::<String>("KZ_API_JWT_SECRET")?;
 		let environment = Self::load_var::<Environment>("KZ_API_ENVIRONMENT")?;
+		let axiom_dataset = Self::load_var::<String>("AXIOM_DATASET")?;
 
-		Ok(Self { socket_addr, api_url, database_url, jwt_secret, environment })
+		Ok(Self {
+			socket_addr,
+			api_url,
+			database_url,
+			jwt_secret,
+			environment,
+			axiom_dataset,
+		})
 	}
 
 	/// Loads the given `variable` from the environment and parses it.

@@ -57,7 +57,7 @@ pub async fn log_request(
 
 const fn stringify_bytes(bytes: &[u8]) -> &str {
 	match std::str::from_utf8(bytes) {
-		Ok(s) if s.is_empty() => "<empty>",
+		Ok(s) if s.is_empty() => "null",
 		Ok(s) => s,
 		Err(_) => "<bytes>",
 	}

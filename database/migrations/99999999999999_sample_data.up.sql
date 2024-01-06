@@ -1,27 +1,3 @@
-DELETE FROM Jumpstats;
-ALTER TABLE Jumpstats AUTO_INCREMENT = 1;
-
-DELETE FROM PluginVersions;
-ALTER TABLE PluginVersions AUTO_INCREMENT = 1;
-
-DELETE FROM Servers;
-ALTER TABLE Servers AUTO_INCREMENT = 1;
-
-DELETE FROM CourseFilters;
-ALTER TABLE CourseFilters AUTO_INCREMENT = 1;
-
-DELETE FROM CourseMappers;
-
-DELETE FROM Courses;
-ALTER TABLE Courses AUTO_INCREMENT = 1;
-
-DELETE FROM Mappers;
-
-DELETE FROM Maps;
-ALTER TABLE Maps AUTO_INCREMENT = 1;
-
-DELETE FROM Players;
-
 INSERT
 	IGNORE INTO Players (`steam_id`, `name`, `last_known_ip_address`)
 VALUES

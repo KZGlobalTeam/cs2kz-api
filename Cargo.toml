@@ -17,7 +17,7 @@ version = "0.1"
 [workspace.dependencies.tracing-subscriber]
 version = "0.3"
 default-features = false
-features = ["std", "fmt", "ansi", "env-filter", "time"]
+features = ["std", "fmt", "ansi", "env-filter", "time", "json"]
 
 [workspace.dependencies.time]
 version = "0.3"

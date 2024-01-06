@@ -71,6 +71,11 @@ version = "0.12"
 version = "1"
 features = ["serde"]
 
+[dependencies.axiom-rs]
+version = "0.9"
+default-features = false
+features = ["tokio", "rustls-tls"]
+
 [dev-dependencies]
 ctor = "0.2.6"
 cs2kz-api-macros = { path = "../macros" }
