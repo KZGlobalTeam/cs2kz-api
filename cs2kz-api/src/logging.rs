@@ -21,10 +21,10 @@ pub fn init(database: MySqlConnection, axiom_dataset: String) {
 
 	let stderr = tracing_subscriber::fmt::layer()
 		.pretty()
-		.with_thread_ids(true)
-		.with_writer(io::stderr)
 		.with_timer(timer)
-		.with_span_events(span_events.clone())
+		.with_thread_ids(true)
+		.with_span_events(span_events)
+		.with_writer(io::stderr)
 		.with_filter(filter);
 
 	let audit_logs = cs2kz_api::audit_logs::AuditLayer::new(database);
@@ -36,7 +36,6 @@ pub fn init(database: MySqlConnection, axiom_dataset: String) {
 
 	let axiom = tracing_subscriber::fmt::layer()
 		.json()
-		.with_level(true)
 		.with_thread_ids(true)
 		.with_writer(axiom_writer)
 		.with_filter(axiom_filter);
