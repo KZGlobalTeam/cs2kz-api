@@ -102,8 +102,7 @@ pub async fn callback(
 	// TODO: create a bunch of cookies depending on the user's permissions and add them to the
 	// correct subdomains
 	let cookie = Cookie::build(("steam_id", steam_id.to_string()))
-		.http_only(true)
-		.secure(true)
+		.secure(state.in_prod())
 		.permanent() // TODO
 		.domain(host.to_string())
 		.path(origin_url.path().to_owned())
