@@ -105,6 +105,8 @@ pub async fn callback(
 		.http_only(true)
 		.secure(true)
 		.permanent() // TODO
+		.domain(host.to_string())
+		.path(origin_url.path().to_owned())
 		.build();
 
 	cookies = cookies.add(cookie);
