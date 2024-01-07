@@ -273,6 +273,90 @@
         ]
       }
     },
+    "/players/{ident}/steam": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "This endpoint allows you to fetch a single player by their SteamID or (parts of their) name.",
+        "description": "This endpoint allows you to fetch a single player by their SteamID or (parts of their) name.",
+        "operationId": "get_steam_user",
+        "parameters": [
+          {
+            "name": "ident",
+            "in": "path",
+            "description": "A player's SteamID or name.",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/PlayerIdentifier"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "A Steam user.",
+                  "required": [
+                    "steam_id",
+                    "steam_id64",
+                    "username",
+                    "realname",
+                    "profile_url",
+                    "avatar_url"
+                  ],
+                  "properties": {
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "steam_id64": {
+                      "type": "string",
+                      "description": "The user's SteamID as a stringified 64-bit integer."
+                    },
+                    "username": {
+                      "type": "string",
+                      "description": "The user's name."
+                    },
+                    "realname": {
+                      "type": "string",
+                      "description": "The user's \"real\" name."
+                    },
+                    "country": {
+                      "type": "string",
+                      "description": "The user's country code.",
+                      "nullable": true
+                    },
+                    "profile_url": {
+                      "type": "string",
+                      "description": "The user's profile."
+                    },
+                    "avatar_url": {
+                      "type": "string",
+                      "description": "The user's avatar."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "There was no data available for the given query."
+          },
+          "400": {
+            "description": "Required request data was missing / invalid."
+          },
+          "500": {
+            "description": "A bug in the API."
+          },
+          "502": {
+            "description": "An external API call failed."
+          }
+        }
+      }
+    },
     "/maps": {
       "get": {
         "tags": [
@@ -3421,6 +3505,48 @@
       },
       "SteamID": {
         "type": "string"
+      },
+      "SteamUser": {
+        "type": "object",
+        "description": "A Steam user.",
+        "required": [
+          "steam_id",
+          "steam_id64",
+          "username",
+          "realname",
+          "profile_url",
+          "avatar_url"
+        ],
+        "properties": {
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
+          },
+          "steam_id64": {
+            "type": "string",
+            "description": "The user's SteamID as a stringified 64-bit integer."
+          },
+          "username": {
+            "type": "string",
+            "description": "The user's name."
+          },
+          "realname": {
+            "type": "string",
+            "description": "The user's \"real\" name."
+          },
+          "country": {
+            "type": "string",
+            "description": "The user's country code.",
+            "nullable": true
+          },
+          "profile_url": {
+            "type": "string",
+            "description": "The user's profile."
+          },
+          "avatar_url": {
+            "type": "string",
+            "description": "The user's avatar."
+          }
+        }
       },
       "Style": {
         "type": "string",

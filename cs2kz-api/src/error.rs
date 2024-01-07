@@ -9,7 +9,7 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
 use cs2kz::{Mode, SteamID, Tier};
-use serde_json::json;
+use serde_json::{json, Value as JsonValue};
 use thiserror::Error;
 use tracing::error;
 
@@ -85,11 +85,15 @@ pub enum Error {
 	/// A submitted map has an invalid Steam Workshop ID.
 	#[error("Workshop ID `{0}` is not a valid ID.")]
 	InvalidWorkshopID(u32),
+
+	/// Something went wrong making a request to the Steam API.
+	#[error("Steam API error.")]
+	SteamAPI(reqwest::Error),
 }
 
 impl IntoResponse for Error {
 	fn into_response(self) -> axum::response::Response {
-		let message = self.to_string();
+		let mut body = json!({ "message": self.to_string() });
 		let code = match self {
 			Self::Unexpected(error) => {
 				error!(audit = true, ?error, "Unexpected error happened");
@@ -106,9 +110,13 @@ impl IntoResponse for Error {
 			| Self::InvalidWorkshopID(_) => StatusCode::BAD_REQUEST,
 			Self::InvalidFilter | Self::NotPersonalBest => StatusCode::CONFLICT,
 			Self::Unauthorized => StatusCode::UNAUTHORIZED,
+			Self::SteamAPI(error) => {
+				body["error"] = JsonValue::String(error.to_string());
+				StatusCode::BAD_GATEWAY
+			}
 		};
 
-		(code, Json(json!({ "message": message }))).into_response()
+		(code, Json(body)).into_response()
 	}
 }
 

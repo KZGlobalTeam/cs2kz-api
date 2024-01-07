@@ -29,6 +29,7 @@ pub struct AppState {
 	jwt_validation: jwt::Validation,
 	public_url: Url,
 	steam_redirect_form: steam::RedirectForm,
+	steam_api_key: String,
 }
 
 impl AppState {
@@ -39,6 +40,7 @@ impl AppState {
 		database: MySqlPool,
 		jwt_secret: String,
 		api_url: Url,
+		steam_api_key: String,
 	) -> Result<&'static Self> {
 		let http_client = reqwest::Client::new();
 		let jwt_header = jwt::Header::default();
@@ -57,6 +59,7 @@ impl AppState {
 			jwt_validation,
 			public_url: api_url,
 			steam_redirect_form,
+			steam_api_key,
 		};
 
 		Ok(Box::leak(Box::new(state)))
@@ -90,6 +93,11 @@ impl AppState {
 	/// Provides access to the API's public URL.
 	pub const fn public_url(&self) -> &Url {
 		&self.public_url
+	}
+
+	/// Provides access to the API's Steam WebAPI Key.
+	pub fn steam_api_key(&self) -> String {
+		self.steam_api_key.clone()
 	}
 
 	/// Starts a new database transaction.

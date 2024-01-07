@@ -7,6 +7,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value as JsonValue;
 use tracing::trace;
 use url::Url;
+use utoipa::ToSchema;
 
 use crate::{Error, Result};
 
@@ -229,6 +230,99 @@ impl Serialize for GetWorkshopMapParams {
 		serializer.serialize_field("itemcount", &1)?;
 		serializer.serialize_field("publishedfileids[0]", &self.0)?;
 		serializer.end()
+	}
+}
+
+/// A Steam user.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct SteamUser {
+	/// The user's SteamID in standard format.
+	pub steam_id: SteamID,
+
+	/// The user's SteamID as a stringified 64-bit integer.
+	pub steam_id64: String,
+
+	/// The user's name.
+	pub username: String,
+
+	/// The user's "real" name.
+	pub realname: String,
+
+	/// The user's country code.
+	pub country: Option<String>,
+
+	/// The user's profile.
+	#[schema(value_type = String)]
+	pub profile_url: Url,
+
+	/// The user's avatar.
+	#[schema(value_type = String)]
+	pub avatar_url: Url,
+}
+
+impl SteamUser {
+	const BASE_URL: &'static str =
+		"http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002";
+
+	/// Fetches the user with the given `steam_id` from Steam's API.
+	pub async fn get(
+		steam_id: SteamID,
+		api_key: String,
+		http_client: &reqwest::Client,
+	) -> Result<Self> {
+		let url = Url::parse_with_params(Self::BASE_URL, [
+			("key", api_key),
+			("steamids", steam_id.as_u64().to_string()),
+		])
+		.expect("this is a valid url");
+
+		let response = http_client.get(url).send().await.map_err(Error::SteamAPI)?;
+
+		let user = response
+			.json::<Self>()
+			.await
+			.map_err(|err| Error::Unexpected(Box::new(err)))?;
+
+		Ok(user)
+	}
+}
+
+impl<'de> Deserialize<'de> for SteamUser {
+	fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		#[derive(Deserialize)]
+		struct Helper1 {
+			response: Helper2,
+		}
+
+		#[derive(Deserialize)]
+		struct Helper2 {
+			players: [Helper3; 1],
+		}
+
+		#[derive(Deserialize)]
+		struct Helper3 {
+			steamid: SteamID,
+			personaname: String,
+			realname: String,
+			loccountrycode: Option<String>,
+			profileurl: Url,
+			avatar: Url,
+		}
+
+		Helper1::deserialize(deserializer).map(|x| x.response).map(
+			|Helper2 { players: [player] }| Self {
+				steam_id: player.steamid,
+				steam_id64: player.steamid.as_u64().to_string(),
+				username: player.personaname,
+				realname: player.realname,
+				country: player.loccountrycode,
+				profile_url: player.profileurl,
+				avatar_url: player.avatar,
+			},
+		)
 	}
 }
 

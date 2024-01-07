@@ -40,6 +40,10 @@ pub struct Conflict;
 #[response(status = StatusCode::INTERNAL_SERVER_ERROR, description = "A bug in the API.")]
 pub struct InternalServerError;
 
+#[derive(IntoResponses)]
+#[response(status = StatusCode::BAD_GATEWAY, description = "An external API call failed.")]
+pub struct BadGateway;
+
 pub struct Security;
 
 impl Modify for Security {

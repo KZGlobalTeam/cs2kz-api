@@ -14,6 +14,8 @@ use utoipa::{IntoParams, ToSchema};
 use crate::jwt::ServerClaims;
 use crate::models::Player;
 use crate::responses::Created;
+use crate::sql::FetchID;
+use crate::steam::SteamUser;
 use crate::{openapi as R, AppState, Error, Result, State};
 
 /// This function returns the router for the `/players` routes.
@@ -26,6 +28,7 @@ pub fn router(state: &'static AppState) -> Router {
 		.route("/", post(create_player).layer(verify_gameserver()))
 		.route("/:ident", get(get_player_by_ident))
 		.route("/:ident", patch(update_player).layer(verify_gameserver()))
+		.route("/:ident/steam", get(get_steam_user))
 		.with_state(state)
 }
 
@@ -304,6 +307,32 @@ pub async fn update_player(
 	.await?;
 
 	Ok(())
+}
+
+/// This endpoint allows you to fetch a single player by their SteamID or (parts of their) name.
+#[tracing::instrument]
+#[utoipa::path(
+	get,
+	tag = "Players",
+	path = "/players/{ident}/steam",
+	params(("ident" = PlayerIdentifier<'_>, Path, description = "A player's SteamID or name.")),
+	responses(
+		R::Ok<SteamUser>,
+		R::NoContent,
+		R::BadRequest,
+		R::InternalServerError,
+		R::BadGateway,
+	),
+)]
+pub async fn get_steam_user(
+	state: State,
+	Path(ident): Path<PlayerIdentifier<'_>>,
+) -> Result<Json<SteamUser>> {
+	let steam_id = ident.fetch_id(state.database()).await?;
+
+	SteamUser::get(steam_id, state.steam_api_key(), state.http_client())
+		.await
+		.map(Json)
 }
 
 /// Query parameters for retrieving information about players.

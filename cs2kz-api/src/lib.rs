@@ -84,6 +84,8 @@ pub mod middleware;
 			models::BhopStats,
 			models::Ban,
 
+			steam::SteamUser,
+
 			routes::players::CreatePlayerRequest,
 			routes::players::UpdatePlayerRequest,
 			routes::players::Session,
@@ -116,6 +118,7 @@ pub mod middleware;
 		routes::players::create_player,
 		routes::players::get_player_by_ident,
 		routes::players::update_player,
+		routes::players::get_steam_user,
 
 		routes::maps::get_maps,
 		routes::maps::create_map,
@@ -147,11 +150,12 @@ impl API {
 	/// Starts an [`axum`] server to serve the API.
 	#[tracing::instrument]
 	pub async fn run(
-		Config { socket_addr, api_url, jwt_secret, environment, .. }: Config,
+		Config { socket_addr, api_url, jwt_secret, environment, steam_api_key, .. }: Config,
 		database: MySqlPool,
 		tcp_listener: TcpListener,
 	) -> color_eyre::Result<()> {
-		let state = AppState::new(environment, database, jwt_secret, api_url).await?;
+		let state =
+			AppState::new(environment, database, jwt_secret, api_url, steam_api_key).await?;
 
 		debug!("Initialized application state.");
 

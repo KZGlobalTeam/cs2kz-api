@@ -36,6 +36,11 @@ pub struct Config {
 
 	/// The name of the dataset to send the logs to.
 	pub axiom_dataset: String,
+
+	/// [Steam WebAPI] Key.
+	///
+	/// [Steam WebAPI]: https://steamcommunity.com/dev
+	pub steam_api_key: String,
 }
 
 impl Config {
@@ -49,6 +54,7 @@ impl Config {
 		let jwt_secret = Self::load_var::<String>("KZ_API_JWT_SECRET")?;
 		let environment = Self::load_var::<Environment>("KZ_API_ENVIRONMENT")?;
 		let axiom_dataset = Self::load_var::<String>("AXIOM_DATASET")?;
+		let steam_api_key = Self::load_var::<String>("STEAM_API_KEY")?;
 
 		Ok(Self {
 			socket_addr,
@@ -57,6 +63,7 @@ impl Config {
 			jwt_secret,
 			environment,
 			axiom_dataset,
+			steam_api_key,
 		})
 	}
 

@@ -65,8 +65,6 @@ pub fn push_limits<const LIMIT: u64>(
 		.push_bind(offset);
 }
 
-// TODO(AlphaKeks): make this an async trait once they're stable
-
 /// A convenience trait for fetching IDs from the database.
 pub trait FetchID {
 	/// The ID to be fetched.
