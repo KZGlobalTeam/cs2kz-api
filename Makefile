@@ -2,6 +2,8 @@ include .env.example
 -include .env
 export
 
+DATABASE_PORT ?= "8070"
+
 default:
 	@make db
 	@echo "Waiting for the database to spin up..."
@@ -19,18 +21,18 @@ db-clean:
 
 db-connect:
 	@echo "Connecting to database..."
-	@$(if $(shell command -v mycli 2> /dev/null), mycli, mariadb) \
+	@$(if $(shell command -v mycli 2>/dev/null), mycli, mariadb) \
 		-u kz \
 		-pcsgo-kz-is-dead-boys \
 		-h 127.0.0.1 \
-		-P $${KZ_API_DATABASE_PORT:-8070} \
+		-P $(DATABASE_PORT) \
 		-D cs2kz
 
 migrations:
 	@echo "Running migrations..."
 	@sqlx migrate run \
 		--source ./database/migrations/ \
-		--database-url $${DATABASE_URL}
+		--database-url $(DATABASE_URL)
 
 api:
 	@echo "Building API container..."
@@ -46,7 +48,7 @@ api-spec:
 sqlx-cache:
 	cargo sqlx prepare \
 		--workspace \
-		--database-url $${DATABASE_URL}
+		--database-url $(DATABASE_URL)
 
 dev:
 	cargo run -p cs2kz-api
@@ -68,4 +70,4 @@ docs:
 
 test:
 	@make db
-	DATABASE_URL=$${TEST_DATABASE_URL} cargo test --package cs2kz-api $(ARGS) -- --nocapture
+	DATABASE_URL=$(TEST_DATABASE_URL) cargo test --package cs2kz-api $(ARGS) -- --nocapture
