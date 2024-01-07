@@ -56,14 +56,16 @@ pub async fn callback(
 	mut cookies: CookieJar,
 	Query(payload): Query<steam::AuthResponse>,
 ) -> Result<(CookieJar, Redirect)> {
-	if payload.return_to.host() != state.public_url().host() {
-		trace!(%payload.return_to, "invalid return URL");
-		return Err(Error::Unauthorized);
-	}
+	let (steam_id, origin_url) = payload
+		.validate(state.public_url(), state.http_client())
+		.await?;
 
-	let (steam_id, origin_url) = payload.validate(state.http_client()).await?;
-	let host = origin_url.host().ok_or(Error::Unauthorized)?;
-	let public_host = state.public_url().host().expect("we have a host");
+	let host = origin_url.host().ok_or_else(|| {
+		trace!("origin URL did not have a host");
+		Error::Unauthorized
+	})?;
+
+	let public_host = state.public_url().host().expect("we always have a host");
 	let is_known_host = match (&host, &public_host) {
 		(Host::Ipv4(ip), Host::Ipv4(public_ip)) => ip == public_ip,
 		(Host::Ipv6(ip), Host::Ipv6(public_ip)) => ip == public_ip,

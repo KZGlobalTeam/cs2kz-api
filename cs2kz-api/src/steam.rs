@@ -1,6 +1,7 @@
 //! This module holds structs specific to communication with the Steam API.
 
 use cs2kz::SteamID;
+use reqwest::header;
 use serde::ser::SerializeStruct;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value as JsonValue;
@@ -105,13 +106,22 @@ impl AuthResponse {
 
 	/// Validates this response with Steam's API and extracts the claimed SteamID
 	/// and original request URL.
-	pub async fn validate(mut self, http_client: &reqwest::Client) -> Result<(SteamID, Url)> {
+	pub async fn validate(
+		mut self,
+		public_url: &Url,
+		http_client: &reqwest::Client,
+	) -> Result<(SteamID, Url)> {
+		if self.return_to.host() != public_url.host() {
+			trace!(%self.return_to, "invalid return URL");
+			return Err(Error::Unauthorized);
+		}
+
 		self.mode = String::from("check_authentication");
 		let query = serde_urlencoded::to_string(&self).expect("this is valid");
 
 		let response = http_client
 			.post(STEAM_LOGIN_VERIFY_URL)
-			.header("Content-Type", "application/x-www-form-urlencoded")
+			.header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
 			.body(query)
 			.send()
 			.await
@@ -128,16 +138,18 @@ impl AuthResponse {
 
 		let is_valid = body
 			.lines()
-			.filter(|line| !line.is_empty())
-			.last()
-			.is_some_and(|line| line == "is_valid:true");
+			.rfind(|&line| line == "is_valid:true")
+			.is_some();
 
 		if !is_valid {
 			trace!("request was invalid");
 			return Err(Error::Unauthorized);
 		}
 
-		let steam_id = self.steam_id().ok_or(Error::Unauthorized)?;
+		let steam_id = self.steam_id().ok_or_else(|| {
+			trace!("steam response did not include a SteamID");
+			Error::Unauthorized
+		})?;
 
 		trace!(%steam_id, %self.origin_url, "user logged in with steam");
 
