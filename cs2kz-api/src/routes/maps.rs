@@ -10,6 +10,7 @@ use cs2kz::{MapIdentifier, Mode, PlayerIdentifier, SteamID, Tier};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
+use tokio::task;
 use utoipa::{IntoParams, ToSchema};
 
 use crate::models::maps::CreateCourseParams;
@@ -17,7 +18,7 @@ use crate::models::{KZMap, RankedStatus};
 use crate::permissions::Permissions;
 use crate::responses::Created;
 use crate::sql::FetchID;
-use crate::steam::WorkshopMap;
+use crate::steam::{WorkshopMap, WorkshopMapFile};
 use crate::{audit, openapi as R, sql, AppState, Error, Result, State};
 
 static GET_BASE_QUERY: &str = r#"
@@ -36,7 +37,7 @@ static GET_BASE_QUERY: &str = r#"
 	  f.teleports filter_teleports,
 	  f.tier filter_tier,
 	  f.ranked_status filter_ranked,
-	  m.filesize,
+	  m.checksum,
 	  m.created_on,
 	  m.updated_on
 	FROM
@@ -183,22 +184,35 @@ pub async fn create_map(
 
 	validate_courses(&body.courses)?;
 
-	let workshop_map = WorkshopMap::get(body.workshop_id, state.http_client())
-		.await
-		.ok_or(Error::InvalidWorkshopID(body.workshop_id))?;
+	let workshop_map = task::spawn(async move {
+		WorkshopMap::get(body.workshop_id, state.http_client())
+			.await
+			.ok_or(Error::InvalidWorkshopID(body.workshop_id))
+	});
+
+	let checksum = task::spawn(async move {
+		WorkshopMapFile::download(body.workshop_id)
+			.await?
+			.checksum()
+			.await
+	});
+
+	let (workshop_map, checksum) = tokio::try_join!(workshop_map, checksum)
+		.map(|(workshop_map, checksum)| Result::Ok((workshop_map?, checksum?)))
+		.expect("the tasks don't panic")?;
 
 	let mut transaction = state.begin_transaction().await?;
 
 	sqlx::query! {
 		r#"
 		INSERT INTO
-		  Maps (name, workshop_id, filesize)
+		  Maps (name, workshop_id, checksum)
 		VALUES
 		  (?, ?, ?)
 		"#,
 		workshop_map.name,
 		body.workshop_id,
-		workshop_map.filesize,
+		checksum,
 	}
 	.execute(transaction.as_mut())
 	.await?;
@@ -332,32 +346,19 @@ pub async fn update_map(
 			.workshop_id
 	};
 
-	if body.name || body.filesize {
-		let workshop_map = WorkshopMap::get(workshop_id, state.http_client())
-			.await
-			.ok_or(Error::InvalidWorkshopID(workshop_id))?;
+	let workshop_map = WorkshopMap::get(workshop_id, state.http_client())
+		.await
+		.ok_or(Error::InvalidWorkshopID(workshop_id))?;
 
-		if body.name {
-			update_map
-				.push(delimiter)
-				.push(" name = ")
-				.push_bind(workshop_map.name);
-
-			delimiter = ",";
-		}
-
-		if body.filesize {
-			update_map
-				.push(delimiter)
-				.push(" filesize = ")
-				.push_bind(workshop_map.filesize);
-		}
-	}
+	update_map
+		.push(delimiter)
+		.push(" name = ")
+		.push_bind(workshop_map.name);
 
 	update_map.push(" WHERE id = ").push_bind(map_id);
 	update_map.build().execute(transaction.as_mut()).await?;
 
-	audit!(%map_id, update_name = %body.name, update_filesize = %body.filesize, "update map information");
+	audit!(%map_id, "update map information");
 
 	if let Some(mappers) = body.added_mappers {
 		create_mappers(map_id, &mappers, transaction.as_mut()).await?;
@@ -694,14 +695,6 @@ pub struct CreateMapRequest {
 pub struct UpdateMapRequest {
 	/// The map's new Steam Workshop ID.
 	workshop_id: Option<u32>,
-
-	/// Update the map's name to the Workshop's version.
-	#[serde(default)]
-	name: bool,
-
-	/// Update the map's filesize to the Workshop's value.
-	#[serde(default)]
-	filesize: bool,
 
 	/// List of new mappers.
 	added_mappers: Option<Vec<SteamID>>,

@@ -79,42 +79,42 @@ VALUES
   (234537517, "neon", "127.0.0.1");
 
 INSERT
-  IGNORE INTO Maps (`name`, `workshop_id`, `filesize`)
+  IGNORE INTO Maps (`name`, `workshop_id`, `checksum`)
 VALUES
   ("kz_checkmate", 3070194623, 133994000);
 
 INSERT
-  IGNORE INTO Maps (`name`, `workshop_id`, `filesize`)
+  IGNORE INTO Maps (`name`, `workshop_id`, `checksum`)
 VALUES
   ("kz_chrimstmas", 2903326571, 42070000);
 
 INSERT
-  IGNORE INTO Maps (`name`, `workshop_id`, `filesize`)
+  IGNORE INTO Maps (`name`, `workshop_id`, `checksum`)
 VALUES
   ("kz_phamous", 3104579274, 74697000);
 
 INSERT
-  IGNORE INTO Maps (`name`, `workshop_id`, `filesize`)
+  IGNORE INTO Maps (`name`, `workshop_id`, `checksum`)
 VALUES
   ("kz_ggsh", 3072744536, 31237000);
 
 INSERT
-  IGNORE INTO Maps (`name`, `workshop_id`, `filesize`)
+  IGNORE INTO Maps (`name`, `workshop_id`, `checksum`)
 VALUES
   ("kz_victoria", 3086304337, 130158000);
 
 INSERT
-  IGNORE INTO Maps (`name`, `workshop_id`, `filesize`)
+  IGNORE INTO Maps (`name`, `workshop_id`, `checksum`)
 VALUES
   ("kz_generic", 3070316567, 134684000);
 
 INSERT
-  IGNORE INTO Maps (`name`, `workshop_id`, `filesize`)
+  IGNORE INTO Maps (`name`, `workshop_id`, `checksum`)
 VALUES
   ("kz_grotto", 3121168339, 80401000);
 
 INSERT
-  IGNORE INTO Maps (`name`, `workshop_id`, `filesize`)
+  IGNORE INTO Maps (`name`, `workshop_id`, `checksum`)
 VALUES
   ("kz_igneous", 3102712799, 267639000);
 

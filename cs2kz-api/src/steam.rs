@@ -1,11 +1,17 @@
 //! This module holds structs specific to communication with the Steam API.
 
+use std::iter;
+use std::path::Path;
+
 use cs2kz::SteamID;
 use reqwest::header;
 use serde::ser::SerializeStruct;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value as JsonValue;
-use tracing::trace;
+use tokio::fs::File;
+use tokio::io::AsyncReadExt;
+use tokio::process::Command;
+use tracing::{error, trace};
 use url::Url;
 use utoipa::ToSchema;
 
@@ -120,7 +126,7 @@ impl AuthResponse {
 		self.mode = String::from("check_authentication");
 		let query = serde_urlencoded::to_string(&self).expect("this is valid");
 
-		let response = http_client
+		let is_valid = http_client
 			.post(STEAM_LOGIN_VERIFY_URL)
 			.header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
 			.body(query)
@@ -130,14 +136,13 @@ impl AuthResponse {
 			.map_err(|err| {
 				trace!(?err, "failed to authenticate user");
 				Error::Unauthorized
-			})?;
-
-		let body = response.text().await.map_err(|err| {
-			trace!(?err, "steam response was not text");
-			Error::Unauthorized
-		})?;
-
-		let is_valid = body
+			})?
+			.text()
+			.await
+			.map_err(|err| {
+				trace!(?err, "steam response was not text");
+				Error::Unauthorized
+			})?
 			.lines()
 			.rfind(|&line| line == "is_valid:true")
 			.is_some();
@@ -163,9 +168,6 @@ impl AuthResponse {
 pub struct WorkshopMap {
 	/// The map's name.
 	pub name: String,
-
-	/// The map's filesize.
-	pub filesize: u64,
 }
 
 #[derive(Debug)]
@@ -202,21 +204,15 @@ impl<'de> Deserialize<'de> for WorkshopMap {
 	{
 		use serde::de::Error as E;
 
-		let object = JsonValue::deserialize(deserializer)
+		let name = JsonValue::deserialize(deserializer)
 			.map(|mut object| object["response"].take())
 			.map(|mut object| object["publishedfiledetails"].take())
-			.map(|mut object| object[0].take())?;
+			.map(|mut object| object[0].take())
+			.map(|mut object| object["title"].take())
+			.map(|object| object.as_str().map(ToOwned::to_owned))?
+			.ok_or_else(|| E::missing_field("title"))?;
 
-		let name = object["title"]
-			.as_str()
-			.ok_or_else(|| E::missing_field("title"))?
-			.to_owned();
-
-		let filesize = object["file_size"]
-			.as_u64()
-			.ok_or_else(|| E::missing_field("file_size"))?;
-
-		Ok(Self { name, filesize })
+		Ok(Self { name })
 	}
 }
 
@@ -230,6 +226,69 @@ impl Serialize for GetWorkshopMapParams {
 		serializer.serialize_field("itemcount", &1)?;
 		serializer.serialize_field("publishedfileids[0]", &self.0)?;
 		serializer.end()
+	}
+}
+
+/// A `.vpk` file downloaded from the workshop.
+#[derive(Debug)]
+pub struct WorkshopMapFile(File);
+
+impl WorkshopMapFile {
+	#[rustfmt::skip]
+	const DOWNLOAD_COMMAND: &'static [&'static str] = &[
+		"+force_install_dir", "/home/steam/downloads",
+		"+login", "anonymous",
+		"+workshop_download_item", "730",
+	];
+
+	const DOWNLOAD_DIR: &'static str = "/home/steam/downloads/steamapps/workshop/content/730";
+
+	/// Downloads the workshop map with the given `id` using SteamCMD.
+	pub async fn download(id: u32) -> Result<Self> {
+		let args = Self::DOWNLOAD_COMMAND
+			.iter()
+			.copied()
+			.map(String::from)
+			.chain(iter::once(id.to_string()))
+			.chain(iter::once(String::from("+quit")));
+
+		let output = Command::new("./steamcmd.sh")
+			.args(args)
+			.spawn()
+			.map_err(|err| {
+				error!(audit = true, ?err, "failed to run steamcmd");
+				Error::WorkshopMapDownload
+			})?
+			.wait_with_output()
+			.await
+			.map_err(|err| {
+				error!(audit = true, ?err, "failed to wait for steamcmd");
+				Error::WorkshopMapDownload
+			})?;
+
+		if !output.status.success() {
+			error!(audit = true, ?output, "steamcmd was unsuccessful");
+			return Err(Error::WorkshopMapDownload);
+		}
+
+		let path = Path::new(Self::DOWNLOAD_DIR).join(format!("{id}/{id}.vpk"));
+		let vpk = File::open(path).await.map_err(|err| {
+			error!(audit = true, ?err, "failed to open vpk");
+			Error::WorkshopMapDownload
+		})?;
+
+		Ok(Self(vpk))
+	}
+
+	/// Computes the checksum for this map file.
+	pub async fn checksum(mut self) -> Result<u32> {
+		let mut buf = Vec::new();
+		self.0.read_to_end(&mut buf).await.map_err(|err| {
+			error!(audit = true, ?err, "failed to read vpk file");
+			Error::Unexpected(Box::new(err))
+		})?;
+
+		Ok(crc32fast::hash(&buf))
 	}
 }
 
@@ -342,7 +401,6 @@ mod tests {
 			.context("Failed to fetch Workshop map.")?;
 
 		assert_eq!(map.name, "kz_grotto");
-		assert!(map.filesize > 0);
 
 		Ok(())
 	}

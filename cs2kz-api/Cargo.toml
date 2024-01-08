@@ -71,6 +71,9 @@ version = "0.12"
 version = "1"
 features = ["serde"]
 
+[dependencies.crc32fast]
+version = "1"
+
 [dependencies.axiom-rs]
 version = "0.9"
 default-features = false

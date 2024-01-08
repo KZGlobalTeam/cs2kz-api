@@ -54,7 +54,7 @@ use super::Player;
       ]
     }
   ],
-  "filesize": 190335000,
+  "checksum": 190335000,
   "created_on": "2023-12-10T10:41:01Z",
   "updated_on": "2023-12-10T10:41:01Z"
 }))]
@@ -74,8 +74,8 @@ pub struct KZMap {
 	/// List of courses on this map.
 	pub courses: Vec<Course>,
 
-	/// The filesize of this map in bytes.
-	pub filesize: u64,
+	/// The checksum of this map.
+	pub checksum: u32,
 
 	/// Timestamp of when this map was initially approved.
 	pub created_on: DateTime<Utc>,
@@ -307,7 +307,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 		let id = row.try_get("id")?;
 		let workshop_id = row.try_get("workshop_id")?;
 		let name = row.try_get("name")?;
-		let filesize = row.try_get("filesize")?;
+		let checksum = row.try_get("checksum")?;
 		let created_on = row.try_get("created_on")?;
 		let updated_on = row.try_get("updated_on")?;
 
@@ -358,7 +358,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 			name,
 			mappers,
 			courses,
-			filesize,
+			checksum,
 			created_on,
 			updated_on,
 		})

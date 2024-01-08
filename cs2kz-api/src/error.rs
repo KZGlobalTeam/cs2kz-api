@@ -26,7 +26,7 @@ pub enum Error {
 	/// This is a catch-all error type and will always result in a 500 when returned from
 	/// an HTTP handler.
 	#[error("Something unexpected happened. This is a bug.")]
-	Unexpected(Box<dyn StdError>),
+	Unexpected(Box<dyn StdError + Send>),
 
 	/// A database query returned 0 rows.
 	#[error("No data available for the given query.")]
@@ -89,6 +89,10 @@ pub enum Error {
 	/// Something went wrong making a request to the Steam API.
 	#[error("Steam API error.")]
 	SteamAPI(reqwest::Error),
+
+	/// Something went wrong downloading a map from the Steam Workshop.
+	#[error("Failed to download map from Workshop.")]
+	WorkshopMapDownload,
 }
 
 impl IntoResponse for Error {
@@ -114,6 +118,7 @@ impl IntoResponse for Error {
 				body["error"] = JsonValue::String(error.to_string());
 				StatusCode::BAD_GATEWAY
 			}
+			Self::WorkshopMapDownload => StatusCode::INTERNAL_SERVER_ERROR,
 		};
 
 		(code, Json(body)).into_response()
