@@ -304,7 +304,6 @@
                     "steam_id",
                     "steam_id64",
                     "username",
-                    "realname",
                     "profile_url",
                     "avatar_url"
                   ],
@@ -322,7 +321,8 @@
                     },
                     "realname": {
                       "type": "string",
-                      "description": "The user's \"real\" name."
+                      "description": "The user's \"real\" name.",
+                      "nullable": true
                     },
                     "country": {
                       "type": "string",
@@ -449,7 +449,7 @@
                     "name",
                     "mappers",
                     "courses",
-                    "filesize",
+                    "checksum",
                     "created_on",
                     "updated_on"
                   ],
@@ -484,10 +484,10 @@
                       },
                       "description": "List of courses on this map."
                     },
-                    "filesize": {
+                    "checksum": {
                       "type": "integer",
-                      "format": "uint64",
-                      "description": "The filesize of this map in bytes.",
+                      "format": "uint32",
+                      "description": "The checksum of this map.",
                       "minimum": 0
                     },
                     "created_on": {
@@ -502,6 +502,7 @@
                     }
                   },
                   "example": {
+                    "checksum": 190335000,
                     "courses": [
                       {
                         "filters": [
@@ -531,7 +532,6 @@
                       }
                     ],
                     "created_on": "2023-12-10T10:41:01Z",
-                    "filesize": 190335000,
                     "id": 1,
                     "mappers": [
                       {
@@ -652,7 +652,7 @@
                     "name",
                     "mappers",
                     "courses",
-                    "filesize",
+                    "checksum",
                     "created_on",
                     "updated_on"
                   ],
@@ -687,10 +687,10 @@
                       },
                       "description": "List of courses on this map."
                     },
-                    "filesize": {
+                    "checksum": {
                       "type": "integer",
-                      "format": "uint64",
-                      "description": "The filesize of this map in bytes.",
+                      "format": "uint32",
+                      "description": "The checksum of this map.",
                       "minimum": 0
                     },
                     "created_on": {
@@ -705,6 +705,7 @@
                     }
                   },
                   "example": {
+                    "checksum": 190335000,
                     "courses": [
                       {
                         "filters": [
@@ -734,7 +735,6 @@
                       }
                     ],
                     "created_on": "2023-12-10T10:41:01Z",
-                    "filesize": 190335000,
                     "id": 1,
                     "mappers": [
                       {
@@ -858,7 +858,7 @@
                     "name",
                     "mappers",
                     "courses",
-                    "filesize",
+                    "checksum",
                     "created_on",
                     "updated_on"
                   ],
@@ -893,10 +893,10 @@
                       },
                       "description": "List of courses on this map."
                     },
-                    "filesize": {
+                    "checksum": {
                       "type": "integer",
-                      "format": "uint64",
-                      "description": "The filesize of this map in bytes.",
+                      "format": "uint32",
+                      "description": "The checksum of this map.",
                       "minimum": 0
                     },
                     "created_on": {
@@ -911,6 +911,7 @@
                     }
                   },
                   "example": {
+                    "checksum": 190335000,
                     "courses": [
                       {
                         "filters": [
@@ -940,7 +941,6 @@
                       }
                     ],
                     "created_on": "2023-12-10T10:41:01Z",
-                    "filesize": 190335000,
                     "id": 1,
                     "mappers": [
                       {
@@ -3095,7 +3095,7 @@
           "name",
           "mappers",
           "courses",
-          "filesize",
+          "checksum",
           "created_on",
           "updated_on"
         ],
@@ -3130,10 +3130,10 @@
             },
             "description": "List of courses on this map."
           },
-          "filesize": {
+          "checksum": {
             "type": "integer",
-            "format": "uint64",
-            "description": "The filesize of this map in bytes.",
+            "format": "uint32",
+            "description": "The checksum of this map.",
             "minimum": 0
           },
           "created_on": {
@@ -3148,6 +3148,7 @@
           }
         },
         "example": {
+          "checksum": 190335000,
           "courses": [
             {
               "filters": [
@@ -3177,7 +3178,6 @@
             }
           ],
           "created_on": "2023-12-10T10:41:01Z",
-          "filesize": 190335000,
           "id": 1,
           "mappers": [
             {
@@ -3513,7 +3513,6 @@
           "steam_id",
           "steam_id64",
           "username",
-          "realname",
           "profile_url",
           "avatar_url"
         ],
@@ -3531,7 +3530,8 @@
           },
           "realname": {
             "type": "string",
-            "description": "The user's \"real\" name."
+            "description": "The user's \"real\" name.",
+            "nullable": true
           },
           "country": {
             "type": "string",
@@ -3582,14 +3582,6 @@
             "description": "The map's new Steam Workshop ID.",
             "nullable": true,
             "minimum": 0
-          },
-          "name": {
-            "type": "boolean",
-            "description": "Update the map's name to the Workshop's version."
-          },
-          "filesize": {
-            "type": "boolean",
-            "description": "Update the map's filesize to the Workshop's value."
           },
           "added_mappers": {
             "type": "array",

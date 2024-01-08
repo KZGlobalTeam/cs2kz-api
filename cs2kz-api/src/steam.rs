@@ -246,7 +246,7 @@ pub struct SteamUser {
 	pub username: String,
 
 	/// The user's "real" name.
-	pub realname: String,
+	pub realname: Option<String>,
 
 	/// The user's country code.
 	pub country: Option<String>,
@@ -306,7 +306,7 @@ impl<'de> Deserialize<'de> for SteamUser {
 		struct Helper3 {
 			steamid: SteamID,
 			personaname: String,
-			realname: String,
+			realname: Option<String>,
 			loccountrycode: Option<String>,
 			profileurl: Url,
 			avatar: Url,
