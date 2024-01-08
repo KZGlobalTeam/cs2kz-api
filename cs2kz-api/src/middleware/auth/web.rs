@@ -3,12 +3,10 @@
 use axum::extract::Request;
 use axum::middleware::Next;
 use axum::response::Response;
-use axum_extra::extract::CookieJar;
-use chrono::Utc;
 use cs2kz::SteamID;
-use time::OffsetDateTime;
 use tracing::trace;
 
+use crate::extractors::SessionToken;
 use crate::permissions::Permissions;
 use crate::{Error, Result, State};
 
@@ -29,40 +27,20 @@ pub struct Admin {
 #[tracing::instrument(skip_all, ret, err(Debug))]
 pub async fn verify_web_user<const MIN_PERMS: u64>(
 	state: State,
-	cookies: CookieJar,
+	token: SessionToken,
 	mut request: Request,
 	next: Next,
 ) -> Result<Response> {
-	verify::<MIN_PERMS>(state, cookies, &mut request).await?;
+	verify::<MIN_PERMS>(state, token, &mut request).await?;
 
 	Ok(next.run(request).await)
 }
 
 pub(super) async fn verify<const MIN_PERMS: u64>(
 	state: State,
-	cookies: CookieJar,
+	SessionToken(token): SessionToken,
 	request: &mut Request,
 ) -> Result<()> {
-	let cookie = cookies.get(COOKIE).ok_or_else(|| {
-		trace!("missing cookie");
-		Error::Unauthorized
-	})?;
-
-	let is_expired = cookie
-		.expires_datetime()
-		.map(OffsetDateTime::unix_timestamp)
-		.is_some_and(|expires_at| expires_at < Utc::now().timestamp());
-
-	if is_expired {
-		trace!("expired cookie");
-		return Err(Error::Unauthorized);
-	}
-
-	let token = cookie.value().parse::<u64>().map_err(|_| {
-		trace!("invalid cookie");
-		Error::Unauthorized
-	})?;
-
 	let subdomain = request
 		.uri()
 		.host()

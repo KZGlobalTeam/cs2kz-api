@@ -38,6 +38,7 @@ pub mod serde;
 pub mod sql;
 pub mod steam;
 pub mod permissions;
+pub mod extractors;
 
 pub mod responses;
 pub mod models;

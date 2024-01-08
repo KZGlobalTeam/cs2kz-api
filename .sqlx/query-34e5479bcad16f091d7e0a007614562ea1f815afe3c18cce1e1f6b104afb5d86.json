@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tINSERT INTO\n\t\t\t  WebSessions (subdomain, token, steam_id, expires_on)\n\t\t\tVALUES\n\t\t\t  (?, ?, ?, ?)\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "34e5479bcad16f091d7e0a007614562ea1f815afe3c18cce1e1f6b104afb5d86"
+}

@@ -3,12 +3,12 @@
 use axum::extract::Request;
 use axum::middleware::Next;
 use axum::response::Response;
-use axum_extra::extract::CookieJar;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::Authorization;
 use axum_extra::TypedHeader;
 
-use crate::{Result, State};
+use crate::extractors::SessionToken;
+use crate::{audit, Error, Result, State};
 
 mod gameserver;
 pub use gameserver::verify_gameserver;
@@ -22,14 +22,21 @@ pub use web::verify_web_user;
 pub async fn verify_game_server_or_web_user<const MIN_PERMS: u64>(
 	state: State,
 	token: Option<TypedHeader<Authorization<Bearer>>>,
-	cookies: CookieJar,
+	session_token: Option<SessionToken>,
 	request: Request,
 	next: Next,
 ) -> Result<Response> {
-	// Only gameserver requests will have a bearer token, so we decide which one to call based
-	// on that.
-	match token {
-		None => verify_web_user::<MIN_PERMS>(state, cookies, request, next).await,
-		Some(token) => gameserver::verify_gameserver(state, token, request, next).await,
+	match (token, session_token) {
+		(None, Some(session_token)) => {
+			verify_web_user::<MIN_PERMS>(state, session_token, request, next).await
+		}
+
+		(Some(token), None) => gameserver::verify_gameserver(state, token, request, next).await,
+
+		(None, None) => Err(Error::Unauthorized),
+		(Some(token), Some(session_token)) => {
+			audit!(?token, ?session_token, "got both gameserver jwt and session token");
+			Err(Error::Unauthorized)
+		}
 	}
 }

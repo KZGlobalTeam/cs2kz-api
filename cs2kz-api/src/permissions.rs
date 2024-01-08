@@ -16,6 +16,22 @@ use serde::{Deserialize, Serialize};
 pub struct Permissions(pub u64);
 
 impl Permissions {
+	/// The base permissions.
+	pub const NONE: Self = Self(0);
+
+	/// Permissions allowed for dashboard.cs2.kz
+	pub const DASHBOARD: Self = Self(
+		Self::MAPS_ADD.0
+			| Self::MAPS_EDIT.0
+			| Self::MAPS_DELETE.0
+			| Self::SERVERS_INVALIDATE.0
+			| Self::SERVERS_ADD.0
+			| Self::SERVERS_EDIT.0
+			| Self::BANS_ADD.0
+			| Self::BANS_EDIT.0
+			| Self::GLOBAL_ADMIN.0,
+	);
+
 	/// Determines whether `permissions` is a subset of `self`.
 	pub const fn contains(&self, permissions: Self) -> bool {
 		self.0 & permissions.0 == permissions.0

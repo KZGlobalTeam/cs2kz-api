@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t  *\n\t\tFROM\n\t\t  Admins\n\t\tWHERE\n\t\t  steam_id = (\n\t\t    SELECT\n\t\t      steam_id\n\t\t    FROM\n\t\t      WebSessions\n\t\t    WHERE\n\t\t      token = ?\n\t\t      AND subdomain = ?\n\t\t      AND expires_on < CURRENT_TIMESTAMP()\n\t\t  )\n\t\t",
+  "query": "SELECT * FROM Admins WHERE steam_id = ?",
   "describe": {
     "columns": [
       {
@@ -25,12 +25,12 @@
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 1
     },
     "nullable": [
       false,
       false
     ]
   },
-  "hash": "de853ae74c5782a63abcfc8acbf18c04756f19eaae8ada3ffef925643f0278fd"
+  "hash": "efa9d03872914f82de2d11700e047314d65a79a3168b1c24b8340c82bc005418"
 }

@@ -6,11 +6,15 @@ use axum::routing::get;
 use axum::Router;
 use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
-use serde::Deserialize;
+use cs2kz::SteamID;
+use serde::{Deserialize, Serialize};
+use sqlx::{MySql, Transaction};
+use time::OffsetDateTime;
 use tracing::{trace, warn};
 use url::{Host, Url};
 use utoipa::IntoParams;
 
+use crate::permissions::Permissions;
 use crate::{openapi as R, steam, AppState, Error, Result, State};
 
 /// This function returns the router for the `/auth/steam` routes.
@@ -99,16 +103,118 @@ pub async fn callback(
 		return Err(Error::Unauthorized);
 	}
 
-	// TODO: create a bunch of cookies depending on the user's permissions and add them to the
-	// correct subdomains
-	let cookie = Cookie::build(("steam_id", steam_id.to_string()))
-		.secure(state.in_prod())
-		.permanent() // TODO
-		.domain(host.to_string())
-		.path(origin_url.path().to_owned())
-		.build();
+	let mut transaction = state.begin_transaction().await?;
 
-	cookies = cookies.add(cookie);
+	let user = sqlx::query!("SELECT * FROM Admins WHERE steam_id = ?", steam_id)
+		.fetch_optional(transaction.as_mut())
+		.await?
+		.ok_or(Error::Unauthorized)?;
+
+	let main = WebSession {
+		steam_id,
+		permissions: Permissions::GLOBAL_ADMIN & Permissions(user.permissions),
+		subdomain: None,
+	};
+
+	let dashboard = WebSession {
+		steam_id,
+		permissions: Permissions::DASHBOARD & Permissions(user.permissions),
+		subdomain: Some("dashboard"),
+	};
+
+	let main_token = main.create(&mut transaction).await?;
+	let dashboard_token = dashboard.create(&mut transaction).await?;
+
+	transaction.commit().await?;
+
+	let host = host.to_string();
+	let path = origin_url.path();
+	let secure = state.in_prod();
+
+	let main_cookie = main.cookie(&host, path, secure);
+	let main_session_cookie = WebSession::session_cookie(main_token, &host, path, secure);
+
+	let dashboard_host = format!("dashboard.{host}");
+	let dashboard_cookie = dashboard.cookie(&dashboard_host, path, secure);
+	let dashboard_session_cookie =
+		WebSession::session_cookie(dashboard_token, dashboard_host, path, secure);
+
+	cookies = cookies
+		.add(main_cookie)
+		.add(main_session_cookie)
+		.add(dashboard_cookie)
+		.add(dashboard_session_cookie);
 
 	Ok((cookies, Redirect::to(origin_url.as_str())))
+}
+
+/// An authenticated session.
+#[derive(Debug, Clone, Copy, Serialize)]
+pub struct WebSession {
+	/// The user's SteamID.
+	pub steam_id: SteamID,
+
+	/// The user's permissions.
+	pub permissions: Permissions,
+
+	#[serde(skip_serializing)]
+	subdomain: Option<&'static str>,
+}
+
+impl WebSession {
+	async fn create(self, transaction: &mut Transaction<'static, MySql>) -> Result<u64> {
+		let token = 0;
+
+		sqlx::query! {
+			r#"
+			INSERT INTO
+			  WebSessions (subdomain, token, steam_id, expires_on)
+			VALUES
+			  (?, ?, ?, ?)
+			"#,
+			self.subdomain,
+			token,
+			self.steam_id,
+			Self::expires_on(),
+		}
+		.execute(transaction.as_mut())
+		.await?;
+
+		Ok(token)
+	}
+
+	fn cookie(
+		&self,
+		host: impl Into<String>,
+		path: impl Into<String>,
+		secure: bool,
+	) -> Cookie<'static> {
+		let json = serde_json::to_string(self).expect("this is valid");
+
+		Cookie::build(("kz-player", json))
+			.domain(host.into())
+			.path(path.into())
+			.secure(secure)
+			.expires(Self::expires_on())
+			.build()
+	}
+
+	fn session_cookie(
+		token: u64,
+		host: impl Into<String>,
+		path: impl Into<String>,
+		secure: bool,
+	) -> Cookie<'static> {
+		Cookie::build(("kz-auth", token.to_string()))
+			.domain(host.into())
+			.path(path.into())
+			.secure(secure)
+			.http_only(true)
+			.expires(Self::expires_on())
+			.build()
+	}
+
+	fn expires_on() -> OffsetDateTime {
+		OffsetDateTime::now_utc() + time::Duration::WEEK
+	}
 }
