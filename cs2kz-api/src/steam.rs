@@ -1,7 +1,8 @@
 //! This module holds structs specific to communication with the Steam API.
 
-use std::iter;
+use std::io::Write;
 use std::path::Path;
+use std::{io, iter};
 
 use cs2kz::SteamID;
 use reqwest::header;
@@ -236,12 +237,12 @@ pub struct WorkshopMapFile(File);
 impl WorkshopMapFile {
 	#[rustfmt::skip]
 	const DOWNLOAD_COMMAND: &'static [&'static str] = &[
-		"+force_install_dir", "/home/steam/downloads",
+		"+force_install_dir", "/kz/workshop",
 		"+login", "anonymous",
 		"+workshop_download_item", "730",
 	];
 
-	const DOWNLOAD_DIR: &'static str = "/home/steam/downloads/steamapps/workshop/content/730";
+	const DOWNLOAD_DIR: &'static str = "/kz/workshop/steamapps/workshop/content/730";
 
 	/// Downloads the workshop map with the given `id` using SteamCMD.
 	pub async fn download(id: u32) -> Result<Self> {
@@ -252,7 +253,7 @@ impl WorkshopMapFile {
 			.chain(iter::once(id.to_string()))
 			.chain(iter::once(String::from("+quit")));
 
-		let output = Command::new("./steamcmd.sh")
+		let output = Command::new("/bin/steamcmd")
 			.args(args)
 			.spawn()
 			.map_err(|err| {
@@ -265,6 +266,10 @@ impl WorkshopMapFile {
 				error!(audit = true, ?err, "failed to wait for steamcmd");
 				Error::WorkshopMapDownload
 			})?;
+
+		if let Err(error) = io::stderr().flush() {
+			error!(audit = true, ?error, "failed to flush stderr");
+		}
 
 		if !output.status.success() {
 			error!(audit = true, ?output, "steamcmd was unsuccessful");

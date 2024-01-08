@@ -21,14 +21,24 @@ COPY cs2kz-api cs2kz-api
 COPY .sqlx .sqlx
 RUN cargo build --release --package cs2kz-api
 
-FROM cm2network/steamcmd AS runtime
-RUN mkdir /home/steam/downloads
+FROM debian:bullseye-slim AS runtime
+WORKDIR /kz
+
+# Install SteamCMD
+RUN apt-get update \
+	&& apt-get install -y software-properties-common \
+	&& apt-add-repository non-free \
+	&& dpkg --add-architecture i386 \
+	&& apt-get update \
+	&& echo steam steam/question select "I AGREE" | debconf-set-selections \
+	&& echo steam steam/license note "" | debconf-set-selections \
+	&& apt-get install -y steamcmd \
+	&& ln -s /usr/games/steamcmd /bin/steamcmd \
+	&& steamcmd +quit
+
 COPY --from=builder /kz/target/release/cs2kz-api /bin/cs2kz-api
 COPY .env .env
 COPY .env.docker .env.docker
-USER root
-RUN chown steam:steam .env .env.docker
-USER steam
 RUN cat .env.docker >> .env
 
 ENTRYPOINT ["/bin/cs2kz-api"]

@@ -22,5 +22,7 @@ services:
     env_file: .env.docker
     ports:
       - ${KZ_API_PORT:-42069}:${KZ_API_PORT:-42069}
+    volumes:
+      - ./cs2kz-api/workshop:/kz/workshop
     depends_on:
       - cs2kz-database
