@@ -11,6 +11,15 @@ CREATE TABLE IF NOT EXISTS Courses (
   CONSTRAINT `valid_stage` CHECK(`map_stage` > 0)
 );
 
+CREATE TABLE IF NOT EXISTS CourseSplits (
+  `id` INT8 UNSIGNED NOT NULL AUTO_INCREMENT,
+  `course_id` INT4 UNSIGNED NOT NULL,
+  `name` VARCHAR(255),
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`course_id`) REFERENCES Courses (`id`),
+  UNIQUE (`course_id`)
+);
+
 /**
  * Any course has one or more mappers, and any player can be the mapper of any amount of courses.
  */

@@ -37,6 +37,16 @@ CREATE TABLE IF NOT EXISTS Records (
   FOREIGN KEY (`plugin_version_id`) REFERENCES PluginVersions (`id`)
 );
 
+CREATE TABLE IF NOT EXISTS RecordSplits (
+  `id` INT8 UNSIGNED NOT NULL AUTO_INCREMENT,
+  `record_id` INT8 UNSIGNED NOT NULL,
+  `split_id` INT8 UNSIGNED NOT NULL,
+  `time` FLOAT8 NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`record_id`) REFERENCES Records (`id`),
+  FOREIGN KEY (`split_id`) REFERENCES CourseSplits (`id`)
+);
+
 CREATE TABLE IF NOT EXISTS SuspiciousRecords AS
 SELECT
   *
