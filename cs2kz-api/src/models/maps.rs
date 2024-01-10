@@ -39,14 +39,14 @@ use super::Player;
       "filters": [
         {
           "id": 1,
-          "mode": "kz_classic",
+          "mode": "classic",
           "teleports": true,
           "tier": 3,
           "ranked_status": "ranked"
         },
         {
           "id": 2,
-          "mode": "kz_classic",
+          "mode": "classic",
           "teleports": false,
           "tier": 4,
           "ranked_status": "ranked"
@@ -141,14 +141,14 @@ impl KZMap {
   "filters": [
     {
       "id": 1,
-      "mode": "kz_classic",
+      "mode": "classic",
       "teleports": true,
       "tier": 3,
       "ranked_status": "ranked"
     },
     {
       "id": 2,
-      "mode": "kz_classic",
+      "mode": "classic",
       "teleports": false,
       "tier": 4,
       "ranked_status": "ranked"
@@ -178,13 +178,13 @@ pub struct Course {
   ],
   "filters": [
     {
-      "mode": "kz_classic",
+      "mode": "classic",
       "teleports": true,
       "tier": 3,
       "ranked_status": "ranked"
     },
     {
-      "mode": "kz_classic",
+      "mode": "classic",
       "teleports": false,
       "tier": 4,
       "ranked_status": "ranked"
@@ -205,7 +205,7 @@ pub struct CreateCourseParams {
 /// A new filter.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-  "mode": "kz_classic",
+  "mode": "classic",
   "teleports": true,
   "tier": 3,
   "ranked_status": "ranked"
@@ -229,7 +229,7 @@ pub struct CreateFilterParams {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
   "id": 1,
-  "mode": "kz_classic",
+  "mode": "classic",
   "teleports": true,
   "tier": 3,
   "ranked_status": "ranked",

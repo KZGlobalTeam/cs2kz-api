@@ -258,7 +258,7 @@ pub struct GetRecordsParams<'a> {
   "steam_id": "STEAM_1:1:161178172",
   "map_id": 1,
   "map_stage": 1,
-  "mode": "kz_vanilla",
+  "mode": "vanilla",
   "style": "normal",
   "teleports": 69,
   "time": 420.69,

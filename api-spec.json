@@ -449,7 +449,7 @@
                     "name",
                     "mappers",
                     "courses",
-                    "checksum",
+                    "filesize",
                     "created_on",
                     "updated_on"
                   ],
@@ -484,10 +484,10 @@
                       },
                       "description": "List of courses on this map."
                     },
-                    "checksum": {
+                    "filesize": {
                       "type": "integer",
-                      "format": "uint32",
-                      "description": "The checksum of this map.",
+                      "format": "uint64",
+                      "description": "The filesize of this map in bytes.",
                       "minimum": 0
                     },
                     "created_on": {
@@ -502,20 +502,19 @@
                     }
                   },
                   "example": {
-                    "checksum": 190335000,
                     "courses": [
                       {
                         "filters": [
                           {
                             "id": 1,
-                            "mode": "kz_classic",
+                            "mode": "classic",
                             "ranked_status": "ranked",
                             "teleports": true,
                             "tier": 3
                           },
                           {
                             "id": 2,
-                            "mode": "kz_classic",
+                            "mode": "classic",
                             "ranked_status": "ranked",
                             "teleports": false,
                             "tier": 4
@@ -532,6 +531,7 @@
                       }
                     ],
                     "created_on": "2023-12-10T10:41:01Z",
+                    "filesize": 190335000,
                     "id": 1,
                     "mappers": [
                       {
@@ -652,7 +652,7 @@
                     "name",
                     "mappers",
                     "courses",
-                    "checksum",
+                    "filesize",
                     "created_on",
                     "updated_on"
                   ],
@@ -687,10 +687,10 @@
                       },
                       "description": "List of courses on this map."
                     },
-                    "checksum": {
+                    "filesize": {
                       "type": "integer",
-                      "format": "uint32",
-                      "description": "The checksum of this map.",
+                      "format": "uint64",
+                      "description": "The filesize of this map in bytes.",
                       "minimum": 0
                     },
                     "created_on": {
@@ -705,20 +705,19 @@
                     }
                   },
                   "example": {
-                    "checksum": 190335000,
                     "courses": [
                       {
                         "filters": [
                           {
                             "id": 1,
-                            "mode": "kz_classic",
+                            "mode": "classic",
                             "ranked_status": "ranked",
                             "teleports": true,
                             "tier": 3
                           },
                           {
                             "id": 2,
-                            "mode": "kz_classic",
+                            "mode": "classic",
                             "ranked_status": "ranked",
                             "teleports": false,
                             "tier": 4
@@ -735,6 +734,7 @@
                       }
                     ],
                     "created_on": "2023-12-10T10:41:01Z",
+                    "filesize": 190335000,
                     "id": 1,
                     "mappers": [
                       {
@@ -858,7 +858,7 @@
                     "name",
                     "mappers",
                     "courses",
-                    "checksum",
+                    "filesize",
                     "created_on",
                     "updated_on"
                   ],
@@ -893,10 +893,10 @@
                       },
                       "description": "List of courses on this map."
                     },
-                    "checksum": {
+                    "filesize": {
                       "type": "integer",
-                      "format": "uint32",
-                      "description": "The checksum of this map.",
+                      "format": "uint64",
+                      "description": "The filesize of this map in bytes.",
                       "minimum": 0
                     },
                     "created_on": {
@@ -911,20 +911,19 @@
                     }
                   },
                   "example": {
-                    "checksum": 190335000,
                     "courses": [
                       {
                         "filters": [
                           {
                             "id": 1,
-                            "mode": "kz_classic",
+                            "mode": "classic",
                             "ranked_status": "ranked",
                             "teleports": true,
                             "tier": 3
                           },
                           {
                             "id": 2,
-                            "mode": "kz_classic",
+                            "mode": "classic",
                             "ranked_status": "ranked",
                             "teleports": false,
                             "tier": 4
@@ -941,6 +940,7 @@
                       }
                     ],
                     "created_on": "2023-12-10T10:41:01Z",
+                    "filesize": 190335000,
                     "id": 1,
                     "mappers": [
                       {
@@ -1520,7 +1520,7 @@
                     "distance": 269.7274,
                     "id": 1,
                     "kind": "longjump",
-                    "mode": "kz_classic",
+                    "mode": "classic",
                     "player": {
                       "name": "AlphaKeks",
                       "steam_id": "STEAM_1:1:161178172"
@@ -1746,7 +1746,7 @@
                       "map_id": 1,
                       "map_name": "kz_checkmate",
                       "map_stage": 1,
-                      "mode": "kz_classic",
+                      "mode": "classic",
                       "style": "normal",
                       "tier": 3
                     },
@@ -2321,14 +2321,14 @@
           "filters": [
             {
               "id": 1,
-              "mode": "kz_classic",
+              "mode": "classic",
               "ranked_status": "ranked",
               "teleports": true,
               "tier": 3
             },
             {
               "id": 2,
-              "mode": "kz_classic",
+              "mode": "classic",
               "ranked_status": "ranked",
               "teleports": false,
               "tier": 4
@@ -2468,13 +2468,13 @@
         "example": {
           "filters": [
             {
-              "mode": "kz_classic",
+              "mode": "classic",
               "ranked_status": "ranked",
               "teleports": true,
               "tier": 3
             },
             {
-              "mode": "kz_classic",
+              "mode": "classic",
               "ranked_status": "ranked",
               "teleports": false,
               "tier": 4
@@ -2515,7 +2515,7 @@
           }
         },
         "example": {
-          "mode": "kz_classic",
+          "mode": "classic",
           "ranked_status": "ranked",
           "teleports": true,
           "tier": 3
@@ -2613,7 +2613,7 @@
         "example": {
           "distance": 230.3418,
           "kind": "longjump",
-          "mode": "kz_vanilla",
+          "mode": "vanilla",
           "style": "backwards"
         }
       },
@@ -2652,13 +2652,13 @@
             {
               "filters": [
                 {
-                  "mode": "kz_classic",
+                  "mode": "classic",
                   "ranked_status": "ranked",
                   "teleports": true,
                   "tier": 3
                 },
                 {
-                  "mode": "kz_classic",
+                  "mode": "classic",
                   "ranked_status": "ranked",
                   "teleports": false,
                   "tier": 4
@@ -2784,7 +2784,7 @@
           },
           "map_id": 1,
           "map_stage": 1,
-          "mode": "kz_vanilla",
+          "mode": "vanilla",
           "steam_id": "STEAM_1:1:161178172",
           "style": "normal",
           "teleports": 69,
@@ -2909,7 +2909,7 @@
         },
         "example": {
           "id": 1,
-          "mode": "kz_classic",
+          "mode": "classic",
           "ranked_status": "ranked",
           "teleports": true,
           "tier": 3
@@ -3074,7 +3074,7 @@
           "distance": 269.7274,
           "id": 1,
           "kind": "longjump",
-          "mode": "kz_classic",
+          "mode": "classic",
           "player": {
             "name": "AlphaKeks",
             "steam_id": "STEAM_1:1:161178172"
@@ -3095,7 +3095,7 @@
           "name",
           "mappers",
           "courses",
-          "checksum",
+          "filesize",
           "created_on",
           "updated_on"
         ],
@@ -3130,10 +3130,10 @@
             },
             "description": "List of courses on this map."
           },
-          "checksum": {
+          "filesize": {
             "type": "integer",
-            "format": "uint32",
-            "description": "The checksum of this map.",
+            "format": "uint64",
+            "description": "The filesize of this map in bytes.",
             "minimum": 0
           },
           "created_on": {
@@ -3148,20 +3148,19 @@
           }
         },
         "example": {
-          "checksum": 190335000,
           "courses": [
             {
               "filters": [
                 {
                   "id": 1,
-                  "mode": "kz_classic",
+                  "mode": "classic",
                   "ranked_status": "ranked",
                   "teleports": true,
                   "tier": 3
                 },
                 {
                   "id": 2,
-                  "mode": "kz_classic",
+                  "mode": "classic",
                   "ranked_status": "ranked",
                   "teleports": false,
                   "tier": 4
@@ -3178,6 +3177,7 @@
             }
           ],
           "created_on": "2023-12-10T10:41:01Z",
+          "filesize": 190335000,
           "id": 1,
           "mappers": [
             {
@@ -3205,8 +3205,8 @@
       "Mode": {
         "type": "string",
         "enum": [
-          "kz_vanilla",
-          "kz_classic"
+          "vanilla",
+          "classic"
         ]
       },
       "Player": {
@@ -3310,7 +3310,7 @@
             "map_id": 1,
             "map_name": "kz_checkmate",
             "map_stage": 1,
-            "mode": "kz_classic",
+            "mode": "classic",
             "style": "normal",
             "tier": 3
           },
@@ -3582,6 +3582,14 @@
             "description": "The map's new Steam Workshop ID.",
             "nullable": true,
             "minimum": 0
+          },
+          "name": {
+            "type": "boolean",
+            "description": "Update the map's name to the Workshop's version."
+          },
+          "filesize": {
+            "type": "boolean",
+            "description": "Update the map's filesize to the Workshop's value."
           },
           "added_mappers": {
             "type": "array",

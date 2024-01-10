@@ -662,13 +662,13 @@ pub struct GetMapsParams<'a> {
       ],
       "filters": [
         {
-          "mode": "kz_classic",
+          "mode": "classic",
           "teleports": true,
           "tier": 3,
           "ranked_status": "ranked"
         },
         {
-          "mode": "kz_classic",
+          "mode": "classic",
           "teleports": false,
           "tier": 4,
           "ranked_status": "ranked"
