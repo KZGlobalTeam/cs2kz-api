@@ -2350,7 +2350,22 @@
             "nullable": true
           }
         },
-        "example": {}
+        "example": {
+          "added_mappers": [
+            322356345
+          ],
+          "filter_updates": [
+            {
+              "id": 420,
+              "tier": 6
+            },
+            {
+              "id": 421,
+              "tier": 3
+            }
+          ],
+          "id": 1337
+        }
       },
       "CourseWithFilter": {
         "type": "object",
@@ -2908,7 +2923,10 @@
             "nullable": true
           }
         },
-        "example": {}
+        "example": {
+          "id": 420,
+          "tier": 6
+        }
       },
       "Jumpstat": {
         "type": "string",
@@ -3566,7 +3584,10 @@
             "nullable": true
           }
         },
-        "example": {}
+        "example": {
+          "is_global": false,
+          "workshop_id": 42069
+        }
       },
       "UpdatePlayerRequest": {
         "type": "object",

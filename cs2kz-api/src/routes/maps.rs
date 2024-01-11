@@ -721,6 +721,8 @@ pub struct CreateMapResponse {
 /// A map update.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
+  "is_global": false,
+  "workshop_id": 42069
 }))]
 pub struct UpdateMapParams {
 	/// Whether this map should be global.
@@ -742,6 +744,18 @@ pub struct UpdateMapParams {
 /// A course update.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
+  "id": 1337,
+  "added_mappers": [322356345],
+  "filter_updates": [
+    {
+      "id": 420,
+      "tier": 6
+    },
+    {
+      "id": 421,
+      "tier": 3
+    }
+  ]
 }))]
 pub struct CourseUpdate {
 	/// The course's ID.
@@ -760,6 +774,8 @@ pub struct CourseUpdate {
 /// A course filter update.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
+  "id": 420,
+  "tier": 6
 }))]
 pub struct FilterUpdate {
 	/// The filter's ID.
