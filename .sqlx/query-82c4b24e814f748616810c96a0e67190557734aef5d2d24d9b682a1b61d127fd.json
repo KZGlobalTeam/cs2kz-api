@@ -8,7 +8,7 @@
         "name": "workshop_id",
         "type_info": {
           "type": "Long",
-          "flags": "NOT_NULL | UNIQUE_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
           "char_set": 63,
           "max_size": 10
         }

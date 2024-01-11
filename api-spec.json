@@ -449,9 +449,8 @@
                     "name",
                     "mappers",
                     "courses",
-                    "filesize",
-                    "created_on",
-                    "updated_on"
+                    "checksum",
+                    "created_on"
                   ],
                   "properties": {
                     "id": {
@@ -484,24 +483,20 @@
                       },
                       "description": "List of courses on this map."
                     },
-                    "filesize": {
+                    "checksum": {
                       "type": "integer",
-                      "format": "uint64",
-                      "description": "The filesize of this map in bytes.",
+                      "format": "uint32",
+                      "description": "The checksum of this map.",
                       "minimum": 0
                     },
                     "created_on": {
                       "type": "string",
                       "format": "date-time",
                       "description": "Timestamp of when this map was initially approved."
-                    },
-                    "updated_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when this map was last updated."
                     }
                   },
                   "example": {
+                    "checksum": 190335000,
                     "courses": [
                       {
                         "filters": [
@@ -531,7 +526,6 @@
                       }
                     ],
                     "created_on": "2023-12-10T10:41:01Z",
-                    "filesize": 190335000,
                     "id": 1,
                     "mappers": [
                       {
@@ -540,7 +534,6 @@
                       }
                     ],
                     "name": "kz_checkmate",
-                    "updated_on": "2023-12-10T10:41:01Z",
                     "workshop_id": 3070194623
                   }
                 }
@@ -558,7 +551,7 @@
           }
         }
       },
-      "post": {
+      "put": {
         "tags": [
           "Maps"
         ],
@@ -652,9 +645,8 @@
                     "name",
                     "mappers",
                     "courses",
-                    "filesize",
-                    "created_on",
-                    "updated_on"
+                    "checksum",
+                    "created_on"
                   ],
                   "properties": {
                     "id": {
@@ -687,24 +679,20 @@
                       },
                       "description": "List of courses on this map."
                     },
-                    "filesize": {
+                    "checksum": {
                       "type": "integer",
-                      "format": "uint64",
-                      "description": "The filesize of this map in bytes.",
+                      "format": "uint32",
+                      "description": "The checksum of this map.",
                       "minimum": 0
                     },
                     "created_on": {
                       "type": "string",
                       "format": "date-time",
                       "description": "Timestamp of when this map was initially approved."
-                    },
-                    "updated_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when this map was last updated."
                     }
                   },
                   "example": {
+                    "checksum": 190335000,
                     "courses": [
                       {
                         "filters": [
@@ -734,7 +722,6 @@
                       }
                     ],
                     "created_on": "2023-12-10T10:41:01Z",
-                    "filesize": 190335000,
                     "id": 1,
                     "mappers": [
                       {
@@ -743,7 +730,6 @@
                       }
                     ],
                     "name": "kz_checkmate",
-                    "updated_on": "2023-12-10T10:41:01Z",
                     "workshop_id": 3070194623
                   }
                 }
@@ -774,7 +760,7 @@
           {
             "name": "id",
             "in": "path",
-            "description": "The ID of the map you wish to update.",
+            "description": "The map's ID.",
             "required": true,
             "schema": {
               "type": "integer",
@@ -787,24 +773,13 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateMapRequest"
+                "$ref": "#/components/schemas/UpdateMapParams"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
           "204": {
             "description": "There was no data available for the given query."
           },
@@ -858,9 +833,8 @@
                     "name",
                     "mappers",
                     "courses",
-                    "filesize",
-                    "created_on",
-                    "updated_on"
+                    "checksum",
+                    "created_on"
                   ],
                   "properties": {
                     "id": {
@@ -893,24 +867,20 @@
                       },
                       "description": "List of courses on this map."
                     },
-                    "filesize": {
+                    "checksum": {
                       "type": "integer",
-                      "format": "uint64",
-                      "description": "The filesize of this map in bytes.",
+                      "format": "uint32",
+                      "description": "The checksum of this map.",
                       "minimum": 0
                     },
                     "created_on": {
                       "type": "string",
                       "format": "date-time",
                       "description": "Timestamp of when this map was initially approved."
-                    },
-                    "updated_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when this map was last updated."
                     }
                   },
                   "example": {
+                    "checksum": 190335000,
                     "courses": [
                       {
                         "filters": [
@@ -940,7 +910,6 @@
                       }
                     ],
                     "created_on": "2023-12-10T10:41:01Z",
-                    "filesize": 190335000,
                     "id": 1,
                     "mappers": [
                       {
@@ -949,7 +918,6 @@
                       }
                     ],
                     "name": "kz_checkmate",
-                    "updated_on": "2023-12-10T10:41:01Z",
                     "workshop_id": 3070194623
                   }
                 }
@@ -2346,12 +2314,12 @@
       },
       "CourseUpdate": {
         "type": "object",
-        "description": "An update to a course.",
+        "description": "A course update.",
         "required": [
-          "course_id"
+          "id"
         ],
         "properties": {
-          "course_id": {
+          "id": {
             "type": "integer",
             "format": "uint32",
             "description": "The course's ID.",
@@ -2362,7 +2330,7 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of new mappers.",
+            "description": "List of mapper SteamIDs to be added.",
             "nullable": true
           },
           "removed_mappers": {
@@ -2370,7 +2338,7 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of old mappers to be removed.",
+            "description": "List of mapper SteamIDs to be removed.",
             "nullable": true
           },
           "filter_updates": {
@@ -2378,16 +2346,11 @@
             "items": {
               "$ref": "#/components/schemas/FilterUpdate"
             },
-            "description": "List of updates for existing filters.",
+            "description": "List of updates to filters.",
             "nullable": true
           }
         },
-        "example": {
-          "added_mappers": [
-            "STEAM_1:0:102468802"
-          ],
-          "course_id": 1
-        }
+        "example": {}
       },
       "CourseWithFilter": {
         "type": "object",
@@ -2917,12 +2880,12 @@
       },
       "FilterUpdate": {
         "type": "object",
-        "description": "An update to a filter.",
+        "description": "A course filter update.",
         "required": [
-          "filter_id"
+          "id"
         ],
         "properties": {
-          "filter_id": {
+          "id": {
             "type": "integer",
             "format": "uint32",
             "description": "The filter's ID.",
@@ -2945,10 +2908,7 @@
             "nullable": true
           }
         },
-        "example": {
-          "filter_id": 1,
-          "tier": 7
-        }
+        "example": {}
       },
       "Jumpstat": {
         "type": "string",
@@ -3095,9 +3055,8 @@
           "name",
           "mappers",
           "courses",
-          "filesize",
-          "created_on",
-          "updated_on"
+          "checksum",
+          "created_on"
         ],
         "properties": {
           "id": {
@@ -3130,24 +3089,20 @@
             },
             "description": "List of courses on this map."
           },
-          "filesize": {
+          "checksum": {
             "type": "integer",
-            "format": "uint64",
-            "description": "The filesize of this map in bytes.",
+            "format": "uint32",
+            "description": "The checksum of this map.",
             "minimum": 0
           },
           "created_on": {
             "type": "string",
             "format": "date-time",
             "description": "Timestamp of when this map was initially approved."
-          },
-          "updated_on": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of when this map was last updated."
           }
         },
         "example": {
+          "checksum": 190335000,
           "courses": [
             {
               "filters": [
@@ -3177,7 +3132,6 @@
             }
           ],
           "created_on": "2023-12-10T10:41:01Z",
-          "filesize": 190335000,
           "id": 1,
           "mappers": [
             {
@@ -3186,7 +3140,6 @@
             }
           ],
           "name": "kz_checkmate",
-          "updated_on": "2023-12-10T10:41:01Z",
           "workshop_id": 3070194623
         }
       },
@@ -3572,31 +3525,28 @@
           "impossible"
         ]
       },
-      "UpdateMapRequest": {
+      "UpdateMapParams": {
         "type": "object",
-        "description": "A map udpate.",
+        "description": "A map update.",
         "properties": {
+          "is_global": {
+            "type": "boolean",
+            "description": "Whether this map should be global.",
+            "nullable": true
+          },
           "workshop_id": {
             "type": "integer",
             "format": "uint32",
-            "description": "The map's new Steam Workshop ID.",
+            "description": "A new Steam Workshop ID for the map.",
             "nullable": true,
             "minimum": 0
-          },
-          "name": {
-            "type": "boolean",
-            "description": "Update the map's name to the Workshop's version."
-          },
-          "filesize": {
-            "type": "boolean",
-            "description": "Update the map's filesize to the Workshop's value."
           },
           "added_mappers": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of new mappers.",
+            "description": "List of mapper SteamIDs to be added.",
             "nullable": true
           },
           "removed_mappers": {
@@ -3604,25 +3554,7 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of old mappers to be removed.",
-            "nullable": true
-          },
-          "added_courses": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CreateCourseParams"
-            },
-            "description": "List of new courses.",
-            "nullable": true
-          },
-          "removed_courses": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0
-            },
-            "description": "List of course IDs to be removed.",
+            "description": "List of mapper SteamIDs to be removed.",
             "nullable": true
           },
           "course_updates": {
@@ -3630,13 +3562,11 @@
             "items": {
               "$ref": "#/components/schemas/CourseUpdate"
             },
-            "description": "List of updates to existing courses.",
+            "description": "Courses to be updated.",
             "nullable": true
           }
         },
-        "example": {
-          "name": "kz_checkmate_v2_final_fix_global_new"
-        }
+        "example": {}
       },
       "UpdatePlayerRequest": {
         "type": "object",

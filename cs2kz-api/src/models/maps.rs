@@ -55,8 +55,7 @@ use super::Player;
     }
   ],
   "checksum": 190335000,
-  "created_on": "2023-12-10T10:41:01Z",
-  "updated_on": "2023-12-10T10:41:01Z"
+  "created_on": "2023-12-10T10:41:01Z"
 }))]
 pub struct KZMap {
 	/// The map's ID.
@@ -79,9 +78,6 @@ pub struct KZMap {
 
 	/// Timestamp of when this map was initially approved.
 	pub created_on: DateTime<Utc>,
-
-	/// Timestamp of when this map was last updated.
-	pub updated_on: DateTime<Utc>,
 }
 
 impl KZMap {
@@ -309,7 +305,6 @@ impl FromRow<'_, MySqlRow> for KZMap {
 		let name = row.try_get("name")?;
 		let checksum = row.try_get("checksum")?;
 		let created_on = row.try_get("created_on")?;
-		let updated_on = row.try_get("updated_on")?;
 
 		let mapper_steam_id = row.try_get("mapper_steam_id")?;
 		let mapper_steam_id =
@@ -352,16 +347,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 			}],
 		}];
 
-		Ok(Self {
-			id,
-			workshop_id,
-			name,
-			mappers,
-			courses,
-			checksum,
-			created_on,
-			updated_on,
-		})
+		Ok(Self { id, workshop_id, name, mappers, courses, checksum, created_on })
 	}
 }
 

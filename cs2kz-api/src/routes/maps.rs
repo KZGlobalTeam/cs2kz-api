@@ -3,7 +3,8 @@
 use std::collections::HashMap;
 
 use axum::extract::{Path, Query};
-use axum::routing::{get, patch, post};
+use axum::http::StatusCode;
+use axum::routing::{get, patch, put};
 use axum::{Json, Router};
 use chrono::{DateTime, Utc};
 use cs2kz::{MapIdentifier, Mode, PlayerIdentifier, SteamID, Tier};
@@ -38,8 +39,7 @@ static GET_BASE_QUERY: &str = r#"
 	  f.tier filter_tier,
 	  f.ranked_status filter_ranked,
 	  m.checksum,
-	  m.created_on,
-	  m.updated_on
+	  m.created_on
 	FROM
 	  Maps m
 	  JOIN Mappers p1 ON p1.map_id = m.id
@@ -64,7 +64,7 @@ pub fn router(state: &'static AppState) -> Router {
 
 	Router::new()
 		.route("/", get(get_maps))
-		.route("/", post(create_map).layer(add_map))
+		.route("/", put(create_map).layer(add_map))
 		.route("/:ident", get(get_map_by_ident))
 		.route("/:ident", patch(update_map).layer(edit_map))
 		.route("/workshop/:id", get(get_map_by_workshop_id))
@@ -161,7 +161,7 @@ pub async fn get_maps(
 /// It is intended to be used by admins and the map approval team.
 #[tracing::instrument]
 #[utoipa::path(
-	post,
+	put,
 	tag = "Maps",
 	path = "/maps",
 	request_body = CreateMapRequest,
@@ -184,24 +184,23 @@ pub async fn create_map(
 
 	validate_courses(&body.courses)?;
 
-	let workshop_map = task::spawn(async move {
-		WorkshopMap::get(body.workshop_id, state.http_client())
-			.await
-			.ok_or(Error::InvalidWorkshopID(body.workshop_id))
-	});
-
-	let checksum = task::spawn(async move {
-		WorkshopMapFile::download(body.workshop_id)
-			.await?
-			.checksum()
-			.await
-	});
-
-	let (workshop_map, checksum) = tokio::try_join!(workshop_map, checksum)
-		.map(|(workshop_map, checksum)| Result::Ok((workshop_map?, checksum?)))
-		.expect("the tasks don't panic")?;
+	let (workshop_map, checksum) = get_checksum(body.workshop_id, state.http_client()).await?;
 
 	let mut transaction = state.begin_transaction().await?;
+
+	sqlx::query! {
+		r#"
+		UPDATE
+		  Maps
+		SET
+		  is_global = FALSE
+		WHERE
+		  name = ?
+		"#,
+		workshop_map.name,
+	}
+	.execute(transaction.as_mut())
+	.await?;
 
 	sqlx::query! {
 		r#"
@@ -224,7 +223,7 @@ pub async fn create_map(
 
 	audit!(id = %map_id, %workshop_map.name, %body.workshop_id, "create map");
 
-	create_mappers(map_id, &body.mappers, transaction.as_mut()).await?;
+	create_mappers(&body.mappers, MappersTable::Maps(map_id), transaction.as_mut()).await?;
 	create_courses(map_id, &body.courses, &mut transaction).await?;
 
 	transaction.commit().await?;
@@ -271,6 +270,77 @@ pub async fn get_map_by_ident(
 		.ok_or(Error::NoContent)
 }
 
+/// This endpoint is used for updating maps.
+///
+/// It is intended to be used by admins and the map approval team.
+#[tracing::instrument]
+#[utoipa::path(
+	patch,
+	tag = "Maps",
+	path = "/maps/{id}",
+	params(("id" = u16, Path, description = "The map's ID.")),
+	request_body = UpdateMapParams,
+	responses(
+		R::NoContent,
+		R::BadRequest,
+		R::Unauthorized,
+		R::Conflict,
+		R::InternalServerError,
+	),
+)]
+pub async fn update_map(
+	state: State,
+	Path(map_id): Path<u16>,
+	Json(body): Json<UpdateMapParams>,
+) -> Result<StatusCode> {
+	let mut transaction = state.begin_transaction().await?;
+
+	let workshop_id = match body.workshop_id {
+		Some(workshop_id) => {
+			sqlx::query!("UPDATE Maps SET workshop_id = ? WHERE id = ?", workshop_id, map_id)
+				.execute(transaction.as_mut())
+				.await?;
+
+			workshop_id
+		}
+		None => {
+			sqlx::query!("SELECT workshop_id FROM Maps WHERE id = ?", map_id)
+				.fetch_optional(transaction.as_mut())
+				.await?
+				.ok_or(Error::UnknownMapID(map_id))?
+				.workshop_id
+		}
+	};
+
+	let (_, checksum) = get_checksum(workshop_id, state.http_client()).await?;
+
+	sqlx::query!("UPDATE Maps SET checksum = ? WHERE id = ?", checksum, map_id)
+		.execute(transaction.as_mut())
+		.await?;
+
+	if let Some(is_global) = body.is_global {
+		sqlx::query!("UPDATE Maps SET is_global = ? WHERE id = ?", is_global, map_id)
+			.execute(transaction.as_mut())
+			.await?;
+	}
+
+	if let Some(mappers) = &body.added_mappers {
+		create_mappers(mappers, MappersTable::Maps(map_id), transaction.as_mut()).await?;
+	}
+
+	if let Some(mappers) = &body.removed_mappers {
+		remove_mappers(mappers, MappersTable::Maps(map_id), transaction.as_mut()).await?;
+	}
+
+	for course_update in body.course_updates.iter().flatten() {
+		update_course(course_update, &mut transaction).await?;
+	}
+
+	transaction.commit().await?;
+
+	Ok(StatusCode::NO_CONTENT)
+}
+
 /// This endpoint allows you to fetch a map by its Steam Workshop ID.
 #[tracing::instrument]
 #[utoipa::path(
@@ -297,165 +367,6 @@ pub async fn get_map_by_workshop_id(
 		.reduce(KZMap::reduce)
 		.ok_or(Error::NoContent)
 		.map(Json)
-}
-
-/// This endpoint is used for updating maps.
-///
-/// It is intended to be used by admins and the map approval team.
-#[tracing::instrument]
-#[utoipa::path(
-	patch,
-	tag = "Maps",
-	path = "/maps/{id}",
-	params(("id", Path, description = "The ID of the map you wish to update.")),
-	request_body = UpdateMapRequest,
-	responses(
-		R::Ok,
-		R::NoContent,
-		R::BadRequest,
-		R::Unauthorized,
-		R::Conflict,
-		R::InternalServerError,
-	),
-)]
-pub async fn update_map(
-	state: State,
-	Path(map_id): Path<u16>,
-	Json(body): Json<UpdateMapRequest>,
-) -> Result<()> {
-	if let Some(ref courses) = body.added_courses {
-		validate_courses(courses)?;
-	}
-
-	let mut transaction = state.begin_transaction().await?;
-	let mut update_map = QueryBuilder::new("UPDATE Maps");
-	let mut delimiter = " SET ";
-
-	let workshop_id = if let Some(workshop_id) = body.workshop_id {
-		update_map
-			.push(delimiter)
-			.push(" workshop_id = ")
-			.push_bind(workshop_id);
-
-		delimiter = ",";
-		workshop_id
-	} else {
-		sqlx::query!("SELECT workshop_id FROM Maps WHERE id = ?", map_id)
-			.fetch_one(transaction.as_mut())
-			.await?
-			.workshop_id
-	};
-
-	let workshop_map = WorkshopMap::get(workshop_id, state.http_client())
-		.await
-		.ok_or(Error::InvalidWorkshopID(workshop_id))?;
-
-	update_map
-		.push(delimiter)
-		.push(" name = ")
-		.push_bind(workshop_map.name);
-
-	update_map.push(" WHERE id = ").push_bind(map_id);
-	update_map.build().execute(transaction.as_mut()).await?;
-
-	audit!(%map_id, "update map information");
-
-	if let Some(mappers) = body.added_mappers {
-		create_mappers(map_id, &mappers, transaction.as_mut()).await?;
-	}
-
-	if let Some(ref mappers) = body.removed_mappers {
-		let mut remove_mappers = QueryBuilder::new("DELETE FROM Mappers WHERE player_id IN");
-
-		remove_mappers.push_tuples(mappers, |mut query, steam_id| {
-			query.push_bind(steam_id);
-		});
-
-		remove_mappers.build().execute(transaction.as_mut()).await?;
-
-		audit!(?mappers, "remove mappers");
-	}
-
-	if let Some(ref courses) = body.added_courses {
-		create_courses(map_id, courses, &mut transaction).await?;
-	}
-
-	if let Some(ref courses) = body.removed_courses {
-		let mut remove_courses = QueryBuilder::new("DELETE FROM Courses WHERE id IN");
-
-		remove_courses.push_tuples(courses, |mut query, course_id| {
-			query.push_bind(course_id);
-		});
-
-		remove_courses.build().execute(transaction.as_mut()).await?;
-
-		audit!(?courses, "remove courses");
-	}
-
-	for course_update in body.course_updates.iter().flatten() {
-		if let Some(ref mappers) = course_update.added_mappers {
-			let mappers = mappers
-				.iter()
-				.map(|&steam_id| CourseMapper { course_id: course_update.course_id, steam_id })
-				.collect_vec();
-
-			create_course_mappers(&mappers, transaction.as_mut()).await?;
-		}
-
-		if let Some(ref mappers) = course_update.removed_mappers {
-			let mut remove_mappers =
-				QueryBuilder::new("DELETE FROM CourseMappers WHERE course_id = ");
-
-			remove_mappers
-				.push_bind(course_update.course_id)
-				.push(" AND player_id IN ");
-
-			remove_mappers.push_tuples(mappers, |mut query, &steam_id| {
-				query.push_bind(steam_id);
-			});
-
-			remove_mappers.build().execute(transaction.as_mut()).await?;
-
-			audit!(%course_update.course_id, ?mappers, "remove course mappers");
-		}
-
-		for filter in course_update.filter_updates.iter().flatten() {
-			if filter.tier.is_none() && filter.ranked_status.is_none() {
-				continue;
-			}
-
-			let mut update_filter = QueryBuilder::new("UPDATE CourseFilters");
-			let mut delimiter = " SET ";
-
-			if let Some(tier) = filter.tier {
-				update_filter
-					.push(delimiter)
-					.push(" tier = ")
-					.push_bind(tier);
-
-				delimiter = ",";
-			}
-
-			if let Some(ranked_status) = filter.ranked_status {
-				update_filter
-					.push(delimiter)
-					.push(" ranked_status = ")
-					.push_bind(ranked_status);
-			}
-
-			update_filter
-				.push(" WHERE id = ")
-				.push_bind(filter.filter_id);
-
-			update_filter.build().execute(transaction.as_mut()).await?;
-
-			audit!(?filter, "update course filter");
-		}
-	}
-
-	transaction.commit().await?;
-
-	Ok(())
 }
 
 fn validate_courses(courses: &[CreateCourseParams]) -> Result<()> {
@@ -504,20 +415,67 @@ fn validate_courses(courses: &[CreateCourseParams]) -> Result<()> {
 	Ok(())
 }
 
+#[derive(Debug)]
+enum MappersTable {
+	Maps(u16),
+	Courses(u32),
+}
+
 async fn create_mappers(
-	map_id: u16,
 	steam_ids: &[SteamID],
+	table: MappersTable,
 	executor: impl MySqlExecutor<'_>,
 ) -> Result<()> {
-	let mut query = QueryBuilder::new("INSERT INTO Mappers (map_id, player_id)");
+	let mut query = QueryBuilder::new("INSERT INTO");
 
+	let id = match table {
+		MappersTable::Maps(map_id) => {
+			query.push(" Mappers (map_id, ");
+			map_id as u32
+		}
+		MappersTable::Courses(course_id) => {
+			query.push(" CourseMappers (course_id, ");
+			course_id
+		}
+	};
+
+	query.push("player_id)");
 	query.push_values(steam_ids, |mut query, &steam_id| {
-		query.push_bind(map_id).push_bind(steam_id);
+		query.push_bind(id).push_bind(steam_id);
 	});
 
 	query.build().execute(executor).await?;
 
-	audit!(?steam_ids, "create mappers");
+	audit!(?steam_ids, ?table, "create mappers");
+
+	Ok(())
+}
+
+async fn remove_mappers(
+	steam_ids: &[SteamID],
+	table: MappersTable,
+	executor: impl MySqlExecutor<'_>,
+) -> Result<()> {
+	let mut query = QueryBuilder::new("DELETE FROM ");
+
+	match table {
+		MappersTable::Maps(map_id) => {
+			query.push("Mappers WHERE map_id = ").push_bind(map_id);
+		}
+		MappersTable::Courses(course_id) => {
+			query
+				.push("CourseMappers WHERE course_id = ")
+				.push_bind(course_id);
+		}
+	}
+
+	query.push(" AND player_id IN");
+
+	sql::push_tuple(steam_ids, &mut query);
+
+	query.build().execute(executor).await?;
+
+	audit!(?steam_ids, ?table, "delete mappers");
 
 	Ok(())
 }
@@ -603,6 +561,47 @@ async fn create_courses(
 	Ok(())
 }
 
+async fn update_course(
+	course: &CourseUpdate,
+	transaction: &mut Transaction<'static, MySql>,
+) -> Result<()> {
+	if let Some(mappers) = &course.added_mappers {
+		create_mappers(mappers, MappersTable::Courses(course.id), transaction.as_mut()).await?;
+	}
+
+	if let Some(mappers) = &course.removed_mappers {
+		remove_mappers(mappers, MappersTable::Courses(course.id), transaction.as_mut()).await?;
+	}
+
+	for FilterUpdate { id, tier, ranked_status } in course.filter_updates.iter().flatten() {
+		let mut update_filter = QueryBuilder::new("UPDATE CourseFilters");
+
+		match (tier, ranked_status) {
+			(None, None) => {}
+			(Some(tier), None) => {
+				update_filter.push(" SET tier = ").push_bind(tier);
+			}
+			(None, Some(ranked_status)) => {
+				update_filter
+					.push(" SET ranked_status = ")
+					.push_bind(ranked_status);
+			}
+			(Some(tier), Some(ranked_status)) => {
+				update_filter
+					.push(" SET tier = ")
+					.push_bind(tier)
+					.push(", ranked_status = ")
+					.push_bind(ranked_status);
+			}
+		}
+
+		update_filter.push(" WHERE id = ").push_bind(id);
+		update_filter.build().execute(transaction.as_mut()).await?;
+	}
+
+	Ok(())
+}
+
 #[derive(Debug)]
 struct CourseMapper {
 	course_id: u32,
@@ -626,6 +625,28 @@ async fn create_course_mappers(
 	audit!(?mappers, "create course mappers");
 
 	Ok(())
+}
+
+async fn get_checksum(
+	workshop_id: u32,
+	http_client: &'static reqwest::Client,
+) -> Result<(WorkshopMap, u32)> {
+	let workshop_map = task::spawn(async move {
+		WorkshopMap::get(workshop_id, http_client)
+			.await
+			.ok_or(Error::InvalidWorkshopID(workshop_id))
+	});
+
+	let checksum = task::spawn(async move {
+		WorkshopMapFile::download(workshop_id)
+			.await?
+			.checksum()
+			.await
+	});
+
+	tokio::try_join!(workshop_map, checksum)
+		.map(|(workshop_map, checksum)| Result::Ok((workshop_map?, checksum?)))
+		.expect("the tasks don't panic")
 }
 
 /// Query parameters for retrieving information about maps.
@@ -689,70 +710,64 @@ pub struct CreateMapRequest {
 	courses: Vec<CreateCourseParams>,
 }
 
-/// A map udpate.
-#[derive(Debug, Deserialize, ToSchema)]
-#[schema(example = json!({ "name": "kz_checkmate_v2_final_fix_global_new" }))]
-pub struct UpdateMapRequest {
-	/// The map's new Steam Workshop ID.
-	workshop_id: Option<u32>,
-
-	/// List of new mappers.
-	added_mappers: Option<Vec<SteamID>>,
-
-	/// List of old mappers to be removed.
-	removed_mappers: Option<Vec<SteamID>>,
-
-	/// List of new courses.
-	added_courses: Option<Vec<CreateCourseParams>>,
-
-	/// List of course IDs to be removed.
-	removed_courses: Option<Vec<u32>>,
-
-	/// List of updates to existing courses.
-	course_updates: Option<Vec<CourseUpdate>>,
-}
-
-/// An update to a course.
-#[derive(Debug, Deserialize, ToSchema)]
-#[schema(example = json!({
-  "course_id": 1,
-  "added_mappers": ["STEAM_1:0:102468802"]
-}))]
-pub struct CourseUpdate {
-	/// The course's ID.
-	course_id: u32,
-
-	/// List of new mappers.
-	added_mappers: Option<Vec<SteamID>>,
-
-	/// List of old mappers to be removed.
-	removed_mappers: Option<Vec<SteamID>>,
-
-	/// List of updates for existing filters.
-	filter_updates: Option<Vec<FilterUpdate>>,
-}
-
-/// An update to a filter.
-#[derive(Debug, Deserialize, ToSchema)]
-#[schema(example = json!({
-  "filter_id": 1,
-  "tier": 7
-}))]
-pub struct FilterUpdate {
-	/// The filter's ID.
-	filter_id: u32,
-
-	/// A different tier.
-	tier: Option<Tier>,
-
-	/// A new ranked status.
-	ranked_status: Option<RankedStatus>,
-}
-
 /// A newly created map.
 #[derive(Debug, Serialize, ToSchema)]
 #[schema(example = json!({ "map_id": 1 }))]
 pub struct CreateMapResponse {
 	/// The map's ID.
 	map_id: u16,
+}
+
+/// A map update.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+}))]
+pub struct UpdateMapParams {
+	/// Whether this map should be global.
+	is_global: Option<bool>,
+
+	/// A new Steam Workshop ID for the map.
+	workshop_id: Option<u32>,
+
+	/// List of mapper SteamIDs to be added.
+	added_mappers: Option<Vec<SteamID>>,
+
+	/// List of mapper SteamIDs to be removed.
+	removed_mappers: Option<Vec<SteamID>>,
+
+	/// Courses to be updated.
+	course_updates: Option<Vec<CourseUpdate>>,
+}
+
+/// A course update.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+}))]
+pub struct CourseUpdate {
+	/// The course's ID.
+	id: u32,
+
+	/// List of mapper SteamIDs to be added.
+	added_mappers: Option<Vec<SteamID>>,
+
+	/// List of mapper SteamIDs to be removed.
+	removed_mappers: Option<Vec<SteamID>>,
+
+	/// List of updates to filters.
+	filter_updates: Option<Vec<FilterUpdate>>,
+}
+
+/// A course filter update.
+#[derive(Debug, Deserialize, ToSchema)]
+#[schema(example = json!({
+}))]
+pub struct FilterUpdate {
+	/// The filter's ID.
+	id: u32,
+
+	/// A new tier for this filter.
+	tier: Option<Tier>,
+
+	/// A new ranked status for this filter.
+	ranked_status: Option<RankedStatus>,
 }

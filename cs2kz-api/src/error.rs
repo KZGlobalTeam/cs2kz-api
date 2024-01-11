@@ -86,6 +86,20 @@ pub enum Error {
 	#[error("Workshop ID `{0}` is not a valid ID.")]
 	InvalidWorkshopID(u32),
 
+	/// A course update specified an unknown pair of map & stage.
+	#[error("A course with stage `{stage}` on the map with ID `{map_id}` does not exist.")]
+	InvalidMapOrStage {
+		/// The ID of the map the course belongs to.
+		map_id: u16,
+
+		/// The stage the course is associated with.
+		stage: u8,
+	},
+
+	/// A request contained a map ID that is not in the database.
+	#[error("Unknown Map ID `{0}`.")]
+	UnknownMapID(u16),
+
 	/// Something went wrong making a request to the Steam API.
 	#[error("Steam API error.")]
 	SteamAPI(reqwest::Error),
@@ -111,8 +125,11 @@ impl IntoResponse for Error {
 			| Self::MissingMapField(_)
 			| Self::MissingFilter { .. }
 			| Self::TooDifficultToRank { .. }
-			| Self::InvalidWorkshopID(_) => StatusCode::BAD_REQUEST,
-			Self::InvalidFilter | Self::NotPersonalBest => StatusCode::CONFLICT,
+			| Self::InvalidWorkshopID(_)
+			| Self::UnknownMapID(_) => StatusCode::BAD_REQUEST,
+			Self::InvalidFilter | Self::NotPersonalBest | Self::InvalidMapOrStage { .. } => {
+				StatusCode::CONFLICT
+			}
 			Self::Unauthorized => StatusCode::UNAUTHORIZED,
 			Self::SteamAPI(error) => {
 				body["error"] = JsonValue::String(error.to_string());
