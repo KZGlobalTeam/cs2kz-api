@@ -80,16 +80,17 @@ pub fn push_limits<const LIMIT: u64>(
 /// // `1, 2, 3` get bound to this query when it is executed.
 /// assert_eq!(sql, "SELECT * FROM table WHERE col IN (?, ?, ?)");
 /// ```
-pub fn push_tuple<'query, 'args, T>(args: &'args [T], query: &mut QueryBuilder<'args, MySql>)
+pub fn push_tuple<'query, 'args, I, T>(items: I, query: &mut QueryBuilder<'args, MySql>)
 where
-	&'args T: Encode<'args, MySql> + Type<MySql> + Send,
+	I: IntoIterator<Item = T>,
+	T: Encode<'args, MySql> + Type<MySql> + Send + 'args,
 {
 	query.push("(");
 
 	let mut separated = query.separated(", ");
 
-	for arg in args {
-		separated.push_bind(arg);
+	for item in items {
+		separated.push_bind(item);
 	}
 
 	separated.push_unseparated(")");

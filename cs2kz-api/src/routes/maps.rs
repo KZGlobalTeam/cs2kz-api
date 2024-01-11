@@ -1,10 +1,10 @@
 //! This module holds all HTTP handlers related to maps.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
-use axum::routing::{get, patch, put};
+use axum::routing::{get, patch, post};
 use axum::{Json, Router};
 use chrono::{DateTime, Utc};
 use cs2kz::{MapIdentifier, Mode, PlayerIdentifier, SteamID, Tier};
@@ -64,7 +64,7 @@ pub fn router(state: &'static AppState) -> Router {
 
 	Router::new()
 		.route("/", get(get_maps))
-		.route("/", put(create_map).layer(add_map))
+		.route("/", post(create_map).layer(add_map))
 		.route("/:ident", get(get_map_by_ident))
 		.route("/:ident", patch(update_map).layer(edit_map))
 		.route("/workshop/:id", get(get_map_by_workshop_id))
@@ -161,7 +161,7 @@ pub async fn get_maps(
 /// It is intended to be used by admins and the map approval team.
 #[tracing::instrument]
 #[utoipa::path(
-	put,
+	post,
 	tag = "Maps",
 	path = "/maps",
 	request_body = CreateMapRequest,
@@ -182,11 +182,64 @@ pub async fn create_map(
 		return Err(Error::MissingMapField("mappers"));
 	}
 
-	validate_courses(&body.courses)?;
+	if body.courses.is_empty() {
+		return Err(Error::MissingMapField("courses"));
+	}
+
+	if body.courses.iter().any(|course| course.mappers.is_empty()) {
+		return Err(Error::MissingMapField("courses.mappers"));
+	}
+
+	if body.courses.iter().any(|course| course.filters.len() != 4) {
+		return Err(Error::MissingMapField("courses.filters"));
+	}
+
+	const POSSIBLE_FILTERS: [(Mode, bool); 4] = [
+		(Mode::Vanilla, true),
+		(Mode::Vanilla, false),
+		(Mode::Classic, true),
+		(Mode::Classic, false),
+	];
+
+	// Find a course for which not all possible filters are present.
+	if let Some((stage, mode, teleports)) = body.courses.iter().find_map(|course| {
+		POSSIBLE_FILTERS
+			.into_iter()
+			.find(|&filter| {
+				!course
+					.filters
+					.iter()
+					.any(|f| filter == (f.mode, f.teleports))
+			})
+			.map(|(mode, teleports)| (course.stage, mode, teleports))
+	}) {
+		return Err(Error::MissingFilter { stage, mode, teleports });
+	}
+
+	if let Some(tier) = body.courses.iter().find_map(|course| {
+		course
+			.filters
+			.iter()
+			.find(|filter| {
+				filter.tier > Tier::Death && filter.ranked_status == RankedStatus::Ranked
+			})
+			.map(|filter| filter.tier)
+	}) {
+		return Err(Error::TooDifficultToRank { tier });
+	}
 
 	let (workshop_map, checksum) = get_checksum(body.workshop_id, state.http_client()).await?;
 
 	let mut transaction = state.begin_transaction().await?;
+
+	let exists = sqlx::query!("SELECT COUNT(id) total FROM Maps WHERE name = ?", workshop_map.name)
+		.fetch_one(transaction.as_mut())
+		.await
+		.map(|row| row.total.is_positive())?;
+
+	if exists {
+		return Err(Error::MapExists);
+	}
 
 	sqlx::query! {
 		r#"
@@ -312,13 +365,38 @@ pub async fn update_map(
 		}
 	};
 
-	let (_, checksum) = get_checksum(workshop_id, state.http_client()).await?;
+	let (workshop_map, checksum) = get_checksum(workshop_id, state.http_client()).await?;
 
 	sqlx::query!("UPDATE Maps SET checksum = ? WHERE id = ?", checksum, map_id)
 		.execute(transaction.as_mut())
 		.await?;
 
 	if let Some(is_global) = body.is_global {
+		if is_global {
+			let other_global_maps = sqlx::query! {
+				r#"
+				SELECT
+				  id
+				FROM
+				  Maps
+				WHERE
+				  name = ?
+				  AND is_global = TRUE
+				"#,
+				workshop_map.name,
+			}
+			.fetch_all(transaction.as_mut())
+			.await?;
+
+			if other_global_maps.len() > 1 {
+				audit!(%map_id, %workshop_map.name, ?other_global_maps, "found map with more than 1 global version");
+			}
+
+			if !other_global_maps.is_empty() {
+				return Err(Error::MapAlreadyGlobal { id: map_id });
+			}
+		}
+
 		sqlx::query!("UPDATE Maps SET is_global = ? WHERE id = ?", is_global, map_id)
 			.execute(transaction.as_mut())
 			.await?;
@@ -332,8 +410,33 @@ pub async fn update_map(
 		remove_mappers(mappers, MappersTable::Maps(map_id), transaction.as_mut()).await?;
 	}
 
-	for course_update in body.course_updates.iter().flatten() {
-		update_course(course_update, &mut transaction).await?;
+	if let Some(course_updates) = &body.course_updates {
+		let course_ids = sqlx::query!("SELECT id FROM Courses WHERE map_id = ?", map_id)
+			.fetch_all(transaction.as_mut())
+			.await?
+			.into_iter()
+			.map(|row| row.id)
+			.collect::<HashSet<u32>>();
+
+		if let Some(invalid_course_id) = course_updates
+			.iter()
+			.map(|course| course.id)
+			.find(|id| !course_ids.contains(id))
+		{
+			return Err(Error::MismatchingCourse { id: invalid_course_id, map_id });
+		}
+
+		for course_update in course_updates {
+			update_course(course_update, &mut transaction).await?;
+		}
+	}
+
+	if let Some(courses) = &body.removed_courses {
+		let mut remove_courses = QueryBuilder::new("DELETE FROM Courses WHERE id IN");
+
+		sql::push_tuple(courses, &mut remove_courses);
+
+		remove_courses.build().execute(transaction.as_mut()).await?;
 	}
 
 	transaction.commit().await?;
@@ -367,52 +470,6 @@ pub async fn get_map_by_workshop_id(
 		.reduce(KZMap::reduce)
 		.ok_or(Error::NoContent)
 		.map(Json)
-}
-
-fn validate_courses(courses: &[CreateCourseParams]) -> Result<()> {
-	if courses.is_empty() {
-		return Err(Error::MissingMapField("courses"));
-	}
-
-	if courses.iter().any(|course| course.mappers.is_empty()) {
-		return Err(Error::MissingMapField("courses.mappers"));
-	}
-
-	if courses.iter().any(|course| course.filters.len() != 4) {
-		return Err(Error::MissingMapField("courses.filters"));
-	}
-
-	const POSSIBLE_FILTERS: [(Mode, bool); 4] = [
-		(Mode::Vanilla, true),
-		(Mode::Vanilla, false),
-		(Mode::Classic, true),
-		(Mode::Classic, false),
-	];
-
-	if let Some((mode, teleports)) = POSSIBLE_FILTERS.into_iter().find(|&filter| {
-		!courses.iter().all(|course| {
-			course
-				.filters
-				.iter()
-				.any(|f| (f.mode, f.teleports) == filter)
-		})
-	}) {
-		return Err(Error::MissingFilter { mode, teleports });
-	}
-
-	if let Some(tier) = courses.iter().find_map(|course| {
-		course
-			.filters
-			.iter()
-			.find(|filter| {
-				filter.tier > Tier::Death && filter.ranked_status == RankedStatus::Ranked
-			})
-			.map(|filter| filter.tier)
-	}) {
-		return Err(Error::TooDifficultToRank { tier });
-	}
-
-	Ok(())
 }
 
 #[derive(Debug)]
@@ -527,7 +584,16 @@ async fn create_courses(
 	create_course_mappers(&course_mappers, transaction.as_mut()).await?;
 
 	let mut create_course_filters = QueryBuilder::new(
-		"INSERT INTO CourseFilters (course_id, mode_id, teleports, tier, ranked_status)",
+		r#"
+		INSERT INTO
+		  CourseFilters (
+		    course_id,
+		    mode_id,
+		    teleports,
+		    tier,
+		    ranked_status
+		  )
+		"#,
 	);
 
 	let course_filters = courses
@@ -573,7 +639,8 @@ async fn update_course(
 		remove_mappers(mappers, MappersTable::Courses(course.id), transaction.as_mut()).await?;
 	}
 
-	for FilterUpdate { id, tier, ranked_status } in course.filter_updates.iter().flatten() {
+	for FilterUpdate { id, tier, ranked_status } in course.filter_updates.iter().flatten().copied()
+	{
 		let mut update_filter = QueryBuilder::new("UPDATE CourseFilters");
 
 		match (tier, ranked_status) {
@@ -595,8 +662,17 @@ async fn update_course(
 			}
 		}
 
-		update_filter.push(" WHERE id = ").push_bind(id);
-		update_filter.build().execute(transaction.as_mut()).await?;
+		update_filter
+			.push(" WHERE id = ")
+			.push_bind(id)
+			.push(" AND course_id = ")
+			.push_bind(course.id);
+
+		let query_result = update_filter.build().execute(transaction.as_mut()).await?;
+
+		if query_result.rows_affected() == 0 {
+			return Err(Error::MismatchingFilter { id, course_id: course.id });
+		}
 	}
 
 	Ok(())
@@ -739,6 +815,9 @@ pub struct UpdateMapParams {
 
 	/// Courses to be updated.
 	course_updates: Option<Vec<CourseUpdate>>,
+
+	/// List of course IDs to be removed.
+	removed_courses: Option<Vec<u32>>,
 }
 
 /// A course update.
@@ -772,7 +851,7 @@ pub struct CourseUpdate {
 }
 
 /// A course filter update.
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
 #[schema(example = json!({
   "id": 420,
   "tier": 6

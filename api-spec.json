@@ -551,7 +551,7 @@
           }
         }
       },
-      "put": {
+      "post": {
         "tags": [
           "Maps"
         ],
@@ -3581,6 +3581,16 @@
               "$ref": "#/components/schemas/CourseUpdate"
             },
             "description": "Courses to be updated.",
+            "nullable": true
+          },
+          "removed_courses": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0
+            },
+            "description": "List of course IDs to be removed.",
             "nullable": true
           }
         },
