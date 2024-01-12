@@ -1,4 +1,4 @@
-FROM lukemathwalker/cargo-chef:latest-rust-1.75 AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-1.75-slim-bullseye AS chef
 WORKDIR /kz
 
 FROM chef AS planner
@@ -21,7 +21,21 @@ COPY cs2kz-api cs2kz-api
 COPY .sqlx .sqlx
 RUN cargo build --release --package cs2kz-api
 
-FROM debian:bookworm-slim AS runtime
+FROM debian:bullseye-slim AS runtime
+WORKDIR /kz
+
+# Install SteamCMD
+RUN apt-get update \
+	&& apt-get install -y software-properties-common \
+	&& apt-add-repository non-free \
+	&& dpkg --add-architecture i386 \
+	&& apt-get update \
+	&& echo steam steam/question select "I AGREE" | debconf-set-selections \
+	&& echo steam steam/license note "" | debconf-set-selections \
+	&& apt-get install -y steamcmd \
+	&& ln -s /usr/games/steamcmd /bin/steamcmd \
+	&& steamcmd +quit
+
 COPY --from=builder /kz/target/release/cs2kz-api /bin/cs2kz-api
 COPY .env .env
 COPY .env.docker .env.docker

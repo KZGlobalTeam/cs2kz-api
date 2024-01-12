@@ -1,14 +1,14 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT workshop_id FROM Maps WHERE id = ?",
+  "query": "SELECT id FROM Courses WHERE map_id = ?",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "workshop_id",
+        "name": "id",
         "type_info": {
           "type": "Long",
-          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
           "char_set": 63,
           "max_size": 10
         }
@@ -21,5 +21,5 @@
       false
     ]
   },
-  "hash": "82c4b24e814f748616810c96a0e67190557734aef5d2d24d9b682a1b61d127fd"
+  "hash": "a56e52f0541ae6f8d1867b4af87b83e226d10872b835f635bb245500fd5452c0"
 }

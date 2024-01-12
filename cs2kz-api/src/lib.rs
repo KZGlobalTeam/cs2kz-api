@@ -91,7 +91,7 @@ pub mod middleware;
 			routes::players::Session,
 
 			routes::maps::CreateMapRequest,
-			routes::maps::UpdateMapRequest,
+			routes::maps::UpdateMapParams,
 			routes::maps::CourseUpdate,
 			routes::maps::FilterUpdate,
 			routes::maps::CreateMapResponse,

@@ -289,7 +289,7 @@ pub struct GetJumpstatsParams<'a> {
 #[schema(example = json!({
   "kind": "longjump",
   "distance": 230.3418,
-  "mode": "kz_vanilla",
+  "mode": "vanilla",
   "style": "backwards"
 }))]
 pub struct CreateJumpstatRequest {

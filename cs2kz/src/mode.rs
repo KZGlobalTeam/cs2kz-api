@@ -7,14 +7,10 @@ use crate::{Error, Result};
 #[repr(u8)]
 #[derive(Default, Debug, Display, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "utoipa", schema(rename_all = "lowercase"))]
 pub enum Mode {
 	#[default]
-	#[display("VNL")]
-	#[cfg_attr(feature = "utoipa", schema(rename = "kz_vanilla"))]
 	Vanilla = 1,
-
-	#[display("CKZ")]
-	#[cfg_attr(feature = "utoipa", schema(rename = "kz_classic"))]
 	Classic = 2,
 }
 
@@ -23,8 +19,8 @@ impl Mode {
 	#[inline]
 	pub const fn api(&self) -> &'static str {
 		match self {
-			Self::Vanilla => "kz_vanilla",
-			Self::Classic => "kz_classic",
+			Self::Vanilla => "vanilla",
+			Self::Classic => "classic",
 		}
 	}
 
@@ -61,11 +57,11 @@ impl FromStr for Mode {
 	type Err = Error;
 
 	fn from_str(value: &str) -> Result<Self> {
-		if value.eq_ignore_ascii_case("kz_vanilla") || value.eq_ignore_ascii_case("vnl") {
+		if value.eq_ignore_ascii_case("vanilla") || value.eq_ignore_ascii_case("vnl") {
 			return Ok(Self::Vanilla);
 		}
 
-		if value.eq_ignore_ascii_case("kz_classic") || value.eq_ignore_ascii_case("ckz") {
+		if value.eq_ignore_ascii_case("classic") || value.eq_ignore_ascii_case("ckz") {
 			return Ok(Self::Classic);
 		}
 

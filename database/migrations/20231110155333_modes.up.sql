@@ -8,8 +8,7 @@ CREATE TABLE IF NOT EXISTS Modes (
   `id` INT1 UNSIGNED NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(16) NOT NULL,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `valid_name` CHECK(`name` LIKE "kz_%")
+  PRIMARY KEY (`id`)
 );
 
 /**
@@ -20,7 +19,7 @@ CREATE TABLE IF NOT EXISTS Modes (
 INSERT INTO
   Modes (`name`)
 VALUES
-  ("kz_vanilla");
+  ("vanilla");
 
 /**
  * Heavily modified movement compared to vanilla gameplay.
@@ -29,4 +28,4 @@ VALUES
 INSERT INTO
   Modes (`name`)
 VALUES
-  ("kz_classic");
+  ("classic");

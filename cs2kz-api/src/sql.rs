@@ -4,7 +4,7 @@ use std::future::Future;
 use std::{cmp, fmt};
 
 use cs2kz::{MapIdentifier, PlayerIdentifier, ServerIdentifier, SteamID};
-use sqlx::{MySql, MySqlExecutor, QueryBuilder};
+use sqlx::{Encode, MySql, MySqlExecutor, QueryBuilder, Type};
 
 use crate::{Error, Result};
 
@@ -63,6 +63,37 @@ pub fn push_limits<const LIMIT: u64>(
 		.push_bind(limit)
 		.push(" OFFSET ")
 		.push_bind(offset);
+}
+
+/// Pushes values into an `SELECT * FROM table WHERE col IN (...)` query.
+///
+/// # Example
+///
+/// ```ignore
+/// let mut query = QueryBuilder::new("SELECT * FROM table WHERE col IN");
+/// let values = [1, 2, 3];
+///
+/// push_tuple(&values, &mut query);
+///
+/// let sql = query.sql();
+///
+/// // `1, 2, 3` get bound to this query when it is executed.
+/// assert_eq!(sql, "SELECT * FROM table WHERE col IN (?, ?, ?)");
+/// ```
+pub fn push_tuple<'query, 'args, I, T>(items: I, query: &mut QueryBuilder<'args, MySql>)
+where
+	I: IntoIterator<Item = T>,
+	T: Encode<'args, MySql> + Type<MySql> + Send + 'args,
+{
+	query.push("(");
+
+	let mut separated = query.separated(", ");
+
+	for item in items {
+		separated.push_bind(item);
+	}
+
+	separated.push_unseparated(")");
 }
 
 /// A convenience trait for fetching IDs from the database.

@@ -450,8 +450,7 @@
                     "mappers",
                     "courses",
                     "checksum",
-                    "created_on",
-                    "updated_on"
+                    "created_on"
                   ],
                   "properties": {
                     "id": {
@@ -494,11 +493,6 @@
                       "type": "string",
                       "format": "date-time",
                       "description": "Timestamp of when this map was initially approved."
-                    },
-                    "updated_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when this map was last updated."
                     }
                   },
                   "example": {
@@ -508,14 +502,14 @@
                         "filters": [
                           {
                             "id": 1,
-                            "mode": "kz_classic",
+                            "mode": "classic",
                             "ranked_status": "ranked",
                             "teleports": true,
                             "tier": 3
                           },
                           {
                             "id": 2,
-                            "mode": "kz_classic",
+                            "mode": "classic",
                             "ranked_status": "ranked",
                             "teleports": false,
                             "tier": 4
@@ -540,7 +534,6 @@
                       }
                     ],
                     "name": "kz_checkmate",
-                    "updated_on": "2023-12-10T10:41:01Z",
                     "workshop_id": 3070194623
                   }
                 }
@@ -653,8 +646,7 @@
                     "mappers",
                     "courses",
                     "checksum",
-                    "created_on",
-                    "updated_on"
+                    "created_on"
                   ],
                   "properties": {
                     "id": {
@@ -697,11 +689,6 @@
                       "type": "string",
                       "format": "date-time",
                       "description": "Timestamp of when this map was initially approved."
-                    },
-                    "updated_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when this map was last updated."
                     }
                   },
                   "example": {
@@ -711,14 +698,14 @@
                         "filters": [
                           {
                             "id": 1,
-                            "mode": "kz_classic",
+                            "mode": "classic",
                             "ranked_status": "ranked",
                             "teleports": true,
                             "tier": 3
                           },
                           {
                             "id": 2,
-                            "mode": "kz_classic",
+                            "mode": "classic",
                             "ranked_status": "ranked",
                             "teleports": false,
                             "tier": 4
@@ -743,7 +730,6 @@
                       }
                     ],
                     "name": "kz_checkmate",
-                    "updated_on": "2023-12-10T10:41:01Z",
                     "workshop_id": 3070194623
                   }
                 }
@@ -774,7 +760,7 @@
           {
             "name": "id",
             "in": "path",
-            "description": "The ID of the map you wish to update.",
+            "description": "The map's ID.",
             "required": true,
             "schema": {
               "type": "integer",
@@ -787,24 +773,13 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateMapRequest"
+                "$ref": "#/components/schemas/UpdateMapParams"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "The request was successful.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
           "204": {
             "description": "There was no data available for the given query."
           },
@@ -859,8 +834,7 @@
                     "mappers",
                     "courses",
                     "checksum",
-                    "created_on",
-                    "updated_on"
+                    "created_on"
                   ],
                   "properties": {
                     "id": {
@@ -903,11 +877,6 @@
                       "type": "string",
                       "format": "date-time",
                       "description": "Timestamp of when this map was initially approved."
-                    },
-                    "updated_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "Timestamp of when this map was last updated."
                     }
                   },
                   "example": {
@@ -917,14 +886,14 @@
                         "filters": [
                           {
                             "id": 1,
-                            "mode": "kz_classic",
+                            "mode": "classic",
                             "ranked_status": "ranked",
                             "teleports": true,
                             "tier": 3
                           },
                           {
                             "id": 2,
-                            "mode": "kz_classic",
+                            "mode": "classic",
                             "ranked_status": "ranked",
                             "teleports": false,
                             "tier": 4
@@ -949,7 +918,6 @@
                       }
                     ],
                     "name": "kz_checkmate",
-                    "updated_on": "2023-12-10T10:41:01Z",
                     "workshop_id": 3070194623
                   }
                 }
@@ -1520,7 +1488,7 @@
                     "distance": 269.7274,
                     "id": 1,
                     "kind": "longjump",
-                    "mode": "kz_classic",
+                    "mode": "classic",
                     "player": {
                       "name": "AlphaKeks",
                       "steam_id": "STEAM_1:1:161178172"
@@ -1746,7 +1714,7 @@
                       "map_id": 1,
                       "map_name": "kz_checkmate",
                       "map_stage": 1,
-                      "mode": "kz_classic",
+                      "mode": "classic",
                       "style": "normal",
                       "tier": 3
                     },
@@ -2321,14 +2289,14 @@
           "filters": [
             {
               "id": 1,
-              "mode": "kz_classic",
+              "mode": "classic",
               "ranked_status": "ranked",
               "teleports": true,
               "tier": 3
             },
             {
               "id": 2,
-              "mode": "kz_classic",
+              "mode": "classic",
               "ranked_status": "ranked",
               "teleports": false,
               "tier": 4
@@ -2346,12 +2314,12 @@
       },
       "CourseUpdate": {
         "type": "object",
-        "description": "An update to a course.",
+        "description": "A course update.",
         "required": [
-          "course_id"
+          "id"
         ],
         "properties": {
-          "course_id": {
+          "id": {
             "type": "integer",
             "format": "uint32",
             "description": "The course's ID.",
@@ -2362,7 +2330,7 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of new mappers.",
+            "description": "List of mapper SteamIDs to be added.",
             "nullable": true
           },
           "removed_mappers": {
@@ -2370,7 +2338,7 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of old mappers to be removed.",
+            "description": "List of mapper SteamIDs to be removed.",
             "nullable": true
           },
           "filter_updates": {
@@ -2378,15 +2346,25 @@
             "items": {
               "$ref": "#/components/schemas/FilterUpdate"
             },
-            "description": "List of updates for existing filters.",
+            "description": "List of updates to filters.",
             "nullable": true
           }
         },
         "example": {
           "added_mappers": [
-            "STEAM_1:0:102468802"
+            322356345
           ],
-          "course_id": 1
+          "filter_updates": [
+            {
+              "id": 420,
+              "tier": 6
+            },
+            {
+              "id": 421,
+              "tier": 3
+            }
+          ],
+          "id": 1337
         }
       },
       "CourseWithFilter": {
@@ -2468,13 +2446,13 @@
         "example": {
           "filters": [
             {
-              "mode": "kz_classic",
+              "mode": "classic",
               "ranked_status": "ranked",
               "teleports": true,
               "tier": 3
             },
             {
-              "mode": "kz_classic",
+              "mode": "classic",
               "ranked_status": "ranked",
               "teleports": false,
               "tier": 4
@@ -2515,7 +2493,7 @@
           }
         },
         "example": {
-          "mode": "kz_classic",
+          "mode": "classic",
           "ranked_status": "ranked",
           "teleports": true,
           "tier": 3
@@ -2613,7 +2591,7 @@
         "example": {
           "distance": 230.3418,
           "kind": "longjump",
-          "mode": "kz_vanilla",
+          "mode": "vanilla",
           "style": "backwards"
         }
       },
@@ -2652,13 +2630,13 @@
             {
               "filters": [
                 {
-                  "mode": "kz_classic",
+                  "mode": "classic",
                   "ranked_status": "ranked",
                   "teleports": true,
                   "tier": 3
                 },
                 {
-                  "mode": "kz_classic",
+                  "mode": "classic",
                   "ranked_status": "ranked",
                   "teleports": false,
                   "tier": 4
@@ -2784,7 +2762,7 @@
           },
           "map_id": 1,
           "map_stage": 1,
-          "mode": "kz_vanilla",
+          "mode": "vanilla",
           "steam_id": "STEAM_1:1:161178172",
           "style": "normal",
           "teleports": 69,
@@ -2909,7 +2887,7 @@
         },
         "example": {
           "id": 1,
-          "mode": "kz_classic",
+          "mode": "classic",
           "ranked_status": "ranked",
           "teleports": true,
           "tier": 3
@@ -2917,12 +2895,12 @@
       },
       "FilterUpdate": {
         "type": "object",
-        "description": "An update to a filter.",
+        "description": "A course filter update.",
         "required": [
-          "filter_id"
+          "id"
         ],
         "properties": {
-          "filter_id": {
+          "id": {
             "type": "integer",
             "format": "uint32",
             "description": "The filter's ID.",
@@ -2946,8 +2924,8 @@
           }
         },
         "example": {
-          "filter_id": 1,
-          "tier": 7
+          "id": 420,
+          "tier": 6
         }
       },
       "Jumpstat": {
@@ -3074,7 +3052,7 @@
           "distance": 269.7274,
           "id": 1,
           "kind": "longjump",
-          "mode": "kz_classic",
+          "mode": "classic",
           "player": {
             "name": "AlphaKeks",
             "steam_id": "STEAM_1:1:161178172"
@@ -3096,8 +3074,7 @@
           "mappers",
           "courses",
           "checksum",
-          "created_on",
-          "updated_on"
+          "created_on"
         ],
         "properties": {
           "id": {
@@ -3140,11 +3117,6 @@
             "type": "string",
             "format": "date-time",
             "description": "Timestamp of when this map was initially approved."
-          },
-          "updated_on": {
-            "type": "string",
-            "format": "date-time",
-            "description": "Timestamp of when this map was last updated."
           }
         },
         "example": {
@@ -3154,14 +3126,14 @@
               "filters": [
                 {
                   "id": 1,
-                  "mode": "kz_classic",
+                  "mode": "classic",
                   "ranked_status": "ranked",
                   "teleports": true,
                   "tier": 3
                 },
                 {
                   "id": 2,
-                  "mode": "kz_classic",
+                  "mode": "classic",
                   "ranked_status": "ranked",
                   "teleports": false,
                   "tier": 4
@@ -3186,7 +3158,6 @@
             }
           ],
           "name": "kz_checkmate",
-          "updated_on": "2023-12-10T10:41:01Z",
           "workshop_id": 3070194623
         }
       },
@@ -3205,8 +3176,8 @@
       "Mode": {
         "type": "string",
         "enum": [
-          "kz_vanilla",
-          "kz_classic"
+          "vanilla",
+          "classic"
         ]
       },
       "Player": {
@@ -3310,7 +3281,7 @@
             "map_id": 1,
             "map_name": "kz_checkmate",
             "map_stage": 1,
-            "mode": "kz_classic",
+            "mode": "classic",
             "style": "normal",
             "tier": 3
           },
@@ -3572,14 +3543,19 @@
           "impossible"
         ]
       },
-      "UpdateMapRequest": {
+      "UpdateMapParams": {
         "type": "object",
-        "description": "A map udpate.",
+        "description": "A map update.",
         "properties": {
+          "is_global": {
+            "type": "boolean",
+            "description": "Whether this map should be global.",
+            "nullable": true
+          },
           "workshop_id": {
             "type": "integer",
             "format": "uint32",
-            "description": "The map's new Steam Workshop ID.",
+            "description": "A new Steam Workshop ID for the map.",
             "nullable": true,
             "minimum": 0
           },
@@ -3588,7 +3564,7 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of new mappers.",
+            "description": "List of mapper SteamIDs to be added.",
             "nullable": true
           },
           "removed_mappers": {
@@ -3596,15 +3572,15 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of old mappers to be removed.",
+            "description": "List of mapper SteamIDs to be removed.",
             "nullable": true
           },
-          "added_courses": {
+          "course_updates": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CreateCourseParams"
+              "$ref": "#/components/schemas/CourseUpdate"
             },
-            "description": "List of new courses.",
+            "description": "Courses to be updated.",
             "nullable": true
           },
           "removed_courses": {
@@ -3616,18 +3592,11 @@
             },
             "description": "List of course IDs to be removed.",
             "nullable": true
-          },
-          "course_updates": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CourseUpdate"
-            },
-            "description": "List of updates to existing courses.",
-            "nullable": true
           }
         },
         "example": {
-          "name": "kz_checkmate_v2_final_fix_global_new"
+          "is_global": false,
+          "workshop_id": 42069
         }
       },
       "UpdatePlayerRequest": {

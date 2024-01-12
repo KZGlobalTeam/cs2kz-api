@@ -39,14 +39,14 @@ use super::Player;
       "filters": [
         {
           "id": 1,
-          "mode": "kz_classic",
+          "mode": "classic",
           "teleports": true,
           "tier": 3,
           "ranked_status": "ranked"
         },
         {
           "id": 2,
-          "mode": "kz_classic",
+          "mode": "classic",
           "teleports": false,
           "tier": 4,
           "ranked_status": "ranked"
@@ -54,9 +54,8 @@ use super::Player;
       ]
     }
   ],
-  "filesize": 190335000,
-  "created_on": "2023-12-10T10:41:01Z",
-  "updated_on": "2023-12-10T10:41:01Z"
+  "checksum": 190335000,
+  "created_on": "2023-12-10T10:41:01Z"
 }))]
 pub struct KZMap {
 	/// The map's ID.
@@ -74,14 +73,11 @@ pub struct KZMap {
 	/// List of courses on this map.
 	pub courses: Vec<Course>,
 
-	/// The filesize of this map in bytes.
-	pub filesize: u64,
+	/// The checksum of this map.
+	pub checksum: u32,
 
 	/// Timestamp of when this map was initially approved.
 	pub created_on: DateTime<Utc>,
-
-	/// Timestamp of when this map was last updated.
-	pub updated_on: DateTime<Utc>,
 }
 
 impl KZMap {
@@ -141,14 +137,14 @@ impl KZMap {
   "filters": [
     {
       "id": 1,
-      "mode": "kz_classic",
+      "mode": "classic",
       "teleports": true,
       "tier": 3,
       "ranked_status": "ranked"
     },
     {
       "id": 2,
-      "mode": "kz_classic",
+      "mode": "classic",
       "teleports": false,
       "tier": 4,
       "ranked_status": "ranked"
@@ -178,13 +174,13 @@ pub struct Course {
   ],
   "filters": [
     {
-      "mode": "kz_classic",
+      "mode": "classic",
       "teleports": true,
       "tier": 3,
       "ranked_status": "ranked"
     },
     {
-      "mode": "kz_classic",
+      "mode": "classic",
       "teleports": false,
       "tier": 4,
       "ranked_status": "ranked"
@@ -205,7 +201,7 @@ pub struct CreateCourseParams {
 /// A new filter.
 #[derive(Debug, Deserialize, ToSchema)]
 #[schema(example = json!({
-  "mode": "kz_classic",
+  "mode": "classic",
   "teleports": true,
   "tier": 3,
   "ranked_status": "ranked"
@@ -229,7 +225,7 @@ pub struct CreateFilterParams {
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[schema(example = json!({
   "id": 1,
-  "mode": "kz_classic",
+  "mode": "classic",
   "teleports": true,
   "tier": 3,
   "ranked_status": "ranked",
@@ -307,9 +303,8 @@ impl FromRow<'_, MySqlRow> for KZMap {
 		let id = row.try_get("id")?;
 		let workshop_id = row.try_get("workshop_id")?;
 		let name = row.try_get("name")?;
-		let filesize = row.try_get("filesize")?;
+		let checksum = row.try_get("checksum")?;
 		let created_on = row.try_get("created_on")?;
-		let updated_on = row.try_get("updated_on")?;
 
 		let mapper_steam_id = row.try_get("mapper_steam_id")?;
 		let mapper_steam_id =
@@ -352,16 +347,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 			}],
 		}];
 
-		Ok(Self {
-			id,
-			workshop_id,
-			name,
-			mappers,
-			courses,
-			filesize,
-			created_on,
-			updated_on,
-		})
+		Ok(Self { id, workshop_id, name, mappers, courses, checksum, created_on })
 	}
 }
 
