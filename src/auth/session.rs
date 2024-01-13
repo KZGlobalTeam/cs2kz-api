@@ -73,6 +73,7 @@ impl Session {
 		let cookie = Cookie::build((name, token.0.to_string()))
 			.secure(secure)
 			.domain(domain)
+			.path("/")
 			.build();
 
 		Ok(cookie)
