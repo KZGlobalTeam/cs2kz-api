@@ -71,8 +71,6 @@ pub async fn logout(
 		")"
 	});
 
-	tracing::debug!(query = %query.sql());
-
 	query.build().execute(state.database()).await?;
 
 	let mut cookies = cookies.remove(Cookie::from(SessionToken::COOKIE_NAME));
