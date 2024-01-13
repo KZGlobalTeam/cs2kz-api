@@ -16,6 +16,7 @@ pub static BASE_SELECT: &str = r#"
 	  f.teleports filter_teleports,
 	  f.tier filter_tier,
 	  f.ranked_status filter_ranked_status,
+	  m.global_status,
 	  m.checksum,
 	  m.created_on
 	FROM

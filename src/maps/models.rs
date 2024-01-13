@@ -27,6 +27,11 @@ pub struct KZMap {
 	/// List of [`Course`]s which are part of this map.
 	pub courses: Vec<Course>,
 
+	/// The current [global status] of the map.
+	///
+	/// [global status]: GlobalStatus
+	pub global_status: GlobalStatus,
+
 	/// The map's unique checksum.
 	///
 	/// This is calculated by running the map's `.vpk` file through [crc32].
@@ -85,6 +90,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 		let id = row.try_get("id")?;
 		let workshop_id = row.try_get("workshop_id")?;
 		let name = row.try_get("name")?;
+		let global_status = row.try_get("global_status")?;
 		let checksum = row.try_get("checksum")?;
 		let created_on = row.try_get("created_on")?;
 
@@ -111,7 +117,16 @@ impl FromRow<'_, MySqlRow> for KZMap {
 			}],
 		}];
 
-		Ok(Self { id, workshop_id, name, mappers, courses, checksum, created_on })
+		Ok(Self {
+			id,
+			workshop_id,
+			name,
+			mappers,
+			courses,
+			global_status,
+			checksum,
+			created_on,
+		})
 	}
 }
 

@@ -224,6 +224,20 @@
             }
           },
           {
+            "name": "global_status",
+            "in": "query",
+            "description": "Filter by [global status].\n\n[global status]: GlobalStatus",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/GlobalStatus"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Maximum amount of results.",
@@ -256,6 +270,7 @@
                     "name",
                     "mappers",
                     "courses",
+                    "global_status",
                     "checksum",
                     "created_on"
                   ],
@@ -289,6 +304,9 @@
                         "$ref": "#/components/schemas/Course"
                       },
                       "description": "List of [`Course`]s which are part of this map."
+                    },
+                    "global_status": {
+                      "$ref": "#/components/schemas/GlobalStatus"
                     },
                     "checksum": {
                       "type": "integer",
@@ -421,6 +439,7 @@
                     "name",
                     "mappers",
                     "courses",
+                    "global_status",
                     "checksum",
                     "created_on"
                   ],
@@ -454,6 +473,9 @@
                         "$ref": "#/components/schemas/Course"
                       },
                       "description": "List of [`Course`]s which are part of this map."
+                    },
+                    "global_status": {
+                      "$ref": "#/components/schemas/GlobalStatus"
                     },
                     "checksum": {
                       "type": "integer",
@@ -1965,6 +1987,7 @@
           "name",
           "mappers",
           "courses",
+          "global_status",
           "checksum",
           "created_on"
         ],
@@ -1998,6 +2021,9 @@
               "$ref": "#/components/schemas/Course"
             },
             "description": "List of [`Course`]s which are part of this map."
+          },
+          "global_status": {
+            "$ref": "#/components/schemas/GlobalStatus"
           },
           "checksum": {
             "type": "integer",

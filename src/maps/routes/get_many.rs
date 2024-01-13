@@ -5,7 +5,7 @@ use serde::Deserialize;
 use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
-use crate::database::ToID;
+use crate::database::{GlobalStatus, ToID};
 use crate::extractors::State;
 use crate::maps::{queries, KZMap};
 use crate::params::{Limit, Offset};
@@ -23,6 +23,11 @@ pub struct GetMapsParams<'a> {
 	///
 	/// This can be either a SteamID or name.
 	pub mapper: Option<PlayerIdentifier<'a>>,
+
+	/// Filter by [global status].
+	///
+	/// [global status]: GlobalStatus
+	pub global_status: Option<GlobalStatus>,
 
 	/// Maximum amount of results.
 	pub limit: Limit,
@@ -78,6 +83,15 @@ pub async fn get_many(
 		let steam_id = player.to_id(state.database()).await?;
 
 		query.push_bind(steam_id).push(")");
+		filter.switch();
+	}
+
+	if let Some(global_status) = params.global_status {
+		query
+			.push(filter)
+			.push(" m.global_status = ")
+			.push_bind(global_status);
+
 		filter.switch();
 	}
 
