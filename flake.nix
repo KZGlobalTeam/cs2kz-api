@@ -15,6 +15,7 @@
         mariadb_110
         gnumake
         sqlx-cli
+        tokio-console
       ];
 
       shellHook = ''

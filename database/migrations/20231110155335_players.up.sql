@@ -12,5 +12,6 @@ CREATE TABLE IF NOT EXISTS Players (
   `name` VARCHAR(32) NOT NULL,
   `last_known_ip_address` INET4 NOT NULL,
   `is_banned` BOOLEAN NOT NULL DEFAULT FALSE,
+  `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`steam_id`)
 );

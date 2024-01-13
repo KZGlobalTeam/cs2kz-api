@@ -18,7 +18,7 @@ services:
     restart: no
     build:
       context: .
-      dockerfile: ./cs2kz-api/Dockerfile
+      dockerfile: ./Dockerfile
     env_file: .env.docker
     ports:
       - ${KZ_API_PORT:-42069}:${KZ_API_PORT:-42069}

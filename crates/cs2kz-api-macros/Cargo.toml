@@ -1,0 +1,25 @@
+[package]
+name = "cs2kz-api-macros"
+version = "0.0.0"
+authors = ["AlphaKeks <alphakeks@dawn.sh>"]
+edition = "2021"
+readme = "../../README.md"
+homepage = "https://cs2.kz"
+repository = "https://github.com/KZGlobalTeam/cs2kz-api.git"
+license-file = "../../LICENSE"
+
+[lib]
+proc-macro = true
+
+[dependencies.syn]
+version = "2"
+default-features = false
+features = ["parsing", "proc-macro"]
+
+[dependencies.quote]
+version = "1"
+default-features = false
+
+[dependencies.proc-macro-error]
+version = "1"
+default-features = false

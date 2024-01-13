@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tUPDATE\n\t\tMaps\n\t\tSET\n\t\tname = ?,\n\t\tchecksum = ?\n\t\tWHERE\n\t\tid = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "55995b1b0b75de9ce8ab4e31fe45787acee55d9b3279e8551653fa01dc413f63"
+}

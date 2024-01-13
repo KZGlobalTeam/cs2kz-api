@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS Courses (
   `id` INT4 UNSIGNED NOT NULL AUTO_INCREMENT,
   `map_id` INT2 UNSIGNED NOT NULL,
   `map_stage` INT1 UNSIGNED NOT NULL,
+  `name` VARCHAR(32),
   PRIMARY KEY (`id`),
   FOREIGN KEY (`map_id`) REFERENCES Maps (`id`),
   UNIQUE (`map_id`, `map_stage`),

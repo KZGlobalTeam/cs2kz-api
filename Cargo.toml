@@ -1,45 +1,182 @@
-[workspace]
-resolver = "2"
-members = ["cs2kz", "cs2kz-api", "spec-generator", "macros"]
+[package]
+name = "cs2kz-api"
+version = "0.0.0"
+authors = ["AlphaKeks <alphakeks@dawn.sh>"]
+edition = "2021"
+description = "The backend API for CS2KZ"
+readme = "./README.md"
+homepage = "https://cs2.kz"
+repository = "https://github.com/KZGlobalTeam/cs2kz-api.git"
+license-file = "./LICENSE"
+publish = false
 
-[workspace.dependencies.dotenvy]
-version = "0.15"
+[features]
+console = ["dep:console-subscriber", "tokio/tracing"]
 
-[workspace.dependencies.color-eyre]
-version = "0.6"
+[dependencies.cs2kz]
+path = "./crates/cs2kz"
+features = ["serde", "utoipa", "sqlx"]
 
-[workspace.dependencies.thiserror]
-version = "1"
+[dependencies.cs2kz-api-macros]
+path = "./crates/cs2kz-api-macros"
 
-[workspace.dependencies.tracing]
-version = "0.1"
+[dependencies.dotenvy]
+workspace = true
 
-[workspace.dependencies.tracing-subscriber]
-version = "0.3"
+[dependencies.thiserror]
+workspace = true
+
+[dependencies.tokio]
+workspace = true
+
+[dependencies.tracing]
+workspace = true
+
+[dependencies.tracing-subscriber]
+workspace = true
+
+[dependencies.console-subscriber]
+version = "0.2.0"
+optional = true
+
+[dependencies.axiom-rs]
+version = "0.9.0"
 default-features = false
-features = ["std", "fmt", "ansi", "env-filter", "time", "json"]
+features = ["tokio", "rustls-tls"]
 
-[workspace.dependencies.time]
-version = "0.3"
+[dependencies.axum]
+version = "0.7.3"
+default-features = false
+features = [
+  "http1",
+  "tracing",
+  "tokio",
+  "json",
+  "query",
+  "macros",
+]
+
+[dependencies.axum-extra]
+version = "0.9.1"
+features = ["cookie", "typed-header"]
+
+[dependencies.sqlx]
+version = "0.7.3"
+default-features = false
+features = [
+  "runtime-tokio-rustls",
+  "mysql",
+  "macros",
+  "chrono",
+]
+
+[dependencies.url]
+workspace = true
+
+[dependencies.semver]
+version = "1.0.21"
+features = ["serde"]
+
+[dependencies.reqwest]
+version = "0.11.23"
+default-features = false
+features = ["rustls-tls", "json"]
+
+[dependencies.serde]
+workspace = true
+
+[dependencies.serde_json]
+workspace = true
+
+[dependencies.serde_urlencoded]
+version = "0.7.1"
+
+[dependencies.jsonwebtoken]
+version = "9.2.0"
+
+[dependencies.utoipa]
+version = "4.2.0"
+features = [
+  "url",
+  "axum_extras",
+  "chrono",
+  "non_strict_integers",
+  "preserve_order",
+  "preserve_path_order",
+  "debug",
+]
+
+[dependencies.utoipa-swagger-ui]
+version = "6.0.0"
+features = [
+  "axum",
+]
+
+[dependencies.itertools]
+workspace = true
+
+[dependencies.crc32fast]
+version = "1.3.2"
+
+[dependencies.time]
+version = "0.3.31"
 features = ["macros"]
 
-[workspace.dependencies.chrono]
-version = "0.4"
+[dependencies.chrono]
+version = "0.4.31"
 default-features = false
-features = ["std", "serde"]
+features = ["std", "clock", "serde"]
+
+[dependencies.rand]
+version = "0.8.5"
+
+[dev-dependencies]
+color-eyre = "0.6.2"
+ctor = "0.2.6"
+
+[workspace]
+resolver = "2"
+members = [
+  "crates/cs2kz",
+  "crates/cs2kz-api-macros",
+  "crates/spec-generator",
+]
+
+[workspace.dependencies.dotenvy]
+version = "0.15.7"
+
+[workspace.dependencies.thiserror]
+version = "1.0.56"
 
 [workspace.dependencies.tokio]
-version = "1"
-features = ["macros", "net", "process", "rt-multi-thread"]
+version = "1.35.1"
+features = ["rt-multi-thread", "net", "process", "macros"]
 
-[workspace.dependencies.sqlx]
-version = "0.7"
+[workspace.dependencies.tracing]
+version = "0.1.40"
+
+[workspace.dependencies.tracing-subscriber]
+version = "0.3.18"
 default-features = false
-features = ["macros", "runtime-tokio-rustls", "mysql", "chrono", "rust_decimal"]
+features = [
+  "std",
+  "fmt",
+  "ansi",
+  "env-filter",
+  "time",
+  "json",
+]
+
+[workspace.dependencies.url]
+version = "2.5.0"
+features = ["serde"]
 
 [workspace.dependencies.serde]
-version = "1"
+version = "1.0.195"
 features = ["derive"]
 
 [workspace.dependencies.serde_json]
-version = "1"
+version = "1.0.111"
+
+[workspace.dependencies.itertools]
+version = "0.12.0"

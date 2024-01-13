@@ -1,0 +1,225 @@
+use std::net::SocketAddr;
+use std::sync::Arc;
+use std::{fmt, io};
+
+use axum::routing::get;
+use axum::Router;
+use itertools::Itertools;
+use tokio::net::TcpListener;
+use tracing::debug;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
+
+use self::auth::openapi::Security;
+
+#[cfg(test)]
+mod tests;
+
+#[cfg(test)]
+pub use cs2kz_api_macros::test;
+
+mod error;
+pub use error::{Error, Result};
+
+pub mod config;
+pub use config::Config;
+
+mod state;
+pub use state::State;
+
+mod database;
+mod extractors;
+mod macros;
+mod middleware;
+mod params;
+mod query;
+mod responses;
+mod status;
+mod steam;
+mod url;
+mod util;
+
+mod players;
+mod maps;
+mod servers;
+mod bans;
+mod auth;
+
+#[derive(OpenApi)]
+#[rustfmt::skip]
+#[openapi(
+  info(
+    title = "CS2KZ API",
+    license(
+      name = "GPL-3.0",
+      url = "https://www.gnu.org/licenses/gpl-3.0",
+    ),
+  ),
+  modifiers(&Security),
+  components(
+    schemas(
+      cs2kz::SteamID,
+      cs2kz::Mode,
+      cs2kz::Style,
+      cs2kz::Jumpstat,
+      cs2kz::Tier,
+      cs2kz::PlayerIdentifier,
+      cs2kz::MapIdentifier,
+      cs2kz::ServerIdentifier,
+
+      params::Limit,
+      params::Offset,
+
+      database::RankedStatus,
+      database::GlobalStatus,
+
+      players::models::Player,
+      players::models::NewPlayer,
+
+      maps::models::KZMap,
+      maps::models::Course,
+      maps::models::Filter,
+      maps::models::NewMap,
+      maps::models::NewCourse,
+      maps::models::NewFilter,
+      maps::models::MapUpdate,
+      maps::models::CourseUpdate,
+      maps::models::FilterUpdate,
+
+      servers::models::Server,
+      servers::models::NewServer,
+      servers::models::CreatedServer,
+      servers::models::ServerUpdate,
+
+      bans::models::Ban,
+      bans::models::NewBan,
+      bans::models::CreatedBan,
+      bans::models::BanUpdate,
+      bans::models::NewUnban,
+      bans::models::CreatedUnban,
+    ),
+  ),
+  paths(
+    status::hello_world,
+
+    players::routes::get_many::get_many,
+    players::routes::create::create,
+    players::routes::get_single::get_single,
+
+    maps::routes::get_many::get_many,
+    maps::routes::create::create,
+    maps::routes::get_single::get_single,
+    maps::routes::update::update,
+
+    servers::routes::get_many::get_many,
+    servers::routes::create::create,
+    servers::routes::get_single::get_single,
+    servers::routes::update::update,
+    servers::routes::replace_key::replace_key,
+    servers::routes::delete_key::delete_key,
+
+    bans::routes::get_many::get_many,
+    bans::routes::create::create,
+    bans::routes::get_single::get_single,
+    bans::routes::update::update,
+    bans::routes::unban::unban,
+
+    auth::steam::routes::login::login,
+    auth::steam::routes::logout::logout,
+    auth::steam::routes::callback::callback,
+  ),
+)]
+pub struct API {
+	tcp_listener: TcpListener,
+	state: Arc<State>,
+}
+
+impl API {
+	#[tracing::instrument]
+	pub async fn new(config: Config) -> Result<Self> {
+		let tcp_listener = TcpListener::bind(config.socket_addr()).await?;
+		let local_addr = tcp_listener.local_addr()?;
+
+		debug!(%local_addr, "Initialized TCP socket");
+
+		let state = State::new(config).await.map(Arc::new)?;
+
+		debug!("Initialized API state");
+
+		Ok(Self { tcp_listener, state })
+	}
+
+	#[tracing::instrument]
+	pub async fn run(self) {
+		let service = Router::new()
+			.route("/", get(status::hello_world))
+			.with_state(self.state())
+			.nest("/players", players::router(self.state()))
+			.nest("/maps", maps::router(self.state()))
+			.nest("/servers", servers::router(self.state()))
+			.nest("/bans", bans::router(self.state()))
+			.nest("/auth", auth::router(self.state()))
+			.layer(axum::middleware::from_fn(middleware::logging::layer))
+			.merge(Self::swagger_ui())
+			.into_make_service();
+
+		audit!("starting axum server");
+
+		axum::serve(self.tcp_listener, service)
+			.await
+			.expect("failed to run axum");
+	}
+
+	pub fn local_addr(&self) -> io::Result<SocketAddr> {
+		self.tcp_listener.local_addr()
+	}
+
+	pub fn state(&self) -> Arc<State> {
+		Arc::clone(&self.state)
+	}
+
+	pub fn routes() -> impl Iterator<Item = String> {
+		Self::openapi().paths.paths.into_iter().map(|(uri, path)| {
+			let methods = path
+				.operations
+				.into_keys()
+				.map(|method| format!("{method:?}").to_uppercase())
+				.collect_vec()
+				.join(", ");
+
+			format!("`{uri}` [{methods}]")
+		})
+	}
+
+	pub fn swagger_ui() -> SwaggerUi {
+		SwaggerUi::new("/docs/swagger-ui").url("/docs/open-api.json", Self::openapi())
+	}
+
+	pub fn spec() -> String {
+		Self::openapi()
+			.to_pretty_json()
+			.expect("Failed to format API spec as JSON.")
+	}
+}
+
+impl fmt::Debug for API {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("CS2KZ API")
+			.field("state", &self.state)
+			.finish()
+	}
+}
+
+#[cfg(test)]
+mod test_setup {
+	use tracing_subscriber::EnvFilter;
+
+	#[ctor::ctor]
+	fn test_setup() {
+		color_eyre::install().unwrap();
+		dotenvy::dotenv().unwrap();
+		tracing_subscriber::fmt()
+			.with_env_filter(EnvFilter::from_default_env())
+			.init();
+	}
+}
