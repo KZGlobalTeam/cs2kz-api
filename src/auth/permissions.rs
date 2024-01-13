@@ -20,7 +20,8 @@ impl Permissions {
 
 #[allow(dead_code)]
 impl Permissions {
-	pub const NONE: Self = Self(0);
+	pub const NONE: Self = Self(u64::MIN);
+	pub const ALL: Self = Self(u64::MAX);
 
 	pub const MAPS_VIEW: Self = Self(1 << 0);
 	pub const MAPS_APPROVE: Self = Self(1 << 1);

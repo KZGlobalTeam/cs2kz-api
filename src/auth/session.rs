@@ -85,7 +85,7 @@ impl FromRequestParts<Arc<State>> for Session {
 		let max_permissions = match subdomain {
 			subdomain if state.in_dev() => {
 				warn!(?subdomain, "allowing subdomain due to dev mode");
-				Permissions::NONE // TODO
+				Permissions::ALL // TODO
 			}
 
 			None => Permissions::NONE,
