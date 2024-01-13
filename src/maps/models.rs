@@ -157,6 +157,11 @@ pub struct NewMap {
 	/// The map's workshop ID.
 	pub workshop_id: u32,
 
+	/// The initial [global status] of this map.
+	///
+	/// [global status]: GlobalStatus
+	pub global_status: GlobalStatus,
+
 	/// List of players who have contributed to creating this map.
 	pub mappers: Vec<SteamID>,
 

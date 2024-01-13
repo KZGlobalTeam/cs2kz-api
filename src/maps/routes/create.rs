@@ -145,13 +145,14 @@ async fn insert_map(
 	sqlx::query! {
 		r#"
 		INSERT INTO
-		  Maps (name, workshop_id, checksum)
+		  Maps (name, workshop_id, checksum, global_status)
 		VALUES
-		  (?, ?, ?)
+		  (?, ?, ?, ?)
 		"#,
 		workshop_map.name,
 		map.workshop_id,
 		checksum,
+		map.global_status,
 	}
 	.execute(transaction.as_mut())
 	.await?;

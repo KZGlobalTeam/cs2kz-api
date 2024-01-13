@@ -2176,6 +2176,7 @@
         "type": "object",
         "required": [
           "workshop_id",
+          "global_status",
           "mappers",
           "courses"
         ],
@@ -2185,6 +2186,9 @@
             "format": "uint32",
             "description": "The map's workshop ID.",
             "minimum": 0
+          },
+          "global_status": {
+            "$ref": "#/components/schemas/GlobalStatus"
           },
           "mappers": {
             "type": "array",
