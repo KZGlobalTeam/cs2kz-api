@@ -6,12 +6,14 @@ use axum::extract::FromRequestParts;
 use axum::http::{request, Uri};
 use axum_extra::extract::cookie::Cookie;
 use cs2kz::SteamID;
+use sqlx::error::ErrorKind::ForeignKeyViolation;
 use sqlx::MySqlExecutor;
 use tracing::{info, trace, warn};
 
 use super::permissions::Permissions;
 use super::Subdomain;
 use crate::extractors::SessionToken;
+use crate::sqlx::IsError;
 use crate::{Error, Result, State};
 
 #[derive(Debug, Clone)]
@@ -45,7 +47,14 @@ impl Session {
 			steam_id,
 		}
 		.execute(executor)
-		.await?;
+		.await
+		.map_err(|err| {
+			if err.is(ForeignKeyViolation) {
+				Error::UnknownPlayer { steam_id }
+			} else {
+				Error::MySql(err)
+			}
+		})?;
 
 		let mut domain = domain.into();
 

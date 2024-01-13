@@ -35,6 +35,7 @@ mod middleware;
 mod params;
 mod query;
 mod responses;
+mod sqlx;
 mod status;
 mod steam;
 mod url;

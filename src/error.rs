@@ -4,7 +4,7 @@ use std::result::Result as StdResult;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use cs2kz::Mode;
+use cs2kz::{Mode, SteamID};
 use serde_json::json;
 use thiserror::Error as ThisError;
 use tracing::{error, warn};
@@ -86,6 +86,9 @@ pub enum Error {
 
 	#[error("Your token is expired.")]
 	ExpiredToken,
+
+	#[error("Player `{steam_id}` is not in the database.")]
+	UnknownPlayer { steam_id: SteamID },
 }
 
 impl IntoResponse for Error {
@@ -121,6 +124,7 @@ impl IntoResponse for Error {
 			Error::NoContent => StatusCode::NO_CONTENT,
 			Error::Unauthorized => StatusCode::UNAUTHORIZED,
 			Error::Forbidden | Error::ExpiredToken => StatusCode::FORBIDDEN,
+			Error::UnknownPlayer { .. } => StatusCode::CONFLICT,
 		};
 
 		(code, Json(json)).into_response()
