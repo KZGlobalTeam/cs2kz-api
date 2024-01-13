@@ -79,6 +79,11 @@ VALUES
   (234537517, "neon", "127.0.0.1");
 
 INSERT
+  IGNORE INTO Players(`steam_id`, `name`, `last_known_ip_address`)
+VALUES
+  (1107436699, "Reeed", "127.0.0.1");
+
+INSERT
   IGNORE INTO Maps (`name`, `workshop_id`, `checksum`)
 VALUES
   ("kz_checkmate", 3070194623, 133994000);

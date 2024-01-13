@@ -12,7 +12,7 @@ async fn get(ctx: Context) {
 		.json::<Vec<Player>>()
 		.await?;
 
-	ensure!(all_players.len() == 16, "incorrect amount of players");
+	ensure!(all_players.len() == 17, "incorrect amount of players");
 
 	let has_ibrahizy = all_players
 		.iter()
