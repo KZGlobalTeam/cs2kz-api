@@ -2091,16 +2091,6 @@
             "description": "List of mappers to remove.",
             "nullable": true
           },
-          "removed_courses": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0
-            },
-            "description": "List of courses to remove.",
-            "nullable": true
-          },
           "course_updates": {
             "type": "array",
             "items": {

@@ -59,10 +59,6 @@ pub async fn update(
 		remove_mappers(MappersTable::Map(map_id), mappers, transaction.as_mut()).await?;
 	}
 
-	if let Some(course_ids) = &map_update.removed_courses {
-		remove_courses(course_ids, transaction.as_mut()).await?;
-	}
-
 	for course_update in map_update.course_updates.iter().flatten() {
 		update_course(course_update, &mut transaction).await?;
 	}
@@ -99,15 +95,11 @@ async fn validate_update(
 		return Err(Error::UnknownMapID(map_id));
 	}
 
-	let removed_courses = map_update.removed_courses.iter().flatten().copied();
-	let course_updates = map_update
+	if let Some(course_id) = map_update
 		.course_updates
 		.iter()
 		.flatten()
-		.map(|course| course.id);
-
-	if let Some(course_id) = removed_courses
-		.chain(course_updates)
+		.map(|course| course.id)
 		.find(|course_id| !course_ids.contains(course_id))
 	{
 		return Err(Error::InvalidCourse { map_id, course_id });
@@ -231,16 +223,6 @@ async fn remove_mappers(
 
 	query.push(" AND player_id IN ");
 	query::push_tuple(mappers, &mut query);
-
-	query.build().execute(executor).await?;
-
-	Ok(())
-}
-
-async fn remove_courses(course_ids: &[u32], executor: impl MySqlExecutor<'_>) -> Result<()> {
-	let mut query = QueryBuilder::new("DELETE FROM Courses WHERE id IN");
-
-	query::push_tuple(course_ids, &mut query);
 
 	query.build().execute(executor).await?;
 

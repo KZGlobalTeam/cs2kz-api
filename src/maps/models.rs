@@ -240,9 +240,6 @@ pub struct MapUpdate {
 	/// List of mappers to remove.
 	pub removed_mappers: Option<Vec<SteamID>>,
 
-	/// List of courses to remove.
-	pub removed_courses: Option<Vec<u32>>,
-
 	/// List of course updates.
 	pub course_updates: Option<Vec<CourseUpdate>>,
 }
