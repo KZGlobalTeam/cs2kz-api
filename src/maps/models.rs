@@ -234,13 +234,9 @@ pub struct MapUpdate {
 	/// A new workshop ID.
 	pub workshop_id: Option<u32>,
 
-	/// Fetch the latest version of the map from Steam and update the name.
+	/// Fetch the latest version of the map from Steam and update its name and checksum.
 	#[serde(default)]
-	pub name: bool,
-
-	/// Fetch the latest version of the map from Steam and update the checksum.
-	#[serde(default)]
-	pub checksum: bool,
+	pub check_steam: bool,
 
 	/// List of mappers to add.
 	pub added_mappers: Option<Vec<SteamID>>,
