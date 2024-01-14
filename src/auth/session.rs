@@ -87,7 +87,7 @@ impl FromRequestParts<Arc<State>> for Session {
 	async fn from_request_parts(parts: &mut request::Parts, state: &Arc<State>) -> Result<Self> {
 		let uri = Uri::from_request_parts(parts, state)
 			.await
-			.map_err(|_| Error::Unauthorized)?;
+			.expect("infallible");
 
 		let subdomain = uri.host().and_then(|host| Some(host.split_once('.')?.0));
 
@@ -119,7 +119,12 @@ impl FromRequestParts<Arc<State>> for Session {
 			}
 		};
 
-		let token = SessionToken::from_request_parts(parts, state).await?;
+		let token = SessionToken::from_request_parts(parts, state)
+			.await
+			.map_err(|err| {
+				trace!(%err, "missing session token");
+				err
+			})?;
 
 		let user = sqlx::query! {
 			r#"
@@ -139,9 +144,13 @@ impl FromRequestParts<Arc<State>> for Session {
 		}
 		.fetch_optional(state.database())
 		.await?
-		.ok_or(Error::Unauthorized)?;
+		.ok_or_else(|| {
+			trace!("session is invalid");
+			Error::Unauthorized
+		})?;
 
-		if subdomain != user.subdomain.as_deref() {
+		if !state.in_dev() && subdomain != user.subdomain.as_deref() {
+			trace!("rejecting due to mismatching subdomain");
 			return Err(Error::Forbidden);
 		}
 
