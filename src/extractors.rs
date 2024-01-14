@@ -6,6 +6,7 @@ use axum::http::{header, request};
 use axum_extra::extract::cookie::Cookie;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
+use tracing::trace;
 
 use crate::{Error, Result};
 
@@ -30,14 +31,19 @@ impl TryFrom<&Cookie<'_>> for SessionToken {
 	type Error = Error;
 
 	fn try_from(cookie: &Cookie<'_>) -> Result<Self> {
-		if cookie.name() != Self::COOKIE_NAME || is_expired(cookie) {
+		if cookie.name() != Self::COOKIE_NAME {
 			return Err(Error::Unauthorized);
 		}
 
-		let token = cookie
-			.value()
-			.parse::<u64>()
-			.map_err(|_| Error::Unauthorized)?;
+		if is_expired(cookie) {
+			trace!("cookie is expired");
+			return Err(Error::Unauthorized);
+		}
+
+		let token = cookie.value().parse::<u64>().map_err(|_| {
+			trace!("cookie has invalid format");
+			Error::Unauthorized
+		})?;
 
 		Ok(Self(token))
 	}
@@ -57,7 +63,7 @@ impl FromRequestParts<Arc<crate::State>> for SessionToken {
 			.into_iter()
 			.filter_map(|value| value.to_str().ok())
 			.flat_map(|value| value.split(';'))
-			.filter_map(|cookie| Cookie::parse_encoded(cookie.to_owned()).ok())
+			.filter_map(|cookie| Cookie::parse_encoded(cookie).ok())
 			.find_map(|cookie| Self::try_from(&cookie).ok())
 			.ok_or(Error::Unauthorized)
 	}
