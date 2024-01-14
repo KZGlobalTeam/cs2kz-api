@@ -208,6 +208,10 @@ async fn remove_mappers(
 	mappers: &[SteamID],
 	executor: impl MySqlExecutor<'_>,
 ) -> Result<()> {
+	if mappers.is_empty() {
+		return Ok(());
+	}
+
 	let mut query = QueryBuilder::new("DELETE FROM ");
 
 	match table {

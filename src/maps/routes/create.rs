@@ -177,6 +177,10 @@ pub(super) async fn insert_mappers(
 	mappers: &[SteamID],
 	executor: impl MySqlExecutor<'_>,
 ) -> Result<()> {
+	if mappers.is_empty() {
+		return Ok(());
+	}
+
 	let mut query = QueryBuilder::new("INSERT INTO ");
 
 	let table_id = match table {
