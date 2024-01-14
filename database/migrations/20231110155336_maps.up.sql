@@ -23,6 +23,6 @@ CREATE TABLE IF NOT EXISTS Mappers (
   `map_id` INT2 UNSIGNED NOT NULL,
   `player_id` INT4 UNSIGNED NOT NULL,
   PRIMARY KEY (`map_id`, `player_id`),
-  FOREIGN KEY (`map_id`) REFERENCES Maps (`id`),
+  FOREIGN KEY (`map_id`) REFERENCES Maps (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`)
 );

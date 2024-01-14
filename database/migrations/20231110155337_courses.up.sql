@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS Courses (
   `map_stage` INT1 UNSIGNED NOT NULL,
   `name` VARCHAR(32),
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`map_id`) REFERENCES Maps (`id`),
+  FOREIGN KEY (`map_id`) REFERENCES Maps (`id`) ON DELETE CASCADE,
   UNIQUE (`map_id`, `map_stage`),
   CONSTRAINT `valid_stage` CHECK(`map_stage` > 0)
 );
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS CourseMappers (
   `course_id` INT4 UNSIGNED NOT NULL,
   `player_id` INT4 UNSIGNED NOT NULL,
   PRIMARY KEY (`course_id`, `player_id`),
-  FOREIGN KEY (`course_id`) REFERENCES Courses (`id`),
+  FOREIGN KEY (`course_id`) REFERENCES Courses (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`)
 );
 
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS CourseFilters (
   `tier` INT1 UNSIGNED NOT NULL,
   `ranked_status` INT1 NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`course_id`) REFERENCES Courses (`id`),
+  FOREIGN KEY (`course_id`) REFERENCES Courses (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`mode_id`) REFERENCES Modes (`id`),
   CONSTRAINT `valid_tier` CHECK(`tier` BETWEEN 1 AND 10),
   CONSTRAINT `valid_ranked_status` CHECK(`ranked_status` BETWEEN -1 AND 1)
