@@ -6,7 +6,7 @@ use axum::Router;
 use crate::State;
 
 pub mod models;
-pub use models::{AuthResponse, AuthenticatedServer};
+pub use models::{AuthenticatedServer, ServerAccessToken};
 
 pub mod routes;
 

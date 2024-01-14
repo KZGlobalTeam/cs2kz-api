@@ -76,6 +76,12 @@ mod auth;
       database::RankedStatus,
       database::GlobalStatus,
 
+      auth::permissions::Permissions,
+      auth::servers::models::ServerAccessToken,
+      auth::servers::routes::refresh_key::ServerAuthRequest,
+      auth::admins::models::Admin,
+      auth::admins::models::NewAdmin,
+
       players::models::Player,
       players::models::NewPlayer,
 
@@ -130,6 +136,13 @@ mod auth;
     auth::steam::routes::login::login,
     auth::steam::routes::logout::logout,
     auth::steam::routes::callback::callback,
+
+    auth::servers::routes::refresh_key::refresh_key,
+
+    auth::admins::routes::get_many::get_many,
+    auth::admins::routes::update::update,
+    auth::admins::routes::get_single::get_single,
+    auth::admins::routes::delete::delete,
   ),
 )]
 pub struct API {

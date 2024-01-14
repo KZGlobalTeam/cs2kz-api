@@ -1,0 +1,47 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t  p.steam_id `steam_id: SteamID`,\n\t\t  p.name,\n\t\t  a.permissions\n\t\tFROM\n\t\t  Admins a\n\t\t  JOIN Players p ON p.steam_id = a.steam_id\n\t\tWHERE\n\t\t  a.steam_id = ?\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "steam_id: SteamID",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 10
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 128
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "permissions",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 20
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "12a9bef49af699881d6d84ee97b3da3f38e6edacb43ed2c4b82f5d68bf252809"
+}

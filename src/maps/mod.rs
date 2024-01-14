@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::routing::{get, patch, put};
 use axum::Router;
 
-use crate::auth::permissions::Permissions;
+use crate::auth::Permissions;
 use crate::{middleware, State};
 
 mod queries;

@@ -72,6 +72,7 @@ features = [
   "mysql",
   "macros",
   "chrono",
+  "time",
 ]
 
 [dependencies.url]

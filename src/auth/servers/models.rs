@@ -3,7 +3,7 @@ use utoipa::ToSchema;
 
 /// The temporary access token used by CS2 servers for authenticating requests.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct AuthResponse {
+pub struct ServerAccessToken {
 	pub access_token: String,
 }
 

@@ -6,10 +6,13 @@ use axum::Router;
 
 use crate::State;
 
+pub mod admins;
 pub mod openapi;
-pub mod permissions;
 pub mod servers;
 pub mod steam;
+
+pub mod permissions;
+pub use permissions::Permissions;
 
 pub mod jwt;
 pub use jwt::JWT;
@@ -20,7 +23,8 @@ pub use session::Session;
 pub fn router(state: Arc<State>) -> Router {
 	Router::new()
 		.nest("/steam", steam::router(Arc::clone(&state)))
-		.nest("/servers", servers::router(state))
+		.nest("/servers", servers::router(Arc::clone(&state)))
+		.nest("/admins", admins::router(state))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]

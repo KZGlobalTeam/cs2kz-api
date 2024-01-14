@@ -2,8 +2,7 @@ use axum::extract::Request;
 use axum::middleware::Next;
 use axum::response::Response;
 
-use crate::auth::permissions::Permissions;
-use crate::auth::Session;
+use crate::auth::{Permissions, Session};
 use crate::middleware::{Error, Result};
 
 /// Middleware for authenticating users who logged in with Steam.

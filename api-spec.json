@@ -1689,10 +1689,281 @@
           }
         }
       }
+    },
+    "/auth/servers/refresh": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "This route is used by CS2 servers for refreshing their JWTs.",
+        "description": "This route is used by CS2 servers for refreshing their JWTs.",
+        "operationId": "refresh_key",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerAuthRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "The temporary access token used by CS2 servers for authenticating requests.",
+                  "required": [
+                    "access_token"
+                  ],
+                  "properties": {
+                    "access_token": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": ""
+          },
+          "422": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        }
+      }
+    },
+    "/auth/admins": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "get_many",
+        "parameters": [
+          {
+            "name": "minimum_permissions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Permissions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "steam_id",
+                    "name",
+                    "permissions"
+                  ],
+                  "properties": {
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "$ref": "#/components/schemas/Permissions"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "update",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewAdmin"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        },
+        "security": [
+          {
+            "Steam Session": [
+              "manage_admins"
+            ]
+          }
+        ]
+      }
+    },
+    "/auth/admins/{steam_id}": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "get_single",
+        "parameters": [
+          {
+            "name": "steam_id",
+            "in": "path",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "steam_id",
+                    "name",
+                    "permissions"
+                  ],
+                  "properties": {
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "$ref": "#/components/schemas/Permissions"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Auth"
+        ],
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "steam_id",
+            "in": "path",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        },
+        "security": [
+          {
+            "Steam Session": [
+              "manage_admins"
+            ]
+          }
+        ]
+      }
     }
   },
   "components": {
     "schemas": {
+      "Admin": {
+        "type": "object",
+        "required": [
+          "steam_id",
+          "name",
+          "permissions"
+        ],
+        "properties": {
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
+          },
+          "name": {
+            "type": "string"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/Permissions"
+          }
+        }
+      },
       "Ban": {
         "type": "object",
         "description": "A player ban.",
@@ -2122,6 +2393,21 @@
           "classic"
         ]
       },
+      "NewAdmin": {
+        "type": "object",
+        "required": [
+          "steam_id",
+          "permissions"
+        ],
+        "properties": {
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/Permissions"
+          }
+        }
+      },
       "NewBan": {
         "type": "object",
         "required": [
@@ -2295,6 +2581,12 @@
         "format": "int64",
         "description": "Utility type for extracting an \"offset\" query parameter."
       },
+      "Permissions": {
+        "type": "integer",
+        "format": "uint64",
+        "description": "Bitfield for storing user permissions.\n\nSee associated constants for details.",
+        "minimum": 0
+      },
       "Player": {
         "type": "object",
         "required": [
@@ -2362,6 +2654,38 @@
           "approved_on": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "ServerAccessToken": {
+        "type": "object",
+        "description": "The temporary access token used by CS2 servers for authenticating requests.",
+        "required": [
+          "access_token"
+        ],
+        "properties": {
+          "access_token": {
+            "type": "string"
+          }
+        }
+      },
+      "ServerAuthRequest": {
+        "type": "object",
+        "description": "Request payload for CS2 servers which want to refresh their access token.",
+        "required": [
+          "refresh_token",
+          "plugin_version"
+        ],
+        "properties": {
+          "refresh_token": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The server's semi-permanent API Key.",
+            "minimum": 0
+          },
+          "plugin_version": {
+            "type": "string",
+            "description": "The cs2kz version the server is currently running on."
           }
         }
       },

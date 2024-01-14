@@ -4,7 +4,7 @@ use semver::Version;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::auth::servers::{AuthResponse, AuthenticatedServer};
+use crate::auth::servers::{AuthenticatedServer, ServerAccessToken};
 use crate::auth::JWT;
 use crate::extractors::State;
 use crate::responses::{self, Created};
@@ -12,7 +12,7 @@ use crate::{Error, Result};
 
 /// Request payload for CS2 servers which want to refresh their access token.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct AuthRequest {
+pub struct ServerAuthRequest {
 	/// The server's semi-permanent API Key.
 	pub refresh_token: u32,
 
@@ -27,9 +27,9 @@ pub struct AuthRequest {
   get,
   tag = "Auth",
   path = "/auth/servers/refresh",
-  request_body = AuthRequest,
+  request_body = ServerAuthRequest,
   responses(
-    responses::Created<AuthResponse>,
+    responses::Created<ServerAccessToken>,
     responses::UnprocessableEntity,
     responses::Unauthorized,
     responses::InternalServerError,
@@ -37,8 +37,8 @@ pub struct AuthRequest {
 )]
 pub async fn refresh_key(
 	state: State,
-	Json(auth): Json<AuthRequest>,
-) -> Result<Created<Json<AuthResponse>>> {
+	Json(auth): Json<ServerAuthRequest>,
+) -> Result<Created<Json<ServerAccessToken>>> {
 	let data = sqlx::query! {
 		r#"
 		SELECT
@@ -61,5 +61,5 @@ pub async fn refresh_key(
 	let jwt = JWT::new(payload, expires_on);
 	let access_token = state.encode_jwt(&jwt)?;
 
-	Ok(Created(Json(AuthResponse { access_token })))
+	Ok(Created(Json(ServerAccessToken { access_token })))
 }

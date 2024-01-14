@@ -10,8 +10,7 @@ use sqlx::error::ErrorKind::ForeignKeyViolation;
 use sqlx::MySqlExecutor;
 use tracing::{info, trace, warn};
 
-use super::permissions::Permissions;
-use super::Subdomain;
+use super::{Permissions, Subdomain};
 use crate::extractors::SessionToken;
 use crate::sqlx::IsError;
 use crate::{Error, Result, State};

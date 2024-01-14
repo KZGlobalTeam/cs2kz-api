@@ -6,7 +6,7 @@ use axum::Json;
 use serde_json::{json, Value as JsonValue};
 use thiserror::Error as ThisError;
 
-use crate::auth::permissions::Permissions;
+use crate::auth::Permissions;
 
 pub type Result<T> = StdResult<T, Error>;
 

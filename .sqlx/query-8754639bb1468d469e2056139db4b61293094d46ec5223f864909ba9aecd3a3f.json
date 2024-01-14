@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tDELETE FROM\n\t\t  Admins\n\t\tWHERE\n\t\t  steam_id = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "8754639bb1468d469e2056139db4b61293094d46ec5223f864909ba9aecd3a3f"
+}

@@ -6,8 +6,8 @@ use serde_json::json;
 use tracing::info;
 
 use super::Context;
-use crate::auth::servers::routes::refresh_key::AuthRequest;
-use crate::auth::servers::AuthResponse;
+use crate::auth::servers::routes::refresh_key::ServerAuthRequest;
+use crate::auth::servers::ServerAccessToken;
 use crate::players::Player;
 
 #[crate::test]
@@ -50,7 +50,7 @@ async fn get_access_token(ctx: &Context) -> Result<String> {
 		.await?;
 
 	let url = ctx.url("/auth/servers/refresh");
-	let request_body = AuthRequest {
+	let request_body = ServerAuthRequest {
 		refresh_token: server.api_key.unwrap(),
 		plugin_version: "0.0.1".parse()?,
 	};
@@ -59,7 +59,7 @@ async fn get_access_token(ctx: &Context) -> Result<String> {
 
 	ensure!(response.status() == StatusCode::CREATED);
 
-	let AuthResponse { access_token } = response.json().await?;
+	let ServerAccessToken { access_token } = response.json().await?;
 
 	info!("received token: `{access_token}`");
 

@@ -1,12 +1,15 @@
 use std::ops::{BitAnd, BitOr};
 
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 /// Bitfield for storing user permissions.
 ///
 /// See associated constants for details.
 #[repr(transparent)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[derive(
+	Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type, ToSchema,
+)]
 #[serde(transparent)]
 #[sqlx(transparent)]
 pub struct Permissions(pub u64);
@@ -35,6 +38,20 @@ impl Permissions {
 	pub const BANS_CREATE: Self = Self(1 << 20);
 	pub const BANS_EDIT: Self = Self(1 << 21);
 	pub const BANS_REMOVE: Self = Self(1 << 22);
+
+	pub const MANAGE_ADMINS: Self = Self(1 << 63);
+}
+
+impl From<u64> for Permissions {
+	fn from(value: u64) -> Self {
+		Self(value)
+	}
+}
+
+impl From<Permissions> for u64 {
+	fn from(value: Permissions) -> Self {
+		value.0
+	}
 }
 
 impl BitOr for Permissions {
