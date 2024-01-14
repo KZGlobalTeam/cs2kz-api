@@ -904,3 +904,13 @@ INSERT
   )
 VALUES
   (3, 297.1734, 2, 1, 322356345, 1, 1);
+
+INSERT
+  IGNORE INTO Admins (`steam_id`, `permissions`)
+VALUES
+  (322356345, ~0);
+
+INSERT
+  IGNORE INTO Admins (`steam_id`, `permissions`)
+VALUES
+  (1107436699, ~0);

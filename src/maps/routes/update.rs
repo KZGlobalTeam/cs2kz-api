@@ -46,8 +46,26 @@ pub async fn update(
 		update_global_status(map_id, global_status, transaction.as_mut()).await?;
 	}
 
-	if let Some(workshop_id) = map_update.workshop_id {
-		update_workshop_id(map_id, workshop_id, state.http(), &mut transaction).await?;
+	let workshop_id = if let Some(workshop_id) = map_update.workshop_id {
+		update_workshop_id(map_id, workshop_id, transaction.as_mut()).await?;
+		workshop_id
+	} else {
+		sqlx::query!("SELECT workshop_id FROM Maps WHERE id = ?", map_id)
+			.fetch_one(transaction.as_mut())
+			.await?
+			.workshop_id
+	};
+
+	if map_update.name || map_update.checksum {
+		update_name_and_checksum(
+			map_id,
+			workshop_id,
+			map_update.name,
+			map_update.checksum,
+			state.http(),
+			transaction.as_mut(),
+		)
+		.await?;
 	}
 
 	if let Some(mappers) = &map_update.added_mappers {
@@ -160,44 +178,66 @@ async fn update_global_status(
 async fn update_workshop_id(
 	map_id: u16,
 	workshop_id: u32,
-	http_client: Arc<reqwest::Client>,
-	transaction: &mut Transaction<'static, MySql>,
+	executor: impl MySqlExecutor<'_>,
 ) -> Result<()> {
 	sqlx::query! {
 		r#"
 		UPDATE
-		Maps
+		  Maps
 		SET
-		workshop_id = ?
+		  workshop_id = ?
 		WHERE
-		id = ?
+		  id = ?
 		"#,
 		workshop_id,
 		map_id,
 	}
-	.execute(transaction.as_mut())
+	.execute(executor)
 	.await?;
 
+	Ok(())
+}
+
+async fn update_name_and_checksum(
+	map_id: u16,
+	workshop_id: u32,
+	name: bool,
+	checksum: bool,
+	http_client: Arc<reqwest::Client>,
+	executor: impl MySqlExecutor<'_>,
+) -> Result<()> {
 	let (workshop_map, checksum) = tokio::try_join! {
-		workshop::Map::get(workshop_id, http_client),
-		async { workshop::MapFile::download(workshop_id).await?.checksum().await },
+		async {
+			Result::Ok(if name {
+				Some(workshop::Map::get(workshop_id, http_client).await?)
+			} else {
+				None
+			})
+		},
+		async {
+			Result::Ok(if checksum {
+				Some(workshop::MapFile::download(workshop_id).await?.checksum().await?)
+			} else {
+				None
+			})
+		},
 	}?;
 
 	sqlx::query! {
 		r#"
 		UPDATE
-		Maps
+		  Maps
 		SET
-		name = ?,
-		checksum = ?
+		  name = IFNULL(?, name),
+		  checksum = IFNULL(?, checksum)
 		WHERE
-		id = ?
+		  id = ?
 		"#,
-		workshop_map.name,
+		workshop_map.map(|map| map.name),
 		checksum,
 		map_id,
 	}
-	.execute(transaction.as_mut())
+	.execute(executor)
 	.await?;
 
 	Ok(())

@@ -2081,6 +2081,14 @@
             "nullable": true,
             "minimum": 0
           },
+          "name": {
+            "type": "boolean",
+            "description": "Fetch the latest version of the map from Steam and update the name."
+          },
+          "checksum": {
+            "type": "boolean",
+            "description": "Fetch the latest version of the map from Steam and update the checksum."
+          },
           "added_mappers": {
             "type": "array",
             "items": {

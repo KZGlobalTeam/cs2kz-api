@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS Admins (
 	`steam_id` INT4 UNSIGNED NOT NULL,
 	`permissions` INT8 UNSIGNED NOT NULL,
 	PRIMARY KEY (`steam_id`, `permissions`),
-	FOREIGN KEY (`steam_id`) REFERENCES Players (`steam_id`)
+	FOREIGN KEY (`steam_id`) REFERENCES Players (`steam_id`),
+  UNIQUE (`steam_id`)
 );
 
 /**
