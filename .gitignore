@@ -2,3 +2,4 @@ target
 database/volumes
 .direnv
 .env
+workshop/*

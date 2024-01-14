@@ -169,7 +169,7 @@ pub(super) async fn insert_mappers(
 	mappers: &[SteamID],
 	executor: impl MySqlExecutor<'_>,
 ) -> Result<()> {
-	let mut query = QueryBuilder::new("INSERT INTO");
+	let mut query = QueryBuilder::new("INSERT INTO ");
 
 	let table_id = match table {
 		MappersTable::Map(map_id) => {
@@ -216,12 +216,7 @@ async fn insert_courses(
 		FROM
 		  Courses
 		WHERE
-		  id >= (
-		    SELECT
-		      LAST_INSERT_ID()
-		    FROM
-		      Courses
-		  )
+		  id >= (SELECT LAST_INSERT_ID())
 		"#,
 	}
 	.fetch_all(transaction.as_mut())

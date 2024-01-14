@@ -6,7 +6,7 @@ use axum::routing::get;
 use axum::Router;
 use itertools::Itertools;
 use tokio::net::TcpListener;
-use tower_http::cors::{self, AllowMethods, CorsLayer};
+use tower_http::cors::{self, CorsLayer};
 use tracing::debug;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -156,7 +156,8 @@ impl API {
 		// FIXME(AlphaKeks)
 		let cors = CorsLayer::new()
 			.allow_origin(cors::Any)
-			.allow_methods(AllowMethods::any());
+			.allow_methods(cors::Any)
+			.allow_headers(cors::Any);
 
 		let service = Router::new()
 			.route("/", get(status::hello_world))
