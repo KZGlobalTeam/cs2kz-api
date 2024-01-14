@@ -67,7 +67,7 @@ async fn get_by_mapper(ctx: Context) {
 		victoria
 			.mappers
 			.iter()
-			.any(|mapper| mapper.steam_id.as_u64() == steam_id)
+			.any(|mapper| mapper.steam_id == steam_id)
 	};
 
 	ensure!(has_mapper(76561198165203332), "missing gamechaos");

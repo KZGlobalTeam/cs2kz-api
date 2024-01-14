@@ -222,6 +222,18 @@ impl Borrow<u64> for SteamID {
 	}
 }
 
+impl PartialEq<u64> for SteamID {
+	fn eq(&self, other: &u64) -> bool {
+		&self.0 == other
+	}
+}
+
+impl PartialEq<u32> for SteamID {
+	fn eq(&self, other: &u32) -> bool {
+		self.as_u32() == *other
+	}
+}
+
 #[cfg(test)]
 mod tests {
 	use super::SteamID;

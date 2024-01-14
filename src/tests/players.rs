@@ -16,7 +16,7 @@ async fn get(ctx: Context) {
 
 	let has_ibrahizy = all_players
 		.iter()
-		.any(|player| player.steam_id.as_u32() == 304674089);
+		.any(|player| player.steam_id == 304674089_u32);
 
 	ensure!(has_ibrahizy, "missing iBrahizy");
 
@@ -28,7 +28,7 @@ async fn get(ctx: Context) {
 		.json::<Player>()
 		.await?;
 
-	ensure!(ibrahizy.steam_id.as_u32() == 304674089);
+	ensure!(ibrahizy.steam_id == 304674089_u32);
 	ensure!(ibrahizy.name == "iBrahizy");
 
 	let alphakeks = ctx
@@ -39,7 +39,7 @@ async fn get(ctx: Context) {
 		.json::<Player>()
 		.await?;
 
-	ensure!(alphakeks.steam_id.as_u32() == 322356345);
+	ensure!(alphakeks.steam_id == 322356345_u32);
 	ensure!(alphakeks.name == "AlphaKeks");
 
 	let zer0k = ctx
@@ -50,6 +50,6 @@ async fn get(ctx: Context) {
 		.json::<Player>()
 		.await?;
 
-	ensure!(zer0k.steam_id.as_u32() == 158416176);
+	ensure!(zer0k.steam_id == 158416176_u32);
 	ensure!(zer0k.name == "zer0.k");
 }
