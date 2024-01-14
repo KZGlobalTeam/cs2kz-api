@@ -31,6 +31,12 @@ pub enum Error {
 	#[error("There must be at least 1 mapper per map.")]
 	NoMappers,
 
+	#[error("There must be at least 1 course per map.")]
+	NoCourses,
+
+	#[error("Stages must start at 1 and cannot exceed 100.")]
+	InvalidStage,
+
 	#[error("Course stages must be contiguous.")]
 	NonContiguousStages,
 
@@ -111,6 +117,8 @@ impl IntoResponse for Error {
 				StatusCode::BAD_GATEWAY
 			}
 			Error::NoMappers
+			| Error::NoCourses
+			| Error::InvalidStage
 			| Error::NonContiguousStages
 			| Error::NoCourseMappers { .. }
 			| Error::InvalidFilterAmount { .. }

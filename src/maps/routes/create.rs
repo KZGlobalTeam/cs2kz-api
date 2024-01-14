@@ -40,7 +40,15 @@ pub async fn create(
 		return Err(Error::NoMappers);
 	}
 
+	if map.courses.is_empty() {
+		return Err(Error::NoCourses);
+	}
+
 	map.courses.sort_by_key(|course| course.stage);
+
+	if !(1..=100).contains(&map.courses[0].stage) {
+		return Err(Error::InvalidStage);
+	}
 
 	let is_contiguous = map
 		.courses
