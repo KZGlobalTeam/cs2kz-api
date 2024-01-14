@@ -2,6 +2,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::{fmt, io};
 
+use axum::http::HeaderValue;
 use axum::routing::get;
 use axum::Router;
 use itertools::Itertools;
@@ -155,7 +156,11 @@ impl API {
 	pub async fn run(self) {
 		// FIXME(AlphaKeks)
 		let cors = CorsLayer::new()
-			.allow_origin(cors::Any)
+			.allow_origin(if self.state().in_dev() {
+				"127.0.0.1".parse::<HeaderValue>().unwrap()
+			} else {
+				"dashboard.cs2.kz".parse::<HeaderValue>().unwrap()
+			})
 			.allow_methods(cors::Any)
 			.allow_headers(cors::Any);
 
