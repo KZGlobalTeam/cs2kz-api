@@ -2,12 +2,12 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::{fmt, io};
 
-use axum::http::HeaderValue;
+use axum::http::{header, HeaderValue, Method};
 use axum::routing::get;
 use axum::Router;
 use itertools::Itertools;
 use tokio::net::TcpListener;
-use tower_http::cors::{self, CorsLayer};
+use tower_http::cors::CorsLayer;
 use tracing::debug;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -161,7 +161,9 @@ impl API {
 			} else {
 				"https://dashboard.cs2.kz".parse::<HeaderValue>().unwrap()
 			})
-			.allow_methods(cors::Any);
+			.allow_credentials(true)
+			.allow_methods([Method::GET, Method::PUT, Method::PATCH])
+			.allow_headers([header::CONTENT_TYPE, header::COOKIE]);
 
 		let service = Router::new()
 			.route("/", get(status::hello_world))
