@@ -162,7 +162,8 @@ impl API {
 				"https://dashboard.cs2.kz".parse::<HeaderValue>().unwrap()
 			})
 			.allow_methods(cors::Any)
-			.allow_headers(cors::Any);
+			.allow_headers(cors::Any)
+			.allow_credentials(true);
 
 		let service = Router::new()
 			.route("/", get(status::hello_world))
