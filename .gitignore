@@ -3,3 +3,4 @@ database/volumes
 .direnv
 .env
 workshop/*
+cookies*.txt
