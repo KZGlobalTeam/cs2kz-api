@@ -157,9 +157,9 @@ impl API {
 		// FIXME(AlphaKeks)
 		let cors = CorsLayer::new()
 			.allow_origin(if self.state().in_dev() {
-				"127.0.0.1".parse::<HeaderValue>().unwrap()
+				"http://127.0.0.1".parse::<HeaderValue>().unwrap()
 			} else {
-				"dashboard.cs2.kz".parse::<HeaderValue>().unwrap()
+				"https://dashboard.cs2.kz".parse::<HeaderValue>().unwrap()
 			})
 			.allow_methods(cors::Any)
 			.allow_headers(cors::Any);
