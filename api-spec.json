@@ -1754,12 +1754,7 @@
             "schema": {
               "type": "array",
               "items": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/Role"
-                  }
-                ],
-                "nullable": true
+                "$ref": "#/components/schemas/Role"
               }
             }
           }

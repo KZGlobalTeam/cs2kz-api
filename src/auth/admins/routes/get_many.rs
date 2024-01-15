@@ -12,7 +12,7 @@ use crate::{responses, Error, Result};
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetAdminsParams {
 	#[serde(default)]
-	pub required_roles: Vec<Option<Role>>,
+	pub required_roles: Vec<Role>,
 }
 
 #[tracing::instrument(skip(state))]
@@ -32,11 +32,7 @@ pub async fn get_many(
 	state: State,
 	Query(params): Query<GetAdminsParams>,
 ) -> Result<Json<Vec<Admin>>> {
-	let required_roles = params
-		.required_roles
-		.into_iter()
-		.flatten()
-		.collect::<RoleFlags>();
+	let required_roles = params.required_roles.into_iter().collect::<RoleFlags>();
 
 	let admins = sqlx::query! {
 		r#"
