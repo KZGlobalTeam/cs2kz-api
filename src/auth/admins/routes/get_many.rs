@@ -5,14 +5,14 @@ use serde::Deserialize;
 use utoipa::IntoParams;
 
 use crate::auth::admins::Admin;
-use crate::auth::Permissions;
+use crate::auth::{Permission, Permissions};
 use crate::extractors::State;
 use crate::{responses, Error, Result};
 
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetAdminsParams {
 	#[serde(default)]
-	pub minimum_permissions: Permissions,
+	pub minimum_permissions: Vec<Permission>,
 }
 
 #[tracing::instrument(skip(state))]
@@ -32,8 +32,12 @@ pub async fn get_many(
 	state: State,
 	Query(params): Query<GetAdminsParams>,
 ) -> Result<Json<Vec<Admin>>> {
-	let admins = sqlx::query_as! {
-		Admin,
+	let minimum_permissions = params
+		.minimum_permissions
+		.into_iter()
+		.collect::<Permissions>();
+
+	let admins = sqlx::query! {
 		r#"
 		SELECT
 		  p.steam_id `steam_id: SteamID`,
@@ -45,11 +49,18 @@ pub async fn get_many(
 		WHERE
 		  (a.permissions & ?) = ?
 		"#,
-		params.minimum_permissions,
-		params.minimum_permissions,
+		minimum_permissions,
+		minimum_permissions,
 	}
 	.fetch_all(state.database())
-	.await?;
+	.await?
+	.into_iter()
+	.map(|row| Admin {
+		steam_id: row.steam_id,
+		name: row.name,
+		permissions: Permissions(row.permissions).iter().collect(),
+	})
+	.collect::<Vec<_>>();
 
 	if admins.is_empty() {
 		return Err(Error::NoContent);

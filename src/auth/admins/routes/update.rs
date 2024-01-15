@@ -1,6 +1,7 @@
 use axum::Json;
 
 use crate::auth::admins::NewAdmin;
+use crate::auth::Permissions;
 use crate::extractors::State;
 use crate::responses::Created;
 use crate::{responses, Result};
@@ -25,6 +26,8 @@ pub async fn update(
 	state: State,
 	Json(NewAdmin { steam_id, permissions }): Json<NewAdmin>,
 ) -> Result<Created<()>> {
+	let permissions = permissions.into_iter().collect::<Permissions>();
+
 	sqlx::query! {
 		r#"
 		INSERT INTO

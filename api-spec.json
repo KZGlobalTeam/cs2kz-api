@@ -1752,7 +1752,10 @@
             "in": "query",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/Permissions"
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Permission"
+              }
             }
           }
         ],
@@ -1776,7 +1779,10 @@
                       "type": "string"
                     },
                     "permissions": {
-                      "$ref": "#/components/schemas/Permissions"
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Permission"
+                      }
                     }
                   }
                 }
@@ -1877,7 +1883,10 @@
                       "type": "string"
                     },
                     "permissions": {
-                      "$ref": "#/components/schemas/Permissions"
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Permission"
+                      }
                     }
                   }
                 }
@@ -1960,7 +1969,10 @@
             "type": "string"
           },
           "permissions": {
-            "$ref": "#/components/schemas/Permissions"
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
           }
         }
       },
@@ -2400,7 +2412,10 @@
             "$ref": "#/components/schemas/SteamID"
           },
           "permissions": {
-            "$ref": "#/components/schemas/Permissions"
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Permission"
+            }
           }
         }
       },

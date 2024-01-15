@@ -19,6 +19,14 @@ impl Permissions {
 	pub const fn contains(self, other: Self) -> bool {
 		(self.0 & other.0) == other.0
 	}
+
+	pub const fn nth_bit(self, n: u64) -> bool {
+		(self.0 >> n) & 1 == 1
+	}
+
+	pub const fn iter(self) -> PermissionsIter {
+		PermissionsIter::new(self)
+	}
 }
 
 #[allow(dead_code)]
@@ -70,9 +78,104 @@ impl BitAnd for Permissions {
 	}
 }
 
+impl IntoIterator for Permissions {
+	type Item = Permission;
+	type IntoIter = PermissionsIter;
+
+	fn into_iter(self) -> Self::IntoIter {
+		self.iter()
+	}
+}
+
+impl FromIterator<Permission> for Permissions {
+	fn from_iter<T: IntoIterator<Item = Permission>>(iter: T) -> Self {
+		iter.into_iter()
+			.fold(Self::NONE, |acc, curr| acc | Self(curr as u64))
+	}
+}
+
+#[repr(u64)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Permission {
+	#[default]
+	None = u64::MIN,
+	All = u64::MAX,
+
+	MapsView = 1 << 0,
+	MapsApprove = 1 << 1,
+	MapsEdit = 1 << 2,
+	MapsDeglobal = 1 << 3,
+
+	ServersApprove = 1 << 10,
+	ServersEdit = 1 << 11,
+	ServersDeglobal = 1 << 12,
+
+	BansCreate = 1 << 20,
+	BansEdit = 1 << 21,
+	BansRemove = 1 << 22,
+
+	ManageAdmins = 1 << 63,
+}
+
+pub struct PermissionsIter {
+	permissions: Permissions,
+	idx: u64,
+}
+
+impl PermissionsIter {
+	const fn new(permissions: Permissions) -> Self {
+		Self { permissions, idx: 0 }
+	}
+}
+
+impl Iterator for PermissionsIter {
+	type Item = Permission;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		if self.idx >= 63 {
+			return None;
+		}
+
+		while self.idx < 63 && !self.permissions.nth_bit(self.idx) {
+			self.idx += 1;
+		}
+
+		if !self.permissions.nth_bit(self.idx) {
+			return None;
+		}
+
+		// TODO(AlphaKeks): I hate this.
+		let next = match Permissions(1_u64 << self.idx) {
+			Permissions::NONE => Permission::None,
+			Permissions::ALL => Permission::All,
+			Permissions::MAPS_VIEW => Permission::MapsView,
+			Permissions::MAPS_APPROVE => Permission::MapsApprove,
+			Permissions::MAPS_EDIT => Permission::MapsEdit,
+			Permissions::MAPS_DEGLOBAL => Permission::MapsDeglobal,
+			Permissions::SERVERS_APPROVE => Permission::ServersApprove,
+			Permissions::SERVERS_EDIT => Permission::ServersEdit,
+			Permissions::SERVERS_DEGLOBAL => Permission::ServersDeglobal,
+			Permissions::BANS_CREATE => Permission::BansCreate,
+			Permissions::BANS_EDIT => Permission::BansEdit,
+			Permissions::BANS_REMOVE => Permission::BansRemove,
+			Permissions::MANAGE_ADMINS => Permission::ManageAdmins,
+			_ => {
+				// Unused bit.
+				self.idx += 1;
+				return self.next();
+			}
+		};
+
+		self.idx += 1;
+
+		Some(next)
+	}
+}
+
 #[cfg(test)]
 mod tests {
-	use super::Permissions;
+	use super::{Permission, Permissions};
 
 	#[test]
 	fn zero() {
@@ -99,5 +202,17 @@ mod tests {
 
 		assert!(a.contains(b));
 		assert!(!b.contains(a));
+	}
+
+	#[test]
+	fn iter() {
+		let perms = Permissions::BANS_EDIT | Permissions::MAPS_APPROVE | Permissions::MAPS_EDIT;
+		let perms = perms.iter().collect::<Vec<_>>();
+
+		assert_eq!(perms, [
+			Permission::MapsApprove,
+			Permission::MapsEdit,
+			Permission::BansEdit
+		]);
 	}
 }

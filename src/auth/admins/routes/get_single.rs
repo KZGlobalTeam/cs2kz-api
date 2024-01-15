@@ -3,6 +3,7 @@ use axum::Json;
 use cs2kz::SteamID;
 
 use crate::auth::admins::Admin;
+use crate::auth::Permissions;
 use crate::extractors::State;
 use crate::{responses, Error, Result};
 
@@ -20,8 +21,7 @@ use crate::{responses, Error, Result};
   ),
 )]
 pub async fn get_single(state: State, Path(steam_id): Path<SteamID>) -> Result<Json<Admin>> {
-	sqlx::query_as! {
-		Admin,
+	sqlx::query! {
 		r#"
 		SELECT
 		  p.steam_id `steam_id: SteamID`,
@@ -37,6 +37,11 @@ pub async fn get_single(state: State, Path(steam_id): Path<SteamID>) -> Result<J
 	}
 	.fetch_optional(state.database())
 	.await?
+	.map(|row| Admin {
+		steam_id: row.steam_id,
+		name: row.name,
+		permissions: Permissions(row.permissions).iter().collect(),
+	})
 	.map(Json)
 	.ok_or(Error::NoContent)
 }

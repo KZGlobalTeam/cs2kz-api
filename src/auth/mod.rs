@@ -12,7 +12,7 @@ pub mod servers;
 pub mod steam;
 
 pub mod permissions;
-pub use permissions::Permissions;
+pub use permissions::{Permission, Permissions};
 
 pub mod jwt;
 pub use jwt::JWT;
