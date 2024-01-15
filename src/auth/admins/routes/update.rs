@@ -1,7 +1,7 @@
 use axum::Json;
 
 use crate::auth::admins::NewAdmin;
-use crate::auth::Permissions;
+use crate::auth::RoleFlags;
 use crate::extractors::State;
 use crate::responses::Created;
 use crate::{responses, Result};
@@ -24,22 +24,22 @@ use crate::{responses, Result};
 )]
 pub async fn update(
 	state: State,
-	Json(NewAdmin { steam_id, permissions }): Json<NewAdmin>,
+	Json(NewAdmin { steam_id, roles }): Json<NewAdmin>,
 ) -> Result<Created<()>> {
-	let permissions = permissions.into_iter().collect::<Permissions>();
+	let role_flags = roles.into_iter().collect::<RoleFlags>();
 
 	sqlx::query! {
 		r#"
 		INSERT INTO
-		  Admins (steam_id, permissions)
+		  Admins (steam_id, role_flags)
 		VALUES
 		  (?, ?) ON DUPLICATE KEY
 		UPDATE
-		  permissions = ?
+		  role_flags = ?
 		"#,
 		steam_id,
-		permissions,
-		permissions,
+		role_flags,
+		role_flags,
 	}
 	.fetch_optional(state.database())
 	.await?;

@@ -11,8 +11,8 @@ pub mod openapi;
 pub mod servers;
 pub mod steam;
 
-pub mod permissions;
-pub use permissions::{Permission, Permissions};
+pub mod roles;
+pub use roles::{Role, RoleFlags};
 
 pub mod jwt;
 pub use jwt::JWT;

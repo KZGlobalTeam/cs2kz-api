@@ -10,7 +10,7 @@ use sqlx::error::ErrorKind::ForeignKeyViolation;
 use sqlx::MySqlExecutor;
 use tracing::{info, trace, warn};
 
-use super::{Permissions, Subdomain};
+use super::{RoleFlags, Subdomain};
 use crate::extractors::SessionToken;
 use crate::sqlx::IsError;
 use crate::{Error, Result, State};
@@ -18,7 +18,7 @@ use crate::{Error, Result, State};
 #[derive(Debug, Clone)]
 pub struct Session {
 	pub steam_id: SteamID,
-	pub permissions: Permissions,
+	pub role_flags: RoleFlags,
 	pub token: SessionToken,
 }
 
@@ -91,26 +91,21 @@ impl FromRequestParts<Arc<State>> for Session {
 		let subdomain = uri.host().and_then(|host| Some(host.split_once('.')?.0));
 
 		#[rustfmt::skip]
-		let max_permissions = match subdomain {
+		let required_flags = match subdomain {
 			subdomain if state.in_dev() => {
 				warn!(?subdomain, "allowing subdomain due to dev mode");
-				Permissions::ALL // TODO
+				RoleFlags::ALL // TODO
 			}
 
-			None => Permissions::NONE,
+			None => RoleFlags::NONE,
 
-			Some("dashboard") => Permissions::MAPS_VIEW
-				| Permissions::MAPS_APPROVE
-				| Permissions::MAPS_EDIT
-				| Permissions::MAPS_DEGLOBAL
-				| Permissions::SERVERS_APPROVE
-				| Permissions::SERVERS_EDIT
-				| Permissions::SERVERS_DEGLOBAL
-				| Permissions::BANS_CREATE
-				| Permissions::BANS_EDIT
-				| Permissions::BANS_REMOVE,
+			Some("dashboard") => RoleFlags::BANS
+				| RoleFlags::SERVERS
+				| RoleFlags::MAPS
+				| RoleFlags::MAPS_LEAD
+				| RoleFlags::ADMIN,
 
-			Some("forum" | "docs") => Permissions::NONE,
+			Some("forum" | "docs") => RoleFlags::NONE,
 
 			subdomain => {
 				trace!(?subdomain, "rejecting unknown subdomain");
@@ -129,7 +124,7 @@ impl FromRequestParts<Arc<State>> for Session {
 			r#"
 			SELECT
 			  p.steam_id `steam_id: SteamID`,
-			  a.permissions,
+			  a.role_flags,
 			  s.subdomain
 			FROM
 			  WebSessions s
@@ -153,8 +148,8 @@ impl FromRequestParts<Arc<State>> for Session {
 			return Err(Error::Forbidden);
 		}
 
-		let permissions = max_permissions & user.permissions.map(Permissions).unwrap_or_default();
+		let role_flags = required_flags & user.role_flags.map(RoleFlags).unwrap_or_default();
 
-		Ok(Self { steam_id: user.steam_id, token, permissions })
+		Ok(Self { steam_id: user.steam_id, token, role_flags })
 	}
 }

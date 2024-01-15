@@ -906,11 +906,11 @@ VALUES
   (3, 297.1734, 2, 1, 322356345, 1, 1);
 
 INSERT
-  IGNORE INTO Admins (`steam_id`, `permissions`)
+  IGNORE INTO Admins (`steam_id`, `role_flags`)
 VALUES
-  (322356345, ~0);
+  (322356345, 1 << 0 | 1 << 8 | 1 << 16 | 1 << 17 | 1 << 31);
 
 INSERT
-  IGNORE INTO Admins (`steam_id`, `permissions`)
+  IGNORE INTO Admins (`steam_id`, `role_flags`)
 VALUES
-  (1107436699, ~0);
+  (1107436699, 1 << 0 | 1 << 8 | 1 << 16 | 1 << 17 | 1 << 31);

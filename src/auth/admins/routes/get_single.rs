@@ -3,7 +3,7 @@ use axum::Json;
 use cs2kz::SteamID;
 
 use crate::auth::admins::Admin;
-use crate::auth::Permissions;
+use crate::auth::RoleFlags;
 use crate::extractors::State;
 use crate::{responses, Error, Result};
 
@@ -26,7 +26,7 @@ pub async fn get_single(state: State, Path(steam_id): Path<SteamID>) -> Result<J
 		SELECT
 		  p.steam_id `steam_id: SteamID`,
 		  p.name,
-		  a.permissions
+		  a.role_flags
 		FROM
 		  Admins a
 		  JOIN Players p ON p.steam_id = a.steam_id
@@ -40,7 +40,7 @@ pub async fn get_single(state: State, Path(steam_id): Path<SteamID>) -> Result<J
 	.map(|row| Admin {
 		steam_id: row.steam_id,
 		name: row.name,
-		permissions: Permissions(row.permissions).iter().collect(),
+		roles: RoleFlags(row.role_flags).iter().collect(),
 	})
 	.map(Json)
 	.ok_or(Error::NoContent)

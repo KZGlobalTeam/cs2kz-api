@@ -1,18 +1,18 @@
-use axum::extract::Query;
 use axum::Json;
+use axum_extra::extract::Query;
 use cs2kz::SteamID;
 use serde::Deserialize;
 use utoipa::IntoParams;
 
 use crate::auth::admins::Admin;
-use crate::auth::{Permission, Permissions};
+use crate::auth::{Role, RoleFlags};
 use crate::extractors::State;
 use crate::{responses, Error, Result};
 
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetAdminsParams {
 	#[serde(default)]
-	pub minimum_permissions: Vec<Permission>,
+	pub required_roles: Vec<Option<Role>>,
 }
 
 #[tracing::instrument(skip(state))]
@@ -32,25 +32,26 @@ pub async fn get_many(
 	state: State,
 	Query(params): Query<GetAdminsParams>,
 ) -> Result<Json<Vec<Admin>>> {
-	let minimum_permissions = params
-		.minimum_permissions
+	let required_roles = params
+		.required_roles
 		.into_iter()
-		.collect::<Permissions>();
+		.flatten()
+		.collect::<RoleFlags>();
 
 	let admins = sqlx::query! {
 		r#"
 		SELECT
 		  p.steam_id `steam_id: SteamID`,
 		  p.name,
-		  a.permissions
+		  a.role_flags
 		FROM
 		  Admins a
 		  JOIN Players p ON p.steam_id = a.steam_id
 		WHERE
-		  (a.permissions & ?) = ?
+		  (a.role_flags & ?) = ?
 		"#,
-		minimum_permissions,
-		minimum_permissions,
+		required_roles,
+		required_roles,
 	}
 	.fetch_all(state.database())
 	.await?
@@ -58,7 +59,7 @@ pub async fn get_many(
 	.map(|row| Admin {
 		steam_id: row.steam_id,
 		name: row.name,
-		permissions: Permissions(row.permissions).iter().collect(),
+		roles: RoleFlags(row.role_flags).iter().collect(),
 	})
 	.collect::<Vec<_>>();
 

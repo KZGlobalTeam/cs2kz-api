@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\tSELECT\n\t\t\t  p.steam_id `steam_id: SteamID`,\n\t\t\t  a.permissions,\n\t\t\t  s.subdomain\n\t\t\tFROM\n\t\t\t  WebSessions s\n\t\t\t  JOIN Players p ON p.steam_id = s.steam_id\n\t\t\t  LEFT JOIN Admins a ON a.steam_id = s.steam_id\n\t\t\tWHERE\n\t\t\t  s.token = ?\n\t\t\t  AND CURRENT_TIMESTAMP() < s.expires_on\n\t\t\t",
+  "query": "\n\t\t\tSELECT\n\t\t\t  p.steam_id `steam_id: SteamID`,\n\t\t\t  a.role_flags,\n\t\t\t  s.subdomain\n\t\t\tFROM\n\t\t\t  WebSessions s\n\t\t\t  JOIN Players p ON p.steam_id = s.steam_id\n\t\t\t  LEFT JOIN Admins a ON a.steam_id = s.steam_id\n\t\t\tWHERE\n\t\t\t  s.token = ?\n\t\t\t  AND CURRENT_TIMESTAMP() < s.expires_on\n\t\t\t",
   "describe": {
     "columns": [
       {
@@ -15,12 +15,12 @@
       },
       {
         "ordinal": 1,
-        "name": "permissions",
+        "name": "role_flags",
         "type_info": {
-          "type": "LongLong",
+          "type": "Long",
           "flags": "PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
           "char_set": 63,
-          "max_size": 20
+          "max_size": 10
         }
       },
       {
@@ -43,5 +43,5 @@
       true
     ]
   },
-  "hash": "0063fafa9e92ec4aea71779aec2ab19d1dd2550624dca1764ea1b0801d3b903f"
+  "hash": "e8840d88cfb183e81c87d5c43e60c767474654f1b298b2d6f5cf7f620fa5c2bf"
 }

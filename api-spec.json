@@ -1748,13 +1748,18 @@
         "operationId": "get_many",
         "parameters": [
           {
-            "name": "minimum_permissions",
+            "name": "required_roles",
             "in": "query",
             "required": false,
             "schema": {
               "type": "array",
               "items": {
-                "$ref": "#/components/schemas/Permission"
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Role"
+                  }
+                ],
+                "nullable": true
               }
             }
           }
@@ -1769,7 +1774,7 @@
                   "required": [
                     "steam_id",
                     "name",
-                    "permissions"
+                    "roles"
                   ],
                   "properties": {
                     "steam_id": {
@@ -1778,10 +1783,10 @@
                     "name": {
                       "type": "string"
                     },
-                    "permissions": {
+                    "roles": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Permission"
+                        "$ref": "#/components/schemas/Role"
                       }
                     }
                   }
@@ -1873,7 +1878,7 @@
                   "required": [
                     "steam_id",
                     "name",
-                    "permissions"
+                    "roles"
                   ],
                   "properties": {
                     "steam_id": {
@@ -1882,10 +1887,10 @@
                     "name": {
                       "type": "string"
                     },
-                    "permissions": {
+                    "roles": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Permission"
+                        "$ref": "#/components/schemas/Role"
                       }
                     }
                   }
@@ -1959,7 +1964,7 @@
         "required": [
           "steam_id",
           "name",
-          "permissions"
+          "roles"
         ],
         "properties": {
           "steam_id": {
@@ -1968,10 +1973,10 @@
           "name": {
             "type": "string"
           },
-          "permissions": {
+          "roles": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Permission"
+              "$ref": "#/components/schemas/Role"
             }
           }
         }
@@ -2405,16 +2410,16 @@
         "type": "object",
         "required": [
           "steam_id",
-          "permissions"
+          "roles"
         ],
         "properties": {
           "steam_id": {
             "$ref": "#/components/schemas/SteamID"
           },
-          "permissions": {
+          "roles": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Permission"
+              "$ref": "#/components/schemas/Role"
             }
           }
         }
@@ -2592,12 +2597,6 @@
         "format": "int64",
         "description": "Utility type for extracting an \"offset\" query parameter."
       },
-      "Permissions": {
-        "type": "integer",
-        "format": "uint64",
-        "description": "Bitfield for storing user permissions.\n\nSee associated constants for details.",
-        "minimum": 0
-      },
       "Player": {
         "type": "object",
         "required": [
@@ -2637,6 +2636,23 @@
           "unranked",
           "ranked"
         ]
+      },
+      "Role": {
+        "type": "string",
+        "enum": [
+          "none",
+          "bans",
+          "servers",
+          "maps",
+          "maps_lead",
+          "admin"
+        ]
+      },
+      "RoleFlags": {
+        "type": "integer",
+        "format": "uint32",
+        "description": "Bitfield for storing user roles.\n\nSee associated constants for details.",
+        "minimum": 0
       },
       "Server": {
         "type": "object",

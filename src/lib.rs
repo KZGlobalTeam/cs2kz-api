@@ -76,7 +76,8 @@ mod auth;
       database::RankedStatus,
       database::GlobalStatus,
 
-      auth::permissions::Permissions,
+      auth::roles::Role,
+      auth::roles::RoleFlags,
       auth::servers::models::ServerAccessToken,
       auth::servers::routes::refresh_key::ServerAuthRequest,
       auth::admins::models::Admin,

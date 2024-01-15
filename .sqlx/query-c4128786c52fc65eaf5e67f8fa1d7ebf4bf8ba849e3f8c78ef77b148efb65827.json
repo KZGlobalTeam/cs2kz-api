@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t  p.steam_id `steam_id: SteamID`,\n\t\t  p.name,\n\t\t  a.permissions\n\t\tFROM\n\t\t  Admins a\n\t\t  JOIN Players p ON p.steam_id = a.steam_id\n\t\tWHERE\n\t\t  (a.permissions & ?) = ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t  p.steam_id `steam_id: SteamID`,\n\t\t  p.name,\n\t\t  a.role_flags\n\t\tFROM\n\t\t  Admins a\n\t\t  JOIN Players p ON p.steam_id = a.steam_id\n\t\tWHERE\n\t\t  a.steam_id = ?\n\t\t",
   "describe": {
     "columns": [
       {
@@ -25,17 +25,17 @@
       },
       {
         "ordinal": 2,
-        "name": "permissions",
+        "name": "role_flags",
         "type_info": {
-          "type": "LongLong",
+          "type": "Long",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
           "char_set": 63,
-          "max_size": 20
+          "max_size": 10
         }
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 1
     },
     "nullable": [
       false,
@@ -43,5 +43,5 @@
       false
     ]
   },
-  "hash": "5aa95711a7ba7c148eef5f56bf8a0322e7566280a5fcb936cf32018015aac033"
+  "hash": "c4128786c52fc65eaf5e67f8fa1d7ebf4bf8ba849e3f8c78ef77b148efb65827"
 }

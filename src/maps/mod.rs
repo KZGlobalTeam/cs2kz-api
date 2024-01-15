@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::routing::{get, patch, put};
 use axum::Router;
 
-use crate::auth::Permissions;
+use crate::auth::Role;
 use crate::{middleware, State};
 
 mod queries;
@@ -14,21 +14,18 @@ pub use models::{CourseUpdate, CreatedMap, FilterUpdate, KZMap, MapUpdate, NewMa
 pub mod routes;
 
 pub fn router(state: Arc<State>) -> Router {
-	let approve_layer = axum::middleware::from_fn_with_state(
-		Arc::clone(&state),
-		middleware::auth::web::layer::<{ Permissions::MAPS_APPROVE.0 }>,
-	);
-
-	let update_layer = axum::middleware::from_fn_with_state(
-		Arc::clone(&state),
-		middleware::auth::web::layer::<{ Permissions::MAPS_EDIT.0 & Permissions::MAPS_DEGLOBAL.0 }>,
-	);
+	let auth = || {
+		axum::middleware::from_fn_with_state(
+			Arc::clone(&state),
+			middleware::auth::web::layer::<{ Role::MapsLead as u32 }>,
+		)
+	};
 
 	Router::new()
 		.route("/", get(routes::get_many))
-		.route("/", put(routes::create).layer(approve_layer))
+		.route("/", put(routes::create).layer(auth()))
 		.route("/:map", get(routes::get_single))
-		.route("/:map", patch(routes::update).layer(update_layer))
+		.route("/:map", patch(routes::update).layer(auth()))
 		.with_state(state)
 }
 

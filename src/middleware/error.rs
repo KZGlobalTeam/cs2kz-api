@@ -6,7 +6,7 @@ use axum::Json;
 use serde_json::{json, Value as JsonValue};
 use thiserror::Error as ThisError;
 
-use crate::auth::Permissions;
+use crate::auth::RoleFlags;
 
 pub type Result<T> = StdResult<T, Error>;
 
@@ -17,7 +17,7 @@ pub enum Error {
 	InvalidRequestBody(axum::Error),
 
 	#[error("You have insufficient permissions to make this request.")]
-	InsufficientPermissions { required: Permissions },
+	InsufficientPermissions { required_flags: RoleFlags },
 }
 
 impl IntoResponse for Error {
@@ -25,8 +25,15 @@ impl IntoResponse for Error {
 		let mut json = json!({ "message": self.to_string() });
 		let code = match self {
 			Error::InvalidRequestBody(_) => StatusCode::BAD_REQUEST,
-			Error::InsufficientPermissions { required } => {
-				json["required_permissions"] = JsonValue::Number(required.0.into());
+			Error::InsufficientPermissions { required_flags } => {
+				json["required_flags"] = JsonValue::Array(
+					required_flags
+						.into_iter()
+						.map(|role| role.to_string())
+						.map(JsonValue::String)
+						.collect(),
+				);
+
 				StatusCode::FORBIDDEN
 			}
 		};

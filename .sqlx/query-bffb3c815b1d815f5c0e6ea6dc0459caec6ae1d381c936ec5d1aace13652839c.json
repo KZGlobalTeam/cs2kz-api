@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tINSERT INTO\n\t\t  Admins (steam_id, role_flags)\n\t\tVALUES\n\t\t  (?, ?) ON DUPLICATE KEY\n\t\tUPDATE\n\t\t  role_flags = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "bffb3c815b1d815f5c0e6ea6dc0459caec6ae1d381c936ec5d1aace13652839c"
+}

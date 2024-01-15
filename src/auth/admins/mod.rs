@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::routing::{delete, get, put};
 use axum::Router;
 
-use super::Permissions;
+use super::Role;
 use crate::{middleware, State};
 
 pub mod models;
@@ -15,7 +15,7 @@ pub fn router(state: Arc<State>) -> Router {
 	let auth = || {
 		axum::middleware::from_fn_with_state(
 			Arc::clone(&state),
-			middleware::auth::web::layer::<{ Permissions::MANAGE_ADMINS.0 }>,
+			middleware::auth::web::layer::<{ Role::Admin as u32 }>,
 		)
 	};
 

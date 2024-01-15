@@ -2,13 +2,13 @@
  * This table holds users that some elevated permissions.
  * This includes admins responsible for bans, server approval, map approval, etc.
  *
- * The `permissions` column is a bitfield.
+ * The `role_flags` column is a bitfield.
  * For more information about the bitfield values, check the Rust code.
  */
 CREATE TABLE IF NOT EXISTS Admins (
 	`steam_id` INT4 UNSIGNED NOT NULL,
-	`permissions` INT8 UNSIGNED NOT NULL,
-	PRIMARY KEY (`steam_id`, `permissions`),
+	`role_flags` INT4 UNSIGNED NOT NULL,
+	PRIMARY KEY (`steam_id`, `role_flags`),
 	FOREIGN KEY (`steam_id`) REFERENCES Players (`steam_id`),
   UNIQUE (`steam_id`)
 );
