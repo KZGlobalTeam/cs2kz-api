@@ -2,5 +2,6 @@ target
 database/volumes
 .direnv
 .env
+.env.docker
 workshop/*
 cookies*.txt

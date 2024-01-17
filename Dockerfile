@@ -34,8 +34,5 @@ RUN apt-get update \
 	&& steamcmd +quit
 
 COPY --from=builder /kz/target/release/cs2kz-api /bin/cs2kz-api
-COPY .env .env
-COPY .env.docker .env.docker
-RUN cat .env.docker >> .env
 
 ENTRYPOINT ["/bin/cs2kz-api"]

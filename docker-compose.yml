@@ -19,7 +19,11 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
-    env_file: .env.docker
+    env_file:
+      - .env.example
+      - .env
+      - .env.docker.example
+      - .env.docker
     ports:
       - ${KZ_API_PORT:-42069}:${KZ_API_PORT:-42069}
     volumes:
