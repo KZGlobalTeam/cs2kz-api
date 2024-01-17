@@ -46,6 +46,10 @@ pub async fn update(
 		update_global_status(map_id, global_status, transaction.as_mut()).await?;
 	}
 
+	if let Some(description) = map_update.description {
+		update_description(map_id, &description, transaction.as_mut()).await?;
+	}
+
 	let workshop_id = if let Some(workshop_id) = map_update.workshop_id {
 		update_workshop_id(map_id, workshop_id, transaction.as_mut()).await?;
 		workshop_id
@@ -158,14 +162,37 @@ async fn update_global_status(
 ) -> Result<()> {
 	sqlx::query! {
 		r#"
-			UPDATE
-			  Maps
-			SET
-			  global_status = ?
-			WHERE
-			  id = ?
-			"#,
+		UPDATE
+		  Maps
+		SET
+		  global_status = ?
+		WHERE
+		  id = ?
+		"#,
 		global_status,
+		map_id,
+	}
+	.execute(executor)
+	.await?;
+
+	Ok(())
+}
+
+async fn update_description(
+	map_id: u16,
+	description: &str,
+	executor: impl MySqlExecutor<'_>,
+) -> Result<()> {
+	sqlx::query! {
+		r#"
+		UPDATE
+		  Maps
+		SET
+		  description = ?
+		WHERE
+		  id = ?
+		"#,
+		description,
 		map_id,
 	}
 	.execute(executor)
@@ -276,8 +303,24 @@ async fn update_course(
 		remove_mappers(MappersTable::Course(update.id), mappers, transaction.as_mut()).await?;
 	}
 
-	for FilterUpdate { id, tier, ranked_status } in update.filter_updates.iter().flatten().copied()
-	{
+	if let Some(description) = update.description.as_deref() {
+		sqlx::query! {
+			r#"
+			UPDATE
+			  Courses
+			SET
+			  description = ?
+			WHERE
+			  id = ?
+			"#,
+			description,
+			update.id,
+		}
+		.execute(transaction.as_mut())
+		.await?;
+	}
+
+	for FilterUpdate { id, tier, ranked_status, notes } in update.filter_updates.iter().flatten() {
 		if tier.is_none() && ranked_status.is_none() {
 			continue;
 		}
@@ -285,7 +328,7 @@ async fn update_course(
 		if tier.is_some_and(|tier| tier > Tier::Death)
 			&& matches!(ranked_status, Some(RankedStatus::Ranked))
 		{
-			return Err(Error::UnrankableFilterWithID { id });
+			return Err(Error::UnrankableFilterWithID { id: *id });
 		}
 
 		let mut query = QueryBuilder::new("UPDATE CourseFilters");
@@ -302,6 +345,12 @@ async fn update_course(
 				.push(delimiter)
 				.push(" ranked_status = ")
 				.push_bind(ranked_status);
+
+			delimiter = ",";
+		}
+
+		if let Some(notes) = notes.as_deref() {
+			query.push(delimiter).push(" notes = ").push_bind(notes);
 		}
 
 		query.push(" WHERE id = ").push_bind(id);

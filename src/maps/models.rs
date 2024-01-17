@@ -32,6 +32,10 @@ pub struct KZMap {
 	/// [global status]: GlobalStatus
 	pub global_status: GlobalStatus,
 
+	/// The map's description.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub description: Option<String>,
+
 	/// The map's unique checksum.
 	///
 	/// This is calculated by running the map's `.vpk` file through [crc32].
@@ -91,6 +95,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 		let workshop_id = row.try_get("workshop_id")?;
 		let name = row.try_get("name")?;
 		let global_status = row.try_get("global_status")?;
+		let description = row.try_get("description").ok();
 		let checksum = row.try_get("checksum")?;
 		let created_on = row.try_get("created_on")?;
 
@@ -102,6 +107,8 @@ impl FromRow<'_, MySqlRow> for KZMap {
 
 		let courses = vec![Course {
 			id: row.try_get("course_id")?,
+			name: row.try_get("course_name")?,
+			description: row.try_get("course_description").ok(),
 			stage: row.try_get("course_stage")?,
 			mappers: vec![Player {
 				steam_id: row.try_get("course_mapper_steam_id")?,
@@ -114,6 +121,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 				teleports: row.try_get("filter_teleports")?,
 				tier: row.try_get("filter_tier")?,
 				ranked_status: row.try_get("filter_ranked_status")?,
+				notes: row.try_get("filter_notes").ok(),
 			}],
 		}];
 
@@ -124,6 +132,7 @@ impl FromRow<'_, MySqlRow> for KZMap {
 			mappers,
 			courses,
 			global_status,
+			description,
 			checksum,
 			created_on,
 		})
@@ -135,6 +144,14 @@ impl FromRow<'_, MySqlRow> for KZMap {
 pub struct Course {
 	/// The course's ID.
 	pub id: u32,
+
+	/// The course's name.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub name: Option<String>,
+
+	/// The course's description.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub description: Option<String>,
 
 	/// The course's stage.
 	pub stage: u8,
@@ -165,6 +182,10 @@ pub struct Filter {
 	///
 	/// [ranked status]: RankedStatus
 	pub ranked_status: RankedStatus,
+
+	/// Notes about this filter.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub notes: Option<String>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -176,6 +197,9 @@ pub struct NewMap {
 	///
 	/// [global status]: GlobalStatus
 	pub global_status: GlobalStatus,
+
+	/// Description of the map.
+	pub description: Option<String>,
 
 	/// List of players who have contributed to creating this map.
 	pub mappers: Vec<SteamID>,
@@ -191,6 +215,9 @@ pub struct NewCourse {
 
 	/// The course's name.
 	pub name: Option<String>,
+
+	/// Description of the course.
+	pub description: Option<String>,
 
 	/// List of players who have contributed to creating this course.
 	pub mappers: Vec<SteamID>,
@@ -214,6 +241,9 @@ pub struct NewFilter {
 	///
 	/// [ranked status]: RankedStatus
 	pub ranked_status: RankedStatus,
+
+	/// Notes about the filter.
+	pub notes: Option<String>,
 }
 
 /// A newly created [`KZMap`].
@@ -230,6 +260,9 @@ pub struct MapUpdate {
 	///
 	/// [global status]: GlobalStatus
 	pub global_status: Option<GlobalStatus>,
+
+	/// New description for the map.
+	pub description: Option<String>,
 
 	/// A new workshop ID.
 	pub workshop_id: Option<u32>,
@@ -256,6 +289,16 @@ pub struct CourseUpdate {
 	/// [`id`]: Course::id
 	pub id: u32,
 
+	/// New [name] for the course.
+	///
+	/// [name]: Course::name
+	pub name: Option<String>,
+
+	/// New [description] for the course.
+	///
+	/// [description]: Course::description
+	pub description: Option<String>,
+
 	/// List of mappers to add.
 	pub added_mappers: Option<Vec<SteamID>>,
 
@@ -267,7 +310,7 @@ pub struct CourseUpdate {
 }
 
 /// An update to a [`Filter`].
-#[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Deserialize, ToSchema)]
 pub struct FilterUpdate {
 	/// The filter's [`id`].
 	///
@@ -281,4 +324,9 @@ pub struct FilterUpdate {
 	///
 	/// [ranked status]: RankedStatus
 	pub ranked_status: Option<RankedStatus>,
+
+	/// New [notes] for the course.
+	///
+	/// [notes]: Filter::notes
+	pub notes: Option<String>,
 }
