@@ -2,6 +2,7 @@ FROM lukemathwalker/cargo-chef:latest-rust-1.75-slim-bullseye AS chef
 WORKDIR /kz
 
 FROM chef AS planner
+RUN cargo install --locked --no-default-features --features mysql sqlx-cli
 COPY Cargo.toml .
 COPY crates crates
 COPY src src
@@ -33,6 +34,9 @@ RUN apt-get update \
 	&& ln -s /usr/games/steamcmd /bin/steamcmd \
 	&& steamcmd +quit
 
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY --from=planner /usr/local/cargo/bin/sqlx /bin/sqlx
 COPY --from=builder /kz/target/release/cs2kz-api /bin/cs2kz-api
+COPY ./database/migrations ./migrations
 
-ENTRYPOINT ["/bin/cs2kz-api"]
+ENTRYPOINT ["/docker-entrypoint.sh"]

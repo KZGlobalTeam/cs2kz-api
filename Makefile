@@ -4,12 +4,12 @@ export
 
 DATABASE_PORT ?= "8070"
 
-default:
-	@make db
-	@echo "Waiting for the database to spin up..."
-	@sleep 10s
-	@make migrations
-	@make api
+api:
+	@echo "Building API container..."
+	@docker compose build cs2kz-api
+	@echo "Running API..."
+	@docker compose up -d --wait cs2kz-api
+	@docker compose logs --follow cs2kz-api
 
 db:
 	@echo "Starting database container..."
@@ -36,25 +36,6 @@ db-connect-root:
 		-h 127.0.0.1 \
 		-P $(DATABASE_PORT) \
 		-D cs2kz
-
-migrations:
-	@echo "Running migrations..."
-	@$(if $(shell command -v sqlx 2>/dev/null), make migrations-sqlx, make migrations-shell) \
-
-migrations-sqlx:
-	@sqlx migrate run \
-		--source ./database/migrations/ \
-		--database-url $(DATABASE_URL)
-
-migrations-shell:
-	./scripts/run-migrations.sh
-
-api:
-	@echo "Building API container..."
-	@docker compose build cs2kz-api
-	@echo "Running API..."
-	@docker compose up -d --wait cs2kz-api
-	@docker compose logs --follow cs2kz-api
 
 api-spec:
 	@echo "Generating OpenAPI docs..."

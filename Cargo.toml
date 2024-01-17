@@ -113,9 +113,7 @@ features = [
 
 [dependencies.utoipa-swagger-ui]
 version = "6.0.0"
-features = [
-  "axum",
-]
+features = ["axum"]
 
 [dependencies.itertools]
 workspace = true
