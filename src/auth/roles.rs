@@ -38,10 +38,8 @@ impl RoleFlags {
 	pub const BANS: Self = Self(1 << 0);
 	pub const SERVERS: Self = Self(1 << 8);
 	pub const MAPS: Self = Self(1 << 16);
-	pub const MAPS_LEAD: Self = Self(1 << 17);
 	pub const ADMIN: Self = Self(1 << 31);
-	pub const ALL: Self =
-		Self(Self::BANS.0 | Self::SERVERS.0 | Self::MAPS.0 | Self::MAPS_LEAD.0 | Self::ADMIN.0);
+	pub const ALL: Self = Self(Self::BANS.0 | Self::SERVERS.0 | Self::MAPS.0 | Self::ADMIN.0);
 }
 
 impl BitOr for RoleFlags {
@@ -85,7 +83,6 @@ pub enum Role {
 	Bans = 1 << 0,
 	Servers = 1 << 8,
 	Maps = 1 << 16,
-	MapsLead = 1 << 17,
 	Admin = 1 << 31,
 }
 
@@ -108,7 +105,6 @@ impl From<RoleFlags> for Option<Role> {
 			RoleFlags::BANS => Some(Role::Bans),
 			RoleFlags::SERVERS => Some(Role::Servers),
 			RoleFlags::MAPS => Some(Role::Maps),
-			RoleFlags::MAPS_LEAD => Some(Role::MapsLead),
 			RoleFlags::ADMIN => Some(Role::Admin),
 			_ => None,
 		}
@@ -148,7 +144,6 @@ impl Iterator for RoleIter {
 			RoleFlags::BANS => Role::Bans,
 			RoleFlags::SERVERS => Role::Servers,
 			RoleFlags::MAPS => Role::Maps,
-			RoleFlags::MAPS_LEAD => Role::MapsLead,
 			RoleFlags::ADMIN => Role::Admin,
 			_ => {
 				self.idx += 1;

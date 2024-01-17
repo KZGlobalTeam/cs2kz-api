@@ -2639,7 +2639,6 @@
           "bans",
           "servers",
           "maps",
-          "maps_lead",
           "admin"
         ]
       },

@@ -102,7 +102,6 @@ impl FromRequestParts<Arc<State>> for Session {
 			Some("dashboard") => RoleFlags::BANS
 				| RoleFlags::SERVERS
 				| RoleFlags::MAPS
-				| RoleFlags::MAPS_LEAD
 				| RoleFlags::ADMIN,
 
 			Some("forum" | "docs") => RoleFlags::NONE,
