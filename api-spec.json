@@ -308,6 +308,11 @@
                     "global_status": {
                       "$ref": "#/components/schemas/GlobalStatus"
                     },
+                    "description": {
+                      "type": "string",
+                      "description": "The map's description.",
+                      "nullable": true
+                    },
                     "checksum": {
                       "type": "integer",
                       "format": "uint32",
@@ -476,6 +481,11 @@
                     },
                     "global_status": {
                       "$ref": "#/components/schemas/GlobalStatus"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "The map's description.",
+                      "nullable": true
                     },
                     "checksum": {
                       "type": "integer",
@@ -2065,6 +2075,16 @@
             "description": "The course's ID.",
             "minimum": 0
           },
+          "name": {
+            "type": "string",
+            "description": "The course's name.",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "The course's description.",
+            "nullable": true
+          },
           "stage": {
             "type": "integer",
             "format": "uint8",
@@ -2099,6 +2119,16 @@
             "format": "uint32",
             "description": "The course's [`id`].\n\n[`id`]: Course::id",
             "minimum": 0
+          },
+          "name": {
+            "type": "string",
+            "description": "New [name] for the course.\n\n[name]: Course::name",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "New [description] for the course.\n\n[description]: Course::description",
+            "nullable": true
           },
           "added_mappers": {
             "type": "array",
@@ -2207,6 +2237,11 @@
           },
           "ranked_status": {
             "$ref": "#/components/schemas/RankedStatus"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notes about this filter.",
+            "nullable": true
           }
         }
       },
@@ -2237,6 +2272,11 @@
                 "$ref": "#/components/schemas/RankedStatus"
               }
             ],
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "New [notes] for the course.\n\n[notes]: Filter::notes",
             "nullable": true
           }
         }
@@ -2308,6 +2348,11 @@
           "global_status": {
             "$ref": "#/components/schemas/GlobalStatus"
           },
+          "description": {
+            "type": "string",
+            "description": "The map's description.",
+            "nullable": true
+          },
           "checksum": {
             "type": "integer",
             "format": "uint32",
@@ -2349,6 +2394,11 @@
                 "$ref": "#/components/schemas/GlobalStatus"
               }
             ],
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "New description for the map.",
             "nullable": true
           },
           "workshop_id": {
@@ -2453,6 +2503,11 @@
             "description": "The course's name.",
             "nullable": true
           },
+          "description": {
+            "type": "string",
+            "description": "Description of the course.",
+            "nullable": true
+          },
           "mappers": {
             "type": "array",
             "items": {
@@ -2490,6 +2545,11 @@
           },
           "ranked_status": {
             "$ref": "#/components/schemas/RankedStatus"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notes about the filter.",
+            "nullable": true
           }
         }
       },
@@ -2510,6 +2570,11 @@
           },
           "global_status": {
             "$ref": "#/components/schemas/GlobalStatus"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of the map.",
+            "nullable": true
           },
           "mappers": {
             "type": "array",

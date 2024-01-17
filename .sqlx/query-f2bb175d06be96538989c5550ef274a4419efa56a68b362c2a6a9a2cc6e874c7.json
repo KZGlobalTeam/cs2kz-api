@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tUPDATE\n\t\t\t  Courses\n\t\t\tSET\n\t\t\t  description = ?\n\t\t\tWHERE\n\t\t\t  id = ?\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "f2bb175d06be96538989c5550ef274a4419efa56a68b362c2a6a9a2cc6e874c7"
+}

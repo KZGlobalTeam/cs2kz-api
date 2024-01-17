@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tUPDATE\n\t\t  Maps\n\t\tSET\n\t\t  description = ?\n\t\tWHERE\n\t\t  id = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "0469229b1c8e4898800bacbc2c162fd11934393f2d7c04df0b5e964d285719a3"
+}

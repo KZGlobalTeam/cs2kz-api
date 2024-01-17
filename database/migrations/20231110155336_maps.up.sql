@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS Maps (
   `name` VARCHAR(32) NOT NULL,
   `workshop_id` INT4 UNSIGNED NOT NULL,
   `checksum` INT4 UNSIGNED NOT NULL,
-  `global_status` INT1 NOT NULL,
+  `global_status` INT1 NOT NULL DEFAULT -1,
+  `description` TEXT,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 );

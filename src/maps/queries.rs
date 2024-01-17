@@ -7,6 +7,8 @@ pub static BASE_SELECT: &str = r#"
 	  p2.name mapper_name,
 	  p2.is_banned mapper_is_banned,
 	  c.id course_id,
+	  c.name course_name,
+	  c.description course_description,
 	  c.map_stage course_stage,
 	  p4.steam_id course_mapper_steam_id,
 	  p4.name course_mapper_name,
@@ -16,7 +18,9 @@ pub static BASE_SELECT: &str = r#"
 	  f.teleports filter_teleports,
 	  f.tier filter_tier,
 	  f.ranked_status filter_ranked_status,
+	  f.notes filter_notes,
 	  m.global_status,
+	  m.description,
 	  m.checksum,
 	  m.created_on
 	FROM
