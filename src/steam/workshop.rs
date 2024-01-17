@@ -93,27 +93,29 @@ pub struct MapFile {
 }
 
 impl MapFile {
-	#[rustfmt::skip]
-	const DOWNLOAD_COMMAND: &'static [&'static str] = &[
-		"+force_install_dir", "/kz/workshop",
-		"+login", "anonymous",
-		"+workshop_download_item", "730",
-	];
-
-	const DOWNLOAD_DIR: &'static str = "/kz/workshop/steamapps/workshop/content/730";
-
 	/// Downloads the workshop map with the given ID and returns a handle to the file.
 	///
 	/// NOTE: This shells out to steamcmd, so it might take a few seconds.
-	pub async fn download(workshop_id: u32) -> Result<Self> {
-		let args = Self::DOWNLOAD_COMMAND
-			.iter()
-			.copied()
-			.map(String::from)
-			.chain([workshop_id.to_string(), String::from("+quit")]);
+	pub async fn download(workshop_id: u32, config: Arc<crate::Config>) -> Result<Self> {
+		let steam_workshop_path = config
+			.steam
+			.steam_workshop_path
+			.as_deref()
+			.map(Path::to_string_lossy)
+			.ok_or(Error::MissingWorkshopDirectory)?;
 
-		let output = Command::new("/bin/steamcmd")
-			.args(args)
+		let steamcmd = config
+			.steam
+			.steam_cmd_path
+			.as_deref()
+			.ok_or(Error::MissingSteamCMD)?;
+
+		let output = Command::new(steamcmd)
+			.arg("+force_install_dir")
+			.arg(&*steam_workshop_path)
+			.args(["+login", "anonymous", "+workshop_download_item", "730"])
+			.arg(workshop_id.to_string())
+			.arg("+quit")
 			.spawn()
 			.map_err(|err| {
 				error!(%err, "failed to run steamcmd");
@@ -135,7 +137,10 @@ impl MapFile {
 			return Err(Error::SteamCMD(None));
 		}
 
-		let path = Path::new(Self::DOWNLOAD_DIR).join(format!("{workshop_id}/{workshop_id}.vpk"));
+		let path = Path::new(&*steam_workshop_path)
+			.join("steamapps/workshop/content/730")
+			.join(format!("{workshop_id}/{workshop_id}.vpk"));
+
 		let file = File::open(path).await.map_err(|err| {
 			error!(%err, "failed to open workshop map file");
 			Error::IO(err)

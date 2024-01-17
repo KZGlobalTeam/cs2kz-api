@@ -65,7 +65,7 @@ pub async fn create(
 
 	let mut transaction = state.transaction().await?;
 
-	let map_id = insert_map(&map, state.http(), &mut transaction).await?;
+	let map_id = insert_map(&map, state.http(), state.config(), &mut transaction).await?;
 
 	insert_mappers(MappersTable::Map(map_id), &map.mappers, transaction.as_mut()).await?;
 	insert_courses(map_id, &map.courses, &mut transaction).await?;
@@ -115,12 +115,13 @@ fn validate_course(course: &NewCourse) -> Result<()> {
 async fn insert_map(
 	map: &NewMap,
 	http_client: Arc<reqwest::Client>,
+	config: Arc<crate::Config>,
 	transaction: &mut Transaction<'static, MySql>,
 ) -> Result<u16> {
 	let workshop_id = map.workshop_id;
 	let (workshop_map, checksum) = tokio::try_join! {
 		workshop::Map::get(workshop_id, http_client),
-		async { workshop::MapFile::download(workshop_id).await?.checksum().await },
+		async { workshop::MapFile::download(workshop_id, config).await?.checksum().await },
 	}?;
 
 	let query_result = sqlx::query! {

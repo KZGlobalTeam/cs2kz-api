@@ -19,6 +19,12 @@ pub enum Error {
 	#[error("`{0}` is not a valid Workshop ID")]
 	InvalidWorkshopID(u32),
 
+	#[error("No steamcmd executable found.")]
+	MissingSteamCMD,
+
+	#[error("No workshop directory found.")]
+	MissingWorkshopDirectory,
+
 	#[error("Error executing SteamCMD{}", match .0 {
 		None => String::new(),
 		Some(err) => format!(" : {err}"),

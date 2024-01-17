@@ -57,7 +57,14 @@ pub async fn update(
 	};
 
 	if map_update.check_steam {
-		update_name_and_checksum(map_id, workshop_id, state.http(), transaction.as_mut()).await?;
+		update_name_and_checksum(
+			map_id,
+			workshop_id,
+			state.http(),
+			state.config(),
+			transaction.as_mut(),
+		)
+		.await?;
 	}
 
 	if let Some(mappers) = &map_update.added_mappers {
@@ -194,11 +201,12 @@ async fn update_name_and_checksum(
 	map_id: u16,
 	workshop_id: u32,
 	http_client: Arc<reqwest::Client>,
+	config: Arc<crate::Config>,
 	executor: impl MySqlExecutor<'_>,
 ) -> Result<()> {
 	let (workshop_map, checksum) = tokio::try_join! {
 		workshop::Map::get(workshop_id, http_client),
-		async { workshop::MapFile::download(workshop_id).await?.checksum().await },
+		async { workshop::MapFile::download(workshop_id, config).await?.checksum().await },
 	}?;
 
 	sqlx::query! {
