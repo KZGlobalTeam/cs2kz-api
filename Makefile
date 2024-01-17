@@ -39,9 +39,15 @@ db-connect-root:
 
 migrations:
 	@echo "Running migrations..."
+	@$(if $(shell command -v sqlx 2>/dev/null), make migrations-sqlx, make migrations-shell) \
+
+migrations-sqlx:
 	@sqlx migrate run \
 		--source ./database/migrations/ \
 		--database-url $(DATABASE_URL)
+
+migrations-shell:
+	./scripts/run-migrations.sh
 
 api:
 	@echo "Building API container..."
