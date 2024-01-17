@@ -40,5 +40,6 @@ CREATE TABLE IF NOT EXISTS CourseFilters (
   FOREIGN KEY (`course_id`) REFERENCES Courses (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`mode_id`) REFERENCES Modes (`id`),
   CONSTRAINT `valid_tier` CHECK(`tier` BETWEEN 1 AND 10),
-  CONSTRAINT `valid_ranked_status` CHECK(`ranked_status` BETWEEN -1 AND 1)
+  CONSTRAINT `valid_ranked_status` CHECK(`ranked_status` BETWEEN -1 AND 1),
+  UNIQUE (`course_id`, `mode_id`, `teleports`)
 );
