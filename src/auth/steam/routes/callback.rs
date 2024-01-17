@@ -2,10 +2,9 @@ use axum::extract::Query;
 use axum::response::Redirect;
 use axum_extra::extract::CookieJar;
 use tracing::{trace, warn};
-use url::Host;
 
 use crate::auth::steam::AuthRequest;
-use crate::auth::{Session, Subdomain};
+use crate::auth::Session;
 use crate::extractors::State;
 use crate::url::UrlExt;
 use crate::{responses, steam, Error, Result};
@@ -32,11 +31,10 @@ pub async fn callback(
 	mut cookies: CookieJar,
 	Query(auth): Query<AuthRequest>,
 ) -> Result<(CookieJar, Redirect)> {
-	let (steam_id, origin_url) = auth
-		.validate(&state.config().public_url, state.http())
-		.await?;
+	let config = state.config();
+	let (steam_id, origin_url) = auth.validate(&config.public_url, state.http()).await?;
 
-	let public_url = &state.config().public_url;
+	let public_url = &config.public_url;
 	let mut is_known_host = origin_url.host_eq_weak(public_url);
 
 	if state.in_dev() && !is_known_host {
@@ -49,7 +47,7 @@ pub async fn callback(
 		return Err(Error::Forbidden);
 	}
 
-	let player = steam::Player::get(steam_id, &state.config().steam.api_key, state.http()).await?;
+	let player = steam::Player::get(steam_id, &config.steam.api_key, state.http()).await?;
 
 	trace!(?player, "got player from steam");
 
@@ -60,29 +58,18 @@ pub async fn callback(
 
 	let host = public_url.host_str().expect("API URL must have host");
 
-	let mut transaction = state.transaction().await?;
+	let subdomain = origin_url
+		.subdomain()
+		.map(str::parse)
+		.transpose()
+		.map_err(|_| Error::Unauthorized)?;
 
-	let main_session =
-		Session::create(steam_id, None, host, state.in_prod(), transaction.as_mut()).await?;
-
-	let dashboard_session = Session::create(
-		steam_id,
-		Some(Subdomain::Dashboard),
-		host,
-		state.in_prod(),
-		transaction.as_mut(),
-	)
-	.await?;
-
-	transaction.commit().await?;
+	let session =
+		Session::create(steam_id, subdomain, host, state.in_prod(), state.database()).await?;
 
 	cookies = cookies
 		.add(player.cookie(origin_host, state.in_prod()))
-		.add(main_session);
-
-	if let Some(Host::Domain(_)) = public_url.host() {
-		cookies = cookies.add(dashboard_session);
-	}
+		.add(session);
 
 	let redirect = Redirect::to(origin_url.as_str());
 

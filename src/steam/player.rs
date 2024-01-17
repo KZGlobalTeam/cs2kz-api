@@ -63,9 +63,10 @@ impl Player {
 		let json = serde_json::to_string(self).expect("this is valid json");
 
 		Cookie::build((Self::COOKIE_NAME, json))
-			.secure(secure)
 			.domain(host.into())
 			.path("/")
+			.secure(secure)
+			.http_only(false)
 			.build()
 	}
 }

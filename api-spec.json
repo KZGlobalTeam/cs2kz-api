@@ -1530,26 +1530,20 @@
         "operationId": "logout",
         "parameters": [
           {
-            "name": "invalidate_all_sessions",
+            "name": "origin_url",
             "in": "query",
-            "description": "Invalidate all existing sessions, not just the one for the current\nsubdomain.",
+            "description": "Redirect back to this URL once the logout process is complete.",
             "required": false,
             "schema": {
-              "type": "boolean"
+              "type": "string",
+              "format": "uri",
+              "nullable": true
             }
           }
         ],
         "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
+          "303": {
+            "description": ""
           },
           "401": {
             "description": ""

@@ -187,8 +187,8 @@ impl API {
 			.nest("/servers", servers::router(self.state()))
 			.nest("/bans", bans::router(self.state()))
 			.nest("/auth", auth::router(self.state()))
-			.layer(axum::middleware::from_fn(middleware::logging::layer))
 			.layer(cors)
+			.layer(axum::middleware::from_fn(middleware::logging::layer))
 			.merge(Self::swagger_ui())
 			.into_make_service();
 

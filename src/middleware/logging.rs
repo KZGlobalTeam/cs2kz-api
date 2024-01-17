@@ -43,6 +43,7 @@ pub async fn layer(request: Request, next: Next) -> Result<Response> {
 	// Log relevant information.
 	trace! {
 		code = %parts.status,
+		headers = ?parts.headers,
 		body = %util::stringify_bytes(&body),
 		took = ?took,
 		"done processing request",
