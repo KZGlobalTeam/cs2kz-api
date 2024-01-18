@@ -95,7 +95,7 @@ pub struct MapFile {
 impl MapFile {
 	/// Downloads the workshop map with the given ID and returns a handle to the file.
 	///
-	/// NOTE: This shells out to steamcmd, so it might take a few seconds.
+	/// NOTE: This shells out to DepotDownloader, so it might take a few seconds.
 	pub async fn download(workshop_id: u32, config: Arc<crate::Config>) -> Result<Self> {
 		let steam_workshop_path = config
 			.steam
@@ -104,28 +104,26 @@ impl MapFile {
 			.map(Path::to_string_lossy)
 			.ok_or(Error::MissingWorkshopDirectory)?;
 
-		let steamcmd = config
+		let downloader = config
 			.steam
-			.steam_cmd_path
+			.workshop_downloader_path
 			.as_deref()
-			.ok_or(Error::MissingSteamCMD)?;
+			.ok_or(Error::MissingWorkshopDownloader)?;
 
-		let output = Command::new(steamcmd)
-			.arg("+force_install_dir")
-			.arg(&*steam_workshop_path)
-			.args(["+login", "anonymous", "+workshop_download_item", "730"])
+		let output = Command::new(downloader)
+			.args(["-app", "730", "-pubfile"])
 			.arg(workshop_id.to_string())
-			.arg("+quit")
+			.args(["-dir", &*steam_workshop_path])
 			.spawn()
 			.map_err(|err| {
-				error!(%err, "failed to run steamcmd");
-				Error::SteamCMD(Some(err))
+				error!(%err, "failed to run DepotDownloader");
+				Error::DepotDownloader(Some(err))
 			})?
 			.wait_with_output()
 			.await
 			.map_err(|err| {
-				error!(%err, "failed to wait for steamcmd");
-				Error::SteamCMD(Some(err))
+				error!(%err, "failed to wait for DepotDownloader");
+				Error::DepotDownloader(Some(err))
 			})?;
 
 		if let Err(err) = io::stderr().flush().await {
@@ -133,13 +131,11 @@ impl MapFile {
 		}
 
 		if !output.status.success() {
-			error!(?output, "steamcmd exited abnormally");
-			return Err(Error::SteamCMD(None));
+			error!(?output, "DepotDownloader exited abnormally");
+			return Err(Error::DepotDownloader(None));
 		}
 
-		let path = Path::new(&*steam_workshop_path)
-			.join("steamapps/workshop/content/730")
-			.join(format!("{workshop_id}/{workshop_id}.vpk"));
+		let path = Path::new(&*steam_workshop_path).join(format!("{workshop_id}.vpk"));
 
 		let file = File::open(path).await.map_err(|err| {
 			error!(%err, "failed to open workshop map file");

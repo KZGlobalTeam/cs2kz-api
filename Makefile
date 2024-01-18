@@ -11,6 +11,13 @@ api:
 	@docker compose up -d --wait cs2kz-api
 	@docker compose logs --follow cs2kz-api
 
+prod:
+	@echo "Building API container..."
+	@docker compose build cs2kz-api --build-arg DEPOT_DOWNLOADER_URL=https://github.com/SteamRE/DepotDownloader/releases/download/DepotDownloader_2.5.0/DepotDownloader-linux-arm64.zip
+	@echo "Running API..."
+	@docker compose up -d --wait cs2kz-api
+	@docker compose logs --follow cs2kz-api
+
 db:
 	@echo "Starting database container..."
 	@docker compose up -d --wait cs2kz-database

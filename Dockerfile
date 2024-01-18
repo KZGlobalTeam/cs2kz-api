@@ -22,17 +22,13 @@ RUN cargo build --release --locked --package cs2kz-api
 FROM debian:bullseye-slim AS runtime
 WORKDIR /kz
 
-# Install SteamCMD
-RUN apt-get update \
-	&& apt-get install -y software-properties-common \
-	&& apt-add-repository non-free \
-	&& dpkg --add-architecture i386 \
-	&& apt-get update \
-	&& echo steam steam/question select "I AGREE" | debconf-set-selections \
-	&& echo steam steam/license note "" | debconf-set-selections \
-	&& apt-get install -y steamcmd \
-	&& ln -s /usr/games/steamcmd /bin/steamcmd \
-	&& steamcmd +quit
+ARG DEPOT_DOWNLOADER_URL
+RUN apt-get update -y && apt-get install -y curl unzip libicu-dev
+RUN curl -Lo downloader.zip $DEPOT_DOWNLOADER_URL
+RUN unzip downloader.zip \
+	&& rm downloader.zip \
+	&& chmod +x DepotDownloader \
+	&& mv DepotDownloader /bin/workshop_downloader
 
 COPY docker-entrypoint.sh /docker-entrypoint.sh
 COPY --from=planner /usr/local/cargo/bin/sqlx /bin/sqlx

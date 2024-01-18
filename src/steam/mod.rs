@@ -19,17 +19,17 @@ pub enum Error {
 	#[error("`{0}` is not a valid Workshop ID")]
 	InvalidWorkshopID(u32),
 
-	#[error("No steamcmd executable found.")]
-	MissingSteamCMD,
+	#[error("No DepotDownloader executable found.")]
+	MissingWorkshopDownloader,
 
 	#[error("No workshop directory found.")]
 	MissingWorkshopDirectory,
 
-	#[error("Error executing SteamCMD{}", match .0 {
+	#[error("Error executing DepotDownloader{}", match .0 {
 		None => String::new(),
 		Some(err) => format!(" : {err}"),
 	})]
-	SteamCMD(Option<io::Error>),
+	DepotDownloader(Option<io::Error>),
 
 	#[error("{0}")]
 	IO(#[from] io::Error),

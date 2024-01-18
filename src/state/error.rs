@@ -18,7 +18,4 @@ pub enum Error {
 
 	#[error("Error generating JWT: {0}")]
 	JWT(#[from] jsonwebtoken::errors::Error),
-
-	#[error("SteamCMD is not installed.")]
-	SteamCMD,
 }
