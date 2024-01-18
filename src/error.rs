@@ -95,6 +95,9 @@ pub enum Error {
 
 	#[error("Player `{steam_id}` is not in the database.")]
 	UnknownPlayer { steam_id: SteamID },
+
+	#[error("One of the submitted mappers is unknown to the database.")]
+	UnknownMapper,
 }
 
 impl IntoResponse for Error {
@@ -132,7 +135,7 @@ impl IntoResponse for Error {
 			Error::NoContent => StatusCode::NO_CONTENT,
 			Error::Unauthorized => StatusCode::UNAUTHORIZED,
 			Error::Forbidden | Error::ExpiredToken => StatusCode::FORBIDDEN,
-			Error::UnknownPlayer { .. } => StatusCode::CONFLICT,
+			Error::UnknownPlayer { .. } | Error::UnknownMapper => StatusCode::CONFLICT,
 		};
 
 		(code, Json(json)).into_response()

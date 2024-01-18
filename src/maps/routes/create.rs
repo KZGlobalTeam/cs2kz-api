@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use axum::Json;
 use cs2kz::{Mode, SteamID, Tier};
+use sqlx::error::ErrorKind::ForeignKeyViolation;
 use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
 use tracing::warn;
 
@@ -11,6 +12,7 @@ use crate::extractors::State;
 use crate::maps::models::NewCourse;
 use crate::maps::{CreatedMap, MappersTable, NewMap};
 use crate::responses::Created;
+use crate::sqlx::IsError;
 use crate::steam::workshop;
 use crate::{responses, Error, Result};
 
@@ -200,7 +202,13 @@ pub(super) async fn insert_mappers(
 		query.push_bind(table_id).push_bind(steam_id);
 	});
 
-	query.build().execute(executor).await?;
+	query.build().execute(executor).await.map_err(|err| {
+		if err.is(ForeignKeyViolation) {
+			Error::UnknownMapper
+		} else {
+			Error::MySql(err)
+		}
+	})?;
 
 	Ok(())
 }
