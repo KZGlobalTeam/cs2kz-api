@@ -15,6 +15,11 @@ db:
 	@echo "Starting database container..."
 	@docker compose up -d --wait cs2kz-database
 
+migrations:
+	@sqlx migrate run \
+		--source ./database/migrations/ \
+		--database-url $(DATABASE_URL)
+
 db-clean:
 	docker compose down -t 1 cs2kz-database
 	rm -rf ./database/volumes/cs2kz
@@ -47,6 +52,7 @@ sqlx-cache:
 		--database-url $(DATABASE_URL)
 
 dev:
+	make migrations
 	cargo run -p cs2kz-api
 
 dev-debug:
