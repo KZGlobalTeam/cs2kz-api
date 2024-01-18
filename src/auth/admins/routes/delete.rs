@@ -18,7 +18,7 @@ use crate::{responses, Error, Result};
     responses::InternalServerError,
   ),
   security(
-    ("Steam Session" = ["manage_admins"]),
+    ("Steam Session" = ["manage"]),
   ),
 )]
 pub async fn delete(state: State, Path(steam_id): Path<SteamID>) -> Result<()> {

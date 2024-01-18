@@ -21,7 +21,7 @@ use crate::{responses, Error, Result};
     responses::InternalServerError,
   ),
   security(
-    ("Steam Session" = ["servers_edit"]),
+    ("Steam Session" = ["servers"]),
   ),
 )]
 pub async fn replace_key(

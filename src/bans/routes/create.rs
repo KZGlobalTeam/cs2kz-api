@@ -23,7 +23,7 @@ use crate::{audit_error, responses, Error, Result};
     responses::InternalServerError,
   ),
   security(
-    ("Steam Session" = ["bans_create"]),
+    ("Steam Session" = ["bans"]),
     ("CS2 Server JWT" = []),
   ),
 )]

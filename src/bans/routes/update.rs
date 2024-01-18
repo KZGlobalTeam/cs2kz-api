@@ -22,7 +22,7 @@ use crate::{responses, Error, Result};
     responses::InternalServerError,
   ),
   security(
-    ("Steam Session" = ["bans_edit"]),
+    ("Steam Session" = ["bans"]),
   ),
 )]
 pub async fn update(

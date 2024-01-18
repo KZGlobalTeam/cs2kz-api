@@ -25,7 +25,7 @@ use crate::{audit_error, responses, Error, Result};
     responses::InternalServerError,
   ),
   security(
-    ("Steam Session" = ["bans_remove"]),
+    ("Steam Session" = ["bans"]),
   ),
 )]
 pub async fn unban(

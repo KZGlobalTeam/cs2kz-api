@@ -30,7 +30,7 @@ use crate::{query, responses, Error, Result};
     responses::InternalServerError,
   ),
   security(
-    ("Steam Session" = ["maps_edit", "maps_deglobal"]),
+    ("Steam Session" = ["maps"]),
   ),
 )]
 pub async fn update(

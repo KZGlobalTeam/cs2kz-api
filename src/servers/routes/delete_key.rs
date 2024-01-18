@@ -19,7 +19,7 @@ use crate::{responses, Error, Result};
     responses::InternalServerError,
   ),
   security(
-    ("Steam Session" = ["servers_deglobal"]),
+    ("Steam Session" = ["servers"]),
   ),
 )]
 pub async fn delete_key(state: State, Path(server_id): Path<u16>) -> Result<()> {

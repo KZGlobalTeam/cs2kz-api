@@ -20,7 +20,7 @@ use crate::{responses, Error, Result};
     responses::InternalServerError,
   ),
   security(
-    ("Steam Session" = ["manage_admins"]),
+    ("Steam Session" = ["admin"]),
   ),
 )]
 pub async fn update(

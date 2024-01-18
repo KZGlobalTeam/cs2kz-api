@@ -30,7 +30,7 @@ use crate::{responses, Error, Result};
     responses::InternalServerError,
   ),
   security(
-    ("Steam Session" = ["maps_approve"]),
+    ("Steam Session" = ["maps"]),
   ),
 )]
 pub async fn create(
