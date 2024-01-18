@@ -1,6 +1,7 @@
 use axum::extract::Query;
 use axum::Json;
 use cs2kz::PlayerIdentifier;
+use itertools::Itertools;
 use serde::Deserialize;
 use sqlx::QueryBuilder;
 use utoipa::IntoParams;
@@ -9,7 +10,7 @@ use crate::database::{GlobalStatus, ToID};
 use crate::extractors::State;
 use crate::maps::{queries, KZMap};
 use crate::params::{Limit, Offset};
-use crate::query::{self, Filter};
+use crate::query::Filter;
 use crate::{responses, Error, Result};
 
 /// Query Parameters for fetching [`KZMap`]s.
@@ -86,23 +87,21 @@ pub async fn get_many(
 		filter.switch();
 	}
 
-	if let Some(global_status) = params.global_status {
-		query
-			.push(filter)
-			.push(" m.global_status = ")
-			.push_bind(global_status);
-
-		filter.switch();
-	}
-
-	query.push(" ORDER BY m.id ASC ");
-	query::push_limit(params.limit, params.offset, &mut query);
+	query
+		.push(filter)
+		.push(" m.global_status = ")
+		.push_bind(params.global_status.unwrap_or(GlobalStatus::Global))
+		.push(" ORDER BY m.id ASC ");
 
 	let maps = query
 		.build_query_as::<KZMap>()
 		.fetch_all(state.database())
 		.await
-		.map(KZMap::flatten)?;
+		.map(KZMap::flatten)?
+		.into_iter()
+		.skip(params.offset.0 as _)
+		.take(params.limit.0 as _)
+		.collect_vec();
 
 	if maps.is_empty() {
 		return Err(Error::NoContent);

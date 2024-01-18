@@ -155,14 +155,19 @@ async fn insert_map(
 	sqlx::query! {
 		r#"
 		INSERT INTO
-		  Maps (name, workshop_id, checksum, global_status)
+		  Maps (name, workshop_id, checksum, global_status, description)
 		VALUES
-		  (?, ?, ?, ?)
+		  (?, ?, ?, ?, ?)
 		"#,
 		workshop_map.name,
 		map.workshop_id,
 		checksum,
 		map.global_status,
+		if matches!(map.description.as_deref(), Some("")) {
+			&None
+		} else {
+			&map.description
+		},
 	}
 	.execute(transaction.as_mut())
 	.await?;
@@ -217,13 +222,22 @@ async fn insert_courses(
 	courses: &[NewCourse],
 	transaction: &mut Transaction<'static, MySql>,
 ) -> Result<()> {
-	let mut query = QueryBuilder::new("INSERT INTO Courses (map_id, map_stage, name)");
+	let mut query = QueryBuilder::new("INSERT INTO Courses (map_id, map_stage, name, description)");
 
 	query.push_values(courses, |mut query, course| {
 		query
 			.push_bind(map_id)
 			.push_bind(course.stage)
-			.push_bind(&course.name);
+			.push_bind(if matches!(course.name.as_deref(), Some("")) {
+				&None
+			} else {
+				&course.name
+			})
+			.push_bind(if matches!(course.description.as_deref(), Some("")) {
+				&None
+			} else {
+				&course.description
+			});
 	});
 
 	query.build().execute(transaction.as_mut()).await?;
@@ -288,7 +302,8 @@ async fn insert_course_details(
 		    mode_id,
 		    teleports,
 		    tier,
-		    ranked_status
+		    ranked_status,
+		    notes
 		  )
 		"#,
 	);
@@ -299,7 +314,12 @@ async fn insert_course_details(
 			.push_bind(filter.mode)
 			.push_bind(filter.teleports)
 			.push_bind(filter.tier)
-			.push_bind(filter.ranked_status);
+			.push_bind(filter.ranked_status)
+			.push_bind(if matches!(filter.notes.as_deref(), Some("")) {
+				&None
+			} else {
+				&filter.notes
+			});
 	});
 
 	insert_filters.build().execute(transaction.as_mut()).await?;
