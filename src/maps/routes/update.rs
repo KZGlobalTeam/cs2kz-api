@@ -146,7 +146,7 @@ async fn validate_update(
 			.filter_updates
 			.iter()
 			.flatten()
-			.find(|filter| filter_ids.iter().map(|row| row.id).contains(&filter.id))
+			.find(|filter| !filter_ids.iter().map(|row| row.id).contains(&filter.id))
 		{
 			return Err(Error::InvalidFilter { course_id: course_update.id, filter_id: filter.id });
 		}
