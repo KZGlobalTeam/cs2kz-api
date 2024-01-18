@@ -428,6 +428,20 @@
                 }
               ]
             }
+          },
+          {
+            "name": "global_status",
+            "in": "query",
+            "description": "Filter by [global status].\n\n[global status]: GlobalStatus",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/GlobalStatus"
+                }
+              ],
+              "nullable": true
+            }
           }
         ],
         "responses": {

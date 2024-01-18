@@ -1,11 +1,23 @@
-use axum::extract::Path;
+use axum::extract::{Path, Query};
 use axum::Json;
 use cs2kz::MapIdentifier;
+use serde::Deserialize;
 use sqlx::QueryBuilder;
+use utoipa::IntoParams;
 
+use crate::database::GlobalStatus;
 use crate::extractors::State;
 use crate::maps::{queries, KZMap};
 use crate::{responses, Error, Result};
+
+/// Query Parameters for fetching a [`KZMap`].
+#[derive(Debug, Default, Deserialize, IntoParams)]
+pub struct GetMapParams {
+	/// Filter by [global status].
+	///
+	/// [global status]: GlobalStatus
+	pub global_status: Option<GlobalStatus>,
+}
 
 /// Fetch a single map by ID or name.
 #[tracing::instrument(skip(state))]
@@ -13,7 +25,7 @@ use crate::{responses, Error, Result};
   get,
   tag = "Maps",
   path = "/maps/{map}",
-  params(MapIdentifier<'_>),
+  params(MapIdentifier<'_>, GetMapParams),
   responses(
     responses::Ok<KZMap>,
     responses::NoContent,
@@ -21,7 +33,11 @@ use crate::{responses, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn get_single(state: State, Path(map): Path<MapIdentifier<'_>>) -> Result<Json<KZMap>> {
+pub async fn get_single(
+	state: State,
+	Path(map): Path<MapIdentifier<'_>>,
+	Query(params): Query<GetMapParams>,
+) -> Result<Json<KZMap>> {
 	let mut query = QueryBuilder::new(queries::BASE_SELECT);
 
 	query.push(" WHERE ");
@@ -35,12 +51,21 @@ pub async fn get_single(state: State, Path(map): Path<MapIdentifier<'_>>) -> Res
 		}
 	}
 
+	if let Some(global_status) = params.global_status {
+		query
+			.push(" AND m.global_status = ")
+			.push_bind(global_status);
+	}
+
+	query.push(" ORDER BY m.id DESC ");
+
 	query
 		.build_query_as::<KZMap>()
 		.fetch_all(state.database())
-		.await?
+		.await
+		.map(KZMap::flatten)?
 		.into_iter()
-		.reduce(KZMap::reduce)
+		.next()
 		.map(Json)
 		.ok_or(Error::NoContent)
 }

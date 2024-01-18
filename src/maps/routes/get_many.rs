@@ -87,11 +87,16 @@ pub async fn get_many(
 		filter.switch();
 	}
 
-	query
-		.push(filter)
-		.push(" m.global_status = ")
-		.push_bind(params.global_status.unwrap_or(GlobalStatus::Global))
-		.push(" ORDER BY m.id ASC ");
+	if let Some(global_status) = params.global_status {
+		query
+			.push(filter)
+			.push(" m.global_status = ")
+			.push_bind(global_status);
+
+		filter.switch();
+	}
+
+	query.push(" ORDER BY m.id ASC ");
 
 	let maps = query
 		.build_query_as::<KZMap>()
