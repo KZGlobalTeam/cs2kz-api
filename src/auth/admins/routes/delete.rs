@@ -2,7 +2,8 @@ use axum::extract::Path;
 use cs2kz::SteamID;
 
 use crate::extractors::State;
-use crate::{responses, Result};
+use crate::sqlx::SqlErrorExt;
+use crate::{responses, Error, Result};
 
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
@@ -31,7 +32,14 @@ pub async fn delete(state: State, Path(steam_id): Path<SteamID>) -> Result<()> {
 		steam_id,
 	}
 	.execute(state.database())
-	.await?;
+	.await
+	.map_err(|err| {
+		if err.is_foreign_key_violation_of("steam_id") {
+			Error::UnknownPlayer { steam_id }
+		} else {
+			Error::MySql(err)
+		}
+	})?;
 
 	Ok(())
 }

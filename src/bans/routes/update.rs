@@ -4,7 +4,7 @@ use sqlx::QueryBuilder;
 
 use crate::bans::BanUpdate;
 use crate::extractors::State;
-use crate::{responses, Result};
+use crate::{responses, Error, Result};
 
 /// Update an existing ban.
 #[tracing::instrument(skip(state))]
@@ -46,7 +46,13 @@ pub async fn update(
 			.push_bind(expires_on);
 	}
 
-	query.build().execute(state.database()).await?;
+	query.push(" WHERE id = ").push_bind(ban_id);
+
+	let result = query.build().execute(state.database()).await?;
+
+	if result.rows_affected() == 0 {
+		return Err(Error::InvalidBanID(ban_id));
+	}
 
 	Ok(())
 }

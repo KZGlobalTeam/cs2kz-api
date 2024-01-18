@@ -4,7 +4,7 @@ use axum::Json;
 use crate::extractors::State;
 use crate::responses::Created;
 use crate::servers::CreatedServer;
-use crate::{responses, Result};
+use crate::{responses, Error, Result};
 
 /// Replace the key for a specific server with a new, random, one.
 #[tracing::instrument(skip(state))]
@@ -30,7 +30,7 @@ pub async fn replace_key(
 ) -> Result<Created<Json<CreatedServer>>> {
 	let api_key = rand::random::<u32>();
 
-	sqlx::query! {
+	let result = sqlx::query! {
 		r#"
 		UPDATE
 		  Servers
@@ -44,6 +44,10 @@ pub async fn replace_key(
 	}
 	.execute(state.database())
 	.await?;
+
+	if result.rows_affected() == 0 {
+		return Err(Error::InvalidServerID(server_id));
+	}
 
 	Ok(Created(Json(CreatedServer { server_id, api_key })))
 }

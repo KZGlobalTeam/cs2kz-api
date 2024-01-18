@@ -22,7 +22,6 @@ use crate::{responses, steam, Error, Result};
     responses::BadRequest,
     responses::Unauthorized,
     responses::Forbidden,
-    responses::Conflict,
     responses::InternalServerError,
   ),
 )]

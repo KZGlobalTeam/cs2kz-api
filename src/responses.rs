@@ -58,10 +58,6 @@ pub struct Unauthorized;
 pub struct Forbidden;
 
 #[derive(IntoResponses)]
-#[response(status = CONFLICT)]
-pub struct Conflict;
-
-#[derive(IntoResponses)]
 #[response(status = UNPROCESSABLE_ENTITY)]
 pub struct UnprocessableEntity;
 

@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use axum::Json;
 use cs2kz::{Mode, SteamID, Tier};
-use sqlx::error::ErrorKind::ForeignKeyViolation;
 use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
 use tracing::warn;
 
@@ -12,7 +11,7 @@ use crate::extractors::State;
 use crate::maps::models::NewCourse;
 use crate::maps::{CreatedMap, MappersTable, NewMap};
 use crate::responses::Created;
-use crate::sqlx::IsError;
+use crate::sqlx::SqlErrorExt;
 use crate::steam::workshop;
 use crate::{responses, Error, Result};
 
@@ -203,7 +202,7 @@ pub(super) async fn insert_mappers(
 	});
 
 	query.build().execute(executor).await.map_err(|err| {
-		if err.is(ForeignKeyViolation) {
+		if err.is_foreign_key_violation_of("player_id") {
 			Error::UnknownMapper
 		} else {
 			Error::MySql(err)
@@ -269,7 +268,17 @@ async fn insert_course_details(
 		query.push_bind(course_id).push_bind(steam_id);
 	});
 
-	insert_mappers.build().execute(transaction.as_mut()).await?;
+	insert_mappers
+		.build()
+		.execute(transaction.as_mut())
+		.await
+		.map_err(|err| {
+			if err.is_foreign_key_violation_of("player_id") {
+				Error::UnknownMapper
+			} else {
+				Error::MySql(err)
+			}
+		})?;
 
 	let mut insert_filters = QueryBuilder::new(
 		r#"

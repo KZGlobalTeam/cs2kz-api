@@ -6,6 +6,7 @@ use crate::auth::{Session, JWT};
 use crate::bans::{CreatedBan, NewBan};
 use crate::extractors::State;
 use crate::responses::Created;
+use crate::sqlx::SqlErrorExt;
 use crate::{audit_error, responses, Error, Result};
 
 /// Ban a player.
@@ -43,7 +44,8 @@ pub async fn create(
 
 	let banned_by = admin.map(|admin| admin.steam_id);
 
-	// FIXME
+	// FIXME(AlphaKeks): the ban duration should depend on the ban reason, and the reasons
+	// are not mapped out as an enum yet
 	let expires_on = None::<DateTime<Utc>>;
 
 	let mut transaction = state.transaction().await?;
@@ -72,7 +74,23 @@ pub async fn create(
 		expires_on,
 	}
 	.execute(transaction.as_mut())
-	.await?;
+	.await
+	.map_err(|err| {
+		if err.is_foreign_key_violation_of("player_id") {
+			Error::UnknownPlayer { steam_id: ban.steam_id }
+		} else if err.is_foreign_key_violation_of("server_id") {
+			panic!("unknown but authenticated server? {server_id:?} | {plugin_version_id:?}");
+		} else if err.is_foreign_key_violation_of("plugin_version_id") {
+			Error::InvalidPluginVersion {
+				server_id: server_id.unwrap(),
+				plugin_version_id: plugin_version_id.unwrap(),
+			}
+		} else if err.is_foreign_key_violation_of("banned_by") {
+			Error::UnknownPlayer { steam_id: banned_by.unwrap() }
+		} else {
+			Error::MySql(err)
+		}
+	})?;
 
 	let ban_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())

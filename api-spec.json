@@ -1685,9 +1685,6 @@
           "403": {
             "description": ""
           },
-          "409": {
-            "description": ""
-          },
           "500": {
             "description": "Something unexpected happened. This is a bug; please report it."
           }

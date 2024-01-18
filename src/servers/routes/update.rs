@@ -4,7 +4,7 @@ use sqlx::QueryBuilder;
 
 use crate::extractors::State;
 use crate::servers::ServerUpdate;
-use crate::{responses, Result};
+use crate::{responses, Error, Result};
 
 /// Update a server.
 #[tracing::instrument(skip(state))]
@@ -58,7 +58,13 @@ pub async fn update(
 			.push_bind(steam_id);
 	}
 
-	query.build().execute(state.database()).await?;
+	query.push(" WHERE id = ").push_bind(server_id);
+
+	let result = query.build().execute(state.database()).await?;
+
+	if result.rows_affected() == 0 {
+		return Err(Error::InvalidServerID(server_id));
+	}
 
 	Ok(())
 }

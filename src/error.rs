@@ -98,6 +98,21 @@ pub enum Error {
 
 	#[error("One of the submitted mappers is unknown to the database.")]
 	UnknownMapper,
+
+	#[error("Player with SteamID `{steam_id}` already exists.")]
+	PlayerAlreadyExists { steam_id: SteamID },
+
+	#[error("Invalid Ban ID `{0}`.")]
+	InvalidBanID(u32),
+
+	#[error("Invalid Server ID `{0}`.")]
+	InvalidServerID(u16),
+
+	#[error("Server `{server_id}` has an invalid plugin version ({plugin_version_id}).")]
+	InvalidPluginVersion {
+		server_id: u16,
+		plugin_version_id: u16,
+	},
 }
 
 impl IntoResponse for Error {
@@ -130,12 +145,17 @@ impl IntoResponse for Error {
 			| Error::UnrankableFilterWithID { .. }
 			| Error::UnknownMapID(_)
 			| Error::InvalidCourse { .. }
-			| Error::InvalidFilter { .. } => StatusCode::BAD_REQUEST,
+			| Error::InvalidFilter { .. }
+			| Error::UnknownPlayer { .. }
+			| Error::UnknownMapper
+			| Error::PlayerAlreadyExists { .. }
+			| Error::InvalidBanID(_)
+			| Error::InvalidServerID(_)
+			| Error::InvalidPluginVersion { .. } => StatusCode::BAD_REQUEST,
 			Error::ForeignHost => StatusCode::UNAUTHORIZED,
 			Error::NoContent => StatusCode::NO_CONTENT,
 			Error::Unauthorized => StatusCode::UNAUTHORIZED,
 			Error::Forbidden | Error::ExpiredToken => StatusCode::FORBIDDEN,
-			Error::UnknownPlayer { .. } | Error::UnknownMapper => StatusCode::CONFLICT,
 		};
 
 		(code, Json(json)).into_response()

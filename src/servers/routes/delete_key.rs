@@ -1,7 +1,7 @@
 use axum::extract::Path;
 
 use crate::extractors::State;
-use crate::{responses, Result};
+use crate::{responses, Error, Result};
 
 /// Delete a server's API Key. This effectively deglobals the server until an admin generates a new
 /// key again.
@@ -23,7 +23,7 @@ use crate::{responses, Result};
   ),
 )]
 pub async fn delete_key(state: State, Path(server_id): Path<u16>) -> Result<()> {
-	sqlx::query! {
+	let result = sqlx::query! {
 		r#"
 		UPDATE
 		  Servers
@@ -36,6 +36,10 @@ pub async fn delete_key(state: State, Path(server_id): Path<u16>) -> Result<()> 
 	}
 	.execute(state.database())
 	.await?;
+
+	if result.rows_affected() == 0 {
+		return Err(Error::InvalidServerID(server_id));
+	}
 
 	Ok(())
 }

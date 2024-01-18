@@ -6,13 +6,12 @@ use axum::extract::FromRequestParts;
 use axum::http::{request, Uri};
 use axum_extra::extract::cookie::Cookie;
 use cs2kz::SteamID;
-use sqlx::error::ErrorKind::ForeignKeyViolation;
 use sqlx::MySqlExecutor;
 use tracing::{info, trace, warn};
 
 use super::{RoleFlags, Subdomain};
 use crate::extractors::SessionToken;
-use crate::sqlx::IsError;
+use crate::sqlx::SqlErrorExt;
 use crate::{Error, Result, State};
 
 #[derive(Debug, Clone)]
@@ -48,7 +47,7 @@ impl Session {
 		.execute(executor)
 		.await
 		.map_err(|err| {
-			if err.is(ForeignKeyViolation) {
+			if err.is_foreign_key_violation() {
 				Error::UnknownPlayer { steam_id }
 			} else {
 				Error::MySql(err)

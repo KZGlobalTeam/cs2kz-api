@@ -39,8 +39,9 @@ CREATE TABLE IF NOT EXISTS Unbans (
   `ban_id` INT4 UNSIGNED NOT NULL,
   `reason` VARCHAR(1024) NOT NULL DEFAULT "expired",
   `unbanned_by` INT4 UNSIGNED,
-  `created_on` TIMESTAMP NOT NULL,
+  `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`ban_id`) REFERENCES Bans (`id`),
-  FOREIGN KEY (`unbanned_by`) REFERENCES Players (`steam_id`)
+  FOREIGN KEY (`unbanned_by`) REFERENCES Players (`steam_id`),
+  UNIQUE (`ban_id`)
 );

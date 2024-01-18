@@ -81,7 +81,7 @@ pub async fn update(
 	}
 
 	for course_update in map_update.course_updates.iter().flatten() {
-		update_course(course_update, &mut transaction).await?;
+		update_course(map_id, course_update, &mut transaction).await?;
 	}
 
 	transaction.commit().await?;
@@ -160,7 +160,7 @@ async fn update_global_status(
 	global_status: GlobalStatus,
 	executor: impl MySqlExecutor<'_>,
 ) -> Result<()> {
-	sqlx::query! {
+	let result = sqlx::query! {
 		r#"
 		UPDATE
 		  Maps
@@ -175,6 +175,10 @@ async fn update_global_status(
 	.execute(executor)
 	.await?;
 
+	if result.rows_affected() == 0 {
+		return Err(Error::UnknownMapID(map_id));
+	}
+
 	Ok(())
 }
 
@@ -183,7 +187,7 @@ async fn update_description(
 	description: &str,
 	executor: impl MySqlExecutor<'_>,
 ) -> Result<()> {
-	sqlx::query! {
+	let result = sqlx::query! {
 		r#"
 		UPDATE
 		  Maps
@@ -198,6 +202,10 @@ async fn update_description(
 	.execute(executor)
 	.await?;
 
+	if result.rows_affected() == 0 {
+		return Err(Error::UnknownMapID(map_id));
+	}
+
 	Ok(())
 }
 
@@ -206,7 +214,7 @@ async fn update_workshop_id(
 	workshop_id: u32,
 	executor: impl MySqlExecutor<'_>,
 ) -> Result<()> {
-	sqlx::query! {
+	let result = sqlx::query! {
 		r#"
 		UPDATE
 		  Maps
@@ -220,6 +228,10 @@ async fn update_workshop_id(
 	}
 	.execute(executor)
 	.await?;
+
+	if result.rows_affected() == 0 {
+		return Err(Error::UnknownMapID(map_id));
+	}
 
 	Ok(())
 }
@@ -236,7 +248,7 @@ async fn update_name_and_checksum(
 		async { workshop::MapFile::download(workshop_id, config).await?.checksum().await },
 	}?;
 
-	sqlx::query! {
+	let result = sqlx::query! {
 		r#"
 		UPDATE
 		  Maps
@@ -252,6 +264,10 @@ async fn update_name_and_checksum(
 	}
 	.execute(executor)
 	.await?;
+
+	if result.rows_affected() == 0 {
+		return Err(Error::UnknownMapID(map_id));
+	}
 
 	Ok(())
 }
@@ -287,6 +303,7 @@ async fn remove_mappers(
 }
 
 async fn update_course(
+	map_id: u16,
 	update: &CourseUpdate,
 	transaction: &mut Transaction<'static, MySql>,
 ) -> Result<()> {
@@ -304,7 +321,7 @@ async fn update_course(
 	}
 
 	if let Some(description) = update.description.as_deref() {
-		sqlx::query! {
+		let result = sqlx::query! {
 			r#"
 			UPDATE
 			  Courses
@@ -318,6 +335,10 @@ async fn update_course(
 		}
 		.execute(transaction.as_mut())
 		.await?;
+
+		if result.rows_affected() == 0 {
+			return Err(Error::InvalidCourse { map_id, course_id: update.id });
+		}
 	}
 
 	for FilterUpdate { id, tier, ranked_status, notes } in update.filter_updates.iter().flatten() {
@@ -354,7 +375,12 @@ async fn update_course(
 		}
 
 		query.push(" WHERE id = ").push_bind(id);
-		query.build().execute(transaction.as_mut()).await?;
+
+		let result = query.build().execute(transaction.as_mut()).await?;
+
+		if result.rows_affected() == 0 {
+			return Err(Error::InvalidFilter { course_id: update.id, filter_id: *id });
+		}
 	}
 
 	Ok(())

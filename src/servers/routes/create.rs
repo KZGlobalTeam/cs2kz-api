@@ -3,7 +3,8 @@ use axum::Json;
 use crate::extractors::State;
 use crate::responses::Created;
 use crate::servers::{CreatedServer, NewServer};
-use crate::{responses, Result};
+use crate::sqlx::SqlErrorExt;
+use crate::{responses, Error, Result};
 
 /// Approve a new KZ server.
 #[tracing::instrument(skip(state))]
@@ -44,7 +45,14 @@ pub async fn create(
 		api_key,
 	}
 	.execute(transaction.as_mut())
-	.await?;
+	.await
+	.map_err(|err| {
+		if err.is_foreign_key_violation() {
+			Error::UnknownPlayer { steam_id: server.owned_by }
+		} else {
+			Error::MySql(err)
+		}
+	})?;
 
 	let server_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())

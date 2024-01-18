@@ -5,7 +5,8 @@ use crate::auth::JWT;
 use crate::extractors::State;
 use crate::players::NewPlayer;
 use crate::responses::Created;
-use crate::{responses, Result};
+use crate::sqlx::SqlErrorExt;
+use crate::{responses, Error, Result};
 
 /// This route is used by CS2 servers for registering new players who are playing KZ for the very
 /// first time.
@@ -41,7 +42,14 @@ pub async fn create(
 		player.ip_address.to_string(),
 	}
 	.execute(state.database())
-	.await?;
+	.await
+	.map_err(|err| {
+		if err.is_foreign_key_violation() {
+			Error::PlayerAlreadyExists { steam_id: player.steam_id }
+		} else {
+			Error::MySql(err)
+		}
+	})?;
 
 	Ok(Created(()))
 }

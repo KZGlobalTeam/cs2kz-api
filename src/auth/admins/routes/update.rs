@@ -4,7 +4,8 @@ use crate::auth::admins::NewAdmin;
 use crate::auth::RoleFlags;
 use crate::extractors::State;
 use crate::responses::Created;
-use crate::{responses, Result};
+use crate::sqlx::SqlErrorExt;
+use crate::{responses, Error, Result};
 
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
@@ -42,7 +43,14 @@ pub async fn update(
 		role_flags,
 	}
 	.fetch_optional(state.database())
-	.await?;
+	.await
+	.map_err(|err| {
+		if err.is_foreign_key_violation_of("steam_id") {
+			Error::UnknownPlayer { steam_id }
+		} else {
+			Error::MySql(err)
+		}
+	})?;
 
 	Ok(Created(()))
 }
