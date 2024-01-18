@@ -84,54 +84,56 @@ VALUES
   (1107436699, "Reeed", "127.0.0.1");
 
 INSERT INTO
-  Maps (`name`, `workshop_id`, `checksum`)
+  Maps (`name`, `workshop_id`, `checksum`, `global_status`)
 VALUES
-  ("kz_checkmate", 3070194623, 133994000);
+  ("kz_checkmate", 3070194623, 133994000, 1);
 
 INSERT INTO
-  Maps (`name`, `workshop_id`, `checksum`)
+  Maps (`name`, `workshop_id`, `checksum`, `global_status`)
 VALUES
-  ("kz_chrimstmas", 2903326571, 42070000);
+  ("kz_chrimstmas", 2903326571, 42070000, 1);
 
 INSERT INTO
-  Maps (`name`, `workshop_id`, `checksum`)
+  Maps (`name`, `workshop_id`, `checksum`, `global_status`)
 VALUES
-  ("kz_phamous", 3104579274, 74697000);
+  ("kz_phamous", 3104579274, 74697000, 1);
 
 INSERT INTO
-  Maps (`name`, `workshop_id`, `checksum`)
+  Maps (`name`, `workshop_id`, `checksum`, `global_status`)
 VALUES
-  ("kz_ggsh", 3072744536, 31237000);
+  ("kz_ggsh", 3072744536, 31237000, 1);
 
 INSERT INTO
-  Maps (`name`, `workshop_id`, `checksum`, `description`)
+  Maps (`name`, `workshop_id`, `checksum`, `global_status`, `description`)
 VALUES
   (
     "kz_victoria",
     3086304337,
     130158000,
+    1,
     "this map has a funny surf"
   );
 
 INSERT INTO
-  Maps (`name`, `workshop_id`, `checksum`, `description`)
+  Maps (`name`, `workshop_id`, `checksum`, `global_status`, `description`)
 VALUES
   (
     "kz_generic",
     3070316567,
     134684000,
+    1,
     "i used to have wr on this you know"
   );
 
 INSERT INTO
-  Maps (`name`, `workshop_id`, `checksum`)
+  Maps (`name`, `workshop_id`, `checksum`, `global_status`)
 VALUES
-  ("kz_grotto", 3121168339, 80401000);
+  ("kz_grotto", 3121168339, 80401000, 1);
 
 INSERT INTO
-  Maps (`name`, `workshop_id`, `checksum`)
+  Maps (`name`, `workshop_id`, `checksum`, `global_status`)
 VALUES
-  ("kz_igneous", 3102712799, 267639000);
+  ("kz_igneous", 3102712799, 267639000, 1);
 
 INSERT INTO
   Mappers (`map_id`, `player_id`)
