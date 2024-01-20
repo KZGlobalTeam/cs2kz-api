@@ -176,7 +176,13 @@ impl API {
 				"https://dashboard.cs2.kz".parse::<HeaderValue>().unwrap()
 			})
 			.allow_credentials(true)
-			.allow_methods([Method::GET, Method::PUT, Method::PATCH])
+			.allow_methods([
+				Method::GET,
+				Method::POST,
+				Method::PUT,
+				Method::PATCH,
+				Method::DELETE,
+			])
 			.allow_headers([header::CONTENT_TYPE, header::COOKIE]);
 
 		let service = Router::new()
