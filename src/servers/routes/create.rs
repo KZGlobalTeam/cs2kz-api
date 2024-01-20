@@ -59,5 +59,7 @@ pub async fn create(
 		.await
 		.map(|row| row.id as _)?;
 
+	transaction.commit().await?;
+
 	Ok(Created(Json(CreatedServer { server_id, api_key })))
 }

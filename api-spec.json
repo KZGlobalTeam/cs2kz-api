@@ -765,72 +765,6 @@
             ]
           }
         ]
-      },
-      "patch": {
-        "tags": [
-          "Servers"
-        ],
-        "summary": "Update a server.",
-        "description": "Update a server.",
-        "operationId": "update",
-        "parameters": [
-          {
-            "name": "server_id",
-            "in": "path",
-            "description": "The server's ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ServerUpdate"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": ""
-          },
-          "401": {
-            "description": ""
-          },
-          "403": {
-            "description": ""
-          },
-          "422": {
-            "description": ""
-          },
-          "500": {
-            "description": "Something unexpected happened. This is a bug; please report it."
-          }
-        },
-        "security": [
-          {
-            "Steam Session": [
-              "servers"
-            ]
-          }
-        ]
       }
     },
     "/servers/{server}": {
@@ -909,6 +843,74 @@
             "description": "Something unexpected happened. This is a bug; please report it."
           }
         }
+      }
+    },
+    "/servers/{server_id}": {
+      "patch": {
+        "tags": [
+          "Servers"
+        ],
+        "summary": "Update a server.",
+        "description": "Update a server.",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "server_id",
+            "in": "path",
+            "description": "The server's ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ServerUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ""
+          },
+          "401": {
+            "description": ""
+          },
+          "403": {
+            "description": ""
+          },
+          "422": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        },
+        "security": [
+          {
+            "Steam Session": [
+              "servers"
+            ]
+          }
+        ]
       }
     },
     "/servers/{server_id}/key": {

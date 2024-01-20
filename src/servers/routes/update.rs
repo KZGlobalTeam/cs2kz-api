@@ -11,7 +11,7 @@ use crate::{responses, Error, Result};
 #[utoipa::path(
   patch,
   tag = "Servers",
-  path = "/servers",
+  path = "/servers/{server_id}",
   params(("server_id" = u16, Path, description = "The server's ID")),
   request_body = ServerUpdate,
   responses(
@@ -35,7 +35,7 @@ pub async fn update(
 	let mut delimiter = " SET ";
 
 	if let Some(ref name) = server_update.name {
-		query.push(delimiter).push_bind(" name = ").push_bind(name);
+		query.push(delimiter).push(" name = ").push_bind(name);
 
 		delimiter = ",";
 	}
@@ -43,7 +43,7 @@ pub async fn update(
 	if let Some(ref ip_address) = server_update.ip_address {
 		query
 			.push(delimiter)
-			.push_bind(" ip_address = ")
+			.push(" ip_address = ")
 			.push_bind(ip_address.ip().to_string())
 			.push(", port = ")
 			.push_bind(ip_address.port());
@@ -54,7 +54,7 @@ pub async fn update(
 	if let Some(steam_id) = server_update.owned_by {
 		query
 			.push(delimiter)
-			.push_bind(" owned_by = ")
+			.push(" owned_by = ")
 			.push_bind(steam_id);
 	}
 
