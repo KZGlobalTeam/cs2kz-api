@@ -134,7 +134,7 @@ pub struct NewBan {
 
 	/// The player's IP address.
 	#[schema(value_type = Option<String>)]
-	pub ip_address: Option<SocketAddrV4>,
+	pub ip_address: Option<Ipv4Addr>,
 
 	/// The reason for the ban.
 	pub reason: String,
