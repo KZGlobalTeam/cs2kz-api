@@ -102,6 +102,7 @@ mod auth;
       servers::models::ServerUpdate,
 
       bans::models::Ban,
+      bans::models::Unban,
       bans::models::NewBan,
       bans::models::CreatedBan,
       bans::models::BanUpdate,

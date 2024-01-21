@@ -2887,6 +2887,40 @@
           "unfeasible",
           "impossible"
         ]
+      },
+      "Unban": {
+        "type": "object",
+        "description": "A reverted ban.",
+        "required": [
+          "id",
+          "reason",
+          "created_on"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The ID of this unban.",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "description": "The reason for the unban."
+          },
+          "unbanned_by": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Player"
+              }
+            ],
+            "nullable": true
+          },
+          "created_on": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this unban was created."
+          }
+        }
       }
     },
     "securitySchemes": {
