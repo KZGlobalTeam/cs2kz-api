@@ -1202,6 +1202,14 @@
                       "format": "date-time",
                       "description": "When this ban will expire.",
                       "nullable": true
+                    },
+                    "unban": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Unban"
+                        }
+                      ],
+                      "nullable": true
                     }
                   }
                 }
@@ -1372,6 +1380,14 @@
                       "type": "string",
                       "format": "date-time",
                       "description": "When this ban will expire.",
+                      "nullable": true
+                    },
+                    "unban": {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Unban"
+                        }
+                      ],
                       "nullable": true
                     }
                   }
@@ -2071,6 +2087,14 @@
             "type": "string",
             "format": "date-time",
             "description": "When this ban will expire.",
+            "nullable": true
+          },
+          "unban": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Unban"
+              }
+            ],
             "nullable": true
           }
         }

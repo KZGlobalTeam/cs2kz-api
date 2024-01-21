@@ -50,6 +50,10 @@ pub struct Ban {
 
 	/// When this ban will expire.
 	pub expires_on: Option<DateTime<Utc>>,
+
+	/// The corresponding unban to this ban.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub unban: Option<Unban>,
 }
 
 impl FromRow<'_, MySqlRow> for Ban {
@@ -114,6 +118,7 @@ impl FromRow<'_, MySqlRow> for Ban {
 
 		let created_on = row.try_get("created_on")?;
 		let expires_on = row.try_get("expires_on")?;
+		let unban = Unban::from_row(row).ok();
 
 		Ok(Self {
 			id,
@@ -125,7 +130,45 @@ impl FromRow<'_, MySqlRow> for Ban {
 			banned_by,
 			created_on,
 			expires_on,
+			unban,
 		})
+	}
+}
+
+/// A reverted ban.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct Unban {
+	/// The ID of this unban.
+	pub id: u32,
+
+	/// The reason for the unban.
+	pub reason: String,
+
+	/// The player who reverted this ban.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub unbanned_by: Option<Player>,
+
+	/// When this unban was created.
+	pub created_on: DateTime<Utc>,
+}
+
+impl FromRow<'_, MySqlRow> for Unban {
+	fn from_row(row: &'_ MySqlRow) -> sqlx::Result<Self> {
+		let id = row.try_get("unban_id")?;
+		let reason = row.try_get("unban_reason")?;
+		let created_on = row.try_get("unban_created_on")?;
+
+		let unbanned_by = if let Ok(steam_id) = row.try_get("unbanned_by_steam_id") {
+			Some(Player {
+				steam_id,
+				name: row.try_get("unbanned_by_name")?,
+				is_banned: row.try_get("unbanned_by_is_banned")?,
+			})
+		} else {
+			None
+		};
+
+		Ok(Self { id, reason, unbanned_by, created_on })
 	}
 }
 
