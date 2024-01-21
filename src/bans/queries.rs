@@ -2,7 +2,7 @@ pub static BASE_SELECT: &str = r#"
 	SELECT
 	  b.id,
 	  p1.steam_id,
-	  p1.ip_address,
+	  p1.last_known_ip_address,
 	  b.reason,
 	  s.id server_id,
 	  s.name server_name,
@@ -12,7 +12,8 @@ pub static BASE_SELECT: &str = r#"
 	  p2.name server_owner_name,
 	  p2.is_banned server_owner_is_banned,
 	  s.approved_on server_approved_on,
-	  v.version p3.steam_id banned_by_steam_id,
+	  v.version plugin_version_id,
+	  p3.steam_id banned_by_steam_id,
 	  p3.name banned_by_name,
 	  p3.is_banned banned_by_is_banned,
 	  b.created_on,

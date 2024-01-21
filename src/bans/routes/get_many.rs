@@ -117,7 +117,7 @@ pub async fn get_many(
 		filter.switch();
 	}
 
-	query.push(" ORDER BY m.id ASC ");
+	query.push(" ORDER BY b.id DESC ");
 	query::push_limit(params.limit, params.offset, &mut query);
 
 	let bans = query

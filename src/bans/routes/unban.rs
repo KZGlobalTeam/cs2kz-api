@@ -42,6 +42,20 @@ pub async fn unban(
 
 	let mut transaction = state.transaction().await?;
 
+	sqlx::query! {
+		r#"
+		UPDATE
+		  Bans
+		SET
+		  expires_on = CURRENT_TIMESTAMP()
+		WHERE
+		  id = ?
+		"#,
+		ban_id,
+	}
+	.execute(transaction.as_mut())
+	.await?;
+
 	let unbanned_by = admin.map(|admin| admin.steam_id);
 
 	sqlx::query! {
@@ -74,20 +88,6 @@ pub async fn unban(
 		.fetch_one(transaction.as_mut())
 		.await
 		.map(|row| row.id as _)?;
-
-	sqlx::query! {
-		r#"
-		UPDATE
-		  Bans
-		SET
-		  expires_on = CURRENT_TIMESTAMP()
-		WHERE
-		  id = ?
-		"#,
-		ban_id,
-	}
-	.execute(transaction.as_mut())
-	.await?;
 
 	Ok(Created(Json(CreatedUnban { unban_id })))
 }
