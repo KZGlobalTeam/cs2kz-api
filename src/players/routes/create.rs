@@ -18,6 +18,7 @@ use crate::{responses, Error, Result};
   request_body = NewPlayer,
   responses(
     responses::Created<()>,
+    responses::BadRequest,
     responses::UnprocessableEntity,
     responses::InternalServerError,
   ),

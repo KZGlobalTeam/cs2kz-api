@@ -15,6 +15,7 @@ use crate::{responses, Error, Result};
   request_body = NewServer,
   responses(
     responses::Created<CreatedServer>,
+    responses::BadRequest,
     responses::Unauthorized,
     responses::Forbidden,
     responses::UnprocessableEntity,

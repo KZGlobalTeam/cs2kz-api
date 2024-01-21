@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tUPDATE\n\t\t  Players\n\t\tSET\n\t\t  is_banned = true\n\t\tWHERE\n\t\t  steam_id = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "ec63e9cf225252424fa25520d87952ab87e7f8a1a72b3da7c5f872ad0fc06d0b"
+}

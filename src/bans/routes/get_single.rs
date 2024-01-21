@@ -20,7 +20,7 @@ use crate::{responses, Error, Result};
   ),
 )]
 pub async fn get_single(state: State, Path(ban_id): Path<u32>) -> Result<Json<Ban>> {
-	let query = format!("{} WHERE id = ?", queries::BASE_SELECT);
+	let query = format!("{} WHERE b.id = ?", queries::BASE_SELECT);
 
 	sqlx::query_as(&query)
 		.bind(ban_id)

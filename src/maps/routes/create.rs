@@ -24,6 +24,7 @@ use crate::{responses, Error, Result};
   request_body = NewMap,
   responses(
     responses::Created<CreatedMap>,
+    responses::BadRequest,
     responses::Unauthorized,
     responses::Forbidden,
     responses::UnprocessableEntity,

@@ -19,6 +19,7 @@ use crate::{audit_error, responses, Error, Result};
   request_body = NewUnban,
   responses(
     responses::Created<CreatedUnban>,
+    responses::BadRequest,
     responses::Unauthorized,
     responses::Forbidden,
     responses::UnprocessableEntity,
@@ -88,6 +89,22 @@ pub async fn unban(
 		.fetch_one(transaction.as_mut())
 		.await
 		.map(|row| row.id as _)?;
+
+	sqlx::query! {
+		r#"
+		UPDATE
+		  Players
+		SET
+		  is_banned = false
+		WHERE
+		  steam_id = (SELECT player_id FROM Bans where id = ?)
+		"#,
+		ban_id,
+	}
+	.execute(transaction.as_mut())
+	.await?;
+
+	transaction.commit().await?;
 
 	Ok(Created(Json(CreatedUnban { unban_id })))
 }

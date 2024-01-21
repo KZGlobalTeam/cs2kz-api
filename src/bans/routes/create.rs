@@ -17,6 +17,7 @@ use crate::{audit_error, responses, Error, Result};
   path = "/bans",
   responses(
     responses::Created<CreatedBan>,
+    responses::BadRequest,
     responses::Unauthorized,
     responses::Forbidden,
     responses::UnprocessableEntity,
@@ -50,6 +51,36 @@ pub async fn create(
 
 	let mut transaction = state.transaction().await?;
 
+	let ip_address = match ban.ip_address.map(|addr| addr.to_string()) {
+		Some(addr) => addr,
+		None => sqlx::query! {
+			r#"
+			SELECT
+			  last_known_ip_address
+			FROM
+			  Players
+			WHERE
+			  steam_id = ?
+			"#,
+			ban.steam_id,
+		}
+		.fetch_optional(transaction.as_mut())
+		.await?
+		.map(|row| row.last_known_ip_address)
+		.ok_or(Error::UnknownPlayer { steam_id: ban.steam_id })?,
+	};
+
+	// If we didn't get a version from a server, just take the latest one.
+	let plugin_version_id = match plugin_version_id {
+		Some(id) => id,
+		None => {
+			sqlx::query!("SELECT MAX(id) `id!: u16` FROM PluginVersions")
+				.fetch_one(transaction.as_mut())
+				.await?
+				.id
+		}
+	};
+
 	sqlx::query! {
 		r#"
 		INSERT INTO
@@ -66,7 +97,7 @@ pub async fn create(
 		  (?, ?, ?, ?, ?, ?, ?)
 		"#,
 		ban.steam_id,
-		ban.ip_address.map(|addr| addr.to_string()),
+		ip_address,
 		ban.reason,
 		server_id,
 		plugin_version_id,
@@ -81,10 +112,7 @@ pub async fn create(
 		} else if err.is_foreign_key_violation_of("server_id") {
 			panic!("unknown but authenticated server? {server_id:?} | {plugin_version_id:?}");
 		} else if err.is_foreign_key_violation_of("plugin_version_id") {
-			Error::InvalidPluginVersion {
-				server_id: server_id.unwrap(),
-				plugin_version_id: plugin_version_id.unwrap(),
-			}
+			Error::InvalidPluginVersion { server_id: server_id.unwrap(), plugin_version_id }
 		} else if err.is_foreign_key_violation_of("banned_by") {
 			Error::UnknownPlayer { steam_id: banned_by.unwrap() }
 		} else {
@@ -96,6 +124,20 @@ pub async fn create(
 		.fetch_one(transaction.as_mut())
 		.await
 		.map(|row| row.id as _)?;
+
+	sqlx::query! {
+		r#"
+		UPDATE
+		  Players
+		SET
+		  is_banned = true
+		WHERE
+		  steam_id = ?
+		"#,
+		ban.steam_id,
+	}
+	.execute(transaction.as_mut())
+	.await?;
 
 	transaction.commit().await?;
 

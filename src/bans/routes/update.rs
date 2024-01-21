@@ -16,6 +16,7 @@ use crate::{responses, Error, Result};
   request_body = BanUpdate,
   responses(
     responses::Ok<()>,
+    responses::BadRequest,
     responses::Unauthorized,
     responses::Forbidden,
     responses::UnprocessableEntity,

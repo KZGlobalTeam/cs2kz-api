@@ -30,8 +30,9 @@ pub struct ServerAuthRequest {
   request_body = ServerAuthRequest,
   responses(
     responses::Created<ServerAccessToken>,
-    responses::UnprocessableEntity,
+    responses::BadRequest,
     responses::Unauthorized,
+    responses::UnprocessableEntity,
     responses::InternalServerError,
   ),
 )]

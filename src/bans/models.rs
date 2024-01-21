@@ -18,17 +18,18 @@ pub struct Ban {
 	pub id: u32,
 
 	/// The player's SteamID.
-	pub player_id: SteamID,
+	pub steam_id: SteamID,
 
 	/// The player's IP address at the time of their ban.
 	#[schema(value_type = String)]
-	pub player_ip: Ipv4Addr,
+	pub ip_address: Ipv4Addr,
 
 	/// The reason for the ban.
 	// TODO(AlphaKeks): make this an enum?
 	pub reason: String,
 
 	/// The server the player was banned on (if any).
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub server: Option<Server>,
 
 	/// The cs2kz plugin version at the time of the ban.
@@ -41,6 +42,7 @@ pub struct Ban {
 	pub plugin_version: Version,
 
 	/// The admin who issued this ban (if any).
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub banned_by: Option<Player>,
 
 	/// When this ban was issued.
@@ -53,8 +55,8 @@ pub struct Ban {
 impl FromRow<'_, MySqlRow> for Ban {
 	fn from_row(row: &'_ MySqlRow) -> sqlx::Result<Self> {
 		let id = row.try_get("id")?;
-		let player_id = row.try_get("player_id")?;
-		let player_ip = row
+		let steam_id = row.try_get("player_id")?;
+		let ip_address = row
 			.try_get::<&str, _>("player_ip")?
 			.parse()
 			.map_err(|err| sqlx::Error::ColumnDecode {
@@ -115,8 +117,8 @@ impl FromRow<'_, MySqlRow> for Ban {
 
 		Ok(Self {
 			id,
-			player_id,
-			player_ip,
+			steam_id,
+			ip_address,
 			reason,
 			server,
 			plugin_version,

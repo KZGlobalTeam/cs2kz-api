@@ -126,6 +126,9 @@
               }
             }
           },
+          "400": {
+            "description": ""
+          },
           "422": {
             "description": ""
           },
@@ -379,6 +382,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": ""
           },
           "401": {
             "description": ""
@@ -744,6 +750,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": ""
           },
           "401": {
             "description": ""
@@ -1139,8 +1148,8 @@
                   "description": "A player ban.",
                   "required": [
                     "id",
-                    "player_id",
-                    "player_ip",
+                    "steam_id",
+                    "ip_address",
                     "reason",
                     "plugin_version",
                     "created_on"
@@ -1152,10 +1161,10 @@
                       "description": "The ban's ID.",
                       "minimum": 0
                     },
-                    "player_id": {
+                    "steam_id": {
                       "$ref": "#/components/schemas/SteamID"
                     },
-                    "player_ip": {
+                    "ip_address": {
                       "type": "string",
                       "description": "The player's IP address at the time of their ban."
                     },
@@ -1251,6 +1260,9 @@
               }
             }
           },
+          "400": {
+            "description": ""
+          },
           "401": {
             "description": ""
           },
@@ -1307,8 +1319,8 @@
                   "description": "A player ban.",
                   "required": [
                     "id",
-                    "player_id",
-                    "player_ip",
+                    "steam_id",
+                    "ip_address",
                     "reason",
                     "plugin_version",
                     "created_on"
@@ -1320,10 +1332,10 @@
                       "description": "The ban's ID.",
                       "minimum": 0
                     },
-                    "player_id": {
+                    "steam_id": {
                       "$ref": "#/components/schemas/SteamID"
                     },
-                    "player_ip": {
+                    "ip_address": {
                       "type": "string",
                       "description": "The player's IP address at the time of their ban."
                     },
@@ -1420,6 +1432,9 @@
               }
             }
           },
+          "400": {
+            "description": ""
+          },
           "401": {
             "description": ""
           },
@@ -1493,6 +1508,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": ""
           },
           "401": {
             "description": ""
@@ -1743,6 +1761,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": ""
           },
           "401": {
             "description": ""
@@ -1997,8 +2018,8 @@
         "description": "A player ban.",
         "required": [
           "id",
-          "player_id",
-          "player_ip",
+          "steam_id",
+          "ip_address",
           "reason",
           "plugin_version",
           "created_on"
@@ -2010,10 +2031,10 @@
             "description": "The ban's ID.",
             "minimum": 0
           },
-          "player_id": {
+          "steam_id": {
             "$ref": "#/components/schemas/SteamID"
           },
-          "player_ip": {
+          "ip_address": {
             "type": "string",
             "description": "The player's IP address at the time of their ban."
           },
