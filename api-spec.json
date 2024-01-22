@@ -44,7 +44,11 @@
             "description": "Maximum amount of results.",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/Limit"
+              "type": "integer",
+              "format": "uint64",
+              "nullable": true,
+              "maximum": 1000,
+              "minimum": 0
             }
           },
           {
@@ -53,7 +57,9 @@
             "description": "Offset used for pagination.",
             "required": false,
             "schema": {
-              "$ref": "#/components/schemas/Offset"
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
             }
           }
         ],
@@ -143,6 +149,84 @@
         ]
       }
     },
+    "/players/admins": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Players who have joined officially approved KZ servers.",
+        "description": "Players who have joined officially approved KZ servers.",
+        "operationId": "get_admins",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "path",
+            "description": "Maximum amount of results.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "nullable": true,
+              "maximum": 1000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "path",
+            "description": "Offset used for pagination.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "steam_id",
+                    "name",
+                    "roles"
+                  ],
+                  "properties": {
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The player's latest known name."
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Role"
+                      },
+                      "description": "The player's roles."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        }
+      }
+    },
     "/players/{player}": {
       "get": {
         "tags": [
@@ -191,6 +275,127 @@
             "description": "Something unexpected happened. This is a bug; please report it."
           }
         }
+      }
+    },
+    "/players/{player}/roles": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Get a specific player by SteamID or name.",
+        "description": "Get a specific player by SteamID or name.",
+        "operationId": "get_roles",
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "description": "A player's SteamID or Name",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/SteamID"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "enum": [
+                    "bans",
+                    "servers",
+                    "maps",
+                    "admin"
+                  ]
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        }
+      }
+    },
+    "/players/{steam_id}/roles": {
+      "put": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Overwrites the roles of the specified player.",
+        "description": "Overwrites the roles of the specified player.",
+        "operationId": "update_roles",
+        "parameters": [
+          {
+            "name": "steam_id",
+            "in": "path",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Role"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "default": null,
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "401": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        },
+        "security": [
+          {
+            "Steam Session": [
+              "admin"
+            ]
+          }
+        ]
       }
     },
     "/maps": {
@@ -1550,22 +1755,23 @@
         ]
       }
     },
-    "/auth/steam/login": {
+    "/auth/login": {
       "get": {
         "tags": [
           "Auth"
         ],
-        "summary": "Log into Steam.",
-        "description": "Log into Steam.\n\nThis route is used by websites.",
+        "summary": "Redirects the user to Steam to log in, and then back to `return_to` after a successful",
+        "description": "Redirects the user to Steam to log in, and then back to `return_to` after a successful\nlogin.",
         "operationId": "login",
         "parameters": [
           {
-            "name": "origin_url",
+            "name": "return_to",
             "in": "query",
-            "description": "The origin URL to redirect back to after the login process is complete.",
+            "description": "The URL to return to after logging in.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uri"
             }
           }
         ],
@@ -1579,19 +1785,19 @@
         }
       }
     },
-    "/auth/steam/logout": {
+    "/auth/logout": {
       "get": {
         "tags": [
           "Auth"
         ],
-        "summary": "Logout, invalidating all existing sessions.",
-        "description": "Logout, invalidating all existing sessions.\n\nThis route is used by websites.",
+        "summary": "Invalidates the user's current session and clears out any cookies.",
+        "description": "Invalidates the user's current session and clears out any cookies.",
         "operationId": "logout",
         "parameters": [
           {
-            "name": "origin_url",
+            "name": "return_to",
             "in": "query",
-            "description": "Redirect back to this URL once the logout process is complete.",
+            "description": "URL to redirect back to.",
             "required": false,
             "schema": {
               "type": "string",
@@ -1604,18 +1810,16 @@
           "303": {
             "description": ""
           },
+          "400": {
+            "description": ""
+          },
           "401": {
             "description": ""
           },
           "500": {
             "description": "Something unexpected happened. This is a bug; please report it."
           }
-        },
-        "security": [
-          {
-            "Steam Session": []
-          }
-        ]
+        }
       }
     },
     "/auth/steam/callback": {
@@ -1623,13 +1827,11 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Callback Route for Steam after a player logged in.",
-        "description": "Callback Route for Steam after a player logged in.",
         "operationId": "callback",
         "parameters": [
           {
             "name": "openid.return_to",
-            "in": "query",
+            "in": "path",
             "description": "The API's domain, if valid.",
             "required": true,
             "schema": {
@@ -1639,7 +1841,7 @@
           },
           {
             "name": "openid.mode",
-            "in": "query",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string"
@@ -1647,7 +1849,7 @@
           },
           {
             "name": "openid.ns",
-            "in": "query",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string"
@@ -1655,7 +1857,7 @@
           },
           {
             "name": "openid.op_endpoint",
-            "in": "query",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string"
@@ -1663,7 +1865,7 @@
           },
           {
             "name": "openid.claimed_id",
-            "in": "query",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string",
@@ -1672,8 +1874,8 @@
           },
           {
             "name": "openid.identity",
-            "in": "query",
-            "required": false,
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string",
               "nullable": true
@@ -1681,7 +1883,7 @@
           },
           {
             "name": "openid.response_nonce",
-            "in": "query",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string"
@@ -1689,8 +1891,8 @@
           },
           {
             "name": "openid.invalidate_handle",
-            "in": "query",
-            "required": false,
+            "in": "path",
+            "required": true,
             "schema": {
               "type": "string",
               "nullable": true
@@ -1698,7 +1900,7 @@
           },
           {
             "name": "openid.assoc_handle",
-            "in": "query",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string"
@@ -1706,7 +1908,7 @@
           },
           {
             "name": "openid.signed",
-            "in": "query",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string"
@@ -1714,7 +1916,7 @@
           },
           {
             "name": "openid.sig",
-            "in": "query",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "string"
@@ -1740,19 +1942,17 @@
         }
       }
     },
-    "/auth/servers/refresh": {
-      "get": {
+    "/auth/servers/refresh_key": {
+      "put": {
         "tags": [
           "Auth"
         ],
-        "summary": "This route is used by CS2 servers for refreshing their JWTs.",
-        "description": "This route is used by CS2 servers for refreshing their JWTs.",
         "operationId": "refresh_key",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ServerAuthRequest"
+                "$ref": "#/components/schemas/RefreshToken"
               }
             }
           },
@@ -1764,16 +1964,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "description": "The temporary access token used by CS2 servers for authenticating requests.",
-                  "required": [
-                    "access_token"
-                  ],
-                  "properties": {
-                    "access_token": {
-                      "type": "string"
-                    }
-                  }
+                  "type": "string",
+                  "description": "JWT for server authentication."
                 }
               }
             }
@@ -1792,217 +1984,6 @@
           }
         }
       }
-    },
-    "/auth/admins": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "operationId": "get_many",
-        "parameters": [
-          {
-            "name": "required_roles",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/Role"
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "steam_id",
-                    "name",
-                    "roles"
-                  ],
-                  "properties": {
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "roles": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Role"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": ""
-          },
-          "500": {
-            "description": "Something unexpected happened. This is a bug; please report it."
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Auth"
-        ],
-        "operationId": "update",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewAdmin"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": ""
-          },
-          "500": {
-            "description": "Something unexpected happened. This is a bug; please report it."
-          }
-        },
-        "security": [
-          {
-            "Steam Session": [
-              "admin"
-            ]
-          }
-        ]
-      }
-    },
-    "/auth/admins/{steam_id}": {
-      "get": {
-        "tags": [
-          "Auth"
-        ],
-        "operationId": "get_single",
-        "parameters": [
-          {
-            "name": "steam_id",
-            "in": "path",
-            "description": "",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "steam_id",
-                    "name",
-                    "roles"
-                  ],
-                  "properties": {
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "roles": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Role"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": ""
-          },
-          "500": {
-            "description": "Something unexpected happened. This is a bug; please report it."
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Auth"
-        ],
-        "operationId": "delete",
-        "parameters": [
-          {
-            "name": "steam_id",
-            "in": "path",
-            "description": "",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": ""
-          },
-          "500": {
-            "description": "Something unexpected happened. This is a bug; please report it."
-          }
-        },
-        "security": [
-          {
-            "Steam Session": [
-              "manage"
-            ]
-          }
-        ]
-      }
     }
   },
   "components": {
@@ -2019,13 +2000,15 @@
             "$ref": "#/components/schemas/SteamID"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "The player's latest known name."
           },
           "roles": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Role"
-            }
+            },
+            "description": "The player's roles."
           }
         }
       },
@@ -2502,24 +2485,6 @@
           "classic"
         ]
       },
-      "NewAdmin": {
-        "type": "object",
-        "required": [
-          "steam_id",
-          "roles"
-        ],
-        "properties": {
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
-          },
-          "roles": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Role"
-            }
-          }
-        }
-      },
       "NewBan": {
         "type": "object",
         "required": [
@@ -2748,10 +2713,28 @@
           "ranked"
         ]
       },
+      "RefreshToken": {
+        "type": "object",
+        "required": [
+          "key",
+          "plugin_version"
+        ],
+        "properties": {
+          "key": {
+            "type": "integer",
+            "format": "uint32",
+            "description": "The server's API key.",
+            "minimum": 0
+          },
+          "plugin_version": {
+            "type": "string",
+            "description": "Semver cs2kz plugin version the server is currently running."
+          }
+        }
+      },
       "Role": {
         "type": "string",
         "enum": [
-          "none",
           "bans",
           "servers",
           "maps",
@@ -2761,7 +2744,6 @@
       "RoleFlags": {
         "type": "integer",
         "format": "uint32",
-        "description": "Bitfield for storing user roles.\n\nSee associated constants for details.",
         "minimum": 0
       },
       "Server": {
@@ -2791,38 +2773,6 @@
           "approved_on": {
             "type": "string",
             "format": "date-time"
-          }
-        }
-      },
-      "ServerAccessToken": {
-        "type": "object",
-        "description": "The temporary access token used by CS2 servers for authenticating requests.",
-        "required": [
-          "access_token"
-        ],
-        "properties": {
-          "access_token": {
-            "type": "string"
-          }
-        }
-      },
-      "ServerAuthRequest": {
-        "type": "object",
-        "description": "Request payload for CS2 servers which want to refresh their access token.",
-        "required": [
-          "refresh_token",
-          "plugin_version"
-        ],
-        "properties": {
-          "refresh_token": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The server's semi-permanent API Key.",
-            "minimum": 0
-          },
-          "plugin_version": {
-            "type": "string",
-            "description": "The cs2kz version the server is currently running on."
           }
         }
       },

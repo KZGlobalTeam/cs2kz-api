@@ -1,10 +1,9 @@
 use axum::extract::Path;
 use axum::{Extension, Json};
 
-use crate::auth::servers::AuthenticatedServer;
-use crate::auth::{Session, JWT};
+use crate::auth::{Jwt, Server, Session};
 use crate::bans::{CreatedUnban, NewUnban};
-use crate::extractors::State;
+use crate::extract::State;
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
 use crate::{audit_error, responses, Error, Result};
@@ -31,12 +30,12 @@ use crate::{audit_error, responses, Error, Result};
 )]
 pub async fn unban(
 	state: State,
-	server: Option<JWT<AuthenticatedServer>>,
-	admin: Option<Extension<Session>>,
+	server: Option<Jwt<Server>>,
+	session: Option<Extension<Session>>,
 	Path(ban_id): Path<u32>,
 	Json(unban): Json<NewUnban>,
 ) -> Result<Created<Json<CreatedUnban>>> {
-	if server.is_none() && admin.is_none() {
+	if server.is_none() && session.is_none() {
 		audit_error!(?unban, "unban submitted without authentication");
 		return Err(Error::Unauthorized);
 	}
@@ -57,7 +56,7 @@ pub async fn unban(
 	.execute(transaction.as_mut())
 	.await?;
 
-	let unbanned_by = admin.map(|admin| admin.steam_id);
+	let unbanned_by = session.map(|session| session.user.steam_id);
 
 	sqlx::query! {
 		r#"

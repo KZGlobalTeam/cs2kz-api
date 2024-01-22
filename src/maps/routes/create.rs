@@ -7,7 +7,7 @@ use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
 use tracing::warn;
 
 use crate::database::{GlobalStatus, RankedStatus};
-use crate::extractors::State;
+use crate::extract::State;
 use crate::maps::models::NewCourse;
 use crate::maps::{CreatedMap, MappersTable, NewMap};
 use crate::responses::Created;

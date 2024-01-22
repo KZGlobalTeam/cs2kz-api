@@ -1,10 +1,9 @@
 use axum::{Extension, Json};
 use chrono::{DateTime, Utc};
 
-use crate::auth::servers::AuthenticatedServer;
-use crate::auth::{Session, JWT};
+use crate::auth::{Jwt, Server, Session};
 use crate::bans::{CreatedBan, NewBan};
-use crate::extractors::State;
+use crate::extract::State;
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
 use crate::{audit_error, responses, Error, Result};
@@ -30,11 +29,11 @@ use crate::{audit_error, responses, Error, Result};
 )]
 pub async fn create(
 	state: State,
-	server: Option<JWT<AuthenticatedServer>>,
-	admin: Option<Extension<Session>>,
+	server: Option<Jwt<Server>>,
+	session: Option<Extension<Session>>,
 	Json(ban): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
-	if server.is_none() && admin.is_none() {
+	if server.is_none() && session.is_none() {
 		audit_error!(?ban, "ban submitted without authentication");
 		return Err(Error::Unauthorized);
 	}
@@ -43,7 +42,7 @@ pub async fn create(
 		.map(|server| (server.id, server.plugin_version_id))
 		.unzip();
 
-	let banned_by = admin.map(|admin| admin.steam_id);
+	let banned_by = session.map(|session| session.user.steam_id);
 
 	// FIXME(AlphaKeks): the ban duration should depend on the ban reason, and the reasons
 	// are not mapped out as an enum yet

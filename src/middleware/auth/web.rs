@@ -11,14 +11,14 @@ pub async fn layer<const REQUIRED_FLAGS: u32>(
 	session: Session,
 	mut request: Request,
 	next: Next,
-) -> Result<Response> {
+) -> Result<(Session, Response)> {
 	let required_flags = RoleFlags(REQUIRED_FLAGS);
 
-	if !session.role_flags.contains(required_flags) {
+	if !session.user.role_flags.contains(&required_flags) {
 		return Err(Error::InsufficientPermissions { required_flags });
 	}
 
-	request.extensions_mut().insert(session);
+	request.extensions_mut().insert(session.clone());
 
-	Ok(next.run(request).await)
+	Ok((session, next.run(request).await))
 }

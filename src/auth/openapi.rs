@@ -2,7 +2,7 @@ use utoipa::openapi::security::{ApiKey, ApiKeyValue, Http, HttpAuthScheme, Secur
 use utoipa::openapi::OpenApi;
 use utoipa::Modify;
 
-use crate::extractors::SessionToken;
+use super::Session;
 
 pub struct Security;
 
@@ -14,7 +14,7 @@ impl Modify for Security {
 			.expect("OpenAPI Spec has components");
 
 		let session_auth =
-			SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(SessionToken::COOKIE_NAME)));
+			SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(Session::COOKIE_NAME)));
 
 		components.add_security_scheme("Steam Session", session_auth);
 

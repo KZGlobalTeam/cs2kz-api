@@ -4,21 +4,21 @@ use cs2kz::SteamID;
 use serde::Deserialize;
 use utoipa::IntoParams;
 
+use crate::auth::RoleFlags;
 use crate::extract::State;
 use crate::params::{Limit, Offset};
-use crate::players::Player;
+use crate::players::routes::get_many::GetPlayersParams;
+use crate::players::Admin;
 use crate::{responses, Error, Result};
 
-/// Query Parameters for fetching [`Player`]s.
+/// Query Parameters for fetching [`Admin`]s.
 #[derive(Debug, Default, Deserialize, IntoParams)]
 #[serde(default)]
-pub struct GetPlayersParams {
+pub struct GetAdminsParams {
 	/// Maximum amount of results.
-	#[param(value_type = Option<u64>, maximum = 1000)]
 	pub limit: Limit,
 
 	/// Offset used for pagination.
-	#[param(value_type = Option<i64>)]
 	pub offset: Offset,
 }
 
@@ -27,28 +27,29 @@ pub struct GetPlayersParams {
 #[utoipa::path(
   get,
   tag = "Players",
-  path = "/players",
+  path = "/players/admins",
   params(GetPlayersParams),
   responses(
-    responses::Ok<Player>,
+    responses::Ok<Admin>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,
   ),
 )]
-pub async fn get_many(
+pub async fn get_admins(
 	state: State,
-	Query(params): Query<GetPlayersParams>,
-) -> Result<Json<Vec<Player>>> {
-	let players = sqlx::query_as! {
-		Player,
+	Query(params): Query<GetAdminsParams>,
+) -> Result<Json<Vec<Admin>>> {
+	let admins = sqlx::query! {
 		r#"
 		SELECT
 		  steam_id `steam_id: SteamID`,
 		  name,
-		  is_banned `is_banned: bool`
+		  role_flags
 		FROM
 		  Players
+		WHERE
+		  role_flags != 0
 		LIMIT
 		  ? OFFSET ?
 		"#,
@@ -56,11 +57,18 @@ pub async fn get_many(
 		params.offset,
 	}
 	.fetch_all(state.database())
-	.await?;
+	.await?
+	.into_iter()
+	.map(|row| Admin {
+		steam_id: row.steam_id,
+		name: row.name,
+		roles: Vec::from_iter(RoleFlags(row.role_flags)),
+	})
+	.collect::<Vec<_>>();
 
-	if players.is_empty() {
+	if admins.is_empty() {
 		return Err(Error::NoContent);
 	}
 
-	Ok(Json(players))
+	Ok(Json(admins))
 }

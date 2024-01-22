@@ -6,7 +6,7 @@ use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
 use crate::database::ToID;
-use crate::extractors::State;
+use crate::extract::State;
 use crate::params::{Limit, Offset};
 use crate::query::{self, Filter};
 use crate::servers::{queries, Server};

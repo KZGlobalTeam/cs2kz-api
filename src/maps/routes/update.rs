@@ -8,7 +8,7 @@ use itertools::Itertools;
 use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
 
 use crate::database::{GlobalStatus, RankedStatus};
-use crate::extractors::State;
+use crate::extract::State;
 use crate::maps::{CourseUpdate, FilterUpdate, MapUpdate, MappersTable};
 use crate::steam::workshop;
 use crate::{query, responses, Error, Result};

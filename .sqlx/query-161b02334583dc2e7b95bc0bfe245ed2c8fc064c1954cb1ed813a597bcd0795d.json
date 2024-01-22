@@ -1,0 +1,69 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tSELECT\n\t\t\t  s.id,\n\t\t\t  s.token,\n\t\t\t  s.subdomain,\n\t\t\t  u.steam_id `steam_id: SteamID`,\n\t\t\t  u.role_flags\n\t\t\tFROM\n\t\t\t  WebSessions s\n\t\t\t  JOIN Players u ON u.steam_id = s.steam_id\n\t\t\tWHERE\n\t\t\t  s.token = ?\n\t\t\t  AND s.expires_on > CURRENT_TIMESTAMP()\n\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 20
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "token",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | UNIQUE_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 20
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "subdomain",
+        "type_info": {
+          "type": "VarString",
+          "flags": "",
+          "char_set": 224,
+          "max_size": 64
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "steam_id: SteamID",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 10
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "role_flags",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | UNSIGNED",
+          "char_set": 63,
+          "max_size": 10
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "161b02334583dc2e7b95bc0bfe245ed2c8fc064c1954cb1ed813a597bcd0795d"
+}

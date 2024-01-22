@@ -3,7 +3,7 @@ use axum::Json;
 use sqlx::QueryBuilder;
 
 use crate::bans::BanUpdate;
-use crate::extractors::State;
+use crate::extract::State;
 use crate::{responses, Error, Result};
 
 /// Update an existing ban.

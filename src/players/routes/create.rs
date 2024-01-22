@@ -1,8 +1,7 @@
 use axum::Json;
 
-use crate::auth::servers::AuthenticatedServer;
-use crate::auth::JWT;
-use crate::extractors::State;
+use crate::auth::{Jwt, Server};
+use crate::extract::State;
 use crate::players::NewPlayer;
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
@@ -28,7 +27,7 @@ use crate::{responses, Error, Result};
 )]
 pub async fn create(
 	state: State,
-	server: JWT<AuthenticatedServer>,
+	server: Jwt<Server>,
 	Json(player): Json<NewPlayer>,
 ) -> Result<Created<()>> {
 	sqlx::query! {

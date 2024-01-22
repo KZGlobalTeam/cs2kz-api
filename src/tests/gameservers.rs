@@ -6,8 +6,7 @@ use serde_json::json;
 use tracing::info;
 
 use super::Context;
-use crate::auth::servers::routes::refresh_key::ServerAuthRequest;
-use crate::auth::servers::ServerAccessToken;
+use crate::auth::servers::{AccessToken, RefreshToken};
 use crate::players::Player;
 
 #[crate::test]
@@ -45,21 +44,17 @@ async fn register_player(ctx: Context) {
 }
 
 async fn get_access_token(ctx: &Context) -> Result<String> {
-	let server = sqlx::query!("SELECT * FROM Servers LIMIT 1")
+	let server = sqlx::query!("SELECT api_key `api_key!: u32` FROM Servers LIMIT 1")
 		.fetch_one(&ctx.connection_pool)
 		.await?;
 
-	let url = ctx.url("/auth/servers/refresh");
-	let request_body = ServerAuthRequest {
-		refresh_token: server.api_key.unwrap(),
-		plugin_version: "0.0.1".parse()?,
-	};
+	let url = ctx.url("/auth/servers/refresh_key");
+	let request_body = RefreshToken { key: server.api_key, plugin_version: "0.0.1".parse()? };
+	let response = ctx.http_client.put(url).json(&request_body).send().await?;
 
-	let response = ctx.http_client.post(url).json(&request_body).send().await?;
+	ensure!(response.status() == StatusCode::CREATED, "got {}", response.status());
 
-	ensure!(response.status() == StatusCode::CREATED);
-
-	let ServerAccessToken { access_token } = response.json().await?;
+	let AccessToken(access_token) = response.json().await?;
 
 	info!("received token: `{access_token}`");
 

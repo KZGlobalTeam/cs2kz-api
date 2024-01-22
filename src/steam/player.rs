@@ -42,7 +42,7 @@ impl Player {
 	pub const COOKIE_NAME: &'static str = "kz-player";
 
 	/// Fetches the player with the given `steam_id` from Steam's API.
-	pub async fn get(
+	pub async fn fetch(
 		steam_id: SteamID,
 		api_key: &str,
 		http_client: Arc<reqwest::Client>,
@@ -59,7 +59,7 @@ impl Player {
 	}
 
 	/// Creates a cookie containing `self` serialized as JSON.
-	pub fn cookie(&self, host: impl Into<String>, secure: bool) -> Cookie<'static> {
+	pub fn to_cookie(&self, host: impl Into<String>, secure: bool) -> Cookie<'static> {
 		let json = serde_json::to_string(self).expect("this is valid json");
 
 		Cookie::build((Self::COOKIE_NAME, json))
@@ -67,6 +67,7 @@ impl Player {
 			.path("/")
 			.secure(secure)
 			.http_only(false)
+			.permanent()
 			.build()
 	}
 }

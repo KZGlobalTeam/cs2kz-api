@@ -5,7 +5,7 @@ use serde::Serialize;
 use sqlx::mysql::MySqlPoolOptions;
 use sqlx::{MySql, MySqlPool, Transaction};
 
-use crate::auth::{steam, JWT};
+use crate::auth::{steam, Jwt};
 use crate::config::Environment;
 
 mod error;
@@ -68,7 +68,7 @@ impl State {
 		self.connection_pool.begin().await.map_err(Error::from)
 	}
 
-	pub fn encode_jwt<T>(&self, payload: &JWT<T>) -> Result<String>
+	pub fn encode_jwt<T>(&self, payload: &Jwt<T>) -> Result<String>
 	where
 		T: Serialize,
 	{

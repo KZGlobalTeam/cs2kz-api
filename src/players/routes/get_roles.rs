@@ -3,8 +3,8 @@ use axum::Json;
 use cs2kz::PlayerIdentifier;
 use sqlx::QueryBuilder;
 
+use crate::auth::{Role, RoleFlags};
 use crate::extract::State;
-use crate::players::Player;
 use crate::{responses, Error, Result};
 
 /// Get a specific player by SteamID or name.
@@ -12,20 +12,20 @@ use crate::{responses, Error, Result};
 #[utoipa::path(
   get,
   tag = "Players",
-  path = "/players/{player}",
+  path = "/players/{player}/roles",
   params(PlayerIdentifier<'_>),
   responses(
-    responses::Ok<()>,
+    responses::Ok<Role>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,
   ),
 )]
-pub async fn get_single(
+pub async fn get_roles(
 	state: State,
 	Path(player): Path<PlayerIdentifier<'_>>,
-) -> Result<Json<Player>> {
-	let mut query = QueryBuilder::new("SELECT steam_id, name, is_banned FROM Players WHERE");
+) -> Result<Json<Vec<Role>>> {
+	let mut query = QueryBuilder::new("SELECT role_flags FROM Players WHERE");
 
 	match player {
 		PlayerIdentifier::SteamID(steam_id) => {
@@ -36,11 +36,12 @@ pub async fn get_single(
 		}
 	}
 
-	query
-		.build_query_as::<Player>()
+	let role_flags = query
+		.build_query_scalar::<u32>()
 		.fetch_optional(state.database())
-		.await
-		.map_err(Error::from)?
-		.map(Json)
-		.ok_or(Error::NoContent)
+		.await?
+		.map(RoleFlags)
+		.ok_or(Error::NoContent)?;
+
+	Ok(Json(role_flags.into_iter().collect()))
 }

@@ -6,7 +6,7 @@ use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
 use crate::database::GlobalStatus;
-use crate::extractors::State;
+use crate::extract::State;
 use crate::maps::{queries, KZMap};
 use crate::{responses, Error, Result};
 
