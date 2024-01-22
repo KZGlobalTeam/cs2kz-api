@@ -1,35 +1,20 @@
 use axum::Json;
-use chrono::{Duration, Utc};
-use semver::Version;
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
+use servers::Server;
+use tracing::trace;
 
-use crate::auth::servers::{AuthenticatedServer, ServerAccessToken};
-use crate::auth::JWT;
-use crate::extractors::State;
+use crate::auth::servers::{self, AccessToken, RefreshToken};
+use crate::extract::State;
 use crate::responses::{self, Created};
 use crate::{Error, Result};
 
-/// Request payload for CS2 servers which want to refresh their access token.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct ServerAuthRequest {
-	/// The server's semi-permanent API Key.
-	pub refresh_token: u32,
-
-	/// The cs2kz version the server is currently running on.
-	#[schema(value_type = String)]
-	pub plugin_version: Version,
-}
-
-/// This route is used by CS2 servers for refreshing their JWTs.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
-  get,
+  put,
   tag = "Auth",
-  path = "/auth/servers/refresh",
-  request_body = ServerAuthRequest,
+  path = "/auth/servers/refresh_key",
+  request_body = RefreshToken,
   responses(
-    responses::Created<ServerAccessToken>,
+    responses::Created<AccessToken>,
     responses::BadRequest,
     responses::Unauthorized,
     responses::UnprocessableEntity,
@@ -38,9 +23,9 @@ pub struct ServerAuthRequest {
 )]
 pub async fn refresh_key(
 	state: State,
-	Json(auth): Json<ServerAuthRequest>,
-) -> Result<Created<Json<ServerAccessToken>>> {
-	let data = sqlx::query! {
+	Json(refresh): Json<RefreshToken>,
+) -> Result<Created<Json<AccessToken>>> {
+	let server = sqlx::query! {
 		r#"
 		SELECT
 		  s.id server_id,
@@ -50,17 +35,16 @@ pub async fn refresh_key(
 		  JOIN PluginVersions v ON v.version = ?
 		  AND s.api_key = ?
 		"#,
-		auth.plugin_version.to_string(),
-		auth.refresh_token,
+		refresh.plugin_version.to_string(),
+		refresh.key,
 	}
 	.fetch_optional(state.database())
 	.await?
-	.ok_or(Error::Unauthorized)?;
+	.map(|row| Server::new(row.server_id, row.plugin_version_id))
+	.ok_or_else(|| {
+		trace!(?refresh, "invalid refresh token");
+		Error::Unauthorized
+	})?;
 
-	let payload = AuthenticatedServer::new(data.server_id, data.plugin_version_id);
-	let expires_on = Utc::now() + Duration::minutes(30);
-	let jwt = JWT::new(payload, expires_on);
-	let access_token = state.encode_jwt(&jwt)?;
-
-	Ok(Created(Json(ServerAccessToken { access_token })))
+	server.into_jwt(&state).map(Json).map(Created)
 }

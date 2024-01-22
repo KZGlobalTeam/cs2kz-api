@@ -1,7 +1,7 @@
 use axum::extract::Path;
 use axum::Json;
 
-use crate::extractors::State;
+use crate::extract::State;
 use crate::responses::Created;
 use crate::servers::CreatedServer;
 use crate::{responses, Error, Result};

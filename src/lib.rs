@@ -30,7 +30,7 @@ mod state;
 pub use state::State;
 
 mod database;
-mod extractors;
+mod extract;
 mod macros;
 mod middleware;
 mod params;
@@ -76,15 +76,13 @@ mod auth;
       database::RankedStatus,
       database::GlobalStatus,
 
-      auth::roles::Role,
-      auth::roles::RoleFlags,
-      auth::servers::models::ServerAccessToken,
-      auth::servers::routes::refresh_key::ServerAuthRequest,
-      auth::admins::models::Admin,
-      auth::admins::models::NewAdmin,
+      auth::Role,
+      auth::RoleFlags,
+      auth::servers::RefreshToken,
 
       players::models::Player,
       players::models::NewPlayer,
+      players::models::Admin,
 
       maps::models::KZMap,
       maps::models::Course,
@@ -115,7 +113,10 @@ mod auth;
 
     players::routes::get_many::get_many,
     players::routes::create::create,
+    players::routes::get_admins::get_admins,
     players::routes::get_single::get_single,
+    players::routes::get_roles::get_roles,
+    players::routes::update_roles::update_roles,
 
     maps::routes::get_many::get_many,
     maps::routes::create::create,
@@ -135,16 +136,10 @@ mod auth;
     bans::routes::update::update,
     bans::routes::unban::unban,
 
-    auth::steam::routes::login::login,
-    auth::steam::routes::logout::logout,
+    auth::routes::login::login,
+    auth::routes::logout::logout,
     auth::steam::routes::callback::callback,
-
     auth::servers::routes::refresh_key::refresh_key,
-
-    auth::admins::routes::get_many::get_many,
-    auth::admins::routes::update::update,
-    auth::admins::routes::get_single::get_single,
-    auth::admins::routes::delete::delete,
   ),
 )]
 pub struct API {

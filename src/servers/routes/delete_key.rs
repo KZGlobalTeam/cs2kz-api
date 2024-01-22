@@ -1,6 +1,6 @@
 use axum::extract::Path;
 
-use crate::extractors::State;
+use crate::extract::State;
 use crate::{responses, Error, Result};
 
 /// Delete a server's API Key. This effectively deglobals the server until an admin generates a new

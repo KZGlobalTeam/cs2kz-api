@@ -1,23 +1,21 @@
-use axum::extract::Query;
 use axum::response::Redirect;
 use axum_extra::extract::CookieJar;
 use tracing::{trace, warn};
 
-use crate::auth::steam::AuthRequest;
+use crate::auth::steam::Auth as SteamAuth;
 use crate::auth::Session;
-use crate::extractors::State;
+use crate::extract::State;
+use crate::steam::Player;
 use crate::url::UrlExt;
-use crate::{responses, steam, Error, Result};
+use crate::{responses, Error, Result};
 
-/// Callback Route for Steam after a player logged in.
 #[tracing::instrument(skip(state))]
-#[rustfmt::skip]
 #[utoipa::path(
   get,
   tag = "Auth",
   path = "/auth/steam/callback",
-  params(AuthRequest),
-  responses(
+  params(SteamAuth),
+  responses( //
     responses::SeeOther,
     responses::BadRequest,
     responses::Unauthorized,
@@ -27,50 +25,42 @@ use crate::{responses, steam, Error, Result};
 )]
 pub async fn callback(
 	state: State,
-	mut cookies: CookieJar,
-	Query(auth): Query<AuthRequest>,
+	auth: SteamAuth,
+	cookies: CookieJar,
 ) -> Result<(CookieJar, Redirect)> {
 	let config = state.config();
-	let (steam_id, origin_url) = auth.validate(&config.public_url, state.http()).await?;
-
 	let public_url = &config.public_url;
-	let mut is_known_host = origin_url.host_eq_weak(public_url);
+	let mut is_known_host = auth.origin_url.host_eq_weak(public_url);
 
-	if state.in_dev() && !is_known_host {
-		warn!(%origin_url, %public_url, "allowing mismatching hosts due to dev mode");
+	if !is_known_host && state.in_dev() {
+		warn!(%auth.origin_url, %public_url, "allowing mismatching hosts due to dev mode");
 		is_known_host = true;
 	}
 
 	if !is_known_host {
-		trace!(%origin_url, %public_url, "rejecting unknown request origin");
+		trace!(%auth.origin_url, %public_url, "rejecting login due to mismatching hosts");
 		return Err(Error::Forbidden);
 	}
 
-	let player = steam::Player::get(steam_id, &config.steam.api_key, state.http()).await?;
-
-	trace!(?player, "got player from steam");
-
-	let origin_host = origin_url.host_str().ok_or_else(|| {
-		trace!(%origin_url, "origin has no host");
+	let origin_host = auth.origin_url.host_str().ok_or_else(|| {
+		trace!(%auth.origin_url, "origin somehow has no host");
 		Error::Forbidden
 	})?;
 
-	let host = public_url.host_str().expect("API URL must have host");
+	let steam_id = auth.steam_id();
+	let player = Player::fetch(steam_id, &config.steam.api_key, state.http()).await?;
 
-	let subdomain = origin_url
-		.subdomain()
-		.map(str::parse)
-		.transpose()
-		.map_err(|_| Error::Unauthorized)?;
+	trace!(?player, "fetched player from steam");
 
+	let mut transaction = state.transaction().await?;
 	let session =
-		Session::create(steam_id, subdomain, host, state.in_prod(), state.database()).await?;
+		Session::new(steam_id, &auth.origin_url, state.in_prod(), &mut transaction).await?;
 
-	cookies = cookies
-		.add(player.cookie(origin_host, state.in_prod()))
-		.add(session);
+	transaction.commit().await?;
 
-	let redirect = Redirect::to(origin_url.as_str());
+	let cookies = cookies
+		.add(player.to_cookie(origin_host, state.in_prod()))
+		.add(session.cookie);
 
-	Ok((cookies, redirect))
+	Ok((cookies, Redirect::to(auth.origin_url.as_str())))
 }

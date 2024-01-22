@@ -1,7 +1,7 @@
 INSERT INTO
-  Players (`steam_id`, `name`, `last_known_ip_address`)
+  Players (`steam_id`, `name`, `last_known_ip_address`, `role_flags`)
 VALUES
-  (322356345, "AlphaKeks", "127.0.0.1");
+  (322356345, "AlphaKeks", "127.0.0.1", 1 << 0 | 1 << 8 | 1 << 16 | 1 << 31);
 
 INSERT INTO
   Players (`steam_id`, `name`, `last_known_ip_address`)
@@ -79,9 +79,9 @@ VALUES
   (234537517, "neon", "127.0.0.1");
 
 INSERT INTO
-  Players(`steam_id`, `name`, `last_known_ip_address`)
+  Players(`steam_id`, `name`, `last_known_ip_address`, `role_flags`)
 VALUES
-  (1107436699, "Reeed", "127.0.0.1");
+  (1107436699, "Reeed", "127.0.0.1", 1 << 0 | 1 << 8 | 1 << 16 | 1 << 31);
 
 INSERT INTO
   Maps (`name`, `workshop_id`, `checksum`, `global_status`)
@@ -877,20 +877,4 @@ VALUES
   (
     "0.0.1",
     "58c1ef12c94d6f740acd9a5f3a85acc1b48e613c"
-  );
-
-INSERT INTO
-  Admins (`steam_id`, `role_flags`)
-VALUES
-  (
-    322356345,
-    1 << 0 | 1 << 8 | 1 << 16 | 1 << 31
-  );
-
-INSERT INTO
-  Admins (`steam_id`, `role_flags`)
-VALUES
-  (
-    1107436699,
-    1 << 0 | 1 << 8 | 1 << 16 | 1 << 31
   );

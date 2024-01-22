@@ -3,7 +3,7 @@ use std::result::Result as StdResult;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
-use serde_json::{json, Value as JsonValue};
+use serde_json::json;
 use thiserror::Error as ThisError;
 
 use crate::auth::RoleFlags;
@@ -26,13 +26,11 @@ impl IntoResponse for Error {
 		let code = match self {
 			Error::InvalidRequestBody(_) => StatusCode::BAD_REQUEST,
 			Error::InsufficientPermissions { required_flags } => {
-				json["required_flags"] = JsonValue::Array(
-					required_flags
-						.into_iter()
-						.map(|role| role.to_string())
-						.map(JsonValue::String)
-						.collect(),
-				);
+				json["required_flags"] = required_flags
+					.into_iter()
+					.flat_map(serde_json::to_value)
+					.collect::<Vec<_>>()
+					.into();
 
 				StatusCode::FORBIDDEN
 			}

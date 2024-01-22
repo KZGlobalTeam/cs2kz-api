@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t  p.steam_id `steam_id: SteamID`,\n\t\t  p.name,\n\t\t  a.role_flags\n\t\tFROM\n\t\t  Admins a\n\t\t  JOIN Players p ON p.steam_id = a.steam_id\n\t\tWHERE\n\t\t  (a.role_flags & ?) = ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t  steam_id `steam_id: SteamID`,\n\t\t  name,\n\t\t  role_flags\n\t\tFROM\n\t\t  Players\n\t\tWHERE\n\t\t  role_flags != 0\n\t\tLIMIT\n\t\t  ? OFFSET ?\n\t\t",
   "describe": {
     "columns": [
       {
@@ -28,7 +28,7 @@
         "name": "role_flags",
         "type_info": {
           "type": "Long",
-          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "flags": "NOT_NULL | UNSIGNED",
           "char_set": 63,
           "max_size": 10
         }
@@ -43,5 +43,5 @@
       false
     ]
   },
-  "hash": "4f96881416fa7031752d6d78b93ff7e810bbcdd83bbcb01bf6c93689663651bc"
+  "hash": "8b95e636fa6123ae64cd4811fba03d673af8f303154b22e93b817bea9bc6e5aa"
 }

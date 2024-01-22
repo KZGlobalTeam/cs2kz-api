@@ -2,7 +2,7 @@ use axum::extract::Path;
 use axum::Json;
 
 use crate::bans::{queries, Ban};
-use crate::extractors::State;
+use crate::extract::State;
 use crate::{responses, Error, Result};
 
 /// Get a specific ban by ID.

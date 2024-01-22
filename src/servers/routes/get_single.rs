@@ -3,7 +3,7 @@ use axum::Json;
 use cs2kz::ServerIdentifier;
 use sqlx::QueryBuilder;
 
-use crate::extractors::State;
+use crate::extract::State;
 use crate::servers::{queries, Server};
 use crate::{responses, Error, Result};
 

@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
-use axum::routing::post;
+use axum::routing::put;
 use axum::Router;
 
-use crate::State;
+use super::Jwt;
 
 pub mod models;
-pub use models::{AuthenticatedServer, ServerAccessToken};
+pub use models::{AccessToken, RefreshToken, Server};
 
 pub mod routes;
 
-pub fn router(state: Arc<State>) -> Router {
+pub fn router(state: Arc<crate::State>) -> Router {
 	Router::new()
-		.route("/refresh", post(routes::refresh_key))
+		.route("/refresh_key", put(routes::refresh_key))
 		.with_state(state)
 }

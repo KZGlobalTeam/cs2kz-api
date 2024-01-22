@@ -7,67 +7,72 @@ use axum::http::request;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::Authorization;
 use axum_extra::TypedHeader;
-use chrono::{DateTime, Utc};
+use chrono::Duration;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use tracing::trace;
 
-use crate::{Error, Result, State};
+use crate::{Error, Result};
 
-/// Generic JWT wrapper.
-///
-/// This can be used for serializing / deserializing JWTs.
-#[allow(clippy::upper_case_acronyms)]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct JWT<Payload> {
+/// Utility type for handling JWT payloads.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Jwt<T> {
 	#[serde(flatten)]
-	pub payload: Payload,
-
+	payload: T,
 	exp: u64,
 }
 
-impl<Payload> JWT<Payload> {
-	pub fn new(payload: Payload, expires_on: DateTime<Utc>) -> Self {
-		Self { payload, exp: expires_on.timestamp() as _ }
+impl<T> Jwt<T> {
+	/// Constructs a new JWT which will expire after a certain amount of time.
+	pub fn new(payload: T, expires_after: Duration) -> Self {
+		let exp = jsonwebtoken::get_current_timestamp() + expires_after.num_seconds() as u64;
+
+		Self { payload, exp }
 	}
 
-	/// Checks whether this token has expired.
+	/// Checks whether this JWT has already expired.
 	pub fn has_expired(&self) -> bool {
 		self.exp < jsonwebtoken::get_current_timestamp()
 	}
 
-	/// Consumes the wrapper and returns the inner payload.
-	pub fn into_inner(self) -> Payload {
+	/// Consumes the JWT and returns back the payload.
+	pub fn into_payload(self) -> T {
 		self.payload
 	}
 }
 
-impl<Payload> Deref for JWT<Payload> {
-	type Target = Payload;
+impl<T> Deref for Jwt<T> {
+	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
 		&self.payload
 	}
 }
 
-impl<Payload> DerefMut for JWT<Payload> {
+impl<T> DerefMut for Jwt<T> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.payload
 	}
 }
 
 #[async_trait]
-impl<Payload> FromRequestParts<Arc<State>> for JWT<Payload>
+impl<T> FromRequestParts<Arc<crate::State>> for Jwt<T>
 where
-	Payload: DeserializeOwned,
+	T: DeserializeOwned,
 {
 	type Rejection = Error;
 
-	async fn from_request_parts(parts: &mut request::Parts, state: &Arc<State>) -> Result<Self> {
-		let token = TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
+	async fn from_request_parts(
+		parts: &mut request::Parts,
+		state: &Arc<crate::State>,
+	) -> Result<Self> {
+		let jwt = TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
 			.await
-			.map_err(|_| Error::Unauthorized)?;
-
-		let jwt = state.decode_jwt::<Self>(token.token())?;
+			.map_err(|err| {
+				trace!(%err, "invalid JWT");
+				Error::Unauthorized
+			})
+			.and_then(|jwt| state.decode_jwt::<Self>(jwt.token()).map_err(Into::into))?;
 
 		if jwt.has_expired() {
 			return Err(Error::ExpiredToken);

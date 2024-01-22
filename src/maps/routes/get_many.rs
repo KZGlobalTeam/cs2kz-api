@@ -7,7 +7,7 @@ use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
 use crate::database::{GlobalStatus, ToID};
-use crate::extractors::State;
+use crate::extract::State;
 use crate::maps::{queries, KZMap};
 use crate::params::{Limit, Offset};
 use crate::query::Filter;

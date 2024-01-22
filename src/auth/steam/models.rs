@@ -1,5 +1,9 @@
 use std::sync::Arc;
 
+use axum::async_trait;
+use axum::extract::{FromRequestParts, Query};
+use axum::http::request;
+use axum::response::Redirect;
 use cs2kz::SteamID;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
@@ -9,16 +13,73 @@ use utoipa::IntoParams;
 
 use crate::{Error, Result};
 
+/// Form to send to steam when redirecting a user for login.
+#[derive(Debug, Clone, Serialize)]
+pub struct LoginForm {
+	#[serde(rename = "openid.ns")]
+	ns: &'static str,
+
+	#[serde(rename = "openid.identity")]
+	identity: &'static str,
+
+	#[serde(rename = "openid.claimed_id")]
+	claimed_id: &'static str,
+
+	#[serde(rename = "openid.mode")]
+	mode: &'static str,
+
+	#[serde(rename = "openid.realm")]
+	callback_host: Url,
+
+	#[serde(rename = "openid.return_to")]
+	callback_url: Url,
+}
+
+impl LoginForm {
+	pub const CALLBACK_ROUTE: &'static str = "/auth/steam/callback";
+	pub const REDIRECT_URL: &'static str = "https://steamcommunity.com/openid/login";
+
+	pub fn new(callback_host: Url) -> Self {
+		let callback_url = callback_host
+			.join(Self::CALLBACK_ROUTE)
+			.expect("this is a valid URL");
+
+		Self {
+			ns: "http://specs.openid.net/auth/2.0",
+			identity: "http://specs.openid.net/auth/2.0/identifier_select",
+			claimed_id: "http://specs.openid.net/auth/2.0/identifier_select",
+			mode: "checkid_setup",
+			callback_host,
+			callback_url,
+		}
+	}
+
+	/// Creates a [Redirect] to Steam, which will redirect back to the given `origin_url` after
+	/// a successful login.
+	pub fn with_origin_url(mut self, origin_url: Url) -> Redirect {
+		self.callback_url
+			.query_pairs_mut()
+			.append_pair("origin_url", origin_url.as_str());
+
+		let query = serde_urlencoded::to_string(&self).expect("this is a valid query string");
+		let mut url = Url::parse(Self::REDIRECT_URL).expect("this is a valid url");
+
+		url.set_query(Some(&query));
+
+		Redirect::to(url.as_str())
+	}
+}
+
 /// Payload to be sent to Steam when redirecting a user for login.
 #[derive(Debug, Serialize, Deserialize, IntoParams)]
-pub struct AuthRequest {
+pub struct Auth {
 	/// The API's domain, if valid.
 	#[serde(rename = "openid.return_to")]
 	pub return_to: Url,
 
 	/// The original URL this request came from.
 	#[serde(skip_serializing)]
-	origin_url: Url,
+	pub origin_url: Url,
 
 	#[serde(rename = "openid.mode")]
 	mode: String,
@@ -51,36 +112,52 @@ pub struct AuthRequest {
 	sig: String,
 }
 
-impl AuthRequest {
+impl Auth {
 	pub const VERIFY_URL: &'static str = "https://steamcommunity.com/openid/login";
 
 	/// Extracts the SteamID from this request.
-	pub fn steam_id(&self) -> Option<SteamID> {
+	///
+	/// # Panics
+	///
+	/// This method will panic if `self` does not contain a valid SteamID.
+	/// For validated requests this should never happen, and is probably a bug if it does.
+	pub fn steam_id(&self) -> SteamID {
 		self.claimed_id
 			.path_segments()
 			.and_then(|segments| segments.last())
 			.and_then(|steam_id| steam_id.parse().ok())
+			.expect("steam auth request did not have SteamID")
 	}
+}
 
-	/// Ensures this request can be trusted by sending it to the Steam API and verifying the
-	/// result for validity.
-	///
-	/// On success it will return the SteamID of the player who logged in, as well as the
-	/// original URL they came from.
-	pub async fn validate(
-		mut self,
-		public_url: &Url,
-		http_client: Arc<reqwest::Client>,
-	) -> Result<(SteamID, Url)> {
-		if self.return_to.host() != public_url.host() {
-			trace!(%self.return_to, public_host = ?public_url.host(), "invalid return URL");
+#[async_trait]
+impl FromRequestParts<Arc<crate::State>> for Auth {
+	type Rejection = Error;
+
+	async fn from_request_parts(
+		parts: &mut request::Parts,
+		state: &Arc<crate::State>,
+	) -> Result<Self> {
+		let Query(mut auth) = Query::<Self>::from_request_parts(parts, state)
+			.await
+			.map_err(|err| {
+				trace!(%err, "invalid query params");
+				Error::Unauthorized
+			})?;
+
+		let config = state.config();
+		let public_url = &config.public_url;
+
+		if auth.return_to.host() != public_url.host() {
+			trace!(%auth.return_to, public_host = ?public_url.host(), "invalid return URL");
 			return Err(Error::ForeignHost);
 		}
 
-		self.mode = String::from("check_authentication");
-		let query = serde_urlencoded::to_string(&self).expect("this is valid");
+		auth.mode = String::from("check_authentication");
+		let query = serde_urlencoded::to_string(&auth).expect("this is valid");
 
-		let is_valid = http_client
+		let is_valid = state
+			.http()
 			.post(Self::VERIFY_URL)
 			.header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
 			.body(query)
@@ -106,13 +183,10 @@ impl AuthRequest {
 			return Err(Error::Unauthorized);
 		}
 
-		let steam_id = self.steam_id().ok_or_else(|| {
-			trace!("steam response did not include a SteamID");
-			Error::Unauthorized
-		})?;
+		let steam_id = auth.steam_id();
 
-		trace!(%steam_id, origin = %self.origin_url, "user logged in with steam");
+		trace!(%steam_id, origin = %auth.origin_url, "user logged in with steam");
 
-		Ok((steam_id, self.origin_url))
+		Ok(auth)
 	}
 }

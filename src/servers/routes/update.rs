@@ -2,7 +2,7 @@ use axum::extract::Path;
 use axum::Json;
 use sqlx::QueryBuilder;
 
-use crate::extractors::State;
+use crate::extract::State;
 use crate::servers::ServerUpdate;
 use crate::{responses, Error, Result};
 
