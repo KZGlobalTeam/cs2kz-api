@@ -54,7 +54,7 @@ pub async fn callback(
 
 	let mut transaction = state.transaction().await?;
 	let session =
-		Session::new(steam_id, &auth.origin_url, state.in_prod(), &mut transaction).await?;
+		Session::<0>::new(steam_id, &auth.origin_url, state.in_prod(), &mut transaction).await?;
 
 	transaction.commit().await?;
 

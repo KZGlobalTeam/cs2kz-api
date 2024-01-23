@@ -1,7 +1,7 @@
 use axum::{Extension, Json};
 use chrono::{DateTime, Utc};
 
-use crate::auth::{Jwt, Server, Session};
+use crate::auth::{Jwt, Role, Server, Session};
 use crate::bans::{CreatedBan, NewBan};
 use crate::extract::State;
 use crate::responses::Created;
@@ -30,7 +30,7 @@ use crate::{audit_error, responses, Error, Result};
 pub async fn create(
 	state: State,
 	server: Option<Jwt<Server>>,
-	session: Option<Extension<Session>>,
+	session: Option<Extension<Session<{ Role::Bans as u32 }>>>,
 	Json(ban): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
 	if server.is_none() && session.is_none() {

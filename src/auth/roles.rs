@@ -26,7 +26,7 @@ impl RoleFlags {
 	pub const ADMIN: Self = Self(1 << 31);
 	pub const ALL: Self = Self(Self::BANS.0 | Self::SERVERS.0 | Self::MAPS.0 | Self::ADMIN.0);
 
-	pub const fn contains(&self, other: &Self) -> bool {
+	pub const fn contains(self, other: Self) -> bool {
 		(self.0 & other.0) == other.0
 	}
 

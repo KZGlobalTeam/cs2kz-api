@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\tSELECT\n\t\t\t  s.id,\n\t\t\t  s.token,\n\t\t\t  s.subdomain,\n\t\t\t  u.steam_id `steam_id: SteamID`,\n\t\t\t  u.role_flags\n\t\t\tFROM\n\t\t\t  WebSessions s\n\t\t\t  JOIN Players u ON u.steam_id = s.steam_id\n\t\t\tWHERE\n\t\t\t  s.token = ?\n\t\t\t  AND s.expires_on > CURRENT_TIMESTAMP()\n\t\t\t",
+  "query": "\n\t\t\tSELECT\n\t\t\t  s.id,\n\t\t\t  s.token,\n\t\t\t  s.subdomain,\n\t\t\t  u.steam_id `steam_id: SteamID`,\n\t\t\t  u.role_flags\n\t\t\tFROM\n\t\t\t  WebSessions s\n\t\t\t  JOIN Players u ON u.steam_id = s.steam_id\n\t\t\tWHERE\n\t\t\t  s.token = ?\n\t\t\t  AND s.expires_on > CURRENT_TIMESTAMP()\n\t\t\tORDER BY\n\t\t\t  s.expires_on DESC\n\t\t\t",
   "describe": {
     "columns": [
       {
@@ -65,5 +65,5 @@
       false
     ]
   },
-  "hash": "161b02334583dc2e7b95bc0bfe245ed2c8fc064c1954cb1ed813a597bcd0795d"
+  "hash": "72b8840317441b9454777031777e106ddb04d3d2ec259d2339ce0fd7ef715c4c"
 }

@@ -12,7 +12,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use tracing::trace;
 
-use crate::{Error, Result};
+use crate::{middleware, Error, Result};
 
 /// Utility type for handling JWT payloads.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -75,7 +75,7 @@ where
 			.and_then(|jwt| state.decode_jwt::<Self>(jwt.token()).map_err(Into::into))?;
 
 		if jwt.has_expired() {
-			return Err(Error::ExpiredToken);
+			return Err(middleware::Error::ExpiredToken.into());
 		}
 
 		Ok(jwt)

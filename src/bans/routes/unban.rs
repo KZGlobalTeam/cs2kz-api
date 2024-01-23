@@ -1,12 +1,12 @@
 use axum::extract::Path;
 use axum::{Extension, Json};
 
-use crate::auth::{Jwt, Server, Session};
+use crate::auth::{Role, Session};
 use crate::bans::{CreatedUnban, NewUnban};
 use crate::extract::State;
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
-use crate::{audit_error, responses, Error, Result};
+use crate::{responses, Error, Result};
 
 /// Player Unbans.
 #[tracing::instrument(skip(state))]
@@ -30,16 +30,10 @@ use crate::{audit_error, responses, Error, Result};
 )]
 pub async fn unban(
 	state: State,
-	server: Option<Jwt<Server>>,
-	session: Option<Extension<Session>>,
+	Extension(session): Extension<Session<{ Role::Bans as u32 }>>,
 	Path(ban_id): Path<u32>,
 	Json(unban): Json<NewUnban>,
 ) -> Result<Created<Json<CreatedUnban>>> {
-	if server.is_none() && session.is_none() {
-		audit_error!(?unban, "unban submitted without authentication");
-		return Err(Error::Unauthorized);
-	}
-
 	let mut transaction = state.transaction().await?;
 
 	sqlx::query! {
@@ -56,8 +50,6 @@ pub async fn unban(
 	.execute(transaction.as_mut())
 	.await?;
 
-	let unbanned_by = session.map(|session| session.user.steam_id);
-
 	sqlx::query! {
 		r#"
 		INSERT INTO
@@ -67,18 +59,13 @@ pub async fn unban(
 		"#,
 		ban_id,
 		unban.reason,
-		unbanned_by,
+		session.user.steam_id,
 	}
 	.execute(transaction.as_mut())
 	.await
 	.map_err(|err| {
 		if err.is_foreign_key_violation_of("ban_id") {
 			Error::InvalidBanID(ban_id)
-		} else if err.is_foreign_key_violation_of("unbanned_by") {
-			Error::UnknownPlayer {
-				steam_id: unbanned_by
-					.expect("if we get this error it means we supplied a steam_id"),
-			}
 		} else {
 			Error::MySql(err)
 		}

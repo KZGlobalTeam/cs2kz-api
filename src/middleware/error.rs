@@ -16,6 +16,9 @@ pub enum Error {
 	#[error("Request body could not be read as raw bytes: {0}")]
 	InvalidRequestBody(axum::Error),
 
+	#[error("Your token is expired.")]
+	ExpiredToken,
+
 	#[error("You have insufficient permissions to make this request.")]
 	InsufficientPermissions { required_flags: RoleFlags },
 }
@@ -25,8 +28,9 @@ impl IntoResponse for Error {
 		let mut json = json!({ "message": self.to_string() });
 		let code = match self {
 			Error::InvalidRequestBody(_) => StatusCode::BAD_REQUEST,
+			Error::ExpiredToken => StatusCode::FORBIDDEN,
 			Error::InsufficientPermissions { required_flags } => {
-				json["required_flags"] = required_flags
+				json["required_roles"] = required_flags
 					.into_iter()
 					.flat_map(serde_json::to_value)
 					.collect::<Vec<_>>()

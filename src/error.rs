@@ -9,7 +9,7 @@ use serde_json::json;
 use thiserror::Error as ThisError;
 use tracing::{error, warn};
 
-use crate::{state, steam};
+use crate::{middleware, state, steam};
 
 pub type Result<T> = StdResult<T, Error>;
 
@@ -90,8 +90,8 @@ pub enum Error {
 	#[error("You do not have access to this resource.")]
 	Forbidden,
 
-	#[error("Your token is expired.")]
-	ExpiredToken,
+	#[error("{0}")]
+	Middleware(#[from] middleware::Error),
 
 	#[error("Player `{steam_id}` is not in the database.")]
 	UnknownPlayer { steam_id: SteamID },
@@ -155,7 +155,10 @@ impl IntoResponse for Error {
 			Error::ForeignHost => StatusCode::UNAUTHORIZED,
 			Error::NoContent => StatusCode::NO_CONTENT,
 			Error::Unauthorized => StatusCode::UNAUTHORIZED,
-			Error::Forbidden | Error::ExpiredToken => StatusCode::FORBIDDEN,
+			Error::Forbidden => StatusCode::FORBIDDEN,
+			Error::Middleware(error) => {
+				return error.into_response();
+			}
 		};
 
 		(code, Json(json)).into_response()

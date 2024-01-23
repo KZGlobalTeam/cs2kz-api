@@ -13,10 +13,10 @@ use url::Url;
 
 use super::{RoleFlags, User};
 use crate::url::UrlExt;
-use crate::{Error, Result};
+use crate::{middleware, Error, Result};
 
 #[derive(Debug, Clone)]
-pub struct Session {
+pub struct Session<const REQUIRED_FLAGS: u32 = 0> {
 	/// Unique ID for this session.
 	pub id: u64,
 
@@ -37,9 +37,9 @@ pub struct Session {
 	invalidated: bool,
 }
 
-impl Session {
+impl<const REQUIRED_FLAGS: u32> Session<REQUIRED_FLAGS> {
 	pub const COOKIE_NAME: &'static str = "kz-auth";
-	pub const EXPIRES_AFTER: Duration = Duration::days(7);
+	pub const EXPIRES_AFTER: Duration = Duration::WEEK;
 
 	/// Generates a new session in the database.
 	pub async fn new(
@@ -68,6 +68,13 @@ impl Session {
 			.fetch_one(transaction.as_mut())
 			.await
 			.map(|row| row.id)?;
+
+		trace! {
+			audit = true,
+			%id,
+			%steam_id,
+			"session created",
+		};
 
 		let role_flags = url
 			.subdomain()
@@ -110,6 +117,13 @@ impl Session {
 		.execute(executor)
 		.await?;
 
+		trace! {
+			audit = true,
+			id = %self.id,
+			steam_id = %self.user.steam_id,
+			"session invalidated",
+		};
+
 		self.invalidated = true;
 
 		Ok(())
@@ -117,14 +131,14 @@ impl Session {
 }
 
 #[async_trait]
-impl FromRequestParts<Arc<crate::State>> for Session {
+impl<const REQUIRED_FLAGS: u32> FromRequestParts<Arc<crate::State>> for Session<REQUIRED_FLAGS> {
 	type Rejection = Error;
 
 	async fn from_request_parts(
 		parts: &mut request::Parts,
 		state: &Arc<crate::State>,
 	) -> Result<Self> {
-		let (cookie, session_token) = parts
+		let (mut cookie, session_token) = parts
 			.headers
 			.get_all(header::COOKIE)
 			.into_iter()
@@ -145,6 +159,8 @@ impl FromRequestParts<Arc<crate::State>> for Session {
 			})
 			.ok_or(Error::Unauthorized)?;
 
+		let mut transaction = state.transaction().await?;
+
 		let session = sqlx::query! {
 			r#"
 			SELECT
@@ -159,15 +175,39 @@ impl FromRequestParts<Arc<crate::State>> for Session {
 			WHERE
 			  s.token = ?
 			  AND s.expires_on > CURRENT_TIMESTAMP()
+			ORDER BY
+			  s.expires_on DESC
 			"#,
 			session_token,
 		}
-		.fetch_optional(state.database())
+		.fetch_optional(transaction.as_mut())
 		.await?
 		.ok_or_else(|| {
 			trace!("no valid session found");
 			Error::Unauthorized
 		})?;
+
+		let expires_on = OffsetDateTime::now_utc() + Self::EXPIRES_AFTER;
+
+		cookie.set_path("/");
+		cookie.set_expires(expires_on);
+
+		sqlx::query! {
+			r#"
+			UPDATE
+			  WebSessions
+			SET
+			  expires_on = ?
+			WHERE
+			  id = ?
+			"#,
+			expires_on,
+			session.id,
+		}
+		.execute(transaction.as_mut())
+		.await?;
+
+		transaction.commit().await?;
 
 		let mut legal_role_flags = session
 			.subdomain
@@ -180,6 +220,13 @@ impl FromRequestParts<Arc<crate::State>> for Session {
 		}
 
 		let user = User::new(session.steam_id, session.role_flags & legal_role_flags);
+		let required_flags = RoleFlags(REQUIRED_FLAGS);
+
+		if !user.role_flags.contains(required_flags) {
+			return Err(middleware::Error::InsufficientPermissions { required_flags }.into());
+		}
+
+		trace!(?user, "user authenticated");
 
 		Ok(Self {
 			id: session.id,
@@ -191,18 +238,13 @@ impl FromRequestParts<Arc<crate::State>> for Session {
 	}
 }
 
-impl IntoResponseParts for Session {
+impl<const REQUIRED_FLAGS: u32> IntoResponseParts for Session<REQUIRED_FLAGS> {
 	type Error = Error;
 
 	fn into_response_parts(mut self, mut response: ResponseParts) -> Result<ResponseParts> {
-		let mut expires_on = OffsetDateTime::now_utc();
-
-		if !self.invalidated {
-			expires_on += Self::EXPIRES_AFTER;
+		if self.invalidated {
+			self.cookie.set_expires(OffsetDateTime::now_utc());
 		}
-
-		self.cookie.set_expires(expires_on);
-		self.cookie.set_path("/");
 
 		let cookie = self
 			.cookie
@@ -211,9 +253,7 @@ impl IntoResponseParts for Session {
 			.parse()
 			.expect("this is a valid cookie");
 
-		response
-			.headers_mut()
-			.insert(header::SET_COOKIE, dbg!(cookie));
+		response.headers_mut().insert(header::SET_COOKIE, cookie);
 
 		Ok(response)
 	}
