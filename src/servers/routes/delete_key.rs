@@ -1,7 +1,7 @@
 use axum::extract::Path;
 
 use crate::extract::State;
-use crate::{responses, Error, Result};
+use crate::{audit, responses, Error, Result};
 
 /// Delete a server's API Key. This effectively deglobals the server until an admin generates a new
 /// key again.
@@ -40,6 +40,8 @@ pub async fn delete_key(state: State, Path(server_id): Path<u16>) -> Result<()> 
 	if result.rows_affected() == 0 {
 		return Err(Error::InvalidServerID(server_id));
 	}
+
+	audit!("deleted API key for server", id = %server_id);
 
 	Ok(())
 }

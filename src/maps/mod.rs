@@ -30,6 +30,7 @@ pub fn router(state: Arc<State>) -> Router {
 }
 
 /// Helper enum for inserting mappers into the database.
+#[derive(Debug)]
 enum MappersTable {
 	Map(u16),
 	Course(u32),

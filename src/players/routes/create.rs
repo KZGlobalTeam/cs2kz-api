@@ -5,7 +5,7 @@ use crate::extract::State;
 use crate::players::NewPlayer;
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
-use crate::{responses, Error, Result};
+use crate::{audit, responses, Error, Result};
 
 /// This route is used by CS2 servers for registering new players who are playing KZ for the very
 /// first time.
@@ -50,6 +50,8 @@ pub async fn create(
 			Error::MySql(err)
 		}
 	})?;
+
+	audit!("created player", steam_id = %player.steam_id, name = %player.name);
 
 	Ok(Created(()))
 }

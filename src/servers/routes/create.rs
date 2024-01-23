@@ -1,10 +1,11 @@
-use axum::Json;
+use axum::{Extension, Json};
 
+use crate::auth::{Role, Session};
 use crate::extract::State;
 use crate::responses::Created;
 use crate::servers::{CreatedServer, NewServer};
 use crate::sqlx::SqlErrorExt;
-use crate::{responses, Error, Result};
+use crate::{audit, responses, Error, Result};
 
 /// Approve a new KZ server.
 #[tracing::instrument(skip(state))]
@@ -27,6 +28,7 @@ use crate::{responses, Error, Result};
 )]
 pub async fn create(
 	state: State,
+	Extension(session): Extension<Session<{ Role::Bans as u32 }>>,
 	Json(server): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
 	let mut transaction = state.transaction().await?;
@@ -59,6 +61,13 @@ pub async fn create(
 		.fetch_one(transaction.as_mut())
 		.await
 		.map(|row| row.id as _)?;
+
+	audit! {
+		"created server",
+		id = %server_id,
+		owner = %server.owned_by,
+		approved_by = %session.user.steam_id
+	};
 
 	transaction.commit().await?;
 

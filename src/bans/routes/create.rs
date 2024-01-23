@@ -6,7 +6,7 @@ use crate::bans::{CreatedBan, NewBan};
 use crate::extract::State;
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
-use crate::{audit_error, responses, Error, Result};
+use crate::{audit, responses, Error, Result};
 
 /// Ban a player.
 #[tracing::instrument(skip(state))]
@@ -34,7 +34,7 @@ pub async fn create(
 	Json(ban): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
 	if server.is_none() && session.is_none() {
-		audit_error!(?ban, "ban submitted without authentication");
+		audit!(error, "ban submitted without authentication", ?ban);
 		return Err(Error::Unauthorized);
 	}
 
@@ -123,6 +123,8 @@ pub async fn create(
 		.fetch_one(transaction.as_mut())
 		.await
 		.map(|row| row.id as _)?;
+
+	audit!("ban created", id = %ban_id, steam_id = %ban.steam_id, reason = %ban.reason);
 
 	sqlx::query! {
 		r#"

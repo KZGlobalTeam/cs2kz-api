@@ -4,7 +4,6 @@ use std::sync::Arc;
 use axum::Json;
 use cs2kz::{Mode, SteamID, Tier};
 use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
-use tracing::warn;
 
 use crate::database::{GlobalStatus, RankedStatus};
 use crate::extract::State;
@@ -13,7 +12,7 @@ use crate::maps::{CreatedMap, MappersTable, NewMap};
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
 use crate::steam::workshop;
-use crate::{responses, Error, Result};
+use crate::{audit, responses, Error, Result};
 
 /// Approve a new map or update an existing one with breaking changes.
 #[tracing::instrument(skip(state))]
@@ -143,13 +142,18 @@ async fn insert_map(
 
 	let rows_affected = query_result.rows_affected();
 
+	if rows_affected > 0 {
+		audit!("degloballed old map versions", map = %workshop_map.name);
+	}
+
 	if rows_affected > 1 {
-		warn! {
+		audit! {
+			warn,
+			"degloballed more than 1 map",
 			amount = %rows_affected,
 			%workshop_id,
 			name = %workshop_map.name,
-			%checksum,
-			"degloballed more than 1 map",
+			%checksum
 		};
 	}
 
@@ -173,11 +177,19 @@ async fn insert_map(
 	.execute(transaction.as_mut())
 	.await?;
 
-	sqlx::query!("SELECT LAST_INSERT_ID() id")
+	let map_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())
 		.await
-		.map(|row| row.id as _)
-		.map_err(Error::from)
+		.map(|row| row.id as _)?;
+
+	audit! {
+		"created map",
+		id = %map_id,
+		name = %workshop_map.name,
+		global_status = %map.global_status
+	};
+
+	Ok(map_id)
 }
 
 pub(super) async fn insert_mappers(
@@ -215,6 +227,8 @@ pub(super) async fn insert_mappers(
 		}
 	})?;
 
+	audit!("created mappers", ?table, ?mappers);
+
 	Ok(())
 }
 
@@ -242,6 +256,8 @@ async fn insert_courses(
 	});
 
 	query.build().execute(transaction.as_mut()).await?;
+
+	audit!("created courses", %map_id);
 
 	let course_ids = sqlx::query! {
 		r#"
@@ -295,6 +311,8 @@ async fn insert_course_details(
 			}
 		})?;
 
+	audit!("created mappers", %course_id);
+
 	let mut insert_filters = QueryBuilder::new(
 		r#"
 		INSERT INTO
@@ -324,6 +342,8 @@ async fn insert_course_details(
 	});
 
 	insert_filters.build().execute(transaction.as_mut()).await?;
+
+	audit!("created filters", %course_id);
 
 	Ok(())
 }

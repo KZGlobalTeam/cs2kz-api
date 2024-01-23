@@ -1,3 +1,4 @@
+use std::fmt;
 use std::future::Future;
 use std::result::Result as StdResult;
 
@@ -126,4 +127,14 @@ pub enum GlobalStatus {
 
 	/// The map is currently global.
 	Global = 1,
+}
+
+impl fmt::Display for GlobalStatus {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str(match self {
+			GlobalStatus::NotGlobal => "not global",
+			GlobalStatus::InTesting => "in testing",
+			GlobalStatus::Global => "global",
+		})
+	}
 }

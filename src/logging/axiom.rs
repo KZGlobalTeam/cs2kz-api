@@ -1,7 +1,7 @@
 use std::io;
 use std::sync::Arc;
 
-use cs2kz_api::audit_error;
+use cs2kz_api::audit;
 use cs2kz_api::config::axiom::Config as AxiomConfig;
 use serde_json::Value as JsonValue;
 use tokio::task;
@@ -27,6 +27,12 @@ impl Writer {
 
 		Arc::new(Self { dataset, client })
 	}
+
+	async fn ingest_data(dataset: String, data: JsonValue, client: Arc<axiom_rs::Client>) {
+		if let Err(err) = client.ingest(dataset, [data]).await {
+			audit!(error, "failed to send logs to axiom", skip_axiom = true, %err);
+		}
+	}
 }
 
 impl io::Write for &Writer {
@@ -36,6 +42,7 @@ impl io::Write for &Writer {
 		};
 
 		let dataset = self.dataset.clone();
+
 		let json_data = serde_json::from_slice::<JsonValue>(buf)
 			.map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
 
@@ -43,11 +50,7 @@ impl io::Write for &Writer {
 			return Ok(0);
 		}
 
-		task::spawn(async move {
-			if let Err(err) = client.ingest(dataset, [json_data]).await {
-				audit_error!(skip_axiom = true, %err, "failed to send logs to axiom");
-			}
-		});
+		task::spawn(Writer::ingest_data(dataset, json_data, client));
 
 		Ok(buf.len())
 	}

@@ -4,7 +4,7 @@ use sqlx::QueryBuilder;
 
 use crate::extract::State;
 use crate::servers::ServerUpdate;
-use crate::{responses, Error, Result};
+use crate::{audit, responses, Error, Result};
 
 /// Update a server.
 #[tracing::instrument(skip(state))]
@@ -65,6 +65,8 @@ pub async fn update(
 	if result.rows_affected() == 0 {
 		return Err(Error::InvalidServerID(server_id));
 	}
+
+	audit!("updated server", id = %server_id, update = ?server_update);
 
 	Ok(())
 }

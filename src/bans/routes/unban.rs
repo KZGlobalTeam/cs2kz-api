@@ -6,7 +6,7 @@ use crate::bans::{CreatedUnban, NewUnban};
 use crate::extract::State;
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
-use crate::{responses, Error, Result};
+use crate::{audit, responses, Error, Result};
 
 /// Player Unbans.
 #[tracing::instrument(skip(state))]
@@ -50,6 +50,8 @@ pub async fn unban(
 	.execute(transaction.as_mut())
 	.await?;
 
+	audit!("ban invalidated", id = %ban_id);
+
 	sqlx::query! {
 		r#"
 		INSERT INTO
@@ -75,6 +77,8 @@ pub async fn unban(
 		.fetch_one(transaction.as_mut())
 		.await
 		.map(|row| row.id as _)?;
+
+	audit!("unban created", id = %unban_id, by = %session.user.steam_id, reason = %unban.reason);
 
 	sqlx::query! {
 		r#"

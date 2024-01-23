@@ -31,7 +31,6 @@ pub use state::State;
 
 mod database;
 mod extract;
-mod macros;
 mod middleware;
 mod params;
 mod query;
@@ -239,6 +238,17 @@ impl fmt::Debug for API {
 			.field("state", &self.state)
 			.finish()
 	}
+}
+
+#[macro_export]
+macro_rules! audit {
+	($level:ident, $message:literal $(,$($fields:tt)*)?) => {
+		::tracing::$level!(audit = true, $($($fields)*,)? $message)
+	};
+
+	($message:literal $(,$($fields:tt)*)?) => {
+		audit!(trace, $message $(,$($fields)*)?)
+	};
 }
 
 #[cfg(test)]

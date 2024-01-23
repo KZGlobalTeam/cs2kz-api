@@ -6,12 +6,13 @@ use axum::Json;
 use cs2kz::{SteamID, Tier};
 use itertools::Itertools;
 use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
+use tracing::trace;
 
 use crate::database::{GlobalStatus, RankedStatus};
 use crate::extract::State;
 use crate::maps::{CourseUpdate, FilterUpdate, MapUpdate, MappersTable};
 use crate::steam::workshop;
-use crate::{query, responses, Error, Result};
+use crate::{audit, query, responses, Error, Result};
 
 /// Update a map with non-breaking changes.
 #[tracing::instrument(skip(state))]
@@ -179,6 +180,8 @@ async fn update_global_status(
 		return Err(Error::UnknownMapID(map_id));
 	}
 
+	audit!("updated global status for map", id = %map_id, %global_status);
+
 	Ok(())
 }
 
@@ -206,6 +209,8 @@ async fn update_description(
 		return Err(Error::UnknownMapID(map_id));
 	}
 
+	audit!("updated map description", id = %map_id, %description);
+
 	Ok(())
 }
 
@@ -232,6 +237,8 @@ async fn update_workshop_id(
 	if result.rows_affected() == 0 {
 		return Err(Error::UnknownMapID(map_id));
 	}
+
+	audit!("updated workshop id", %map_id, %workshop_id);
 
 	Ok(())
 }
@@ -268,6 +275,13 @@ async fn update_name_and_checksum(
 	if result.rows_affected() == 0 {
 		return Err(Error::UnknownMapID(map_id));
 	}
+
+	trace! {
+		id = %map_id,
+		name = %workshop_map.name,
+		%checksum,
+		"updated workshop details for map",
+	};
 
 	Ok(())
 }
@@ -339,6 +353,8 @@ async fn update_course(
 		if result.rows_affected() == 0 {
 			return Err(Error::InvalidCourse { map_id, course_id: update.id });
 		}
+
+		audit!("updated course description", id = %update.id, %description);
 	}
 
 	for FilterUpdate { id, tier, ranked_status, notes } in update.filter_updates.iter().flatten() {
@@ -381,6 +397,8 @@ async fn update_course(
 		if result.rows_affected() == 0 {
 			return Err(Error::InvalidFilter { course_id: update.id, filter_id: *id });
 		}
+
+		audit!("updated filter", %id, ?tier, ?ranked_status, ?notes);
 	}
 
 	Ok(())

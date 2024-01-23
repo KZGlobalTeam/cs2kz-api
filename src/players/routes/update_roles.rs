@@ -4,7 +4,7 @@ use cs2kz::SteamID;
 
 use crate::auth::{Role, RoleFlags};
 use crate::extract::State;
-use crate::{responses, Result};
+use crate::{audit, responses, Result};
 
 /// Overwrites the roles of the specified player.
 #[tracing::instrument(skip(state))]
@@ -30,7 +30,7 @@ pub async fn update_roles(
 	Path(steam_id): Path<SteamID>,
 	Json(roles): Json<Vec<Role>>,
 ) -> Result<()> {
-	let role_flags = RoleFlags::from_iter(roles);
+	let role_flags = RoleFlags::from_iter(roles.iter().copied());
 
 	sqlx::query! {
 		r#"
@@ -46,6 +46,8 @@ pub async fn update_roles(
 	}
 	.execute(state.database())
 	.await?;
+
+	audit!("updated roles for user", %steam_id, ?roles);
 
 	Ok(())
 }

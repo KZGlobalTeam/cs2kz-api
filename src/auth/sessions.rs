@@ -13,7 +13,7 @@ use url::Url;
 
 use super::{RoleFlags, User};
 use crate::url::UrlExt;
-use crate::{middleware, Error, Result};
+use crate::{audit, middleware, Error, Result};
 
 #[derive(Debug, Clone)]
 pub struct Session<const REQUIRED_FLAGS: u32 = 0> {
@@ -69,12 +69,7 @@ impl<const REQUIRED_FLAGS: u32> Session<REQUIRED_FLAGS> {
 			.await
 			.map(|row| row.id)?;
 
-		trace! {
-			audit = true,
-			%id,
-			%steam_id,
-			"session created",
-		};
+		audit!("session created", %id, %steam_id);
 
 		let role_flags = url
 			.subdomain()
@@ -117,12 +112,7 @@ impl<const REQUIRED_FLAGS: u32> Session<REQUIRED_FLAGS> {
 		.execute(executor)
 		.await?;
 
-		trace! {
-			audit = true,
-			id = %self.id,
-			steam_id = %self.user.steam_id,
-			"session invalidated",
-		};
+		audit!("session invalidated", id = %self.id, steam_id = %self.user.steam_id);
 
 		self.invalidated = true;
 
@@ -187,6 +177,8 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<Arc<crate::State>> for Session<
 			Error::Unauthorized
 		})?;
 
+		audit!("session authenticated", id = %session.id);
+
 		let expires_on = OffsetDateTime::now_utc() + Self::EXPIRES_AFTER;
 
 		cookie.set_path("/");
@@ -207,6 +199,8 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<Arc<crate::State>> for Session<
 		.execute(transaction.as_mut())
 		.await?;
 
+		audit!("session extended", id = %session.id);
+
 		transaction.commit().await?;
 
 		let mut legal_role_flags = session
@@ -226,7 +220,7 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<Arc<crate::State>> for Session<
 			return Err(middleware::Error::InsufficientPermissions { required_flags }.into());
 		}
 
-		trace!(?user, "user authenticated");
+		audit!("user authenticated", ?user);
 
 		Ok(Self {
 			id: session.id,

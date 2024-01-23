@@ -12,7 +12,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use tracing::trace;
 
-use crate::{middleware, Error, Result};
+use crate::{audit, middleware, Error, Result};
 
 /// Utility type for handling JWT payloads.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -66,17 +66,24 @@ where
 		parts: &mut request::Parts,
 		state: &Arc<crate::State>,
 	) -> Result<Self> {
-		let jwt = TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
-			.await
-			.map_err(|err| {
-				trace!(%err, "invalid JWT");
-				Error::Unauthorized
-			})
-			.and_then(|jwt| state.decode_jwt::<Self>(jwt.token()).map_err(Into::into))?;
+		let (original, jwt) =
+			TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
+				.await
+				.map_err(|err| {
+					trace!(%err, "invalid JWT");
+					Error::Unauthorized
+				})
+				.and_then(|jwt| {
+					let decoded = state.decode_jwt::<Self>(jwt.token())?;
+
+					Ok((jwt, decoded))
+				})?;
 
 		if jwt.has_expired() {
 			return Err(middleware::Error::ExpiredToken.into());
 		}
+
+		audit!("jwt authenticated", token = %original.token());
 
 		Ok(jwt)
 	}
