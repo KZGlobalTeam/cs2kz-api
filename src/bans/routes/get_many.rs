@@ -108,11 +108,11 @@ pub async fn get_many(
 	}
 
 	if let Some(has_expired) = params.has_expired {
-		query
-			.push(filter)
-			.push(" b.expires_on ")
-			.push(if has_expired { "<" } else { ">" })
-			.push(" CURRENT_TIMESTAMP() ");
+		query.push(filter).push(if has_expired {
+			" b.expires_on < CURRENT_TIMESTAMP() "
+		} else {
+			" (b.expires_on > CURRENT_TIMESTAMP() OR b.expires_on IS NULL) "
+		});
 
 		filter.switch();
 	}
