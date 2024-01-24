@@ -5,6 +5,7 @@ use serde::Deserialize;
 use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
+use crate::auth::{Role, Session};
 use crate::bans::{queries, Ban};
 use crate::database::ToID;
 use crate::extract::State;
@@ -60,6 +61,7 @@ pub struct GetBansParams<'a> {
 )]
 pub async fn get_many(
 	state: State,
+	session: Option<Session<{ Role::Bans as u32 }>>,
 	Query(params): Query<GetBansParams<'_>>,
 ) -> Result<Json<Vec<Ban>>> {
 	let mut query = QueryBuilder::new(queries::BASE_SELECT);
@@ -120,13 +122,19 @@ pub async fn get_many(
 	query.push(" ORDER BY b.id DESC ");
 	query::push_limit(params.limit, params.offset, &mut query);
 
-	let bans = query
+	let mut bans = query
 		.build_query_as::<Ban>()
 		.fetch_all(state.database())
 		.await?;
 
 	if bans.is_empty() {
 		return Err(Error::NoContent);
+	}
+
+	if session.is_none() {
+		for ban in &mut bans {
+			ban.player.ip_address = None;
+		}
 	}
 
 	Ok(Json(bans))

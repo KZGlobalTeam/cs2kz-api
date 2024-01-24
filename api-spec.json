@@ -2088,8 +2088,7 @@
         "type": "object",
         "required": [
           "steam_id",
-          "name",
-          "ip_address"
+          "name"
         ],
         "properties": {
           "steam_id": {
@@ -2101,7 +2100,8 @@
           },
           "ip_address": {
             "type": "string",
-            "description": "The player's IP address at the time of their ban."
+            "description": "The player's IP address at the time of their ban.",
+            "nullable": true
           }
         }
       },

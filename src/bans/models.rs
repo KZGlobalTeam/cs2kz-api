@@ -61,8 +61,9 @@ pub struct BannedPlayer {
 	pub name: String,
 
 	/// The player's IP address at the time of their ban.
-	#[schema(value_type = String)]
-	pub ip_address: Ipv4Addr,
+	#[serde(skip_serializing_if = "Option::is_none")]
+	#[schema(value_type = Option<String>)]
+	pub ip_address: Option<Ipv4Addr>,
 }
 
 impl FromRow<'_, MySqlRow> for Ban {
@@ -74,6 +75,7 @@ impl FromRow<'_, MySqlRow> for Ban {
 			ip_address: row
 				.try_get::<&str, _>("player_ip")?
 				.parse()
+				.map(Some)
 				.map_err(|err| sqlx::Error::ColumnDecode {
 					index: String::from("player_ip"),
 					source: Box::new(err),
