@@ -7,9 +7,8 @@ use axum::Json;
 use cs2kz::{Mode, SteamID};
 use serde_json::json;
 use thiserror::Error as ThisError;
-use tracing::{error, warn};
 
-use crate::{middleware, state, steam};
+use crate::{audit, middleware, state, steam};
 
 pub type Result<T> = StdResult<T, Error>;
 
@@ -120,18 +119,18 @@ impl IntoResponse for Error {
 		let json = json!({ "message": self.to_string() });
 		let code = match self {
 			Error::IO(err) => {
-				error!(%err, "encountered I/O error at runtime");
+				audit!(error, "encountered I/O error at runtime", %err);
 				StatusCode::INTERNAL_SERVER_ERROR
 			}
 			Error::State(err) => {
 				unreachable!("{err}");
 			}
 			Error::MySql(err) => {
-				error!(%err, "database error");
+				audit!(error, "database error", %err);
 				StatusCode::INTERNAL_SERVER_ERROR
 			}
 			Error::Steam(err) => {
-				warn!(%err, "steam error");
+				audit!(warn, "steam error", %err);
 				StatusCode::BAD_GATEWAY
 			}
 			Error::NoMappers
