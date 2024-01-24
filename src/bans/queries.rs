@@ -2,6 +2,7 @@ pub static BASE_SELECT: &str = r#"
 	SELECT
 	  b.id,
 	  b.player_id,
+	  p1.name player_name,
 	  b.player_ip,
 	  b.reason,
 	  s.id server_id,

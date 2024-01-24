@@ -17,12 +17,8 @@ pub struct Ban {
 	/// The ban's ID.
 	pub id: u32,
 
-	/// The player's SteamID.
-	pub steam_id: SteamID,
-
-	/// The player's IP address at the time of their ban.
-	#[schema(value_type = String)]
-	pub ip_address: Ipv4Addr,
+	/// The player.
+	pub player: BannedPlayer,
 
 	/// The reason for the ban.
 	// TODO(AlphaKeks): make this an enum?
@@ -56,17 +52,33 @@ pub struct Ban {
 	pub unban: Option<Unban>,
 }
 
+#[derive(Debug, Serialize, ToSchema)]
+pub struct BannedPlayer {
+	/// The player's SteamID.
+	pub steam_id: SteamID,
+
+	/// The player's name.
+	pub name: String,
+
+	/// The player's IP address at the time of their ban.
+	#[schema(value_type = String)]
+	pub ip_address: Ipv4Addr,
+}
+
 impl FromRow<'_, MySqlRow> for Ban {
 	fn from_row(row: &'_ MySqlRow) -> sqlx::Result<Self> {
 		let id = row.try_get("id")?;
-		let steam_id = row.try_get("player_id")?;
-		let ip_address = row
-			.try_get::<&str, _>("player_ip")?
-			.parse()
-			.map_err(|err| sqlx::Error::ColumnDecode {
-				index: String::from("player_ip"),
-				source: Box::new(err),
-			})?;
+		let player = BannedPlayer {
+			steam_id: row.try_get("player_id")?,
+			name: row.try_get("player_name")?,
+			ip_address: row
+				.try_get::<&str, _>("player_ip")?
+				.parse()
+				.map_err(|err| sqlx::Error::ColumnDecode {
+					index: String::from("player_ip"),
+					source: Box::new(err),
+				})?,
+		};
 
 		let reason = row.try_get("reason")?;
 
@@ -122,8 +134,7 @@ impl FromRow<'_, MySqlRow> for Ban {
 
 		Ok(Self {
 			id,
-			steam_id,
-			ip_address,
+			player,
 			reason,
 			server,
 			plugin_version,

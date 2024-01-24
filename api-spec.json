@@ -1353,8 +1353,7 @@
                   "description": "A player ban.",
                   "required": [
                     "id",
-                    "steam_id",
-                    "ip_address",
+                    "player",
                     "reason",
                     "plugin_version",
                     "created_on"
@@ -1366,12 +1365,8 @@
                       "description": "The ban's ID.",
                       "minimum": 0
                     },
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "ip_address": {
-                      "type": "string",
-                      "description": "The player's IP address at the time of their ban."
+                    "player": {
+                      "$ref": "#/components/schemas/BannedPlayer"
                     },
                     "reason": {
                       "type": "string",
@@ -1532,8 +1527,7 @@
                   "description": "A player ban.",
                   "required": [
                     "id",
-                    "steam_id",
-                    "ip_address",
+                    "player",
                     "reason",
                     "plugin_version",
                     "created_on"
@@ -1545,12 +1539,8 @@
                       "description": "The ban's ID.",
                       "minimum": 0
                     },
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "ip_address": {
-                      "type": "string",
-                      "description": "The player's IP address at the time of their ban."
+                    "player": {
+                      "$ref": "#/components/schemas/BannedPlayer"
                     },
                     "reason": {
                       "type": "string",
@@ -2017,8 +2007,7 @@
         "description": "A player ban.",
         "required": [
           "id",
-          "steam_id",
-          "ip_address",
+          "player",
           "reason",
           "plugin_version",
           "created_on"
@@ -2030,12 +2019,8 @@
             "description": "The ban's ID.",
             "minimum": 0
           },
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
-          },
-          "ip_address": {
-            "type": "string",
-            "description": "The player's IP address at the time of their ban."
+          "player": {
+            "$ref": "#/components/schemas/BannedPlayer"
           },
           "reason": {
             "type": "string",
@@ -2096,6 +2081,27 @@
             "format": "date-time",
             "description": "A new expiration date.",
             "nullable": true
+          }
+        }
+      },
+      "BannedPlayer": {
+        "type": "object",
+        "required": [
+          "steam_id",
+          "name",
+          "ip_address"
+        ],
+        "properties": {
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
+          },
+          "name": {
+            "type": "string",
+            "description": "The player's name."
+          },
+          "ip_address": {
+            "type": "string",
+            "description": "The player's IP address at the time of their ban."
           }
         }
       },
