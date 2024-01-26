@@ -14,7 +14,7 @@ pub mod routes;
 pub fn router(state: Arc<State>) -> Router {
 	let auth = axum::middleware::from_fn_with_state(
 		Arc::clone(&state),
-		middleware::auth::web::layer::<{ Role::Admin as u32 }>,
+		middleware::auth::service::layer::<{ Role::Admin as u32 }>,
 	);
 
 	Router::new()

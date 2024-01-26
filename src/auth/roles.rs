@@ -1,6 +1,6 @@
 use std::ops::{BitAnd, BitOr};
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use utoipa::ToSchema;
 
 #[repr(u32)]
@@ -58,11 +58,11 @@ impl BitOr<u32> for RoleFlags {
 	}
 }
 
-impl BitAnd<RoleFlags> for u32 {
-	type Output = RoleFlags;
+impl BitAnd for RoleFlags {
+	type Output = Self;
 
-	fn bitand(self, rhs: RoleFlags) -> Self::Output {
-		RoleFlags(self & rhs.0)
+	fn bitand(self, rhs: Self) -> Self::Output {
+		Self(self.0 & rhs.0)
 	}
 }
 
@@ -82,6 +82,15 @@ impl FromIterator<Role> for RoleFlags {
 	{
 		iter.into_iter()
 			.fold(Self::default(), |flags, role| flags | role as u32)
+	}
+}
+
+impl Serialize for RoleFlags {
+	fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		self.into_iter().collect::<Vec<_>>().serialize(serializer)
 	}
 }
 

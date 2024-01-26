@@ -1,9 +1,11 @@
 use axum::extract::Query;
 use axum::response::Redirect;
+use axum_extra::TypedHeader;
 use serde::Deserialize;
 use url::Url;
 use utoipa::IntoParams;
 
+use crate::auth::services::models::ServiceKey;
 use crate::extract::State;
 use crate::responses;
 
@@ -26,6 +28,13 @@ pub struct Login {
     responses::BadRequest,
   ),
 )]
-pub async fn login(state: State, Query(login): Query<Login>) -> Redirect {
-	state.steam_login().clone().with_origin_url(login.return_to)
+pub async fn login(
+	state: State,
+	TypedHeader(service_key): TypedHeader<ServiceKey>,
+	Query(login): Query<Login>,
+) -> Redirect {
+	state
+		.steam_login()
+		.clone()
+		.with_info(login.return_to, service_key)
 }

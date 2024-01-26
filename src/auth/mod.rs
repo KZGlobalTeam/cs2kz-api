@@ -6,6 +6,9 @@ use axum::Router;
 mod roles;
 pub use roles::{Role, RoleFlags};
 
+mod services;
+pub use services::Service;
+
 pub mod steam;
 
 mod users;
@@ -30,4 +33,5 @@ pub fn router(state: Arc<crate::State>) -> Router {
 		.with_state(Arc::clone(&state))
 		.nest("/steam", steam::router(Arc::clone(&state)))
 		.nest("/servers", servers::router(Arc::clone(&state)))
+		.nest("/services", services::router(Arc::clone(&state)))
 }

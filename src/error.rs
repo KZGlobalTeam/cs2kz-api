@@ -4,6 +4,7 @@ use std::result::Result as StdResult;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
+use axum_extra::typed_header::TypedHeaderRejection;
 use cs2kz::{Mode, SteamID};
 use serde_json::json;
 use thiserror::Error as ThisError;
@@ -80,6 +81,9 @@ pub enum Error {
 	#[error("`return_to` host does not match the API's public URL.")]
 	ForeignHost,
 
+	#[error("{0}")]
+	Header(#[from] TypedHeaderRejection),
+
 	#[error("No data available for the given query.")]
 	NoContent,
 
@@ -112,6 +116,9 @@ pub enum Error {
 		server_id: u16,
 		plugin_version_id: u16,
 	},
+
+	#[error("Invalid Service ID `{0}`.")]
+	InvalidServiceID(u64),
 }
 
 impl IntoResponse for Error {
@@ -150,10 +157,11 @@ impl IntoResponse for Error {
 			| Error::PlayerAlreadyExists { .. }
 			| Error::InvalidBanID(_)
 			| Error::InvalidServerID(_)
-			| Error::InvalidPluginVersion { .. } => StatusCode::BAD_REQUEST,
-			Error::ForeignHost => StatusCode::UNAUTHORIZED,
+			| Error::InvalidPluginVersion { .. }
+			| Error::InvalidServiceID(_)
+			| Error::Header(_) => StatusCode::BAD_REQUEST,
 			Error::NoContent => StatusCode::NO_CONTENT,
-			Error::Unauthorized => StatusCode::UNAUTHORIZED,
+			Error::Unauthorized | Error::ForeignHost => StatusCode::UNAUTHORIZED,
 			Error::Forbidden => StatusCode::FORBIDDEN,
 			Error::Middleware(error) => {
 				return error.into_response();

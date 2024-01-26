@@ -17,7 +17,7 @@ pub fn router(state: Arc<State>) -> Router {
 	let auth = || {
 		axum::middleware::from_fn_with_state(
 			Arc::clone(&state),
-			middleware::auth::web::layer::<{ Role::Servers as u32 }>,
+			middleware::auth::service::layer::<{ Role::Servers as u32 }>,
 		)
 	};
 

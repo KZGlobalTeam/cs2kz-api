@@ -878,3 +878,8 @@ VALUES
     "0.0.1",
     "58c1ef12c94d6f740acd9a5f3a85acc1b48e613c"
   );
+
+INSERT INTO
+  Services (`name`, `key`, `role_flags`)
+VALUES
+  ("dashboard", 38942749, 1 << 0 | 1 << 8 | 1 << 16 | 1 << 31);

@@ -11,6 +11,7 @@ use tracing::trace;
 use url::Url;
 use utoipa::IntoParams;
 
+use crate::auth::services::models::ServiceKey;
 use crate::{Error, Result};
 
 /// Form to send to steam when redirecting a user for login.
@@ -56,10 +57,11 @@ impl LoginForm {
 
 	/// Creates a [Redirect] to Steam, which will redirect back to the given `origin_url` after
 	/// a successful login.
-	pub fn with_origin_url(mut self, origin_url: Url) -> Redirect {
+	pub fn with_info(mut self, origin_url: Url, service_key: ServiceKey) -> Redirect {
 		self.callback_url
 			.query_pairs_mut()
-			.append_pair("origin_url", origin_url.as_str());
+			.append_pair("origin_url", origin_url.as_str())
+			.append_pair("service_key", &service_key.to_string());
 
 		let query = serde_urlencoded::to_string(&self).expect("this is a valid query string");
 		let mut url = Url::parse(Self::REDIRECT_URL).expect("this is a valid url");
@@ -80,6 +82,10 @@ pub struct Auth {
 	/// The original URL this request came from.
 	#[serde(skip_serializing)]
 	pub origin_url: Url,
+
+	/// The service key of the service this request originally came from.
+	#[serde(skip_serializing)]
+	pub service_key: ServiceKey,
 
 	#[serde(rename = "openid.mode")]
 	mode: String,
