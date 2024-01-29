@@ -6,11 +6,10 @@ use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
 use crate::database::ToID;
-use crate::extract::State;
 use crate::params::{Limit, Offset};
 use crate::query::{self, Filter};
 use crate::servers::{queries, Server};
-use crate::{responses, Error, Result};
+use crate::{responses, AppState, Error, Result};
 
 /// Query Parameters for fetching [`Server`]s.
 #[derive(Debug, Default, Deserialize, IntoParams)]
@@ -46,7 +45,7 @@ pub struct GetServersParams<'a> {
   ),
 )]
 pub async fn get_many(
-	state: State,
+	state: AppState,
 	Query(params): Query<GetServersParams<'_>>,
 ) -> Result<Json<Vec<Server>>> {
 	let mut query = QueryBuilder::new(queries::BASE_SELECT);

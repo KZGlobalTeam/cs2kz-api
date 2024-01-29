@@ -5,11 +5,10 @@ use serde::Deserialize;
 use utoipa::IntoParams;
 
 use crate::auth::RoleFlags;
-use crate::extract::State;
 use crate::params::{Limit, Offset};
 use crate::players::routes::get_many::GetPlayersParams;
 use crate::players::Admin;
-use crate::{responses, Error, Result};
+use crate::{responses, AppState, Error, Result};
 
 /// Query Parameters for fetching [`Admin`]s.
 #[derive(Debug, Default, Deserialize, IntoParams)]
@@ -37,7 +36,7 @@ pub struct GetAdminsParams {
   ),
 )]
 pub async fn get_admins(
-	state: State,
+	state: AppState,
 	Query(params): Query<GetAdminsParams>,
 ) -> Result<Json<Vec<Admin>>> {
 	let admins = sqlx::query! {

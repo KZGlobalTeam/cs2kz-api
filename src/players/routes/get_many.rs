@@ -4,10 +4,9 @@ use cs2kz::SteamID;
 use serde::Deserialize;
 use utoipa::IntoParams;
 
-use crate::extract::State;
 use crate::params::{Limit, Offset};
 use crate::players::Player;
-use crate::{responses, Error, Result};
+use crate::{responses, AppState, Error, Result};
 
 /// Query Parameters for fetching [`Player`]s.
 #[derive(Debug, Default, Deserialize, IntoParams)]
@@ -37,7 +36,7 @@ pub struct GetPlayersParams {
   ),
 )]
 pub async fn get_many(
-	state: State,
+	state: AppState,
 	Query(params): Query<GetPlayersParams>,
 ) -> Result<Json<Vec<Player>>> {
 	let players = sqlx::query_as! {

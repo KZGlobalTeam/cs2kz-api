@@ -5,8 +5,7 @@ use url::Url;
 use utoipa::IntoParams;
 
 use crate::auth::Session;
-use crate::extract::State;
-use crate::{responses, Result};
+use crate::{responses, AppState, Result};
 
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct Logout {
@@ -33,7 +32,7 @@ pub struct Logout {
   ),
 )]
 pub async fn logout(
-	state: State,
+	state: AppState,
 	mut session: Session,
 	Query(logout): Query<Logout>,
 ) -> Result<(Session, Redirect)> {

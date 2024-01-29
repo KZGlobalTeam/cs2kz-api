@@ -3,9 +3,8 @@ use axum::Json;
 use cs2kz::ServerIdentifier;
 use sqlx::QueryBuilder;
 
-use crate::extract::State;
 use crate::servers::{queries, Server};
-use crate::{responses, Error, Result};
+use crate::{responses, AppState, Error, Result};
 
 /// Fetch a single server by ID or name.
 #[tracing::instrument(skip(state))]
@@ -22,7 +21,7 @@ use crate::{responses, Error, Result};
   ),
 )]
 pub async fn get_single(
-	state: State,
+	state: AppState,
 	Path(server): Path<ServerIdentifier<'_>>,
 ) -> Result<Json<Server>> {
 	let mut query = QueryBuilder::new(queries::BASE_SELECT);

@@ -2,9 +2,8 @@ use axum::extract::Path;
 use axum::Json;
 use sqlx::QueryBuilder;
 
-use crate::extract::State;
 use crate::servers::ServerUpdate;
-use crate::{audit, responses, Error, Result};
+use crate::{audit, responses, AppState, Error, Result};
 
 /// Update a server.
 #[tracing::instrument(skip(state))]
@@ -27,7 +26,7 @@ use crate::{audit, responses, Error, Result};
   ),
 )]
 pub async fn update(
-	state: State,
+	state: AppState,
 	Path(server_id): Path<u16>,
 	Json(server_update): Json<ServerUpdate>,
 ) -> Result<()> {

@@ -2,8 +2,7 @@ use axum::extract::Path;
 use axum::Json;
 
 use crate::bans::{queries, Ban};
-use crate::extract::State;
-use crate::{responses, Error, Result};
+use crate::{responses, AppState, Error, Result};
 
 /// Get a specific ban by ID.
 #[tracing::instrument(skip(state))]
@@ -19,7 +18,7 @@ use crate::{responses, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn get_single(state: State, Path(ban_id): Path<u32>) -> Result<Json<Ban>> {
+pub async fn get_single(state: AppState, Path(ban_id): Path<u32>) -> Result<Json<Ban>> {
 	let query = format!("{} WHERE b.id = ?", queries::BASE_SELECT);
 
 	sqlx::query_as(&query)

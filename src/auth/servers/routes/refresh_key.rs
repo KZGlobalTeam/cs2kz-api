@@ -3,9 +3,8 @@ use servers::Server;
 use tracing::trace;
 
 use crate::auth::servers::{self, AccessToken, RefreshToken};
-use crate::extract::State;
 use crate::responses::{self, Created};
-use crate::{Error, Result};
+use crate::{AppState, Error, Result};
 
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
@@ -22,7 +21,7 @@ use crate::{Error, Result};
   ),
 )]
 pub async fn refresh_key(
-	state: State,
+	state: AppState,
 	Json(refresh): Json<RefreshToken>,
 ) -> Result<Created<Json<AccessToken>>> {
 	let server = sqlx::query! {

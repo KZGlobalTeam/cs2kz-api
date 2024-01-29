@@ -8,10 +8,9 @@ use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
 use tracing::trace;
 
 use crate::database::{GlobalStatus, RankedStatus};
-use crate::extract::State;
 use crate::maps::{CourseUpdate, FilterUpdate, MapUpdate, MappersTable};
 use crate::steam::workshop;
-use crate::{audit, query, responses, Error, Result};
+use crate::{audit, query, responses, AppState, Error, Result};
 
 /// Update a map with non-breaking changes.
 #[tracing::instrument(skip(state))]
@@ -34,7 +33,7 @@ use crate::{audit, query, responses, Error, Result};
   ),
 )]
 pub async fn update(
-	state: State,
+	state: AppState,
 	Path(map_id): Path<u16>,
 	Json(map_update): Json<MapUpdate>,
 ) -> Result<()> {

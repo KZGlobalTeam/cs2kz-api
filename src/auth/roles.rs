@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOr};
+use std::ops::BitOr;
 
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
@@ -24,22 +24,20 @@ impl RoleFlags {
 	pub const SERVERS: Self = Self(1 << 8);
 	pub const MAPS: Self = Self(1 << 16);
 	pub const ADMIN: Self = Self(1 << 31);
-	pub const ALL: Self = Self(Self::BANS.0 | Self::SERVERS.0 | Self::MAPS.0 | Self::ADMIN.0);
 
+	/// Checks whether `other` is a subset of `self`.
 	pub const fn contains(self, other: Self) -> bool {
 		(self.0 & other.0) == other.0
 	}
 
-	pub const fn iter(&self) -> RoleIter {
-		RoleIter::new(*self)
+	/// Checks whether the `n`th bit in `self` is set.
+	pub const fn has_bit(self, n: u32) -> bool {
+		(self.0 >> n) & 1 == 1
 	}
-}
 
-impl BitOr for RoleFlags {
-	type Output = Self;
-
-	fn bitor(self, rhs: Self) -> Self::Output {
-		Self(self.0 | rhs.0)
+	/// Creates an iterator over the roles encoded in `self`.
+	pub const fn iter(self) -> RoleIter {
+		RoleIter::new(self)
 	}
 }
 
@@ -48,14 +46,6 @@ impl BitOr<u32> for RoleFlags {
 
 	fn bitor(self, rhs: u32) -> Self::Output {
 		Self(self.0 | rhs)
-	}
-}
-
-impl BitAnd<RoleFlags> for u32 {
-	type Output = RoleFlags;
-
-	fn bitand(self, rhs: RoleFlags) -> Self::Output {
-		RoleFlags(self & rhs.0)
 	}
 }
 
@@ -97,13 +87,11 @@ impl Iterator for RoleIter {
 			return None;
 		}
 
-		let has_bit = |n| (self.flags.0 >> n) & 1 == 1;
-
-		while self.idx < 31 && !has_bit(self.idx) {
+		while self.idx < 31 && !self.flags.has_bit(self.idx) {
 			self.idx += 1;
 		}
 
-		if !has_bit(self.idx) {
+		if !self.flags.has_bit(self.idx) {
 			return None;
 		}
 

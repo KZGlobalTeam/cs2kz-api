@@ -3,8 +3,7 @@ use axum::Json;
 use cs2kz::SteamID;
 
 use crate::auth::{Role, RoleFlags};
-use crate::extract::State;
-use crate::{audit, responses, Result};
+use crate::{audit, responses, AppState, Result};
 
 /// Overwrites the roles of the specified player.
 #[tracing::instrument(skip(state))]
@@ -26,7 +25,7 @@ use crate::{audit, responses, Result};
   ),
 )]
 pub async fn update_roles(
-	state: State,
+	state: AppState,
 	Path(steam_id): Path<SteamID>,
 	Json(roles): Json<Vec<Role>>,
 ) -> Result<()> {

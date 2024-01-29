@@ -7,11 +7,10 @@ use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
 use crate::database::{GlobalStatus, ToID};
-use crate::extract::State;
 use crate::maps::{queries, KZMap};
 use crate::params::{Limit, Offset};
 use crate::query::Filter;
-use crate::{responses, Error, Result};
+use crate::{responses, AppState, Error, Result};
 
 /// Query Parameters for fetching [`KZMap`]s.
 #[derive(Debug, Default, Deserialize, IntoParams)]
@@ -52,7 +51,7 @@ pub struct GetMapsParams<'a> {
   ),
 )]
 pub async fn get_many(
-	state: State,
+	state: AppState,
 	Query(params): Query<GetMapsParams<'_>>,
 ) -> Result<Json<Vec<KZMap>>> {
 	let mut query = QueryBuilder::new(queries::BASE_SELECT);

@@ -28,8 +28,10 @@ pub use config::Config;
 mod state;
 pub use state::State;
 
+/// Convenience alias for extracting [`State`] in handlers.
+pub type AppState = axum::extract::State<&'static crate::State>;
+
 mod database;
-mod extract;
 mod middleware;
 mod params;
 mod query;
@@ -146,6 +148,9 @@ pub struct API {
 }
 
 impl API {
+	/// Creates a new API instance with the given `config`.
+	///
+	/// See [`API::run()`] for starting the server.
 	#[tracing::instrument]
 	pub async fn new(config: Config) -> Result<Self> {
 		let tcp_listener = TcpListener::bind(config.socket_addr()).await?;
@@ -160,6 +165,7 @@ impl API {
 		Ok(Self { tcp_listener, state })
 	}
 
+	/// Runs the [axum] server for the API.
 	#[tracing::instrument]
 	pub async fn run(self) {
 		let state: &'static _ = Box::leak(Box::new(self.state));
@@ -201,10 +207,12 @@ impl API {
 			.expect("failed to run axum");
 	}
 
+	/// Returns the local socket address for the underlying TCP server.
 	pub fn local_addr(&self) -> io::Result<SocketAddr> {
 		self.tcp_listener.local_addr()
 	}
 
+	/// Returns an iterator over all the routes registered in the OpenAPI spec.
 	pub fn routes() -> impl Iterator<Item = String> {
 		Self::openapi().paths.paths.into_iter().map(|(uri, path)| {
 			let methods = path
@@ -218,10 +226,12 @@ impl API {
 		})
 	}
 
+	/// Returns a router for hosting a SwaggerUI web page and the OpenAPI spec as a JSON file.
 	pub fn swagger_ui() -> SwaggerUi {
 		SwaggerUi::new("/docs/swagger-ui").url("/docs/open-api.json", Self::openapi())
 	}
 
+	/// Returns a pretty-printed version of the OpenAPI spec in JSON.
 	pub fn spec() -> String {
 		Self::openapi()
 			.to_pretty_json()
@@ -237,6 +247,9 @@ impl fmt::Debug for API {
 	}
 }
 
+/// Logs a message with `audit = true`.
+///
+/// This will cause the log to be saved in the database.
 #[macro_export]
 macro_rules! audit {
 	($level:ident, $message:literal $(,$($fields:tt)*)?) => {

@@ -1,11 +1,10 @@
 use axum::{Extension, Json};
 
 use crate::auth::{Role, Session};
-use crate::extract::State;
 use crate::responses::Created;
 use crate::servers::{CreatedServer, NewServer};
 use crate::sqlx::SqlErrorExt;
-use crate::{audit, responses, Error, Result};
+use crate::{audit, responses, AppState, Error, Result};
 
 /// Approve a new KZ server.
 #[tracing::instrument(skip(state))]
@@ -27,7 +26,7 @@ use crate::{audit, responses, Error, Result};
   ),
 )]
 pub async fn create(
-	state: State,
+	state: AppState,
 	Extension(session): Extension<Session<{ Role::Bans as u32 }>>,
 	Json(server): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {

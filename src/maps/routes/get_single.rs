@@ -6,9 +6,8 @@ use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
 use crate::database::GlobalStatus;
-use crate::extract::State;
 use crate::maps::{queries, KZMap};
-use crate::{responses, Error, Result};
+use crate::{responses, AppState, Error, Result};
 
 /// Query Parameters for fetching a [`KZMap`].
 #[derive(Debug, Default, Deserialize, IntoParams)]
@@ -34,7 +33,7 @@ pub struct GetMapParams {
   ),
 )]
 pub async fn get_single(
-	state: State,
+	state: AppState,
 	Path(map): Path<MapIdentifier<'_>>,
 	Query(params): Query<GetMapParams>,
 ) -> Result<Json<KZMap>> {

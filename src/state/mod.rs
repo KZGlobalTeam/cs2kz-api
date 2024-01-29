@@ -11,16 +11,31 @@ pub use error::{Error, Result};
 
 mod jwt;
 
+/// The API's global state.
 #[derive(Debug)]
 pub struct State {
+	/// The API configuration.
 	config: crate::Config,
+
+	/// Database connection pool.
 	connection_pool: MySqlPool,
+
+	/// HTTP client for making requests to external services such as Steam.
 	http_client: reqwest::Client,
+
+	/// A cached version of query parameters used for Steam authentication.
+	///
+	/// See [`LoginForm::origin_url()`] for more details.
+	///
+	/// [`LoginForm::origin_url()`]: steam::LoginForm::origin_url
 	steam_login_form: steam::LoginForm,
+
+	/// JWT secrets.
 	jwt: jwt::State,
 }
 
 impl State {
+	/// Creates a new [State] instance with the given `config`.
 	pub async fn new(config: crate::Config) -> Result<Self> {
 		let connection_pool = MySqlPoolOptions::new()
 			.connect(config.database.url.as_str())
@@ -45,6 +60,7 @@ impl State {
 		matches!(self.config.environment, Environment::Production)
 	}
 
+	/// Returns a wildcard `Domain` field for HTTP cookies.
 	pub fn domain(&self) -> String {
 		self.config
 			.public_url
@@ -79,6 +95,7 @@ impl State {
 		self.connection_pool.begin().await.map_err(Error::from)
 	}
 
+	/// Encodes the given `payload` as a JWT using the API's secret.
 	pub fn encode_jwt<T>(&self, payload: &Jwt<T>) -> Result<String>
 	where
 		T: Serialize,
@@ -86,6 +103,7 @@ impl State {
 		jsonwebtoken::encode(&self.jwt.header, payload, &self.jwt.encoding_key).map_err(Into::into)
 	}
 
+	/// Decodes the given `jwt` into the desired payload type `T`.
 	pub fn decode_jwt<T>(&self, jwt: &str) -> Result<T>
 	where
 		T: DeserializeOwned,

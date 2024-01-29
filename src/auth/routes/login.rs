@@ -4,8 +4,7 @@ use serde::Deserialize;
 use url::Url;
 use utoipa::IntoParams;
 
-use crate::extract::State;
-use crate::responses;
+use crate::{responses, AppState};
 
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct Login {
@@ -26,6 +25,6 @@ pub struct Login {
     responses::BadRequest,
   ),
 )]
-pub async fn login(state: State, Query(login): Query<Login>) -> Redirect {
+pub async fn login(state: AppState, Query(login): Query<Login>) -> Redirect {
 	state.steam_login().clone().origin_url(login.return_to)
 }

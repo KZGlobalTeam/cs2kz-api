@@ -1,10 +1,9 @@
 use axum::extract::Path;
 use axum::Json;
 
-use crate::extract::State;
 use crate::responses::Created;
 use crate::servers::CreatedServer;
-use crate::{audit, responses, Error, Result};
+use crate::{audit, responses, AppState, Error, Result};
 
 /// Replace the key for a specific server with a new, random, one.
 #[tracing::instrument(skip(state))]
@@ -25,7 +24,7 @@ use crate::{audit, responses, Error, Result};
   ),
 )]
 pub async fn replace_key(
-	state: State,
+	state: AppState,
 	Path(server_id): Path<u16>,
 ) -> Result<Created<Json<CreatedServer>>> {
 	let api_key = rand::random::<u32>();

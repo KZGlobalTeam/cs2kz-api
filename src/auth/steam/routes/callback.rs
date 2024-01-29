@@ -4,9 +4,8 @@ use tracing::trace;
 
 use crate::auth::steam::Auth as SteamAuth;
 use crate::auth::Session;
-use crate::extract::State;
 use crate::steam::Player;
-use crate::{responses, Result};
+use crate::{responses, AppState, Result};
 
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
@@ -23,7 +22,7 @@ use crate::{responses, Result};
   ),
 )]
 pub async fn callback(
-	state: State,
+	state: AppState,
 	auth: SteamAuth,
 	cookies: CookieJar,
 ) -> Result<(CookieJar, Redirect)> {

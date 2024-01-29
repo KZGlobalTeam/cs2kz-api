@@ -40,6 +40,7 @@ pub struct Config {
 }
 
 impl Config {
+	/// Creates a new [Config] instance by parsing relevant environment variables.
 	pub fn new() -> Result<Self> {
 		let ip_addr = get_env_var::<Ipv4Addr>("KZ_API_IP")?;
 		let port = get_env_var::<u16>("KZ_API_PORT")?;

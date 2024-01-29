@@ -3,10 +3,9 @@ use chrono::{DateTime, Utc};
 
 use crate::auth::{Jwt, Role, Server, Session};
 use crate::bans::{CreatedBan, NewBan};
-use crate::extract::State;
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
-use crate::{audit, responses, Error, Result};
+use crate::{audit, responses, AppState, Error, Result};
 
 /// Ban a player.
 #[tracing::instrument(skip(state))]
@@ -28,7 +27,7 @@ use crate::{audit, responses, Error, Result};
   ),
 )]
 pub async fn create(
-	state: State,
+	state: AppState,
 	server: Option<Jwt<Server>>,
 	session: Option<Extension<Session<{ Role::Bans as u32 }>>>,
 	Json(ban): Json<NewBan>,

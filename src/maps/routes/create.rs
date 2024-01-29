@@ -5,13 +5,12 @@ use cs2kz::{Mode, SteamID, Tier};
 use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
 
 use crate::database::{GlobalStatus, RankedStatus};
-use crate::extract::State;
 use crate::maps::models::NewCourse;
 use crate::maps::{CreatedMap, MappersTable, NewMap};
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
 use crate::steam::workshop;
-use crate::{audit, responses, Error, Result};
+use crate::{audit, responses, AppState, Error, Result};
 
 /// Approve a new map or update an existing one with breaking changes.
 #[tracing::instrument(skip(state))]
@@ -33,7 +32,7 @@ use crate::{audit, responses, Error, Result};
   ),
 )]
 pub async fn create(
-	state: State,
+	state: AppState,
 	Json(mut map): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {
 	if map.mappers.is_empty() {

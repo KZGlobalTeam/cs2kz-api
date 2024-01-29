@@ -3,8 +3,7 @@ use axum::Json;
 use sqlx::QueryBuilder;
 
 use crate::bans::BanUpdate;
-use crate::extract::State;
-use crate::{audit, responses, Error, Result};
+use crate::{audit, responses, AppState, Error, Result};
 
 /// Update an existing ban.
 #[tracing::instrument(skip(state))]
@@ -27,7 +26,7 @@ use crate::{audit, responses, Error, Result};
   ),
 )]
 pub async fn update(
-	state: State,
+	state: AppState,
 	Path(ban_id): Path<u32>,
 	Json(ban_update): Json<BanUpdate>,
 ) -> Result<()> {

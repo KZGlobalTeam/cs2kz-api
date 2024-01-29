@@ -8,10 +8,9 @@ use utoipa::IntoParams;
 use crate::auth::{Role, Session};
 use crate::bans::{queries, Ban};
 use crate::database::ToID;
-use crate::extract::State;
 use crate::params::{Limit, Offset};
 use crate::query::{self, Filter};
-use crate::{responses, Error, Result};
+use crate::{responses, AppState, Error, Result};
 
 /// Query Parameters for fetching [`Ban`]s.
 #[derive(Debug, Default, Deserialize, IntoParams)]
@@ -60,7 +59,7 @@ pub struct GetBansParams<'a> {
   ),
 )]
 pub async fn get_many(
-	state: State,
+	state: AppState,
 	session: Option<Session<{ Role::Bans as u32 }>>,
 	Query(params): Query<GetBansParams<'_>>,
 ) -> Result<Json<Vec<Ban>>> {

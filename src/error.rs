@@ -44,9 +44,6 @@ pub enum Error {
 	)]
 	NoCourseMappers { stage: u8 },
 
-	#[error("Every course must have 4 filters. Course with stage `{stage}` has {amount} filters.")]
-	InvalidFilterAmount { stage: u8, amount: usize },
-
 	#[error(
 		"Every course must have 4 unique filters. Course with stage `{stage}` is missing a filter for ({mode}, {teleports})."
 	)]
@@ -77,17 +74,11 @@ pub enum Error {
 	#[error("Filter `{filter_id}` is not part of course `{course_id}`.")]
 	InvalidFilter { course_id: u32, filter_id: u32 },
 
-	#[error("`return_to` host does not match the API's public URL.")]
-	ForeignHost,
-
 	#[error("No data available for the given query.")]
 	NoContent,
 
 	#[error("You do not have access to this resource.")]
 	Unauthorized,
-
-	#[error("You do not have access to this resource.")]
-	Forbidden,
 
 	#[error("{0}")]
 	Middleware(#[from] middleware::Error),
@@ -138,7 +129,6 @@ impl IntoResponse for Error {
 			| Error::InvalidStage
 			| Error::NonContiguousStages
 			| Error::NoCourseMappers { .. }
-			| Error::InvalidFilterAmount { .. }
 			| Error::MissingFilter { .. }
 			| Error::UnrankableFilter { .. }
 			| Error::UnrankableFilterWithID { .. }
@@ -151,10 +141,8 @@ impl IntoResponse for Error {
 			| Error::InvalidBanID(_)
 			| Error::InvalidServerID(_)
 			| Error::InvalidPluginVersion { .. } => StatusCode::BAD_REQUEST,
-			Error::ForeignHost => StatusCode::UNAUTHORIZED,
 			Error::NoContent => StatusCode::NO_CONTENT,
 			Error::Unauthorized => StatusCode::UNAUTHORIZED,
-			Error::Forbidden => StatusCode::FORBIDDEN,
 			Error::Middleware(error) => {
 				return error.into_response();
 			}

@@ -3,9 +3,8 @@ use axum::Json;
 use cs2kz::PlayerIdentifier;
 use sqlx::QueryBuilder;
 
-use crate::extract::State;
 use crate::players::Player;
-use crate::{responses, Error, Result};
+use crate::{responses, AppState, Error, Result};
 
 /// Get a specific player by SteamID or name.
 #[tracing::instrument(skip(state))]
@@ -22,7 +21,7 @@ use crate::{responses, Error, Result};
   ),
 )]
 pub async fn get_single(
-	state: State,
+	state: AppState,
 	Path(player): Path<PlayerIdentifier<'_>>,
 ) -> Result<Json<Player>> {
 	let mut query = QueryBuilder::new("SELECT steam_id, name, is_banned FROM Players WHERE");

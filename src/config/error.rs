@@ -32,14 +32,10 @@ pub enum Error {
 
 	#[error("Failed to parse log filter: {0}")]
 	InvalidLogFilter(#[from] tracing_subscriber::filter::ParseError),
-
-	#[doc(hidden)]
-	#[error("")]
-	Never,
 }
 
 impl From<Infallible> for Error {
 	fn from(_: Infallible) -> Self {
-		Self::Never
+		unreachable!()
 	}
 }

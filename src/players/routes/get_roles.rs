@@ -4,8 +4,7 @@ use cs2kz::PlayerIdentifier;
 use sqlx::QueryBuilder;
 
 use crate::auth::{Role, RoleFlags};
-use crate::extract::State;
-use crate::{responses, Error, Result};
+use crate::{responses, AppState, Error, Result};
 
 /// Get a specific player by SteamID or name.
 #[tracing::instrument(skip(state))]
@@ -22,7 +21,7 @@ use crate::{responses, Error, Result};
   ),
 )]
 pub async fn get_roles(
-	state: State,
+	state: AppState,
 	Path(player): Path<PlayerIdentifier<'_>>,
 ) -> Result<Json<Vec<Role>>> {
 	let mut query = QueryBuilder::new("SELECT role_flags FROM Players WHERE");

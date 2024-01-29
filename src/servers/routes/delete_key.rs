@@ -1,7 +1,6 @@
 use axum::extract::Path;
 
-use crate::extract::State;
-use crate::{audit, responses, Error, Result};
+use crate::{audit, responses, AppState, Error, Result};
 
 /// Delete a server's API Key. This effectively deglobals the server until an admin generates a new
 /// key again.
@@ -22,7 +21,7 @@ use crate::{audit, responses, Error, Result};
     ("Steam Session" = ["servers"]),
   ),
 )]
-pub async fn delete_key(state: State, Path(server_id): Path<u16>) -> Result<()> {
+pub async fn delete_key(state: AppState, Path(server_id): Path<u16>) -> Result<()> {
 	let result = sqlx::query! {
 		r#"
 		UPDATE

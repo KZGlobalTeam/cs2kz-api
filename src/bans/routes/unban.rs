@@ -3,10 +3,9 @@ use axum::{Extension, Json};
 
 use crate::auth::{Role, Session};
 use crate::bans::{CreatedUnban, NewUnban};
-use crate::extract::State;
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
-use crate::{audit, responses, Error, Result};
+use crate::{audit, responses, AppState, Error, Result};
 
 /// Player Unbans.
 #[tracing::instrument(skip(state))]
@@ -29,7 +28,7 @@ use crate::{audit, responses, Error, Result};
   ),
 )]
 pub async fn unban(
-	state: State,
+	state: AppState,
 	Extension(session): Extension<Session<{ Role::Bans as u32 }>>,
 	Path(ban_id): Path<u32>,
 	Json(unban): Json<NewUnban>,
