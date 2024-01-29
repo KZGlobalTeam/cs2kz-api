@@ -27,5 +27,5 @@ pub struct Login {
   ),
 )]
 pub async fn login(state: State, Query(login): Query<Login>) -> Redirect {
-	state.steam_login().clone().with_origin_url(login.return_to)
+	state.steam_login().clone().origin_url(login.return_to)
 }

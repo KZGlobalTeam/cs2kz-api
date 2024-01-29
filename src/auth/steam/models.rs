@@ -7,7 +7,7 @@ use axum::response::Redirect;
 use cs2kz::SteamID;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
-use tracing::trace;
+use tracing::{trace, warn};
 use url::Url;
 use utoipa::IntoParams;
 
@@ -56,7 +56,7 @@ impl LoginForm {
 
 	/// Creates a [Redirect] to Steam, which will redirect back to the given `origin_url` after
 	/// a successful login.
-	pub fn with_origin_url(mut self, origin_url: Url) -> Redirect {
+	pub fn origin_url(mut self, origin_url: Url) -> Redirect {
 		self.callback_url
 			.query_pairs_mut()
 			.append_pair("origin_url", origin_url.as_str());
@@ -73,13 +73,12 @@ impl LoginForm {
 /// Payload to be sent to Steam when redirecting a user for login.
 #[derive(Debug, Serialize, Deserialize, IntoParams)]
 pub struct Auth {
-	/// The API's domain, if valid.
-	#[serde(rename = "openid.return_to")]
-	pub return_to: Url,
-
 	/// The original URL this request came from.
 	#[serde(skip_serializing)]
 	pub origin_url: Url,
+
+	#[serde(rename = "openid.return_to")]
+	return_to: Url,
 
 	#[serde(rename = "openid.mode")]
 	mode: String,
@@ -146,11 +145,26 @@ impl FromRequestParts<Arc<crate::State>> for Auth {
 			})?;
 
 		let config = state.config();
-		let public_url = &config.public_url;
+		let api_host = config
+			.public_url
+			.host_str()
+			.expect("api url must have a host");
 
-		if auth.return_to.host() != public_url.host() {
-			trace!(%auth.return_to, public_host = ?public_url.host(), "invalid return URL");
-			return Err(Error::ForeignHost);
+		let Some(origin_host) = auth.origin_url.host_str() else {
+			trace!(%auth.origin_url, "origin has no host");
+			return Err(Error::Unauthorized);
+		};
+
+		let mut is_known_host = origin_host.ends_with(api_host);
+
+		if !is_known_host && state.in_dev() {
+			warn!(%origin_host, %api_host, "allowing mismatching hosts due to dev mode");
+			is_known_host = true;
+		}
+
+		if !is_known_host {
+			trace!(%origin_host, %api_host, "rejecting login due to mismatching hosts");
+			return Err(Error::Unauthorized);
 		}
 
 		auth.mode = String::from("check_authentication");

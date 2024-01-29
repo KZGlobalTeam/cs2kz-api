@@ -33,13 +33,6 @@ impl RoleFlags {
 	pub const fn iter(&self) -> RoleIter {
 		RoleIter::new(*self)
 	}
-
-	pub fn for_subdomain(subdomain: &str) -> Self {
-		match subdomain {
-			"dashboard" => Self::BANS | Self::SERVERS | Self::MAPS | Self::ADMIN,
-			_ => Self::default(),
-		}
-	}
 }
 
 impl BitOr for RoleFlags {
