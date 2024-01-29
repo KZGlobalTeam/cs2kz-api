@@ -38,7 +38,6 @@ mod responses;
 mod sqlx;
 mod status;
 mod steam;
-mod url;
 mod util;
 
 mod players;

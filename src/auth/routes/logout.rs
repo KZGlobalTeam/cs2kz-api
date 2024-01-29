@@ -12,6 +12,10 @@ use crate::{responses, Result};
 pub struct Logout {
 	/// URL to redirect back to.
 	pub return_to: Option<Url>,
+
+	/// Invalidate *all* old sessions.
+	#[serde(default)]
+	pub all: bool,
 }
 
 /// Invalidates the user's current session and clears out any cookies.
@@ -33,14 +37,13 @@ pub async fn logout(
 	mut session: Session,
 	Query(logout): Query<Logout>,
 ) -> Result<(Session, Redirect)> {
-	session.invalidate(state.database()).await?;
+	session.invalidate(logout.all, state.database()).await?;
 
-	let config = state.config();
-	let return_to = logout
+	let redirect = logout
 		.return_to
 		.as_ref()
-		.map(Url::as_str)
-		.unwrap_or(config.public_url.as_str());
+		.map(|url| Redirect::to(url.as_str()))
+		.unwrap_or_else(|| Redirect::to(state.config().public_url.as_str()));
 
-	Ok((session, Redirect::to(return_to)))
+	Ok((session, redirect))
 }

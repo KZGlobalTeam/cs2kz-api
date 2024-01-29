@@ -1794,6 +1794,15 @@
               "format": "uri",
               "nullable": true
             }
+          },
+          {
+            "name": "all",
+            "in": "query",
+            "description": "Invalidate *all* old sessions.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -1822,7 +1831,6 @@
           {
             "name": "openid.return_to",
             "in": "path",
-            "description": "The API's domain, if valid.",
             "required": true,
             "schema": {
               "type": "string",

@@ -48,6 +48,20 @@ impl State {
 		matches!(self.config.environment, Environment::Production)
 	}
 
+	pub fn domain(&self) -> String {
+		self.config
+			.public_url
+			.domain()
+			.map(|domain| format!(".{domain}"))
+			.unwrap_or_else(|| {
+				self.config
+					.public_url
+					.host_str()
+					.map(ToOwned::to_owned)
+					.expect("API url should have a host")
+			})
+	}
+
 	pub fn database(&self) -> &MySqlPool {
 		&self.connection_pool
 	}

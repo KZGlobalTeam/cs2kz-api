@@ -9,10 +9,8 @@ use cs2kz::SteamID;
 use sqlx::{MySql, MySqlExecutor, Transaction};
 use time::{Duration, OffsetDateTime};
 use tracing::trace;
-use url::Url;
 
 use super::{RoleFlags, User};
-use crate::url::UrlExt;
 use crate::{audit, middleware, Error, Result};
 
 #[derive(Debug, Clone)]
@@ -37,29 +35,27 @@ pub struct Session<const REQUIRED_FLAGS: u32 = 0> {
 	invalidated: bool,
 }
 
-impl<const REQUIRED_FLAGS: u32> Session<REQUIRED_FLAGS> {
-	pub const COOKIE_NAME: &'static str = "kz-auth";
-	pub const EXPIRES_AFTER: Duration = Duration::WEEK;
-
+impl Session {
 	/// Generates a new session in the database.
 	pub async fn new(
 		steam_id: SteamID,
-		url: &Url,
+		domain: impl Into<String>,
 		in_prod: bool,
 		transaction: &mut Transaction<'static, MySql>,
 	) -> Result<Self> {
 		let token = rand::random::<u64>();
+		let expires_on = OffsetDateTime::now_utc() + Self::EXPIRES_AFTER;
 
 		sqlx::query! {
 			r#"
 			INSERT INTO
-			  WebSessions (token, subdomain, steam_id)
+			  WebSessions (token, steam_id, expires_on)
 			VALUES
 			  (?, ?, ?)
 			"#,
 			token,
-			url.subdomain(),
 			steam_id,
+			expires_on,
 		}
 		.execute(transaction.as_mut())
 		.await?;
@@ -71,33 +67,40 @@ impl<const REQUIRED_FLAGS: u32> Session<REQUIRED_FLAGS> {
 
 		audit!("session created", %id, %steam_id);
 
-		let role_flags = url
-			.subdomain()
-			.map(RoleFlags::for_subdomain)
-			.unwrap_or_default();
-
-		let user = User::new(steam_id, role_flags);
-
-		let domain = url
-			.host_str()
-			.map(ToOwned::to_owned)
-			.expect("API url should have a host");
+		let user = sqlx::query! {
+			r#"
+			SELECT
+			  role_flags `role_flags: RoleFlags`
+			FROM
+			  Players
+			WHERE
+			  steam_id = ?
+			"#,
+			steam_id,
+		}
+		.fetch_optional(transaction.as_mut())
+		.await?
+		.map(|row| User::new(steam_id, row.role_flags))
+		.ok_or(Error::UnknownPlayer { steam_id })?;
 
 		let cookie = Cookie::build((Self::COOKIE_NAME, token.to_string()))
-			.domain(domain)
+			.domain(domain.into())
 			.path("/")
 			.secure(in_prod)
 			.http_only(true)
-			.expires(OffsetDateTime::now_utc() + Self::EXPIRES_AFTER)
+			.expires(expires_on)
 			.build();
 
-		let remove_cookie = false;
-
-		Ok(Self { id, token, user, cookie, invalidated: remove_cookie })
+		Ok(Self { id, token, user, cookie, invalidated: false })
 	}
+}
+
+impl<const REQUIRED_FLAGS: u32> Session<REQUIRED_FLAGS> {
+	pub const COOKIE_NAME: &'static str = "kz-auth";
+	pub const EXPIRES_AFTER: Duration = Duration::WEEK;
 
 	/// Invalidates this session.
-	pub async fn invalidate(&mut self, executor: impl MySqlExecutor<'_>) -> Result<()> {
+	pub async fn invalidate(&mut self, all: bool, executor: impl MySqlExecutor<'_>) -> Result<()> {
 		sqlx::query! {
 			r#"
 			UPDATE
@@ -105,14 +108,25 @@ impl<const REQUIRED_FLAGS: u32> Session<REQUIRED_FLAGS> {
 			SET
 			  expires_on = CURRENT_TIMESTAMP()
 			WHERE
-			  id = ?
+			  steam_id = ?
+			  AND expires_on > CURRENT_TIMESTAMP()
+			  AND (
+			    id = ?
+			    OR ?
+			  )
 			"#,
+			self.user.steam_id,
 			self.id,
+			all,
 		}
 		.execute(executor)
 		.await?;
 
-		audit!("session invalidated", id = %self.id, steam_id = %self.user.steam_id);
+		if all {
+			audit!("all sessions invalidated", steam_id = %self.user.steam_id);
+		} else {
+			audit!("session invalidated", id = %self.id, steam_id = %self.user.steam_id);
+		}
 
 		self.invalidated = true;
 
@@ -155,13 +169,11 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<Arc<crate::State>> for Session<
 			r#"
 			SELECT
 			  s.id,
-			  s.token,
-			  s.subdomain,
-			  u.steam_id `steam_id: SteamID`,
-			  u.role_flags
+			  p.steam_id `steam_id: SteamID`,
+			  p.role_flags `role_flags: RoleFlags`
 			FROM
 			  WebSessions s
-			  JOIN Players u ON u.steam_id = s.steam_id
+			  JOIN Players p ON p.steam_id = s.steam_id
 			WHERE
 			  s.token = ?
 			  AND s.expires_on > CURRENT_TIMESTAMP()
@@ -203,17 +215,7 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<Arc<crate::State>> for Session<
 
 		transaction.commit().await?;
 
-		let mut legal_role_flags = session
-			.subdomain
-			.as_deref()
-			.map(RoleFlags::for_subdomain)
-			.unwrap_or_default();
-
-		if state.in_dev() {
-			legal_role_flags = RoleFlags::ALL;
-		}
-
-		let user = User::new(session.steam_id, session.role_flags & legal_role_flags);
+		let user = User::new(session.steam_id, session.role_flags);
 		let required_flags = RoleFlags(REQUIRED_FLAGS);
 
 		if !user.role_flags.contains(required_flags) {
@@ -224,7 +226,7 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<Arc<crate::State>> for Session<
 
 		Ok(Self {
 			id: session.id,
-			token: session.token,
+			token: session_token,
 			user,
 			cookie,
 			invalidated: false,
