@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tUPDATE\n\t\t\t  WebSessions\n\t\t\tSET\n\t\t\t  expires_on = CURRENT_TIMESTAMP()\n\t\t\tWHERE\n\t\t\t  steam_id = ?\n\t\t\t  AND expires_on > CURRENT_TIMESTAMP()\n\t\t\t  AND (\n\t\t\t    id = ?\n\t\t\t    OR ?\n\t\t\t  )\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "f458a0fad90cb2c3791afbe1f29eef5e5748d0bb3ea9ae6156c729be82bcec35"
+}
