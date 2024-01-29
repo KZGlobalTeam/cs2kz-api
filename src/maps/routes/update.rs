@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::sync::Arc;
 
 use axum::extract::Path;
 use axum::Json;
@@ -246,8 +245,8 @@ async fn update_workshop_id(
 async fn update_name_and_checksum(
 	map_id: u16,
 	workshop_id: u32,
-	http_client: Arc<reqwest::Client>,
-	config: Arc<crate::Config>,
+	http_client: &reqwest::Client,
+	config: &crate::Config,
 	executor: impl MySqlExecutor<'_>,
 ) -> Result<()> {
 	let (workshop_map, checksum) = tokio::try_join! {

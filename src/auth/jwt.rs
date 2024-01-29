@@ -1,5 +1,4 @@
 use std::ops::{Deref, DerefMut};
-use std::sync::Arc;
 
 use axum::async_trait;
 use axum::extract::FromRequestParts;
@@ -56,7 +55,7 @@ impl<T> DerefMut for Jwt<T> {
 }
 
 #[async_trait]
-impl<T> FromRequestParts<Arc<crate::State>> for Jwt<T>
+impl<T> FromRequestParts<&'static crate::State> for Jwt<T>
 where
 	T: DeserializeOwned,
 {
@@ -64,7 +63,7 @@ where
 
 	async fn from_request_parts(
 		parts: &mut request::Parts,
-		state: &Arc<crate::State>,
+		state: &&'static crate::State,
 	) -> Result<Self> {
 		let (original, jwt) =
 			TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)

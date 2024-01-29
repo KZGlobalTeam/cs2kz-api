@@ -1,6 +1,5 @@
 use std::path::Path;
 use std::result::Result as StdResult;
-use std::sync::Arc;
 
 use reqwest::header;
 use serde::ser::SerializeStruct;
@@ -23,7 +22,7 @@ impl Map {
 		"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1";
 
 	/// Fetches the Workshop Map with ID `id` from Steam using the provided `http_client`.
-	pub async fn get(id: u32, http_client: Arc<reqwest::Client>) -> Result<Self> {
+	pub async fn get(id: u32, http_client: &reqwest::Client) -> Result<Self> {
 		let params = serde_urlencoded::to_string(GetMapParams { id }).expect("this is valid");
 
 		let response = http_client
@@ -96,7 +95,7 @@ impl MapFile {
 	/// Downloads the workshop map with the given ID and returns a handle to the file.
 	///
 	/// NOTE: This shells out to DepotDownloader, so it might take a few seconds.
-	pub async fn download(workshop_id: u32, config: Arc<crate::Config>) -> Result<Self> {
+	pub async fn download(workshop_id: u32, config: &crate::Config) -> Result<Self> {
 		let steam_workshop_path = config
 			.steam
 			.steam_workshop_path

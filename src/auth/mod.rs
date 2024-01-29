@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::routing::get;
 use axum::Router;
 
@@ -23,11 +21,11 @@ pub use servers::Server;
 pub mod routes;
 pub mod openapi;
 
-pub fn router(state: Arc<crate::State>) -> Router {
+pub fn router(state: &'static crate::State) -> Router {
 	Router::new()
 		.route("/login", get(routes::login))
 		.route("/logout", get(routes::logout))
-		.with_state(Arc::clone(&state))
-		.nest("/steam", steam::router(Arc::clone(&state)))
-		.nest("/servers", servers::router(Arc::clone(&state)))
+		.with_state(state)
+		.nest("/steam", steam::router(state))
+		.nest("/servers", servers::router(state))
 }

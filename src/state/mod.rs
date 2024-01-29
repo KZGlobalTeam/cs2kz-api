@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::mysql::MySqlPoolOptions;
@@ -15,29 +13,28 @@ mod jwt;
 
 #[derive(Debug)]
 pub struct State {
-	config: Arc<crate::Config>,
+	config: crate::Config,
 	connection_pool: MySqlPool,
-	http_client: Arc<reqwest::Client>,
+	http_client: reqwest::Client,
 	steam_login_form: steam::LoginForm,
 	jwt: jwt::State,
 }
 
 impl State {
 	pub async fn new(config: crate::Config) -> Result<Self> {
-		let config = Arc::new(config);
 		let connection_pool = MySqlPoolOptions::new()
 			.connect(config.database.url.as_str())
 			.await?;
 
-		let http_client = Arc::new(reqwest::Client::new());
+		let http_client = reqwest::Client::new();
 		let steam_login_form = steam::LoginForm::new(config.public_url.clone());
 		let jwt = jwt::State::new(&config.jwt.secret)?;
 
 		Ok(Self { config, connection_pool, http_client, steam_login_form, jwt })
 	}
 
-	pub fn config(&self) -> Arc<crate::Config> {
-		Arc::clone(&self.config)
+	pub fn config(&self) -> &crate::Config {
+		&self.config
 	}
 
 	pub fn in_dev(&self) -> bool {
@@ -66,8 +63,8 @@ impl State {
 		&self.connection_pool
 	}
 
-	pub fn http(&self) -> Arc<reqwest::Client> {
-		Arc::clone(&self.http_client)
+	pub fn http(&self) -> &reqwest::Client {
+		&self.http_client
 	}
 
 	pub fn steam_login(&self) -> &steam::LoginForm {

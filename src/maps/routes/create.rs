@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
 use axum::Json;
 use cs2kz::{Mode, SteamID, Tier};
@@ -115,8 +114,8 @@ fn validate_course(course: &NewCourse) -> Result<()> {
 
 async fn insert_map(
 	map: &NewMap,
-	http_client: Arc<reqwest::Client>,
-	config: Arc<crate::Config>,
+	http_client: &reqwest::Client,
+	config: &crate::Config,
 	transaction: &mut Transaction<'static, MySql>,
 ) -> Result<u16> {
 	let workshop_id = map.workshop_id;

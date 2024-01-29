@@ -1,5 +1,4 @@
 use std::net::SocketAddr;
-use std::sync::Arc;
 use std::{fmt, io};
 
 use axum::http::{header, HeaderValue, Method};
@@ -143,7 +142,7 @@ mod auth;
 )]
 pub struct API {
 	tcp_listener: TcpListener,
-	state: Arc<State>,
+	state: State,
 }
 
 impl API {
@@ -154,7 +153,7 @@ impl API {
 
 		debug!(%local_addr, "Initialized TCP socket");
 
-		let state = State::new(config).await.map(Arc::new)?;
+		let state = State::new(config).await?;
 
 		debug!("Initialized API state");
 
@@ -163,9 +162,11 @@ impl API {
 
 	#[tracing::instrument]
 	pub async fn run(self) {
+		let state: &'static _ = Box::leak(Box::new(self.state));
+
 		// FIXME(AlphaKeks)
 		let cors = CorsLayer::new()
-			.allow_origin(if self.state().in_dev() {
+			.allow_origin(if state.in_dev() {
 				"http://127.0.0.1".parse::<HeaderValue>().unwrap()
 			} else {
 				"https://dashboard.cs2.kz".parse::<HeaderValue>().unwrap()
@@ -182,12 +183,12 @@ impl API {
 
 		let service = Router::new()
 			.route("/", get(status::hello_world))
-			.with_state(self.state())
-			.nest("/players", players::router(self.state()))
-			.nest("/maps", maps::router(self.state()))
-			.nest("/servers", servers::router(self.state()))
-			.nest("/bans", bans::router(self.state()))
-			.nest("/auth", auth::router(self.state()))
+			.with_state(state)
+			.nest("/players", players::router(state))
+			.nest("/maps", maps::router(state))
+			.nest("/servers", servers::router(state))
+			.nest("/bans", bans::router(state))
+			.nest("/auth", auth::router(state))
 			.layer(cors)
 			.layer(axum::middleware::from_fn(middleware::logging::layer))
 			.merge(Self::swagger_ui())
@@ -202,10 +203,6 @@ impl API {
 
 	pub fn local_addr(&self) -> io::Result<SocketAddr> {
 		self.tcp_listener.local_addr()
-	}
-
-	pub fn state(&self) -> Arc<State> {
-		Arc::clone(&self.state)
 	}
 
 	pub fn routes() -> impl Iterator<Item = String> {

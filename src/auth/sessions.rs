@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::async_trait;
 use axum::extract::FromRequestParts;
 use axum::http::{header, request};
@@ -135,12 +133,14 @@ impl<const REQUIRED_FLAGS: u32> Session<REQUIRED_FLAGS> {
 }
 
 #[async_trait]
-impl<const REQUIRED_FLAGS: u32> FromRequestParts<Arc<crate::State>> for Session<REQUIRED_FLAGS> {
+impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static crate::State>
+	for Session<REQUIRED_FLAGS>
+{
 	type Rejection = Error;
 
 	async fn from_request_parts(
 		parts: &mut request::Parts,
-		state: &Arc<crate::State>,
+		state: &&'static crate::State,
 	) -> Result<Self> {
 		let (mut cookie, session_token) = parts
 			.headers

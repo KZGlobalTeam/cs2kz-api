@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum_extra::extract::cookie::Cookie;
 use cs2kz::SteamID;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -45,7 +43,7 @@ impl Player {
 	pub async fn fetch(
 		steam_id: SteamID,
 		api_key: &str,
-		http_client: Arc<reqwest::Client>,
+		http_client: &reqwest::Client,
 	) -> Result<Self> {
 		let url = Url::parse_with_params(Self::GET_URL, [
 			("key", api_key.to_owned()),

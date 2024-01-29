@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::async_trait;
 use axum::extract::{FromRequestParts, Query};
 use axum::http::request;
@@ -130,12 +128,12 @@ impl Auth {
 }
 
 #[async_trait]
-impl FromRequestParts<Arc<crate::State>> for Auth {
+impl FromRequestParts<&'static crate::State> for Auth {
 	type Rejection = Error;
 
 	async fn from_request_parts(
 		parts: &mut request::Parts,
-		state: &Arc<crate::State>,
+		state: &&'static crate::State,
 	) -> Result<Self> {
 		let Query(mut auth) = Query::<Self>::from_request_parts(parts, state)
 			.await

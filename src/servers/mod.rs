@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
 
@@ -13,10 +11,10 @@ pub use models::{CreatedServer, NewServer, Server, ServerUpdate};
 
 pub mod routes;
 
-pub fn router(state: Arc<State>) -> Router {
+pub fn router(state: &'static State) -> Router {
 	let auth = || {
 		axum::middleware::from_fn_with_state(
-			Arc::clone(&state),
+			state,
 			middleware::auth::web::layer::<{ Role::Servers as u32 }>,
 		)
 	};

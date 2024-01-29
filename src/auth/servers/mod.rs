@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::routing::put;
 use axum::Router;
 
@@ -10,7 +8,7 @@ pub use models::{AccessToken, RefreshToken, Server};
 
 pub mod routes;
 
-pub fn router(state: Arc<crate::State>) -> Router {
+pub fn router(state: &'static crate::State) -> Router {
 	Router::new()
 		.route("/refresh_key", put(routes::refresh_key))
 		.with_state(state)
