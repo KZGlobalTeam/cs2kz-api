@@ -1,4 +1,4 @@
-name: CS2KZ API
+name: Integrity Checks
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     name: Compilation and Linting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: moonrepo/setup-rust@v1
         with:
           components: clippy
@@ -23,7 +23,7 @@ jobs:
     name: Formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: moonrepo/setup-rust@v1
         with:
           channel: nightly
@@ -34,7 +34,8 @@ jobs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: moonrepo/setup-rust@v1
-      - run: cargo doc --all-features --workspace --document-private-items --no-deps
-      - run: cargo run --package spec-generator -- --check api-spec.json
+      - run: |
+          cargo doc --all-features --workspace --document-private-items --no-deps
+          cargo run --package spec-generator -- --check api-spec.json
