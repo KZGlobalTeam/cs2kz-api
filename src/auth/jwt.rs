@@ -9,9 +9,8 @@ use axum_extra::TypedHeader;
 use chrono::Duration;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use tracing::trace;
 
-use crate::{audit, middleware, Error, Result};
+use crate::{audit, Error, Result};
 
 /// Utility type for handling JWT payloads.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,10 +67,7 @@ where
 		let (original, jwt) =
 			TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
 				.await
-				.map_err(|err| {
-					trace!(%err, "invalid JWT");
-					Error::Unauthorized
-				})
+				.map_err(Error::from)
 				.and_then(|jwt| {
 					let decoded = state.decode_jwt::<Self>(jwt.token())?;
 
@@ -79,7 +75,7 @@ where
 				})?;
 
 		if jwt.has_expired() {
-			return Err(middleware::Error::ExpiredToken.into());
+			return Err(Error::invalid("token").with_detail("token is expired"));
 		}
 
 		audit!("jwt authenticated", token = %original.token());

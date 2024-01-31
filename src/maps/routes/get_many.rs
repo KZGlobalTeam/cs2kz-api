@@ -108,7 +108,7 @@ pub async fn get_many(
 		.collect_vec();
 
 	if maps.is_empty() {
-		return Err(Error::NoContent);
+		return Err(Error::no_data());
 	}
 
 	Ok(Json(maps))

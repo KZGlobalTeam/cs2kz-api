@@ -1,3 +1,4 @@
+use std::fmt::{self, Display};
 use std::ops::BitOr;
 
 use serde::{Deserialize, Serialize};
@@ -11,6 +12,17 @@ pub enum Role {
 	Servers = 1 << 8,
 	Maps = 1 << 16,
 	Admin = 1 << 31,
+}
+
+impl Display for Role {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str(match self {
+			Role::Bans => "bans",
+			Role::Servers => "servers",
+			Role::Maps => "maps",
+			Role::Admin => "admin",
+		})
+	}
 }
 
 #[repr(transparent)]

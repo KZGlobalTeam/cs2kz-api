@@ -42,7 +42,7 @@ impl ToID for PlayerIdentifier<'_> {
 			.fetch_optional(executor)
 			.await?
 			.map(|row| row.steam_id)
-			.ok_or(Error::NoContent),
+			.ok_or(Error::no_data()),
 		}
 	}
 }
@@ -67,7 +67,7 @@ impl ToID for ServerIdentifier<'_> {
 			.fetch_optional(executor)
 			.await?
 			.map(|row| row.id)
-			.ok_or(Error::NoContent),
+			.ok_or(Error::no_data()),
 		}
 	}
 }

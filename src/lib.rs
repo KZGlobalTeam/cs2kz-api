@@ -69,6 +69,8 @@ mod auth;
       cs2kz::MapIdentifier,
       cs2kz::ServerIdentifier,
 
+      error::Error,
+
       params::Limit,
       params::Offset,
 
@@ -152,9 +154,14 @@ impl API {
 	///
 	/// See [`API::run()`] for starting the server.
 	#[tracing::instrument]
-	pub async fn new(config: Config) -> Result<Self> {
-		let tcp_listener = TcpListener::bind(config.socket_addr()).await?;
-		let local_addr = tcp_listener.local_addr()?;
+	pub async fn new(config: Config) -> state::Result<Self> {
+		let tcp_listener = TcpListener::bind(config.socket_addr())
+			.await
+			.expect("failed to bind to TCP socket");
+
+		let local_addr = tcp_listener
+			.local_addr()
+			.expect("failed to get TCP address");
 
 		debug!(%local_addr, "Initialized TCP socket");
 

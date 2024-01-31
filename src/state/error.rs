@@ -13,9 +13,18 @@ pub enum Error {
 	#[error("Error connecting to MySQL: {0}")]
 	MySQL(#[from] sqlx::Error),
 
-	#[error("Error encoding / decoding JSON: {0}")]
-	Json(#[from] serde_json::Error),
+	#[error("Error encoding JSON: {0}")]
+	JsonEncode(serde_json::Error),
+
+	#[error("Error decoding JSON: {0}")]
+	JsonDecode(serde_json::Error),
 
 	#[error("Error generating JWT: {0}")]
-	JWT(#[from] jsonwebtoken::errors::Error),
+	Jwt(#[from] jsonwebtoken::errors::Error),
+
+	#[error("Error encoding JWT: {0}")]
+	JwtEncode(jsonwebtoken::errors::Error),
+
+	#[error("Error decoding JWT: {0}")]
+	JwtDecode(jsonwebtoken::errors::Error),
 }

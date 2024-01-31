@@ -127,7 +127,7 @@ pub async fn get_many(
 		.await?;
 
 	if bans.is_empty() {
-		return Err(Error::NoContent);
+		return Err(Error::no_data());
 	}
 
 	if session.is_none() {

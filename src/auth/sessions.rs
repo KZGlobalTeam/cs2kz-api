@@ -4,12 +4,13 @@ use axum::http::{header, request};
 use axum::response::{IntoResponseParts, ResponseParts};
 use axum_extra::extract::cookie::Cookie;
 use cs2kz::SteamID;
+use itertools::Itertools;
 use sqlx::{MySql, MySqlExecutor, Transaction};
 use time::{Duration, OffsetDateTime};
 use tracing::trace;
 
 use super::{RoleFlags, User};
-use crate::{audit, middleware, Error, Result};
+use crate::{audit, Error, Result};
 
 #[derive(Debug, Clone)]
 pub struct Session<const REQUIRED_FLAGS: u32 = 0> {
@@ -79,7 +80,7 @@ impl Session {
 		.fetch_optional(transaction.as_mut())
 		.await?
 		.map(|row| User::new(steam_id, row.role_flags))
-		.ok_or(Error::UnknownPlayer { steam_id })?;
+		.ok_or_else(|| Error::unknown("SteamID").with_detail("{steam_id}"))?;
 
 		let cookie = Cookie::build((Self::COOKIE_NAME, token.to_string()))
 			.domain(domain.into())
@@ -161,7 +162,11 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static crate::State>
 
 				Some((cookie, session_token))
 			})
-			.ok_or(Error::Unauthorized)?;
+			.ok_or_else(|| {
+				Error::missing("cookie")
+					.with_detail(Self::COOKIE_NAME)
+					.unauthorized()
+			})?;
 
 		let mut transaction = state.transaction().await?;
 
@@ -184,10 +189,7 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static crate::State>
 		}
 		.fetch_optional(transaction.as_mut())
 		.await?
-		.ok_or_else(|| {
-			trace!("no valid session found");
-			Error::Unauthorized
-		})?;
+		.ok_or_else(|| Error::missing("valid session").unauthorized())?;
 
 		audit!("session authenticated", id = %session.id);
 
@@ -219,7 +221,10 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static crate::State>
 		let required_flags = RoleFlags(REQUIRED_FLAGS);
 
 		if !user.role_flags.contains(required_flags) {
-			return Err(middleware::Error::InsufficientPermissions { required_flags }.into());
+			return Err(Error::missing("required permissions")
+				.with_message("you do not have the required permissions to make this request")
+				.with_detail(required_flags.into_iter().join(", "))
+				.unauthorized());
 		}
 
 		audit!("user authenticated", ?user);

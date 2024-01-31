@@ -1,4 +1,5 @@
 use axum::Json;
+use serde_json::json;
 
 use crate::auth::{Jwt, Server};
 use crate::players::NewPlayer;
@@ -44,9 +45,12 @@ pub async fn create(
 	.await
 	.map_err(|err| {
 		if err.is_foreign_key_violation() {
-			Error::PlayerAlreadyExists { steam_id: player.steam_id }
+			Error::invalid("SteamID").with_detail(json!({
+				"steam_id": player.steam_id,
+				"reason": "player already exists"
+			}))
 		} else {
-			Error::MySql(err)
+			Error::from(err)
 		}
 	})?;
 

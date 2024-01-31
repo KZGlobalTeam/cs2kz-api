@@ -4,7 +4,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use url::Url;
 use utoipa::ToSchema;
 
-use super::Result;
+use crate::Result;
 
 /// A player profile.
 #[derive(Debug, Serialize, ToSchema)]

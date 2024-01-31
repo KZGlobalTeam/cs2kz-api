@@ -66,5 +66,5 @@ pub async fn get_single(
 		.into_iter()
 		.next()
 		.map(Json)
-		.ok_or(Error::NoContent)
+		.ok_or(Error::no_data())
 }

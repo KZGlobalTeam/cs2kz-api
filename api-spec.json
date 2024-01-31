@@ -2262,6 +2262,18 @@
           }
         }
       },
+      "Error": {
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "detail": {}
+        }
+      },
       "Filter": {
         "type": "object",
         "description": "A course filter.",

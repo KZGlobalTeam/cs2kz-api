@@ -80,7 +80,7 @@ pub async fn get_many(
 		.await?;
 
 	if servers.is_empty() {
-		return Err(Error::NoContent);
+		return Err(Error::no_data());
 	}
 
 	Ok(Json(servers))

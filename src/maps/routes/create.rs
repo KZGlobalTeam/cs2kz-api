@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use axum::Json;
 use cs2kz::{Mode, SteamID, Tier};
+use serde_json::json;
 use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
 
 use crate::database::{GlobalStatus, RankedStatus};
@@ -36,17 +37,21 @@ pub async fn create(
 	Json(mut map): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {
 	if map.mappers.is_empty() {
-		return Err(Error::NoMappers);
+		return Err(Error::missing("mappers"));
 	}
 
 	if map.courses.is_empty() {
-		return Err(Error::NoCourses);
+		return Err(Error::missing("courses"));
 	}
 
 	map.courses.sort_by_key(|course| course.stage);
 
-	if !(1..=100).contains(&map.courses[0].stage) {
-		return Err(Error::InvalidStage);
+	if let Some(course) = map
+		.courses
+		.iter()
+		.find(|course| !(1..=100).contains(&course.stage))
+	{
+		return Err(Error::invalid("stage").with_detail(course.stage));
 	}
 
 	let is_contiguous = map
@@ -55,7 +60,7 @@ pub async fn create(
 		.all(|courses| courses[0].stage + 1 == courses[1].stage);
 
 	if !is_contiguous {
-		return Err(Error::NonContiguousStages);
+		return Err(Error::invalid("stages").with_detail("stages must be contiguous"));
 	}
 
 	for course in &map.courses {
@@ -76,7 +81,9 @@ pub async fn create(
 
 fn validate_course(course: &NewCourse) -> Result<()> {
 	if course.mappers.is_empty() {
-		return Err(Error::NoCourseMappers { stage: course.stage });
+		return Err(Error::missing("course mappers").with_detail(json!({
+			"stage": course.stage
+		})));
 	}
 
 	const POSSIBLE_FILTERS: [(Mode, bool); 4] = [
@@ -96,7 +103,11 @@ fn validate_course(course: &NewCourse) -> Result<()> {
 		})
 		.map(|(mode, teleports)| (course.stage, mode, teleports))
 	{
-		return Err(Error::MissingFilter { stage, mode, teleports });
+		return Err(Error::missing("filter").with_detail(json!({
+			"stage": stage,
+			"mode": mode,
+			"teleports": teleports
+		})));
 	}
 
 	if let Some((stage, mode, teleports)) = course
@@ -105,7 +116,12 @@ fn validate_course(course: &NewCourse) -> Result<()> {
 		.find(|filter| filter.tier > Tier::Death && filter.ranked_status == RankedStatus::Ranked)
 		.map(|filter| (course.stage, filter.mode, filter.teleports))
 	{
-		return Err(Error::UnrankableFilter { stage, mode, teleports });
+		return Err(Error::invalid("filter").with_detail(json!({
+			"stage": stage,
+			"mode": mode,
+			"teleports": teleports,
+			"reason": "tier too high for ranked status"
+		})));
 	}
 
 	Ok(())
@@ -219,9 +235,9 @@ pub(super) async fn insert_mappers(
 
 	query.build().execute(executor).await.map_err(|err| {
 		if err.is_foreign_key_violation_of("player_id") {
-			Error::UnknownMapper
+			Error::unknown("mapper")
 		} else {
-			Error::MySql(err)
+			Error::from(err)
 		}
 	})?;
 
@@ -303,9 +319,9 @@ async fn insert_course_details(
 		.await
 		.map_err(|err| {
 			if err.is_foreign_key_violation_of("player_id") {
-				Error::UnknownMapper
+				Error::unknown("mapper")
 			} else {
-				Error::MySql(err)
+				Error::from(err)
 			}
 		})?;
 

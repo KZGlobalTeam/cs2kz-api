@@ -62,7 +62,7 @@ pub async fn update(
 	let result = query.build().execute(state.database()).await?;
 
 	if result.rows_affected() == 0 {
-		return Err(Error::InvalidServerID(server_id));
+		return Err(Error::unknown("server ID").with_detail(server_id));
 	}
 
 	audit!("updated server", id = %server_id, update = ?server_update);

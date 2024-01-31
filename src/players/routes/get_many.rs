@@ -58,7 +58,7 @@ pub async fn get_many(
 	.await?;
 
 	if players.is_empty() {
-		return Err(Error::NoContent);
+		return Err(Error::no_data());
 	}
 
 	Ok(Json(players))

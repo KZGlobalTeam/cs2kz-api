@@ -24,7 +24,7 @@ pub fn router(state: &'static State) -> Router {
 		.route("/", post(routes::create).layer(auth()))
 		.route("/:server", get(routes::get_single))
 		.route("/:server", patch(routes::update).layer(auth()))
-		.route("/:server/key", put(routes::replace_key).layer(auth()))
+		.route("/:server/key", put(routes::replace_key))
 		.route("/:server/key", delete(routes::delete_key).layer(auth()))
 		.with_state(state)
 }

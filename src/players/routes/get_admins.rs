@@ -66,7 +66,7 @@ pub async fn get_admins(
 	.collect::<Vec<_>>();
 
 	if admins.is_empty() {
-		return Err(Error::NoContent);
+		return Err(Error::no_data());
 	}
 
 	Ok(Json(admins))

@@ -10,7 +10,7 @@ use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::process::Command;
 use tracing::error;
 
-use super::{Error, Result};
+use crate::{Config, Error, Result};
 
 /// A Steam Workshop Map.
 pub struct Map {
@@ -33,7 +33,7 @@ impl Map {
 			.await?;
 
 		if !response.status().is_success() {
-			return Err(Error::InvalidWorkshopID(id));
+			return Err(Error::invalid("workshop ID").with_detail(id));
 		}
 
 		response.json().await.map_err(Error::from)
@@ -101,29 +101,39 @@ impl MapFile {
 			.steam_workshop_path
 			.as_deref()
 			.map(Path::to_string_lossy)
-			.ok_or(Error::MissingWorkshopDirectory)?;
+			.ok_or_else(|| {
+				let error = Error::download_workshop_map();
+
+				if config.in_dev() {
+					error.with_detail("missing workshop asset directory")
+				} else {
+					error
+				}
+			})?;
 
 		let downloader = config
 			.steam
 			.workshop_downloader_path
 			.as_deref()
-			.ok_or(Error::MissingWorkshopDownloader)?;
+			.ok_or_else(|| {
+				let error = Error::download_workshop_map();
+
+				if config.in_dev() {
+					error.with_detail("missing path to DepotDownloader executable")
+				} else {
+					error
+				}
+			})?;
 
 		let output = Command::new(downloader)
 			.args(["-app", "730", "-pubfile"])
 			.arg(workshop_id.to_string())
 			.args(["-dir", &*steam_workshop_path])
 			.spawn()
-			.map_err(|err| {
-				error!(%err, "failed to run DepotDownloader");
-				Error::DepotDownloader(Some(err))
-			})?
+			.map_err(|err| Error::download_workshop_map().with_detail(err.to_string()))?
 			.wait_with_output()
 			.await
-			.map_err(|err| {
-				error!(%err, "failed to wait for DepotDownloader");
-				Error::DepotDownloader(Some(err))
-			})?;
+			.map_err(|err| Error::download_workshop_map().with_detail(err.to_string()))?;
 
 		if let Err(err) = io::stderr().flush().await {
 			error!(%err, "failed to flush stderr");
@@ -131,14 +141,28 @@ impl MapFile {
 
 		if !output.status.success() {
 			error!(?output, "DepotDownloader exited abnormally");
-			return Err(Error::DepotDownloader(None));
+
+			let error = Error::download_workshop_map();
+
+			if config.in_dev() {
+				return Err(error.with_detail("DepotDownloader exited abnormally"));
+			}
+
+			return Err(error);
 		}
 
 		let path = Path::new(&*steam_workshop_path).join(format!("{workshop_id}.vpk"));
 
 		let file = File::open(path).await.map_err(|err| {
-			error!(%err, "failed to open workshop map file");
-			Error::IO(err)
+			let error = Error::download_workshop_map();
+
+			if config.in_dev() {
+				error
+					.with_message("failed to open map file")
+					.with_detail(err.to_string())
+			} else {
+				error
+			}
 		})?;
 
 		Ok(Self { file })
@@ -150,8 +174,15 @@ impl MapFile {
 	pub async fn checksum(&mut self) -> Result<u32> {
 		let mut buf = Vec::new();
 		self.file.read_to_end(&mut buf).await.map_err(|err| {
-			error!(%err, "failed to read workshop map file");
-			Error::IO(err)
+			let error = Error::download_workshop_map();
+
+			if Config::environment().is_dev() {
+				error
+					.with_message("failed to read map file")
+					.with_detail(err.to_string())
+			} else {
+				error
+			}
 		})?;
 
 		Ok(crc32fast::hash(&buf))

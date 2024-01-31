@@ -135,12 +135,7 @@ impl FromRequestParts<&'static crate::State> for Auth {
 		parts: &mut request::Parts,
 		state: &&'static crate::State,
 	) -> Result<Self> {
-		let Query(mut auth) = Query::<Self>::from_request_parts(parts, state)
-			.await
-			.map_err(|err| {
-				trace!(%err, "invalid query params");
-				Error::Unauthorized
-			})?;
+		let Query(mut auth) = Query::<Self>::from_request_parts(parts, state).await?;
 
 		let config = state.config();
 		let api_host = config
@@ -150,7 +145,8 @@ impl FromRequestParts<&'static crate::State> for Auth {
 
 		let Some(origin_host) = auth.origin_url.host_str() else {
 			trace!(%auth.origin_url, "origin has no host");
-			return Err(Error::Unauthorized);
+			return Err(Error::invalid("`origin_url`")
+				.with_detail(format_args!("got: `{}`", auth.origin_url)));
 		};
 
 		let mut is_known_host = origin_host.ends_with(api_host);
@@ -162,7 +158,8 @@ impl FromRequestParts<&'static crate::State> for Auth {
 
 		if !is_known_host {
 			trace!(%origin_host, %api_host, "rejecting login due to mismatching hosts");
-			return Err(Error::Unauthorized);
+			return Err(Error::invalid("origin host")
+				.with_detail(format_args!("expected host to match `{api_host}`")));
 		}
 
 		auth.mode = String::from("check_authentication");
@@ -175,24 +172,18 @@ impl FromRequestParts<&'static crate::State> for Auth {
 			.body(query)
 			.send()
 			.await
-			.and_then(|res| res.error_for_status())
-			.map_err(|err| {
-				trace!(%err, "failed to authenticate user");
-				Error::Unauthorized
-			})?
+			.and_then(|res| res.error_for_status())?
 			.text()
-			.await
-			.map_err(|err| {
-				trace!(%err, "steam response was not text");
-				crate::steam::Error::Http(err)
-			})?
+			.await?
 			.lines()
 			.rfind(|&line| line == "is_valid:true")
 			.is_some();
 
 		if !is_valid {
 			trace!("request was invalid");
-			return Err(Error::Unauthorized);
+			return Err(Error::invalid("query parameters")
+				.with_detail("request was not issued by steam")
+				.unauthorized());
 		}
 
 		let steam_id = auth.steam_id();

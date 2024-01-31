@@ -26,5 +26,5 @@ pub async fn get_single(state: AppState, Path(ban_id): Path<u32>) -> Result<Json
 		.fetch_optional(state.database())
 		.await?
 		.map(Json)
-		.ok_or(Error::NoContent)
+		.ok_or(Error::no_data())
 }

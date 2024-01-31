@@ -14,6 +14,16 @@ pub enum Environment {
 	Production,
 }
 
+impl Environment {
+	pub const fn is_dev(&self) -> bool {
+		matches!(self, Self::Local)
+	}
+
+	pub const fn is_prod(&self) -> bool {
+		matches!(self, Self::Production)
+	}
+}
+
 #[derive(Debug, ThisError)]
 #[error("`{0}` is not a valid runtime environment. Expected `local` or `production`.")]
 pub struct InvalidEnvironment(String);

@@ -45,7 +45,7 @@ pub async fn replace_key(
 	.await?;
 
 	if result.rows_affected() == 0 {
-		return Err(Error::InvalidServerID(server_id));
+		return Err(Error::unknown("server ID").with_detail(server_id));
 	}
 
 	audit!("updated API key for server", id = %server_id, new_key = %api_key);

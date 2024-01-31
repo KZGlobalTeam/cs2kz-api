@@ -4,7 +4,6 @@ use sqlx::mysql::MySqlPoolOptions;
 use sqlx::{MySql, MySqlPool, Transaction};
 
 use crate::auth::{steam, Jwt};
-use crate::config::Environment;
 
 mod error;
 pub use error::{Error, Result};
@@ -48,16 +47,16 @@ impl State {
 		Ok(Self { config, connection_pool, http_client, steam_login_form, jwt })
 	}
 
-	pub fn config(&self) -> &crate::Config {
+	pub const fn config(&self) -> &crate::Config {
 		&self.config
 	}
 
-	pub fn in_dev(&self) -> bool {
-		matches!(self.config.environment, Environment::Local)
+	pub const fn in_dev(&self) -> bool {
+		self.config.in_dev()
 	}
 
-	pub fn in_prod(&self) -> bool {
-		matches!(self.config.environment, Environment::Production)
+	pub const fn in_prod(&self) -> bool {
+		self.config.in_prod()
 	}
 
 	/// Returns a wildcard `Domain` field for HTTP cookies.
@@ -75,15 +74,15 @@ impl State {
 			})
 	}
 
-	pub fn database(&self) -> &MySqlPool {
+	pub const fn database(&self) -> &MySqlPool {
 		&self.connection_pool
 	}
 
-	pub fn http(&self) -> &reqwest::Client {
+	pub const fn http(&self) -> &reqwest::Client {
 		&self.http_client
 	}
 
-	pub fn steam_login(&self) -> &steam::LoginForm {
+	pub const fn steam_login(&self) -> &steam::LoginForm {
 		&self.steam_login_form
 	}
 
@@ -100,7 +99,8 @@ impl State {
 	where
 		T: Serialize,
 	{
-		jsonwebtoken::encode(&self.jwt.header, payload, &self.jwt.encoding_key).map_err(Into::into)
+		jsonwebtoken::encode(&self.jwt.header, payload, &self.jwt.encoding_key)
+			.map_err(Error::JwtEncode)
 	}
 
 	/// Decodes the given `jwt` into the desired payload type `T`.
@@ -110,6 +110,6 @@ impl State {
 	{
 		jsonwebtoken::decode(jwt, &self.jwt.decoding_key, &self.jwt.validation)
 			.map(|token| token.claims)
-			.map_err(Into::into)
+			.map_err(Error::JwtDecode)
 	}
 }

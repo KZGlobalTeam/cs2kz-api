@@ -1,5 +1,6 @@
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::str::FromStr;
+use std::sync::OnceLock;
 use std::{env, fmt};
 
 use url::Url;
@@ -14,6 +15,8 @@ pub mod axiom;
 pub mod database;
 pub mod jwt;
 pub mod steam;
+
+static ENVIRONMENT: OnceLock<Environment> = OnceLock::new();
 
 /// The API configuration.
 pub struct Config {
@@ -52,7 +55,23 @@ impl Config {
 		let jwt = jwt::Config::new()?;
 		let steam = steam::Config::new()?;
 
+		ENVIRONMENT
+			.set(environment)
+			.expect("this is the only place we set the value");
+
 		Ok(Self { socket_addr, public_url, environment, database, axiom, jwt, steam })
+	}
+
+	pub fn environment() -> &'static Environment {
+		ENVIRONMENT.get().expect("we set this in the constructor")
+	}
+
+	pub const fn in_dev(&self) -> bool {
+		self.environment.is_dev()
+	}
+
+	pub const fn in_prod(&self) -> bool {
+		self.environment.is_prod()
 	}
 
 	pub const fn socket_addr(&self) -> SocketAddr {

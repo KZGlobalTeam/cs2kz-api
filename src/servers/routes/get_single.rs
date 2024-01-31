@@ -42,5 +42,5 @@ pub async fn get_single(
 		.fetch_optional(state.database())
 		.await?
 		.map(Json)
-		.ok_or(Error::NoContent)
+		.ok_or(Error::no_data())
 }

@@ -1,5 +1,6 @@
 use axum::{Extension, Json};
 use chrono::{DateTime, Utc};
+use serde_json::json;
 
 use crate::auth::{Jwt, Role, Server, Session};
 use crate::bans::{CreatedBan, NewBan};
@@ -34,7 +35,7 @@ pub async fn create(
 ) -> Result<Created<Json<CreatedBan>>> {
 	if server.is_none() && session.is_none() {
 		audit!(error, "ban submitted without authentication", ?ban);
-		return Err(Error::Unauthorized);
+		return Err(Error::bug());
 	}
 
 	let (server_id, plugin_version_id) = server
@@ -65,7 +66,7 @@ pub async fn create(
 		.fetch_optional(transaction.as_mut())
 		.await?
 		.map(|row| row.last_known_ip_address)
-		.ok_or(Error::UnknownPlayer { steam_id: ban.steam_id })?,
+		.ok_or_else(|| Error::unknown("SteamID").with_detail(ban.steam_id))?,
 	};
 
 	// If we didn't get a version from a server, just take the latest one.
@@ -106,15 +107,20 @@ pub async fn create(
 	.await
 	.map_err(|err| {
 		if err.is_foreign_key_violation_of("player_id") {
-			Error::UnknownPlayer { steam_id: ban.steam_id }
+			Error::unknown("SteamID").with_detail(ban.steam_id)
 		} else if err.is_foreign_key_violation_of("server_id") {
-			panic!("unknown but authenticated server? {server_id:?} | {plugin_version_id:?}");
+			Error::bug().with_detail(json!({
+				"server_id": server_id,
+				"plugin_version_id": plugin_version_id
+			}))
 		} else if err.is_foreign_key_violation_of("plugin_version_id") {
-			Error::InvalidPluginVersion { server_id: server_id.unwrap(), plugin_version_id }
+			Error::invalid("plugin version").with_detail(json!({
+				"plugin_version_id": plugin_version_id
+			}))
 		} else if err.is_foreign_key_violation_of("banned_by") {
-			Error::UnknownPlayer { steam_id: banned_by.unwrap() }
+			Error::unknown("SteamID").with_detail(banned_by)
 		} else {
-			Error::MySql(err)
+			Error::from(err)
 		}
 	})?;
 

@@ -50,9 +50,9 @@ pub async fn create(
 	.await
 	.map_err(|err| {
 		if err.is_foreign_key_violation() {
-			Error::UnknownPlayer { steam_id: server.owned_by }
+			Error::unknown("SteamID").with_detail(server.owned_by)
 		} else {
-			Error::MySql(err)
+			Error::from(err)
 		}
 	})?;
 

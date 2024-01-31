@@ -40,7 +40,7 @@ pub async fn get_roles(
 		.fetch_optional(state.database())
 		.await?
 		.map(RoleFlags)
-		.ok_or(Error::NoContent)?;
+		.ok_or(Error::no_data())?;
 
 	Ok(Json(role_flags.into_iter().collect()))
 }

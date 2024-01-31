@@ -4,6 +4,7 @@ use axum::extract::Path;
 use axum::Json;
 use cs2kz::{SteamID, Tier};
 use itertools::Itertools;
+use serde_json::json;
 use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
 use tracing::trace;
 
@@ -112,7 +113,7 @@ async fn validate_update(
 	.collect::<HashSet<u32>>();
 
 	if course_ids.is_empty() {
-		return Err(Error::UnknownMapID(map_id));
+		return Err(Error::unknown_id("map", map_id));
 	}
 
 	if let Some(course_id) = map_update
@@ -122,7 +123,10 @@ async fn validate_update(
 		.map(|course| course.id)
 		.find(|course_id| !course_ids.contains(course_id))
 	{
-		return Err(Error::InvalidCourse { map_id, course_id });
+		return Err(Error::invalid("course").with_detail(json!({
+			"id": course_id,
+			"map_id": map_id
+		})));
 	}
 
 	for course_update in map_update.course_updates.iter().flatten() {
@@ -147,7 +151,10 @@ async fn validate_update(
 			.flatten()
 			.find(|filter| !filter_ids.iter().map(|row| row.id).contains(&filter.id))
 		{
-			return Err(Error::InvalidFilter { course_id: course_update.id, filter_id: filter.id });
+			return Err(Error::invalid("filter").with_detail(json!({
+				"id": filter.id,
+				"course_id": course_update.id
+			})));
 		}
 	}
 
@@ -175,7 +182,7 @@ async fn update_global_status(
 	.await?;
 
 	if result.rows_affected() == 0 {
-		return Err(Error::UnknownMapID(map_id));
+		return Err(Error::unknown_id("map", map_id));
 	}
 
 	audit!("updated global status for map", id = %map_id, %global_status);
@@ -204,7 +211,7 @@ async fn update_description(
 	.await?;
 
 	if result.rows_affected() == 0 {
-		return Err(Error::UnknownMapID(map_id));
+		return Err(Error::unknown_id("map", map_id));
 	}
 
 	audit!("updated map description", id = %map_id, %description);
@@ -233,7 +240,7 @@ async fn update_workshop_id(
 	.await?;
 
 	if result.rows_affected() == 0 {
-		return Err(Error::UnknownMapID(map_id));
+		return Err(Error::unknown_id("map", map_id));
 	}
 
 	audit!("updated workshop id", %map_id, %workshop_id);
@@ -271,7 +278,7 @@ async fn update_name_and_checksum(
 	.await?;
 
 	if result.rows_affected() == 0 {
-		return Err(Error::UnknownMapID(map_id));
+		return Err(Error::unknown_id("map", map_id));
 	}
 
 	trace! {
@@ -349,7 +356,10 @@ async fn update_course(
 		.await?;
 
 		if result.rows_affected() == 0 {
-			return Err(Error::InvalidCourse { map_id, course_id: update.id });
+			return Err(Error::invalid("course").with_detail(json!({
+				"id": update.id,
+				"map_id": map_id
+			})));
 		}
 
 		audit!("updated course description", id = %update.id, %description);
@@ -363,7 +373,10 @@ async fn update_course(
 		if tier.is_some_and(|tier| tier > Tier::Death)
 			&& matches!(ranked_status, Some(RankedStatus::Ranked))
 		{
-			return Err(Error::UnrankableFilterWithID { id: *id });
+			return Err(Error::invalid("filter").with_detail(json!({
+				"id": id,
+				"reason": "tier too high for ranked status"
+			})));
 		}
 
 		let mut query = QueryBuilder::new("UPDATE CourseFilters");
@@ -393,7 +406,9 @@ async fn update_course(
 		let result = query.build().execute(transaction.as_mut()).await?;
 
 		if result.rows_affected() == 0 {
-			return Err(Error::InvalidFilter { course_id: update.id, filter_id: *id });
+			return Err(Error::unknown_id("filter", id).with_detail(json!({
+				"course_id": update.id
+			})));
 		}
 
 		audit!("updated filter", %id, ?tier, ?ranked_status, ?notes);

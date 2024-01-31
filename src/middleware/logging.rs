@@ -5,16 +5,16 @@ use axum::response::Response;
 use tokio::time::Instant;
 use tracing::trace;
 
-use super::{Error, Result};
-use crate::util;
+use crate::{util, Error, Result};
 
 /// Middleware for logging incoming requests and outgoing responses.
 pub async fn layer(request: Request, next: Next) -> Result<Response> {
 	// Break apart the request so we can consume the body.
 	let (parts, body) = request.into_parts();
-	let body = axum::body::to_bytes(body, usize::MAX)
-		.await
-		.map_err(Error::InvalidRequestBody)?;
+	let body = axum::body::to_bytes(body, usize::MAX).await.map_err(|_| {
+		Error::invalid("body size")
+			.with_detail(format_args!("maximum body size is {} bytes", usize::MAX))
+	})?;
 
 	// Log relevant information.
 	trace! {

@@ -41,5 +41,5 @@ pub async fn get_single(
 		.await
 		.map_err(Error::from)?
 		.map(Json)
-		.ok_or(Error::NoContent)
+		.ok_or(Error::no_data())
 }

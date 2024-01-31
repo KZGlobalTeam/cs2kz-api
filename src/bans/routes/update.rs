@@ -51,7 +51,7 @@ pub async fn update(
 	let result = query.build().execute(state.database()).await?;
 
 	if result.rows_affected() == 0 {
-		return Err(Error::InvalidBanID(ban_id));
+		return Err(Error::unknown_id("ban", ban_id));
 	}
 
 	audit!("updated ban", id = %ban_id, update = ?ban_update);

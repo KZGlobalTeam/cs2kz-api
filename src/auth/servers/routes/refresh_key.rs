@@ -42,7 +42,7 @@ pub async fn refresh_key(
 	.map(|row| Server::new(row.server_id, row.plugin_version_id))
 	.ok_or_else(|| {
 		trace!(?refresh, "invalid refresh token");
-		Error::Unauthorized
+		Error::invalid("API key").unauthorized()
 	})?;
 
 	server.into_jwt(&state).map(Json).map(Created)
