@@ -28,7 +28,7 @@ jobs:
         with:
           channel: nightly
           components: rustfmt
-      - run: cargo +nightly fmt --all
+      - run: cargo +nightly fmt --all --check
 
   docs:
     name: Documentation
