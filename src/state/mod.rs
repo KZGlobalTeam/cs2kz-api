@@ -51,27 +51,16 @@ impl State {
 		&self.config
 	}
 
+	pub fn domain(&self) -> &str {
+		self.config.wildcard_domain.as_str()
+	}
+
 	pub const fn in_dev(&self) -> bool {
 		self.config.in_dev()
 	}
 
 	pub const fn in_prod(&self) -> bool {
 		self.config.in_prod()
-	}
-
-	/// Returns a wildcard `Domain` field for HTTP cookies.
-	pub fn domain(&self) -> String {
-		self.config
-			.public_url
-			.domain()
-			.map(|domain| format!(".{domain}"))
-			.unwrap_or_else(|| {
-				self.config
-					.public_url
-					.host_str()
-					.map(ToOwned::to_owned)
-					.expect("API url should have a host")
-			})
 	}
 
 	pub const fn database(&self) -> &MySqlPool {

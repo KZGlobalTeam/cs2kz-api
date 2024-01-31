@@ -38,7 +38,7 @@ impl Session {
 	/// Generates a new session in the database.
 	pub async fn new(
 		steam_id: SteamID,
-		domain: impl Into<String>,
+		domain: &'static str,
 		in_prod: bool,
 		transaction: &mut Transaction<'static, MySql>,
 	) -> Result<Self> {
@@ -83,7 +83,7 @@ impl Session {
 		.ok_or_else(|| Error::unknown("SteamID").with_detail("{steam_id}"))?;
 
 		let cookie = Cookie::build((Self::COOKIE_NAME, token.to_string()))
-			.domain(domain.into())
+			.domain(domain)
 			.path("/")
 			.secure(in_prod)
 			.http_only(true)

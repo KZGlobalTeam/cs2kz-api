@@ -26,6 +26,9 @@ pub struct Config {
 	/// The public URL of the API.
 	pub(crate) public_url: Url,
 
+	/// Wildcard `Domain` field for HTTP cookies.
+	pub(crate) wildcard_domain: String,
+
 	/// The environment the API is currently running in.
 	pub(crate) environment: Environment,
 
@@ -48,7 +51,16 @@ impl Config {
 		let ip_addr = get_env_var::<Ipv4Addr>("KZ_API_IP")?;
 		let port = get_env_var::<u16>("KZ_API_PORT")?;
 		let socket_addr = SocketAddrV4::new(ip_addr, port);
-		let public_url = get_env_var("KZ_API_URL")?;
+		let public_url = get_env_var::<Url>("KZ_API_URL")?;
+
+		let wildcard_domain = match public_url.domain() {
+			Some(domain) => domain_to_wildcard(domain).to_owned(),
+			None => public_url
+				.host_str()
+				.map(ToOwned::to_owned)
+				.expect("API url should have a host"),
+		};
+
 		let environment = get_env_var("KZ_API_ENV")?;
 		let database = database::Config::new()?;
 		let axiom = axiom::Config::new().ok();
@@ -59,7 +71,16 @@ impl Config {
 			.set(environment)
 			.expect("this is the only place we set the value");
 
-		Ok(Self { socket_addr, public_url, environment, database, axiom, jwt, steam })
+		Ok(Self {
+			socket_addr,
+			public_url,
+			wildcard_domain,
+			environment,
+			database,
+			axiom,
+			jwt,
+			steam,
+		})
 	}
 
 	pub fn environment() -> &'static Environment {
@@ -97,11 +118,37 @@ where
 		.and_then(|var| var.parse().map_err(Into::into))
 }
 
+/// Converts a domain to a wildcard domain for cookies.
+/// Subdomains are simply cut off.
+fn domain_to_wildcard(mut domain: &str) -> &str {
+	let mut first_period = None;
+	let mut total_periods = 0;
+
+	for (idx, char) in domain.chars().enumerate() {
+		if char != '.' {
+			continue;
+		}
+
+		total_periods += 1;
+
+		if first_period.is_none() {
+			first_period = Some(idx);
+		}
+	}
+
+	if total_periods > 1 {
+		domain = &domain[first_period.unwrap()..];
+	}
+
+	domain
+}
+
 impl fmt::Debug for Config {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("CS2KZ API Config")
 			.field("socket_addr", &format_args!("{}", self.socket_addr))
 			.field("public_url", &format_args!("{}", self.public_url))
+			.field("wildcard_domain", &format_args!("{}", self.wildcard_domain))
 			.field("environment", &self.environment)
 			.field("database", &self.database)
 			.field("axiom", &self.axiom)
