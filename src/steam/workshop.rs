@@ -10,7 +10,7 @@ use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::process::Command;
 use tracing::error;
 
-use crate::{Config, Error, Result};
+use crate::{audit, Error, Result};
 
 /// A Steam Workshop Map.
 pub struct Map {
@@ -104,7 +104,7 @@ impl MapFile {
 			.ok_or_else(|| {
 				let error = Error::download_workshop_map();
 
-				if config.in_dev() {
+				if config.environment.is_dev() {
 					error.with_detail("missing workshop asset directory")
 				} else {
 					error
@@ -118,7 +118,7 @@ impl MapFile {
 			.ok_or_else(|| {
 				let error = Error::download_workshop_map();
 
-				if config.in_dev() {
+				if config.environment.is_dev() {
 					error.with_detail("missing path to DepotDownloader executable")
 				} else {
 					error
@@ -144,7 +144,7 @@ impl MapFile {
 
 			let error = Error::download_workshop_map();
 
-			if config.in_dev() {
+			if config.environment.is_dev() {
 				return Err(error.with_detail("DepotDownloader exited abnormally"));
 			}
 
@@ -156,7 +156,7 @@ impl MapFile {
 		let file = File::open(path).await.map_err(|err| {
 			let error = Error::download_workshop_map();
 
-			if config.in_dev() {
+			if config.environment.is_dev() {
 				error
 					.with_message("failed to open map file")
 					.with_detail(err.to_string())
@@ -174,15 +174,9 @@ impl MapFile {
 	pub async fn checksum(&mut self) -> Result<u32> {
 		let mut buf = Vec::new();
 		self.file.read_to_end(&mut buf).await.map_err(|err| {
-			let error = Error::download_workshop_map();
+			audit!(error, "failed to read map file", %err);
 
-			if Config::environment().is_dev() {
-				error
-					.with_message("failed to read map file")
-					.with_detail(err.to_string())
-			} else {
-				error
-			}
+			Error::download_workshop_map()
 		})?;
 
 		Ok(crc32fast::hash(&buf))

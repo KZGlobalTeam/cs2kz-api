@@ -38,7 +38,7 @@ pub async fn update(
 	Path(map_id): Path<u16>,
 	Json(map_update): Json<MapUpdate>,
 ) -> Result<()> {
-	let mut transaction = state.transaction().await?;
+	let mut transaction = state.begin_transaction().await?;
 
 	validate_update(map_id, &map_update, &mut transaction).await?;
 
@@ -64,8 +64,8 @@ pub async fn update(
 		update_name_and_checksum(
 			map_id,
 			workshop_id,
-			state.http(),
-			state.config(),
+			&state.http_client,
+			&state.config,
 			transaction.as_mut(),
 		)
 		.await?;

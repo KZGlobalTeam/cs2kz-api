@@ -43,7 +43,7 @@ pub async fn update_roles(
 		role_flags,
 		steam_id,
 	}
-	.execute(state.database())
+	.execute(&state.database)
 	.await?;
 
 	audit!("updated roles for user", %steam_id, ?roles);

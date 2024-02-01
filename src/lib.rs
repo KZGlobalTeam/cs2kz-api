@@ -1,5 +1,5 @@
+use std::io;
 use std::net::SocketAddr;
-use std::{fmt, io};
 
 use axum::http::{header, HeaderValue, Method};
 use axum::routing::get;
@@ -155,7 +155,7 @@ impl API {
 	/// See [`API::run()`] for starting the server.
 	#[tracing::instrument]
 	pub async fn new(config: Config) -> state::Result<Self> {
-		let tcp_listener = TcpListener::bind(config.socket_addr())
+		let tcp_listener = TcpListener::bind(config.socket_addr)
 			.await
 			.expect("failed to bind to TCP socket");
 
@@ -173,13 +173,13 @@ impl API {
 	}
 
 	/// Runs the [axum] server for the API.
-	#[tracing::instrument]
+	#[tracing::instrument(skip(self))]
 	pub async fn run(self) {
 		let state: &'static _ = Box::leak(Box::new(self.state));
 
 		// FIXME(AlphaKeks)
 		let cors = CorsLayer::new()
-			.allow_origin(if state.in_dev() {
+			.allow_origin(if state.config.environment.is_dev() {
 				"http://127.0.0.1".parse::<HeaderValue>().unwrap()
 			} else {
 				"https://dashboard.cs2.kz".parse::<HeaderValue>().unwrap()
@@ -243,14 +243,6 @@ impl API {
 		Self::openapi()
 			.to_pretty_json()
 			.expect("Failed to format API spec as JSON.")
-	}
-}
-
-impl fmt::Debug for API {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_struct("CS2KZ API")
-			.field("state", &self.state)
-			.finish()
 	}
 }
 

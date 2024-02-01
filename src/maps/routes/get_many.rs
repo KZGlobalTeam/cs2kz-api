@@ -80,7 +80,7 @@ pub async fn get_many(
 			"#,
 		);
 
-		let steam_id = player.to_id(state.database()).await?;
+		let steam_id = player.to_id(&state.database).await?;
 
 		query.push_bind(steam_id).push(")");
 		filter.switch();
@@ -99,7 +99,7 @@ pub async fn get_many(
 
 	let maps = query
 		.build_query_as::<KZMap>()
-		.fetch_all(state.database())
+		.fetch_all(&state.database)
 		.await
 		.map(KZMap::flatten)?
 		.into_iter()

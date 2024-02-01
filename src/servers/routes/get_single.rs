@@ -39,7 +39,7 @@ pub async fn get_single(
 
 	query
 		.build_query_as::<Server>()
-		.fetch_optional(state.database())
+		.fetch_optional(&state.database)
 		.await?
 		.map(Json)
 		.ok_or(Error::no_data())

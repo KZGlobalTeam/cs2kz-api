@@ -26,19 +26,14 @@ pub async fn callback(
 	auth: SteamAuth,
 	cookies: CookieJar,
 ) -> Result<(CookieJar, Redirect)> {
-	let config = state.config();
 	let steam_id = auth.steam_id();
-	let player = Player::fetch(steam_id, &config.steam.api_key, state.http()).await?;
+	let player = Player::fetch(steam_id, &state.config.steam.api_key, &state.http_client).await?;
 
 	trace!(?player, "fetched player from steam");
 
-	let mut transaction = state.transaction().await?;
-	let session = Session::new(steam_id, state.domain(), state.in_prod(), &mut transaction).await?;
-
-	transaction.commit().await?;
-
+	let session = Session::new(steam_id, state).await?;
 	let cookies = cookies
-		.add(player.to_cookie(state.domain(), state.in_prod()))
+		.add(player.to_cookie(&state.config))
 		.add(session.cookie);
 
 	Ok((cookies, Redirect::to(auth.origin_url.as_str())))

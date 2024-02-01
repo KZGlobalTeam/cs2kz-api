@@ -15,7 +15,7 @@ use utoipa::openapi::schema::Schema;
 use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
 use utoipa::ToSchema;
 
-use crate::{audit, state, Config};
+use crate::{audit, state};
 
 pub type Result<T> = StdResult<T, Error>;
 
@@ -163,14 +163,7 @@ impl From<state::Error> for Error {
 			E::MySQL(err) => Self::from(err),
 			E::JsonEncode(err) => {
 				audit!(error, "failed to serialize JSON", %err);
-
-				if Config::environment().is_dev() {
-					Self::bug()
-						.with_message("failed to serialize JSON")
-						.with_detail(err.to_string())
-				} else {
-					Self::bug()
-				}
+				Self::bug()
 			}
 			E::JsonDecode(err) => Self::new(StatusCode::BAD_REQUEST)
 				.with_message("failed to decode JSON")
@@ -180,14 +173,7 @@ impl From<state::Error> for Error {
 			}
 			E::JwtEncode(err) => {
 				audit!(error, "failed to encode JWT", %err);
-
-				if Config::environment().is_dev() {
-					Self::bug()
-						.with_message("failed to encode JWT")
-						.with_detail(err.to_string())
-				} else {
-					Self::bug()
-				}
+				Self::bug()
 			}
 			E::JwtDecode(err) => Self::new(StatusCode::BAD_REQUEST)
 				.with_message("failed to decode JWT")

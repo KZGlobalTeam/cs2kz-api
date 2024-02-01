@@ -57,13 +57,13 @@ impl Player {
 	}
 
 	/// Creates a cookie containing `self` serialized as JSON.
-	pub fn to_cookie(&self, domain: &'static str, secure: bool) -> Cookie<'static> {
+	pub fn to_cookie(&self, config: &'static crate::Config) -> Cookie<'static> {
 		let json = serde_json::to_string(self).expect("this is valid json");
 
 		Cookie::build((Self::COOKIE_NAME, json))
-			.domain(domain)
+			.domain(&config.domain)
 			.path("/")
-			.secure(secure)
+			.secure(config.environment.is_prod())
 			.http_only(false)
 			.permanent()
 			.build()

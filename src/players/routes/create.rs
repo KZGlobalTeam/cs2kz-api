@@ -41,7 +41,7 @@ pub async fn create(
 		player.name,
 		player.ip_address.to_string(),
 	}
-	.execute(state.database())
+	.execute(&state.database)
 	.await
 	.map_err(|err| {
 		if err.is_foreign_key_violation() {

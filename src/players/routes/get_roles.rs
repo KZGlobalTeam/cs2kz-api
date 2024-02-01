@@ -37,7 +37,7 @@ pub async fn get_roles(
 
 	let role_flags = query
 		.build_query_scalar::<u32>()
-		.fetch_optional(state.database())
+		.fetch_optional(&state.database)
 		.await?
 		.map(RoleFlags)
 		.ok_or(Error::no_data())?;

@@ -48,7 +48,7 @@ pub async fn create(
 	// are not mapped out as an enum yet
 	let expires_on = None::<DateTime<Utc>>;
 
-	let mut transaction = state.transaction().await?;
+	let mut transaction = state.begin_transaction().await?;
 
 	let ip_address = match ban.ip_address.map(|addr| addr.to_string()) {
 		Some(addr) => addr,

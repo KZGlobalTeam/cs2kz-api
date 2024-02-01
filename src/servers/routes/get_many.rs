@@ -61,7 +61,7 @@ pub async fn get_many(
 	}
 
 	if let Some(ref player) = params.owner {
-		let steam_id = player.to_id(state.database()).await?;
+		let steam_id = player.to_id(&state.database).await?;
 
 		query
 			.push(filter)
@@ -76,7 +76,7 @@ pub async fn get_many(
 
 	let servers = query
 		.build_query_as::<Server>()
-		.fetch_all(state.database())
+		.fetch_all(&state.database)
 		.await?;
 
 	if servers.is_empty() {

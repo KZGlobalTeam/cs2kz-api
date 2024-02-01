@@ -37,7 +37,7 @@ pub async fn refresh_key(
 		refresh.plugin_version.to_string(),
 		refresh.key,
 	}
-	.fetch_optional(state.database())
+	.fetch_optional(&state.database)
 	.await?
 	.map(|row| Server::new(row.server_id, row.plugin_version_id))
 	.ok_or_else(|| {

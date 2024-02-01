@@ -54,7 +54,7 @@ pub async fn get_many(
 		params.limit,
 		params.offset,
 	}
-	.fetch_all(state.database())
+	.fetch_all(&state.database)
 	.await?;
 
 	if players.is_empty() {

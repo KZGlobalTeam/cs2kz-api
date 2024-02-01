@@ -67,7 +67,7 @@ pub async fn get_many(
 	let mut filter = Filter::new();
 
 	if let Some(ref player) = params.player {
-		let steam_id = player.to_id(state.database()).await?;
+		let steam_id = player.to_id(&state.database).await?;
 
 		query
 			.push(filter)
@@ -87,7 +87,7 @@ pub async fn get_many(
 	}
 
 	if let Some(ref server) = params.server {
-		let server_id = server.to_id(state.database()).await?;
+		let server_id = server.to_id(&state.database).await?;
 
 		query
 			.push(filter)
@@ -98,7 +98,7 @@ pub async fn get_many(
 	}
 
 	if let Some(ref player) = params.banned_by {
-		let steam_id = player.to_id(state.database()).await?;
+		let steam_id = player.to_id(&state.database).await?;
 
 		query
 			.push(filter)
@@ -123,7 +123,7 @@ pub async fn get_many(
 
 	let mut bans = query
 		.build_query_as::<Ban>()
-		.fetch_all(state.database())
+		.fetch_all(&state.database)
 		.await?;
 
 	if bans.is_empty() {

@@ -33,7 +33,7 @@ pub async fn delete_key(state: AppState, Path(server_id): Path<u16>) -> Result<(
 		"#,
 		server_id,
 	}
-	.execute(state.database())
+	.execute(&state.database)
 	.await?;
 
 	if result.rows_affected() == 0 {

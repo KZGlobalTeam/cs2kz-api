@@ -60,7 +60,7 @@ pub async fn get_single(
 
 	query
 		.build_query_as::<KZMap>()
-		.fetch_all(state.database())
+		.fetch_all(&state.database)
 		.await
 		.map(KZMap::flatten)?
 		.into_iter()

@@ -67,9 +67,9 @@ pub async fn create(
 		validate_course(course)?;
 	}
 
-	let mut transaction = state.transaction().await?;
+	let mut transaction = state.begin_transaction().await?;
 
-	let map_id = insert_map(&map, state.http(), state.config(), &mut transaction).await?;
+	let map_id = insert_map(&map, &state.http_client, &state.config, &mut transaction).await?;
 
 	insert_mappers(MappersTable::Map(map_id), &map.mappers, transaction.as_mut()).await?;
 	insert_courses(map_id, &map.courses, &mut transaction).await?;

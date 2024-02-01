@@ -41,7 +41,7 @@ pub async fn replace_key(
 		api_key,
 		server_id,
 	}
-	.execute(state.database())
+	.execute(&state.database)
 	.await?;
 
 	if result.rows_affected() == 0 {

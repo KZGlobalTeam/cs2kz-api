@@ -37,7 +37,7 @@ pub async fn get_single(
 
 	query
 		.build_query_as::<Player>()
-		.fetch_optional(state.database())
+		.fetch_optional(&state.database)
 		.await
 		.map_err(Error::from)?
 		.map(Json)

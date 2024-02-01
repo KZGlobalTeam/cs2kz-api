@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn StdError>> {
 	let config = Config::new()?;
 
 	// Initialize logging.
-	logging::init(config.database(), config.axiom().cloned()).await?;
+	logging::init(&config.database, config.axiom.clone()).await?;
 
 	// Initialize the API.
 	let api = API::new(config).await?;

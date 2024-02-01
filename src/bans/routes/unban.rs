@@ -33,7 +33,7 @@ pub async fn unban(
 	Path(ban_id): Path<u32>,
 	Json(unban): Json<NewUnban>,
 ) -> Result<Created<Json<CreatedUnban>>> {
-	let mut transaction = state.transaction().await?;
+	let mut transaction = state.begin_transaction().await?;
 
 	sqlx::query! {
 		r#"

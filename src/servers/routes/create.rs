@@ -30,7 +30,7 @@ pub async fn create(
 	Extension(session): Extension<Session<{ Role::Bans as u32 }>>,
 	Json(server): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
-	let mut transaction = state.transaction().await?;
+	let mut transaction = state.begin_transaction().await?;
 	let api_key = rand::random::<u32>();
 
 	sqlx::query! {

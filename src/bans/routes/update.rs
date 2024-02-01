@@ -48,7 +48,7 @@ pub async fn update(
 
 	query.push(" WHERE id = ").push_bind(ban_id);
 
-	let result = query.build().execute(state.database()).await?;
+	let result = query.build().execute(&state.database).await?;
 
 	if result.rows_affected() == 0 {
 		return Err(Error::unknown_id("ban", ban_id));

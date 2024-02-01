@@ -1,12 +1,19 @@
-use std::fmt;
-
 use jsonwebtoken::errors::Result;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
+use smart_debug::SmartDebug;
 
+#[derive(SmartDebug)]
 pub struct State {
+	#[debug(skip)]
 	pub header: Header,
+
+	#[debug(skip)]
 	pub encoding_key: EncodingKey,
+
+	#[debug(skip)]
 	pub decoding_key: DecodingKey,
+
+	#[debug(skip)]
 	pub validation: Validation,
 }
 
@@ -18,11 +25,5 @@ impl State {
 		let validation = Validation::default();
 
 		Ok(Self { header, encoding_key, decoding_key, validation })
-	}
-}
-
-impl fmt::Debug for State {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_struct("JWT State").finish()
 	}
 }

@@ -55,7 +55,7 @@ pub async fn get_admins(
 		params.limit,
 		params.offset,
 	}
-	.fetch_all(state.database())
+	.fetch_all(&state.database)
 	.await?
 	.into_iter()
 	.map(|row| Admin {

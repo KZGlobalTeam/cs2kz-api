@@ -54,7 +54,7 @@ impl LoginForm {
 
 	/// Creates a [Redirect] to Steam, which will redirect back to the given `origin_url` after
 	/// a successful login.
-	pub fn origin_url(mut self, origin_url: Url) -> Redirect {
+	pub fn with_origin_url(mut self, origin_url: Url) -> Redirect {
 		self.callback_url
 			.query_pairs_mut()
 			.append_pair("origin_url", origin_url.as_str());
@@ -137,8 +137,8 @@ impl FromRequestParts<&'static crate::State> for Auth {
 	) -> Result<Self> {
 		let Query(mut auth) = Query::<Self>::from_request_parts(parts, state).await?;
 
-		let config = state.config();
-		let api_host = config
+		let api_host = state
+			.config
 			.public_url
 			.host_str()
 			.expect("api url must have a host");
@@ -151,7 +151,7 @@ impl FromRequestParts<&'static crate::State> for Auth {
 
 		let mut is_known_host = origin_host.ends_with(api_host);
 
-		if !is_known_host && state.in_dev() {
+		if !is_known_host && state.config.environment.is_dev() {
 			warn!(%origin_host, %api_host, "allowing mismatching hosts due to dev mode");
 			is_known_host = true;
 		}
@@ -166,7 +166,7 @@ impl FromRequestParts<&'static crate::State> for Auth {
 		let query = serde_urlencoded::to_string(&auth).expect("this is valid");
 
 		let is_valid = state
-			.http()
+			.http_client
 			.post(Self::VERIFY_URL)
 			.header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
 			.body(query)

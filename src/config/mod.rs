@@ -1,8 +1,8 @@
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::env;
+use std::net::{Ipv4Addr, SocketAddrV4};
 use std::str::FromStr;
-use std::sync::OnceLock;
-use std::{env, fmt};
 
+use smart_debug::SmartDebug;
 use url::Url;
 
 mod error;
@@ -16,33 +16,35 @@ pub mod database;
 pub mod jwt;
 pub mod steam;
 
-static ENVIRONMENT: OnceLock<Environment> = OnceLock::new();
-
 /// The API configuration.
+#[derive(SmartDebug)]
 pub struct Config {
 	/// Address to open a TCP socket on.
-	pub(crate) socket_addr: SocketAddrV4,
+	#[debug("`{}`")]
+	pub socket_addr: SocketAddrV4,
 
 	/// The public URL of the API.
-	pub(crate) public_url: Url,
+	#[debug("`{}`")]
+	pub public_url: Url,
 
 	/// Wildcard `Domain` field for HTTP cookies.
-	pub(crate) wildcard_domain: String,
+	#[debug("`{}`")]
+	pub domain: String,
 
 	/// The environment the API is currently running in.
-	pub(crate) environment: Environment,
+	pub environment: Environment,
 
 	/// The API's database configuration.
-	pub(crate) database: database::Config,
+	pub database: database::Config,
 
 	/// The API's axiom configuration.
-	pub(crate) axiom: Option<axiom::Config>,
+	pub axiom: Option<axiom::Config>,
 
 	/// The API's JWT configuration.
-	pub(crate) jwt: jwt::Config,
+	pub jwt: jwt::Config,
 
 	/// The API's Steam configuration.
-	pub(crate) steam: steam::Config,
+	pub steam: steam::Config,
 }
 
 impl Config {
@@ -53,7 +55,7 @@ impl Config {
 		let socket_addr = SocketAddrV4::new(ip_addr, port);
 		let public_url = get_env_var::<Url>("KZ_API_URL")?;
 
-		let wildcard_domain = match public_url.domain() {
+		let domain = match public_url.domain() {
 			Some(domain) => domain_to_wildcard(domain).to_owned(),
 			None => public_url
 				.host_str()
@@ -67,44 +69,16 @@ impl Config {
 		let jwt = jwt::Config::new()?;
 		let steam = steam::Config::new()?;
 
-		ENVIRONMENT
-			.set(environment)
-			.expect("this is the only place we set the value");
-
 		Ok(Self {
 			socket_addr,
 			public_url,
-			wildcard_domain,
+			domain,
 			environment,
 			database,
 			axiom,
 			jwt,
 			steam,
 		})
-	}
-
-	pub fn environment() -> &'static Environment {
-		ENVIRONMENT.get().expect("we set this in the constructor")
-	}
-
-	pub const fn in_dev(&self) -> bool {
-		self.environment.is_dev()
-	}
-
-	pub const fn in_prod(&self) -> bool {
-		self.environment.is_prod()
-	}
-
-	pub const fn socket_addr(&self) -> SocketAddr {
-		SocketAddr::V4(self.socket_addr)
-	}
-
-	pub const fn database(&self) -> &database::Config {
-		&self.database
-	}
-
-	pub const fn axiom(&self) -> Option<&axiom::Config> {
-		self.axiom.as_ref()
 	}
 }
 
@@ -141,19 +115,4 @@ fn domain_to_wildcard(mut domain: &str) -> &str {
 	}
 
 	domain
-}
-
-impl fmt::Debug for Config {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_struct("CS2KZ API Config")
-			.field("socket_addr", &format_args!("{}", self.socket_addr))
-			.field("public_url", &format_args!("{}", self.public_url))
-			.field("wildcard_domain", &format_args!("{}", self.wildcard_domain))
-			.field("environment", &self.environment)
-			.field("database", &self.database)
-			.field("axiom", &self.axiom)
-			.field("jwt", &self.jwt)
-			.field("steam", &self.steam)
-			.finish()
-	}
 }

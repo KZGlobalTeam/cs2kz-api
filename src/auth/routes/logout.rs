@@ -36,13 +36,13 @@ pub async fn logout(
 	mut session: Session,
 	Query(logout): Query<Logout>,
 ) -> Result<(Session, Redirect)> {
-	session.invalidate(logout.all, state.database()).await?;
+	session.invalidate(logout.all, &state.database).await?;
 
 	let redirect = logout
 		.return_to
 		.as_ref()
 		.map(|url| Redirect::to(url.as_str()))
-		.unwrap_or_else(|| Redirect::to(state.config().public_url.as_str()));
+		.unwrap_or_else(|| Redirect::to(state.config.public_url.as_str()));
 
 	Ok((session, redirect))
 }
