@@ -1,4 +1,4 @@
-use axum::{Extension, Json};
+use axum::Json;
 
 use crate::auth::{Role, Session};
 use crate::responses::Created;
@@ -26,7 +26,7 @@ use crate::{audit, responses, AppState, Error, Result};
 )]
 pub async fn create(
 	state: AppState,
-	Extension(session): Extension<Session<{ Role::Bans as u32 }>>,
+	session: Session<{ Role::Servers as u32 }>,
 	Json(server): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
 	let mut transaction = state.begin_transaction().await?;

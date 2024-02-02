@@ -139,7 +139,13 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static State> for Session<REQ
 		parts: &mut request::Parts,
 		state: &&'static State,
 	) -> Result<Self> {
-		let (mut cookie, session_token) = dbg!(parts.headers.get_all(header::COOKIE))
+		if let Some(session) = parts.extensions.remove::<Self>() {
+			return Ok(session);
+		}
+
+		let (mut cookie, session_token) = parts
+			.headers
+			.get_all(header::COOKIE)
 			.into_iter()
 			.flat_map(|value| value.to_str())
 			.flat_map(|value| value.split(';'))

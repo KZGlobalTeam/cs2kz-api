@@ -1,5 +1,5 @@
 use axum::extract::Path;
-use axum::{Extension, Json};
+use axum::Json;
 
 use crate::auth::{Role, Session};
 use crate::bans::{CreatedUnban, NewUnban};
@@ -28,7 +28,7 @@ use crate::{audit, responses, AppState, Error, Result};
 )]
 pub async fn unban(
 	state: AppState,
-	Extension(session): Extension<Session<{ Role::Bans as u32 }>>,
+	session: Session<{ Role::Bans as u32 }>,
 	Path(ban_id): Path<u32>,
 	Json(unban): Json<NewUnban>,
 ) -> Result<Created<Json<CreatedUnban>>> {

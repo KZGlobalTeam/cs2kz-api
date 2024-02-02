@@ -1,4 +1,4 @@
-use axum::{Extension, Json};
+use axum::Json;
 use serde_json::json;
 
 use crate::auth::{Jwt, Role, Server, Session};
@@ -32,7 +32,7 @@ use crate::{audit, responses, AppState, Error, Result};
 pub async fn create(
 	state: AppState,
 	server: Option<Jwt<Server>>,
-	session: Option<Extension<Session<{ Role::Bans as u32 }>>>,
+	session: Option<Session<{ Role::Bans as u32 }>>,
 	Json(ban): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
 	if server.is_none() && session.is_none() {
