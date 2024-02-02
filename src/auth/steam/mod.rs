@@ -1,3 +1,4 @@
+use axum::http::Method;
 use axum::routing::get;
 use axum::Router;
 
@@ -11,6 +12,6 @@ pub mod routes;
 pub fn router(state: &'static State) -> Router {
 	Router::new()
 		.route("/callback", get(routes::callback))
-		.route_layer(cors::get())
+		.route_layer(cors::permissive(Method::GET))
 		.with_state(state)
 }

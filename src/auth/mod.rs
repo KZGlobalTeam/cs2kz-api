@@ -1,3 +1,4 @@
+use axum::http::Method;
 use axum::routing::get;
 use axum::Router;
 
@@ -27,7 +28,7 @@ pub fn router(state: &'static State) -> Router {
 	Router::new()
 		.route("/login", get(routes::login))
 		.route("/logout", get(routes::logout))
-		.route_layer(cors::get())
+		.route_layer(cors::permissive(Method::GET))
 		.with_state(state)
 		.nest("/steam", steam::router(state))
 }
