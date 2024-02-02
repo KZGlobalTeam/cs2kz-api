@@ -1,8 +1,9 @@
+use axum::http::Method;
 use axum::routing::{delete, get, patch, post};
 use axum::Router;
 
 use crate::auth::Role;
-use crate::{middleware, State};
+use crate::{cors, middleware, State};
 
 mod queries;
 
@@ -21,9 +22,14 @@ pub fn router(state: &'static State) -> Router {
 
 	Router::new()
 		.route("/", get(routes::get_many))
-		.route("/", post(routes::create).layer(auth()))
+		.route_layer(cors::get())
+		.route("/", post(routes::create).route_layer(auth()))
+		.route_layer(cors::dashboard(Method::POST))
 		.route("/:id", get(routes::get_single))
-		.route("/:id", patch(routes::update).layer(auth()))
-		.route("/:id", delete(routes::unban).layer(auth()))
+		.route_layer(cors::get())
+		.route("/:id", patch(routes::update).route_layer(auth()))
+		.route_layer(cors::dashboard(Method::PATCH))
+		.route("/:id", delete(routes::unban).route_layer(auth()))
+		.route_layer(cors::dashboard(Method::DELETE))
 		.with_state(state)
 }

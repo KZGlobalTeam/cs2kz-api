@@ -13,7 +13,13 @@ use crate::sqlx::SqlErrorExt;
 use crate::steam::workshop;
 use crate::{audit, responses, AppState, Error, Result};
 
-/// Approve a new map or update an existing one with breaking changes.
+/// Create or update a map.
+///
+/// Updates via this endpoint are considered to be breaking changes and will invalidate older
+/// versions of the supplied map (if any).
+///
+/// Different versions of "the same" map are determined by their name. If you want to update
+/// just the metadata of a map, use `PATCH /maps/{map_id}` instead.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   put,
@@ -24,9 +30,9 @@ use crate::{audit, responses, AppState, Error, Result};
     responses::Created<CreatedMap>,
     responses::BadRequest,
     responses::Unauthorized,
-    responses::Forbidden,
     responses::UnprocessableEntity,
     responses::InternalServerError,
+    responses::BadGateway,
   ),
   security(
     ("Steam Session" = ["maps"]),

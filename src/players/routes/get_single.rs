@@ -6,7 +6,7 @@ use sqlx::QueryBuilder;
 use crate::players::Player;
 use crate::{responses, AppState, Error, Result};
 
-/// Get a specific player by SteamID or name.
+/// Fetch a specific player.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -14,7 +14,7 @@ use crate::{responses, AppState, Error, Result};
   path = "/players/{player}",
   params(PlayerIdentifier<'_>),
   responses(
-    responses::Ok<()>,
+    responses::Ok<Player>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,

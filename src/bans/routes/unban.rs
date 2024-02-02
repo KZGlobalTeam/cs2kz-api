@@ -7,7 +7,7 @@ use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
 use crate::{audit, responses, AppState, Error, Result};
 
-/// Player Unbans.
+/// Revert a ban.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   delete,
@@ -19,7 +19,6 @@ use crate::{audit, responses, AppState, Error, Result};
     responses::Created<CreatedUnban>,
     responses::BadRequest,
     responses::Unauthorized,
-    responses::Forbidden,
     responses::UnprocessableEntity,
     responses::InternalServerError,
   ),

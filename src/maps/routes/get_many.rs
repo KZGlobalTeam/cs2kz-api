@@ -24,9 +24,7 @@ pub struct GetMapsParams<'a> {
 	/// This can be either a SteamID or name.
 	pub mapper: Option<PlayerIdentifier<'a>>,
 
-	/// Filter by [global status].
-	///
-	/// [global status]: GlobalStatus
+	/// Filter by global status.
 	pub global_status: Option<GlobalStatus>,
 
 	/// Maximum amount of results.
@@ -36,7 +34,7 @@ pub struct GetMapsParams<'a> {
 	pub offset: Offset,
 }
 
-/// Officially approved KZ maps.
+/// Fetch globally approved maps.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,

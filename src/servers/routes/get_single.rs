@@ -6,7 +6,7 @@ use sqlx::QueryBuilder;
 use crate::servers::{queries, Server};
 use crate::{responses, AppState, Error, Result};
 
-/// Fetch a single server by ID or name.
+/// Fetch a single registered CS2 server.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,

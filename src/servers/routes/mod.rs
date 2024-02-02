@@ -15,3 +15,6 @@ pub use replace_key::replace_key;
 
 pub mod delete_key;
 pub use delete_key::delete_key;
+
+pub mod create_jwt;
+pub use create_jwt::create_jwt;

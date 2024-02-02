@@ -30,7 +30,7 @@ pub struct GetServersParams<'a> {
 	pub offset: Offset,
 }
 
-/// Officially approved KZ servers.
+/// Fetch registered CS2 servers.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,

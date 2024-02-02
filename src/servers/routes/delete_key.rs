@@ -1,9 +1,12 @@
 use axum::extract::Path;
 
-use crate::{audit, responses, AppState, Error, Result};
+use crate::responses::{self, NoContent};
+use crate::{audit, AppState, Error, Result};
 
-/// Delete a server's API Key. This effectively deglobals the server until an admin generates a new
-/// key again.
+/// Delete a CS2 server's API key.
+///
+/// The server owner cannot generate a new one, so this effectively disables their server until an
+/// admin generates a new key.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   delete,
@@ -11,17 +14,16 @@ use crate::{audit, responses, AppState, Error, Result};
   path = "/servers/{server_id}/key",
   params(("server_id" = u16, Path, description = "The server's ID")),
   responses(
-    responses::Ok<()>,
+    responses::NoContent,
     responses::BadRequest,
     responses::Unauthorized,
-    responses::Forbidden,
     responses::InternalServerError,
   ),
   security(
     ("Steam Session" = ["servers"]),
   ),
 )]
-pub async fn delete_key(state: AppState, Path(server_id): Path<u16>) -> Result<()> {
+pub async fn delete_key(state: AppState, Path(server_id): Path<u16>) -> Result<NoContent> {
 	let result = sqlx::query! {
 		r#"
 		UPDATE
@@ -42,5 +44,5 @@ pub async fn delete_key(state: AppState, Path(server_id): Path<u16>) -> Result<(
 
 	audit!("deleted API key for server", id = %server_id);
 
-	Ok(())
+	Ok(NoContent)
 }

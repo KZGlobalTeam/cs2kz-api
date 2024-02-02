@@ -5,7 +5,7 @@ use crate::responses::Created;
 use crate::servers::CreatedServer;
 use crate::{audit, responses, AppState, Error, Result};
 
-/// Replace the key for a specific server with a new, random, one.
+/// Generate a new API key for a registered CS2 server.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   put,
@@ -14,9 +14,9 @@ use crate::{audit, responses, AppState, Error, Result};
   params(("server_id" = u16, Path, description = "The server's ID")),
   responses(
     responses::Created<CreatedServer>,
-    responses::Unauthorized,
-    responses::Forbidden,
     responses::BadRequest,
+    responses::Unauthorized,
+    responses::UnprocessableEntity,
     responses::InternalServerError,
   ),
   security(

@@ -21,7 +21,7 @@
         ],
         "summary": "The API is up and running!",
         "description": "The API is up and running!",
-        "operationId": "hello_world",
+        "operationId": "status",
         "responses": {
           "200": {
             "description": "(͡ ͡° ͜ つ ͡͡°)"
@@ -29,382 +29,13 @@
         }
       }
     },
-    "/players": {
-      "get": {
-        "tags": [
-          "Players"
-        ],
-        "summary": "Players who have joined officially approved KZ servers.",
-        "description": "Players who have joined officially approved KZ servers.",
-        "operationId": "get_many",
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "query",
-            "description": "Maximum amount of results.",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "nullable": true,
-              "maximum": 1000,
-              "minimum": 0
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "description": "Offset used for pagination.",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "nullable": true
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "steam_id",
-                    "name",
-                    "is_banned"
-                  ],
-                  "properties": {
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "The player's latest known name."
-                    },
-                    "is_banned": {
-                      "type": "boolean",
-                      "description": "Whether this player is currently banned."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": ""
-          },
-          "500": {
-            "description": "Something unexpected happened. This is a bug; please report it."
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Players"
-        ],
-        "summary": "This route is used by CS2 servers for registering new players who are playing KZ for the very",
-        "description": "This route is used by CS2 servers for registering new players who are playing KZ for the very\nfirst time.",
-        "operationId": "create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPlayer"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "400": {
-            "description": ""
-          },
-          "422": {
-            "description": ""
-          },
-          "500": {
-            "description": "Something unexpected happened. This is a bug; please report it."
-          }
-        },
-        "security": [
-          {
-            "CS2 Server JWT": []
-          }
-        ]
-      }
-    },
-    "/players/admins": {
-      "get": {
-        "tags": [
-          "Players"
-        ],
-        "summary": "Players who have joined officially approved KZ servers.",
-        "description": "Players who have joined officially approved KZ servers.",
-        "operationId": "get_admins",
-        "parameters": [
-          {
-            "name": "limit",
-            "in": "path",
-            "description": "Maximum amount of results.",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "nullable": true,
-              "maximum": 1000,
-              "minimum": 0
-            }
-          },
-          {
-            "name": "offset",
-            "in": "path",
-            "description": "Offset used for pagination.",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int64",
-              "nullable": true
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "steam_id",
-                    "name",
-                    "roles"
-                  ],
-                  "properties": {
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "The player's latest known name."
-                    },
-                    "roles": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Role"
-                      },
-                      "description": "The player's roles."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": ""
-          },
-          "500": {
-            "description": "Something unexpected happened. This is a bug; please report it."
-          }
-        }
-      }
-    },
-    "/players/{player}": {
-      "get": {
-        "tags": [
-          "Players"
-        ],
-        "summary": "Get a specific player by SteamID or name.",
-        "description": "Get a specific player by SteamID or name.",
-        "operationId": "get_single",
-        "parameters": [
-          {
-            "name": "player",
-            "in": "path",
-            "description": "A player's SteamID or Name",
-            "required": false,
-            "schema": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/SteamID"
-                },
-                {
-                  "type": "string"
-                }
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": ""
-          },
-          "500": {
-            "description": "Something unexpected happened. This is a bug; please report it."
-          }
-        }
-      }
-    },
-    "/players/{player}/roles": {
-      "get": {
-        "tags": [
-          "Players"
-        ],
-        "summary": "Get a specific player by SteamID or name.",
-        "description": "Get a specific player by SteamID or name.",
-        "operationId": "get_roles",
-        "parameters": [
-          {
-            "name": "player",
-            "in": "path",
-            "description": "A player's SteamID or Name",
-            "required": false,
-            "schema": {
-              "oneOf": [
-                {
-                  "$ref": "#/components/schemas/SteamID"
-                },
-                {
-                  "type": "string"
-                }
-              ]
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string",
-                  "enum": [
-                    "bans",
-                    "servers",
-                    "maps",
-                    "admin"
-                  ]
-                }
-              }
-            }
-          },
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": ""
-          },
-          "500": {
-            "description": "Something unexpected happened. This is a bug; please report it."
-          }
-        }
-      }
-    },
-    "/players/{steam_id}/roles": {
-      "put": {
-        "tags": [
-          "Players"
-        ],
-        "summary": "Overwrites the roles of the specified player.",
-        "description": "Overwrites the roles of the specified player.",
-        "operationId": "update_roles",
-        "parameters": [
-          {
-            "name": "steam_id",
-            "in": "path",
-            "description": "",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/Role"
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
-          },
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": ""
-          },
-          "401": {
-            "description": ""
-          },
-          "500": {
-            "description": "Something unexpected happened. This is a bug; please report it."
-          }
-        },
-        "security": [
-          {
-            "Steam Session": [
-              "admin"
-            ]
-          }
-        ]
-      }
-    },
     "/maps": {
       "get": {
         "tags": [
           "Maps"
         ],
-        "summary": "Officially approved KZ maps.",
-        "description": "Officially approved KZ maps.",
+        "summary": "Fetch globally approved maps.",
+        "description": "Fetch globally approved maps.",
         "operationId": "get_many",
         "parameters": [
           {
@@ -434,7 +65,7 @@
           {
             "name": "global_status",
             "in": "query",
-            "description": "Filter by [global status].\n\n[global status]: GlobalStatus",
+            "description": "Filter by global status.",
             "required": false,
             "schema": {
               "allOf": [
@@ -511,7 +142,7 @@
                       "items": {
                         "$ref": "#/components/schemas/Course"
                       },
-                      "description": "List of [`Course`]s which are part of this map."
+                      "description": "List of courses which are part of this map."
                     },
                     "global_status": {
                       "$ref": "#/components/schemas/GlobalStatus"
@@ -552,8 +183,8 @@
         "tags": [
           "Maps"
         ],
-        "summary": "Approve a new map or update an existing one with breaking changes.",
-        "description": "Approve a new map or update an existing one with breaking changes.",
+        "summary": "Create or update a map.",
+        "description": "Create or update a map.\n\nUpdates via this endpoint are considered to be breaking changes and will invalidate older\nversions of the supplied map (if any).\n\nDifferent versions of \"the same\" map are determined by their name. If you want to update\njust the metadata of a map, use `PATCH /maps/{map_id}` instead.",
         "operationId": "create",
         "requestBody": {
           "content": {
@@ -572,7 +203,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A newly created [`KZMap`].",
+                  "description": "A newly created map.",
                   "required": [
                     "map_id"
                   ],
@@ -594,14 +225,14 @@
           "401": {
             "description": ""
           },
-          "403": {
-            "description": ""
-          },
           "422": {
             "description": ""
           },
           "500": {
             "description": "Something unexpected happened. This is a bug; please report it."
+          },
+          "502": {
+            "description": "Communication with an external service failed (e.g. Steam)."
           }
         },
         "security": [
@@ -618,8 +249,8 @@
         "tags": [
           "Maps"
         ],
-        "summary": "Fetch a single map by ID or name.",
-        "description": "Fetch a single map by ID or name.",
+        "summary": "Fetch a single map.",
+        "description": "Fetch a single map.",
         "operationId": "get_single",
         "parameters": [
           {
@@ -643,7 +274,7 @@
           {
             "name": "global_status",
             "in": "query",
-            "description": "Filter by [global status].\n\n[global status]: GlobalStatus",
+            "description": "Filter by global status.",
             "required": false,
             "schema": {
               "allOf": [
@@ -702,7 +333,7 @@
                       "items": {
                         "$ref": "#/components/schemas/Course"
                       },
-                      "description": "List of [`Course`]s which are part of this map."
+                      "description": "List of courses which are part of this map."
                     },
                     "global_status": {
                       "$ref": "#/components/schemas/GlobalStatus"
@@ -745,8 +376,8 @@
         "tags": [
           "Maps"
         ],
-        "summary": "Update a map with non-breaking changes.",
-        "description": "Update a map with non-breaking changes.",
+        "summary": "Update metadata for a map.",
+        "description": "Update metadata for a map.",
         "operationId": "update",
         "parameters": [
           {
@@ -772,16 +403,8 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
+          "204": {
+            "description": ""
           },
           "400": {
             "description": ""
@@ -789,14 +412,14 @@
           "401": {
             "description": ""
           },
-          "403": {
-            "description": ""
-          },
           "422": {
             "description": ""
           },
           "500": {
             "description": "Something unexpected happened. This is a bug; please report it."
+          },
+          "502": {
+            "description": "Communication with an external service failed (e.g. Steam)."
           }
         },
         "security": [
@@ -813,8 +436,8 @@
         "tags": [
           "Servers"
         ],
-        "summary": "Officially approved KZ servers.",
-        "description": "Officially approved KZ servers.",
+        "summary": "Fetch registered CS2 servers.",
+        "description": "Fetch registered CS2 servers.",
         "operationId": "get_many",
         "parameters": [
           {
@@ -913,8 +536,8 @@
         "tags": [
           "Servers"
         ],
-        "summary": "Approve a new KZ server.",
-        "description": "Approve a new KZ server.",
+        "summary": "Register a new CS2 server.",
+        "description": "Register a new CS2 server.",
         "operationId": "create",
         "requestBody": {
           "content": {
@@ -933,7 +556,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A newly created [`Server`].",
+                  "description": "A newly registered CS2 server.",
                   "required": [
                     "server_id",
                     "api_key"
@@ -962,9 +585,6 @@
           "401": {
             "description": ""
           },
-          "403": {
-            "description": ""
-          },
           "422": {
             "description": ""
           },
@@ -986,8 +606,8 @@
         "tags": [
           "Servers"
         ],
-        "summary": "Fetch a single server by ID or name.",
-        "description": "Fetch a single server by ID or name.",
+        "summary": "Fetch a single registered CS2 server.",
+        "description": "Fetch a single registered CS2 server.",
         "operationId": "get_single",
         "parameters": [
           {
@@ -1064,8 +684,8 @@
         "tags": [
           "Servers"
         ],
-        "summary": "Update a server.",
-        "description": "Update a server.",
+        "summary": "Update a registered CS2 server.",
+        "description": "Update a registered CS2 server.",
         "operationId": "update",
         "parameters": [
           {
@@ -1091,24 +711,13 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
+          "204": {
+            "description": ""
           },
           "400": {
             "description": ""
           },
           "401": {
-            "description": ""
-          },
-          "403": {
             "description": ""
           },
           "422": {
@@ -1132,8 +741,8 @@
         "tags": [
           "Servers"
         ],
-        "summary": "Replace the key for a specific server with a new, random, one.",
-        "description": "Replace the key for a specific server with a new, random, one.",
+        "summary": "Generate a new API key for a registered CS2 server.",
+        "description": "Generate a new API key for a registered CS2 server.",
         "operationId": "replace_key",
         "parameters": [
           {
@@ -1155,7 +764,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A newly created [`Server`].",
+                  "description": "A newly registered CS2 server.",
                   "required": [
                     "server_id",
                     "api_key"
@@ -1184,7 +793,7 @@
           "401": {
             "description": ""
           },
-          "403": {
+          "422": {
             "description": ""
           },
           "500": {
@@ -1203,8 +812,8 @@
         "tags": [
           "Servers"
         ],
-        "summary": "Delete a server's API Key. This effectively deglobals the server until an admin generates a new",
-        "description": "Delete a server's API Key. This effectively deglobals the server until an admin generates a new\nkey again.",
+        "summary": "Delete a CS2 server's API key.",
+        "description": "Delete a CS2 server's API key.\n\nThe server owner cannot generate a new one, so this effectively disables their server until an\nadmin generates a new key.",
         "operationId": "delete_key",
         "parameters": [
           {
@@ -1220,7 +829,121 @@
           }
         ],
         "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "401": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        },
+        "security": [
+          {
+            "Steam Session": [
+              "servers"
+            ]
+          }
+        ]
+      }
+    },
+    "/players": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Fetch players who have joined a KZ server before.",
+        "description": "Fetch players who have joined a KZ server before.",
+        "operationId": "get_many",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum amount of results.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "nullable": true,
+              "maximum": 1000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Offset used for pagination.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
           "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "steam_id",
+                    "name",
+                    "is_banned"
+                  ],
+                  "properties": {
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The player's latest known name."
+                    },
+                    "is_banned": {
+                      "type": "boolean",
+                      "description": "Whether this player is currently banned."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Register a new player.",
+        "description": "Register a new player.\n\nIt is only usable by CS2 servers and will return an error for existing players.",
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewPlayer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
             "description": "",
             "content": {
               "application/json": {
@@ -1237,7 +960,10 @@
           "401": {
             "description": ""
           },
-          "403": {
+          "409": {
+            "description": ""
+          },
+          "422": {
             "description": ""
           },
           "500": {
@@ -1246,11 +972,76 @@
         },
         "security": [
           {
-            "Steam Session": [
-              "servers"
-            ]
+            "CS2 Server JWT": []
           }
         ]
+      }
+    },
+    "/players/{player}": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Fetch a specific player.",
+        "description": "Fetch a specific player.",
+        "operationId": "get_single",
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "description": "A player's SteamID or Name",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/SteamID"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "steam_id",
+                    "name",
+                    "is_banned"
+                  ],
+                  "properties": {
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The player's latest known name."
+                    },
+                    "is_banned": {
+                      "type": "boolean",
+                      "description": "Whether this player is currently banned."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        }
       }
     },
     "/bans": {
@@ -1258,8 +1049,8 @@
         "tags": [
           "Bans"
         ],
-        "summary": "Player Bans.",
-        "description": "Player Bans.",
+        "summary": "Fetch bans.",
+        "description": "Fetch bans.",
         "operationId": "get_many",
         "parameters": [
           {
@@ -1432,7 +1223,7 @@
           "Bans"
         ],
         "summary": "Ban a player.",
-        "description": "Ban a player.",
+        "description": "Ban a player.\n\nRequests with a SteamID of a player who is already banned will fail. Use `PATCH /bans/{ban_id}`\nto update existing bans.",
         "operationId": "create",
         "requestBody": {
           "description": "",
@@ -1452,7 +1243,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A newly created [`Ban`].",
+                  "description": "A newly created ban.",
                   "required": [
                     "ban_id"
                   ],
@@ -1474,7 +1265,7 @@
           "401": {
             "description": ""
           },
-          "403": {
+          "409": {
             "description": ""
           },
           "422": {
@@ -1501,8 +1292,8 @@
         "tags": [
           "Bans"
         ],
-        "summary": "Get a specific ban by ID.",
-        "description": "Get a specific ban by ID.",
+        "summary": "Fetch a specific ban.",
+        "description": "Fetch a specific ban.",
         "operationId": "get_single",
         "parameters": [
           {
@@ -1605,8 +1396,8 @@
         "tags": [
           "Bans"
         ],
-        "summary": "Update an existing ban.",
-        "description": "Update an existing ban.",
+        "summary": "Update a ban.",
+        "description": "Update a ban.",
         "operationId": "update",
         "parameters": [
           {
@@ -1632,24 +1423,13 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "default": null,
-                  "nullable": true
-                }
-              }
-            }
+          "204": {
+            "description": ""
           },
           "400": {
             "description": ""
           },
           "401": {
-            "description": ""
-          },
-          "403": {
             "description": ""
           },
           "422": {
@@ -1671,8 +1451,8 @@
         "tags": [
           "Bans"
         ],
-        "summary": "Player Unbans.",
-        "description": "Player Unbans.",
+        "summary": "Revert a ban.",
+        "description": "Revert a ban.",
         "operationId": "unban",
         "parameters": [
           {
@@ -1704,7 +1484,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A newly created Unban.",
+                  "description": "A newly reverted ban.",
                   "required": [
                     "unban_id"
                   ],
@@ -1726,9 +1506,6 @@
           "401": {
             "description": ""
           },
-          "403": {
-            "description": ""
-          },
           "422": {
             "description": ""
           },
@@ -1745,13 +1522,222 @@
         ]
       }
     },
+    "/admins": {
+      "get": {
+        "tags": [
+          "Admins"
+        ],
+        "summary": "Fetch users with elevated permissions.",
+        "description": "Fetch users with elevated permissions.",
+        "operationId": "get_many",
+        "parameters": [
+          {
+            "name": "roles",
+            "in": "query",
+            "description": "Only include admins with these roles.",
+            "required": false,
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/Role"
+              }
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum amount of results.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "nullable": true,
+              "maximum": 1000,
+              "minimum": 0
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Offset used for pagination.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "nullable": true
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "steam_id",
+                    "roles"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The admin's latest known name."
+                    },
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Role"
+                      },
+                      "description": "The admin's roles."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        }
+      }
+    },
+    "/admins/{steam_id}": {
+      "get": {
+        "tags": [
+          "Admins"
+        ],
+        "summary": "Fetch a specific user with elevated permissions.",
+        "description": "Fetch a specific user with elevated permissions.",
+        "operationId": "get_single",
+        "parameters": [
+          {
+            "name": "steam_id",
+            "in": "path",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "steam_id",
+                    "roles"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "The admin's latest known name."
+                    },
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Role"
+                      },
+                      "description": "The admin's roles."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admins"
+        ],
+        "summary": "Create or update admins.",
+        "description": "Create or update admins.\n\nUpdates are idempotent, so the user's roles will be replaced completely by the roles supplied\nin the request body.",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "steam_id",
+            "in": "path",
+            "description": "",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Role"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "401": {
+            "description": ""
+          },
+          "422": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        },
+        "security": [
+          {
+            "Steam Session": [
+              "admin"
+            ]
+          }
+        ]
+      }
+    },
     "/auth/login": {
       "get": {
         "tags": [
           "Auth"
         ],
-        "summary": "Redirects the user to Steam to log in, and then back to `return_to` after a successful",
-        "description": "Redirects the user to Steam to log in, and then back to `return_to` after a successful\nlogin.",
+        "summary": "Login with Steam.",
+        "description": "Login with Steam.",
         "operationId": "login",
         "parameters": [
           {
@@ -1771,6 +1757,9 @@
           },
           "400": {
             "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
           }
         }
       }
@@ -1780,8 +1769,8 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Invalidates the user's current session and clears out any cookies.",
-        "description": "Invalidates the user's current session and clears out any cookies.",
+        "summary": "Log out.",
+        "description": "Log out.\n\n**This will only invalidate your current session.**\nIf you wish to invalidate **all** previous sessions, set `all=true`.",
         "operationId": "logout",
         "parameters": [
           {
@@ -1806,15 +1795,6 @@
           }
         ],
         "responses": {
-          "303": {
-            "description": ""
-          },
-          "400": {
-            "description": ""
-          },
-          "401": {
-            "description": ""
-          },
           "500": {
             "description": "Something unexpected happened. This is a bug; please report it."
           }
@@ -1826,6 +1806,8 @@
         "tags": [
           "Auth"
         ],
+        "summary": "This endpoint will be used by Steam during the login process (see `GET /auth/login`).",
+        "description": "This endpoint will be used by Steam during the login process (see `GET /auth/login`).",
         "operationId": "callback",
         "parameters": [
           {
@@ -1931,52 +1913,6 @@
           "401": {
             "description": ""
           },
-          "403": {
-            "description": ""
-          },
-          "500": {
-            "description": "Something unexpected happened. This is a bug; please report it."
-          }
-        }
-      }
-    },
-    "/auth/servers/refresh_key": {
-      "put": {
-        "tags": [
-          "Auth"
-        ],
-        "operationId": "refresh_key",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RefreshToken"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "string",
-                  "description": "JWT for server authentication."
-                }
-              }
-            }
-          },
-          "400": {
-            "description": ""
-          },
-          "401": {
-            "description": ""
-          },
-          "422": {
-            "description": ""
-          },
           "500": {
             "description": "Something unexpected happened. This is a bug; please report it."
           }
@@ -1989,24 +1925,24 @@
       "Admin": {
         "type": "object",
         "required": [
-          "steam_id",
           "name",
+          "steam_id",
           "roles"
         ],
         "properties": {
-          "steam_id": {
-            "$ref": "#/components/schemas/SteamID"
-          },
           "name": {
             "type": "string",
-            "description": "The player's latest known name."
+            "description": "The admin's latest known name."
+          },
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
           },
           "roles": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Role"
             },
-            "description": "The player's roles."
+            "description": "The admin's roles."
           }
         }
       },
@@ -2077,7 +2013,7 @@
       },
       "BanUpdate": {
         "type": "object",
-        "description": "An update to a [`Ban`].",
+        "description": "An update to a ban.",
         "properties": {
           "reason": {
             "type": "string",
@@ -2171,17 +2107,17 @@
           "id": {
             "type": "integer",
             "format": "uint32",
-            "description": "The course's [`id`].\n\n[`id`]: Course::id",
+            "description": "The course's ID.",
             "minimum": 0
           },
           "name": {
             "type": "string",
-            "description": "New [name] for the course.\n\n[name]: Course::name",
+            "description": "New name for the course.",
             "nullable": true
           },
           "description": {
             "type": "string",
-            "description": "New [description] for the course.\n\n[description]: Course::description",
+            "description": "New description for the course.",
             "nullable": true
           },
           "added_mappers": {
@@ -2205,14 +2141,14 @@
             "items": {
               "$ref": "#/components/schemas/FilterUpdate"
             },
-            "description": "List of updates to [`Filter`]s.",
+            "description": "List of updates to filters.",
             "nullable": true
           }
         }
       },
       "CreatedBan": {
         "type": "object",
-        "description": "A newly created [`Ban`].",
+        "description": "A newly created ban.",
         "required": [
           "ban_id"
         ],
@@ -2227,7 +2163,7 @@
       },
       "CreatedServer": {
         "type": "object",
-        "description": "A newly created [`Server`].",
+        "description": "A newly registered CS2 server.",
         "required": [
           "server_id",
           "api_key"
@@ -2249,7 +2185,7 @@
       },
       "CreatedUnban": {
         "type": "object",
-        "description": "A newly created Unban.",
+        "description": "A newly reverted ban.",
         "required": [
           "unban_id"
         ],
@@ -2313,7 +2249,7 @@
       },
       "FilterUpdate": {
         "type": "object",
-        "description": "An update to a [`Filter`].",
+        "description": "An update to a course filter.",
         "required": [
           "id"
         ],
@@ -2321,7 +2257,7 @@
           "id": {
             "type": "integer",
             "format": "uint32",
-            "description": "The filter's [`id`].\n\n[`id`]: Filter::id",
+            "description": "The filter's ID.",
             "minimum": 0
           },
           "tier": {
@@ -2342,7 +2278,7 @@
           },
           "notes": {
             "type": "string",
-            "description": "New [notes] for the course.\n\n[notes]: Filter::notes",
+            "description": "New notes for the course.",
             "nullable": true
           }
         }
@@ -2409,7 +2345,7 @@
             "items": {
               "$ref": "#/components/schemas/Course"
             },
-            "description": "List of [`Course`]s which are part of this map."
+            "description": "List of courses which are part of this map."
           },
           "global_status": {
             "$ref": "#/components/schemas/GlobalStatus"
@@ -2452,7 +2388,7 @@
       },
       "MapUpdate": {
         "type": "object",
-        "description": "An update to a [`KZMap`].",
+        "description": "An update to a map.",
         "properties": {
           "global_status": {
             "allOf": [
@@ -2738,25 +2674,6 @@
           "unranked",
           "ranked"
         ]
-      },
-      "RefreshToken": {
-        "type": "object",
-        "required": [
-          "key",
-          "plugin_version"
-        ],
-        "properties": {
-          "key": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "The server's API key.",
-            "minimum": 0
-          },
-          "plugin_version": {
-            "type": "string",
-            "description": "Semver cs2kz plugin version the server is currently running."
-          }
-        }
       },
       "Role": {
         "type": "string",

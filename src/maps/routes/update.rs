@@ -10,10 +10,11 @@ use tracing::trace;
 
 use crate::database::{GlobalStatus, RankedStatus};
 use crate::maps::{CourseUpdate, FilterUpdate, MapUpdate, MappersTable};
+use crate::responses::NoContent;
 use crate::steam::workshop;
 use crate::{audit, query, responses, AppState, Error, Result};
 
-/// Update a map with non-breaking changes.
+/// Update metadata for a map.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   patch,
@@ -22,12 +23,12 @@ use crate::{audit, query, responses, AppState, Error, Result};
   params(("map_id" = u16, Path, description = "The map's ID")),
   request_body = MapUpdate,
   responses(
-    responses::Ok<()>,
+    responses::NoContent,
     responses::BadRequest,
     responses::Unauthorized,
-    responses::Forbidden,
     responses::UnprocessableEntity,
     responses::InternalServerError,
+    responses::BadGateway,
   ),
   security(
     ("Steam Session" = ["maps"]),
@@ -37,7 +38,7 @@ pub async fn update(
 	state: AppState,
 	Path(map_id): Path<u16>,
 	Json(map_update): Json<MapUpdate>,
-) -> Result<()> {
+) -> Result<NoContent> {
 	let mut transaction = state.begin_transaction().await?;
 
 	validate_update(map_id, &map_update, &mut transaction).await?;
@@ -86,7 +87,7 @@ pub async fn update(
 
 	transaction.commit().await?;
 
-	Ok(())
+	Ok(NoContent)
 }
 
 async fn validate_update(

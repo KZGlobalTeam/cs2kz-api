@@ -130,6 +130,13 @@ impl Error {
 		Self::new(StatusCode::BAD_REQUEST).with_message(format_args!("invalid {what}"))
 	}
 
+	/// Indicate that something about the request already exists and therefore cannot be
+	/// created again.
+	#[track_caller]
+	pub fn already_exists(what: impl Display) -> Self {
+		Self::new(StatusCode::CONFLICT).with_message(format_args!("{what} already exists"))
+	}
+
 	/// Indicate that there is no data to return in the response.
 	#[track_caller]
 	pub fn no_data() -> Self {

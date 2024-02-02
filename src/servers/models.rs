@@ -62,7 +62,7 @@ pub struct NewServer {
 	pub owned_by: SteamID,
 }
 
-/// A newly created [`Server`].
+/// A newly registered CS2 server.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedServer {
 	/// The server's ID.

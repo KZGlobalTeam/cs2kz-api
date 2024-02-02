@@ -24,12 +24,10 @@ pub struct KZMap {
 	/// List of players who have contributed to creating this map.
 	pub mappers: Vec<Player>,
 
-	/// List of [`Course`]s which are part of this map.
+	/// List of courses which are part of this map.
 	pub courses: Vec<Course>,
 
-	/// The current [global status] of the map.
-	///
-	/// [global status]: GlobalStatus
+	/// The current global status of the map.
 	pub global_status: GlobalStatus,
 
 	/// The map's description.
@@ -175,12 +173,10 @@ pub struct Filter {
 	/// Whether this filter is for standard or pro runs.
 	pub teleports: bool,
 
-	/// The [`Tier`] of this filter.
+	/// The tier of this filter.
 	pub tier: Tier,
 
-	/// The [ranked status] of this filter.
-	///
-	/// [ranked status]: RankedStatus
+	/// The ranked status of this filter.
 	pub ranked_status: RankedStatus,
 
 	/// Notes about this filter.
@@ -193,9 +189,7 @@ pub struct NewMap {
 	/// The map's workshop ID.
 	pub workshop_id: u32,
 
-	/// The initial [global status] of this map.
-	///
-	/// [global status]: GlobalStatus
+	/// The initial global status of this map.
 	pub global_status: GlobalStatus,
 
 	/// Description of the map.
@@ -234,31 +228,27 @@ pub struct NewFilter {
 	/// Whether this filter is for standard or pro runs.
 	pub teleports: bool,
 
-	/// The [`Tier`] of this filter.
+	/// The tier of this filter.
 	pub tier: Tier,
 
-	/// The [ranked status] of this filter.
-	///
-	/// [ranked status]: RankedStatus
+	/// The ranked status of this filter.
 	pub ranked_status: RankedStatus,
 
 	/// Notes about the filter.
 	pub notes: Option<String>,
 }
 
-/// A newly created [`KZMap`].
+/// A newly created map.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedMap {
 	/// The map's ID.
 	pub map_id: u16,
 }
 
-/// An update to a [`KZMap`].
+/// An update to a map.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct MapUpdate {
-	/// A new [global status].
-	///
-	/// [global status]: GlobalStatus
+	/// A new global status.
 	pub global_status: Option<GlobalStatus>,
 
 	/// New description for the map.
@@ -284,19 +274,13 @@ pub struct MapUpdate {
 /// An update to a [`Course`].
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CourseUpdate {
-	/// The course's [`id`].
-	///
-	/// [`id`]: Course::id
+	/// The course's ID.
 	pub id: u32,
 
-	/// New [name] for the course.
-	///
-	/// [name]: Course::name
+	/// New name for the course.
 	pub name: Option<String>,
 
-	/// New [description] for the course.
-	///
-	/// [description]: Course::description
+	/// New description for the course.
 	pub description: Option<String>,
 
 	/// List of mappers to add.
@@ -305,28 +289,22 @@ pub struct CourseUpdate {
 	/// List of mappers to remove.
 	pub removed_mappers: Option<Vec<SteamID>>,
 
-	/// List of updates to [`Filter`]s.
+	/// List of updates to filters.
 	pub filter_updates: Option<Vec<FilterUpdate>>,
 }
 
-/// An update to a [`Filter`].
+/// An update to a course filter.
 #[derive(Debug, Clone, Deserialize, ToSchema)]
 pub struct FilterUpdate {
-	/// The filter's [`id`].
-	///
-	/// [`id`]: Filter::id
+	/// The filter's ID.
 	pub id: u32,
 
-	/// A new [`Tier`].
+	/// A new tier.
 	pub tier: Option<Tier>,
 
-	/// A new [ranked status].
-	///
-	/// [ranked status]: RankedStatus
+	/// A new ranked status.
 	pub ranked_status: Option<RankedStatus>,
 
-	/// New [notes] for the course.
-	///
-	/// [notes]: Filter::notes
+	/// New notes for the course.
 	pub notes: Option<String>,
 }

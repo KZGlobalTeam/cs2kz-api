@@ -198,14 +198,14 @@ pub struct NewBan {
 	pub reason: String,
 }
 
-/// A newly created [`Ban`].
+/// A newly created ban.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedBan {
 	/// The ban's ID.
 	pub ban_id: u32,
 }
 
-/// An update to a [`Ban`].
+/// An update to a ban.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct BanUpdate {
 	/// A new ban reason.
@@ -221,7 +221,7 @@ pub struct NewUnban {
 	pub reason: String,
 }
 
-/// A newly created Unban.
+/// A newly reverted ban.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedUnban {
 	/// The unban's ID.

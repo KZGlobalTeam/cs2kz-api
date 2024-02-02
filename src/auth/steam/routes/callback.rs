@@ -7,6 +7,7 @@ use crate::auth::Session;
 use crate::steam::Player;
 use crate::{responses, AppState, Result};
 
+/// This endpoint will be used by Steam during the login process (see `GET /auth/login`).
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -17,7 +18,6 @@ use crate::{responses, AppState, Result};
     responses::SeeOther,
     responses::BadRequest,
     responses::Unauthorized,
-    responses::Forbidden,
     responses::InternalServerError,
   ),
 )]

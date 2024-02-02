@@ -6,7 +6,7 @@ use crate::servers::{CreatedServer, NewServer};
 use crate::sqlx::SqlErrorExt;
 use crate::{audit, responses, AppState, Error, Result};
 
-/// Approve a new KZ server.
+/// Register a new CS2 server.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
@@ -17,7 +17,6 @@ use crate::{audit, responses, AppState, Error, Result};
     responses::Created<CreatedServer>,
     responses::BadRequest,
     responses::Unauthorized,
-    responses::Forbidden,
     responses::UnprocessableEntity,
     responses::InternalServerError,
   ),

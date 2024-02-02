@@ -1,6 +1,8 @@
 use axum::routing::get;
 use axum::Router;
 
+use crate::{cors, State};
+
 mod roles;
 pub use roles::{Role, RoleFlags};
 
@@ -21,11 +23,11 @@ pub use servers::Server;
 pub mod routes;
 pub mod openapi;
 
-pub fn router(state: &'static crate::State) -> Router {
+pub fn router(state: &'static State) -> Router {
 	Router::new()
 		.route("/login", get(routes::login))
 		.route("/logout", get(routes::logout))
+		.route_layer(cors::get())
 		.with_state(state)
 		.nest("/steam", steam::router(state))
-		.nest("/servers", servers::router(state))
 }

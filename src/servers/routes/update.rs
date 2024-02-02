@@ -2,10 +2,11 @@ use axum::extract::Path;
 use axum::Json;
 use sqlx::QueryBuilder;
 
+use crate::responses::NoContent;
 use crate::servers::ServerUpdate;
 use crate::{audit, responses, AppState, Error, Result};
 
-/// Update a server.
+/// Update a registered CS2 server.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   patch,
@@ -14,10 +15,9 @@ use crate::{audit, responses, AppState, Error, Result};
   params(("server_id" = u16, Path, description = "The server's ID")),
   request_body = ServerUpdate,
   responses(
-    responses::Ok<()>,
+    responses::NoContent,
     responses::BadRequest,
     responses::Unauthorized,
-    responses::Forbidden,
     responses::UnprocessableEntity,
     responses::InternalServerError,
   ),
@@ -29,7 +29,7 @@ pub async fn update(
 	state: AppState,
 	Path(server_id): Path<u16>,
 	Json(server_update): Json<ServerUpdate>,
-) -> Result<()> {
+) -> Result<NoContent> {
 	let mut query = QueryBuilder::new("UPDATE Servers");
 	let mut delimiter = " SET ";
 
@@ -67,5 +67,5 @@ pub async fn update(
 
 	audit!("updated server", id = %server_id, update = ?server_update);
 
-	Ok(())
+	Ok(NoContent)
 }

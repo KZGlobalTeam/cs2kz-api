@@ -20,18 +20,21 @@ However, individual requests requires the server to provide a temporary **API To
 This token is a [JWT](https://jwt.io/introduction) that is generated using the server's **API Key**.
 
 Each token is valid for 30 minutes, so servers are encouraged to regenerate their tokens every ~25
-minutes. This is done by making a `POST` request to `/api/auth/refresh_token` with the **API Key**
+minutes. This is done by making a `POST` request to `/servers/key` with the **API Key**
 and the CS2KZ version the server is currently running:
 
 ```typescript
 type RequestBody = {
-  api_key: integer;
-  plugin_version: string; // SemVer
+  /// The server's API key
+  key: integer;
+
+  /// CS2KZ version the server is running, in SemVer format
+  plugin_version: string;
 }
 ```
 
-On success, the generated token will then be sent to the server via UDP, and a `201 CREATED` is
-returned via HTTP. This token will then be included in **every** request (either because the request
+On success, the generated token will be returned with a `201 CREATED` status code.
+This token will then be included in **every** request (either because the request
 requires authentication or just to get better rate limits) as an `Authorization Bearer` header.
 
 Anything that is route-specific is documented via [OpenAPI](https://www.openapis.org); the

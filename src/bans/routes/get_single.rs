@@ -4,7 +4,7 @@ use axum::Json;
 use crate::bans::{queries, Ban};
 use crate::{responses, AppState, Error, Result};
 
-/// Get a specific ban by ID.
+/// Fetch a specific ban.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,

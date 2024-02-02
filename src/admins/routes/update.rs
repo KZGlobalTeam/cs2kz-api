@@ -3,35 +3,39 @@ use axum::Json;
 use cs2kz::SteamID;
 
 use crate::auth::{Role, RoleFlags};
-use crate::{audit, responses, AppState, Result};
+use crate::responses::{self, NoContent};
+use crate::{AppState, Error, Result};
 
-/// Overwrites the roles of the specified player.
+/// Create or update admins.
+///
+/// Updates are idempotent, so the user's roles will be replaced completely by the roles supplied
+/// in the request body.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   put,
-  tag = "Players",
-  path = "/players/{steam_id}/roles",
+  tag = "Admins",
+  path = "/admins/{steam_id}",
   params(SteamID),
   request_body = Vec<Role>,
   responses(
-    responses::Ok<()>,
     responses::NoContent,
     responses::BadRequest,
     responses::Unauthorized,
+    responses::UnprocessableEntity,
     responses::InternalServerError,
   ),
   security(
     ("Steam Session" = ["admin"]),
   ),
 )]
-pub async fn update_roles(
+pub async fn update(
 	state: AppState,
 	Path(steam_id): Path<SteamID>,
 	Json(roles): Json<Vec<Role>>,
-) -> Result<()> {
-	let role_flags = RoleFlags::from_iter(roles.iter().copied());
+) -> Result<NoContent> {
+	let role_flags = roles.into_iter().collect::<RoleFlags>();
 
-	sqlx::query! {
+	let result = sqlx::query! {
 		r#"
 		UPDATE
 		  Players
@@ -46,7 +50,9 @@ pub async fn update_roles(
 	.execute(&state.database)
 	.await?;
 
-	audit!("updated roles for user", %steam_id, ?roles);
+	if result.rows_affected() == 0 {
+		return Err(Error::unknown("SteamID").with_detail(steam_id));
+	}
 
-	Ok(())
+	Ok(NoContent)
 }

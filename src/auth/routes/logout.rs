@@ -17,7 +17,10 @@ pub struct Logout {
 	pub all: bool,
 }
 
-/// Invalidates the user's current session and clears out any cookies.
+/// Log out.
+///
+/// **This will only invalidate your current session.**
+/// If you wish to invalidate **all** previous sessions, set `all=true`.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -25,9 +28,6 @@ pub struct Logout {
   path = "/auth/logout",
   params(Logout),
   responses( //
-    responses::SeeOther,
-    responses::BadRequest,
-    responses::Unauthorized,
     responses::InternalServerError,
   ),
 )]

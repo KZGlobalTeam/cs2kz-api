@@ -28,7 +28,7 @@ impl Display for Role {
 #[repr(transparent)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, sqlx::Type, ToSchema)]
 #[sqlx(transparent)]
-pub struct RoleFlags(pub u32);
+pub struct RoleFlags(u32);
 
 impl RoleFlags {
 	pub const NONE: Self = Self(0);
@@ -53,11 +53,20 @@ impl RoleFlags {
 	}
 }
 
-impl BitOr<u32> for RoleFlags {
+impl BitOr for RoleFlags {
 	type Output = Self;
 
-	fn bitor(self, rhs: u32) -> Self::Output {
-		Self(self.0 | rhs)
+	fn bitor(self, rhs: Self) -> Self::Output {
+		Self(self.0 | rhs.0)
+	}
+}
+
+impl From<u32> for RoleFlags {
+	fn from(flags: u32) -> Self {
+		[Self::BANS, Self::SERVERS, Self::MAPS, Self::ADMIN]
+			.into_iter()
+			.filter(|&flag| Self(flags).contains(flag))
+			.fold(Self::NONE, Self::bitor)
 	}
 }
 
@@ -76,7 +85,7 @@ impl FromIterator<Role> for RoleFlags {
 		T: IntoIterator<Item = Role>,
 	{
 		iter.into_iter()
-			.fold(Self::default(), |flags, role| flags | role as u32)
+			.fold(Self::NONE, |flags, role| Self(flags.0 | role as u32))
 	}
 }
 
@@ -107,16 +116,12 @@ impl Iterator for RoleIter {
 			return None;
 		}
 
-		let role = match RoleFlags(1_u32 << self.idx) {
-			RoleFlags::NONE => unreachable!(),
+		let role = match RoleFlags::from(1_u32 << self.idx) {
 			RoleFlags::BANS => Role::Bans,
 			RoleFlags::SERVERS => Role::Servers,
 			RoleFlags::MAPS => Role::Maps,
 			RoleFlags::ADMIN => Role::Admin,
-			_ => {
-				self.idx += 1;
-				return self.next();
-			}
+			_ => unreachable!(),
 		};
 
 		self.idx += 1;

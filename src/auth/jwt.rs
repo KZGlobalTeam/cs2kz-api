@@ -10,7 +10,7 @@ use chrono::Duration;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
-use crate::{audit, Error, Result};
+use crate::{audit, Error, Result, State};
 
 /// Utility type for handling JWT payloads.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -54,7 +54,7 @@ impl<T> DerefMut for Jwt<T> {
 }
 
 #[async_trait]
-impl<T> FromRequestParts<&'static crate::State> for Jwt<T>
+impl<T> FromRequestParts<&'static State> for Jwt<T>
 where
 	T: DeserializeOwned,
 {
@@ -62,7 +62,7 @@ where
 
 	async fn from_request_parts(
 		parts: &mut request::Parts,
-		state: &&'static crate::State,
+		state: &&'static State,
 	) -> Result<Self> {
 		let (original, jwt) =
 			TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
@@ -75,7 +75,9 @@ where
 				})?;
 
 		if jwt.has_expired() {
-			return Err(Error::invalid("token").with_detail("token is expired"));
+			return Err(Error::invalid("token")
+				.with_detail("token is expired")
+				.unauthorized());
 		}
 
 		audit!("jwt authenticated", token = %original.token());

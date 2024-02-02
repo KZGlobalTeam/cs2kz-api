@@ -9,7 +9,7 @@ use tracing::{trace, warn};
 use url::Url;
 use utoipa::IntoParams;
 
-use crate::{Error, Result};
+use crate::{Error, Result, State};
 
 /// Form to send to steam when redirecting a user for login.
 #[derive(Debug, Clone, Serialize)]
@@ -128,12 +128,12 @@ impl Auth {
 }
 
 #[async_trait]
-impl FromRequestParts<&'static crate::State> for Auth {
+impl FromRequestParts<&'static State> for Auth {
 	type Rejection = Error;
 
 	async fn from_request_parts(
 		parts: &mut request::Parts,
-		state: &&'static crate::State,
+		state: &&'static State,
 	) -> Result<Self> {
 		let Query(mut auth) = Query::<Self>::from_request_parts(parts, state).await?;
 

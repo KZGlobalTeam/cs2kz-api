@@ -1,5 +1,4 @@
 use axum::{Extension, Json};
-use chrono::{DateTime, Utc};
 use serde_json::json;
 
 use crate::auth::{Jwt, Role, Server, Session};
@@ -9,6 +8,9 @@ use crate::sqlx::SqlErrorExt;
 use crate::{audit, responses, AppState, Error, Result};
 
 /// Ban a player.
+///
+/// Requests with a SteamID of a player who is already banned will fail. Use `PATCH /bans/{ban_id}`
+/// to update existing bans.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
@@ -18,7 +20,7 @@ use crate::{audit, responses, AppState, Error, Result};
     responses::Created<CreatedBan>,
     responses::BadRequest,
     responses::Unauthorized,
-    responses::Forbidden,
+    responses::Conflict,
     responses::UnprocessableEntity,
     responses::InternalServerError,
   ),
@@ -38,15 +40,32 @@ pub async fn create(
 		return Err(Error::bug());
 	}
 
+	let already_banned = sqlx::query! {
+		r#"
+		SELECT
+		  is_banned `is_banned: bool`
+		FROM
+		  Players
+		WHERE
+		  steam_id = ?
+		"#,
+		ban.steam_id,
+	}
+	.fetch_optional(&state.database)
+	.await?
+	.map(|row| row.is_banned)
+	.ok_or_else(|| Error::unknown("SteamID").with_detail(ban.steam_id))?;
+
+	if already_banned {
+		return Err(Error::already_exists("ban")
+			.with_detail("player is currently banned; try to update their ban instead"));
+	}
+
 	let (server_id, plugin_version_id) = server
 		.map(|server| (server.id, server.plugin_version_id))
 		.unzip();
 
 	let banned_by = session.map(|session| session.user.steam_id);
-
-	// FIXME(AlphaKeks): the ban duration should depend on the ban reason, and the reasons
-	// are not mapped out as an enum yet
-	let expires_on = None::<DateTime<Utc>>;
 
 	let mut transaction = state.begin_transaction().await?;
 
@@ -89,11 +108,10 @@ pub async fn create(
 		    reason,
 		    server_id,
 		    plugin_version_id,
-		    banned_by,
-		    expires_on
+		    banned_by
 		  )
 		VALUES
-		  (?, ?, ?, ?, ?, ?, ?)
+		  (?, ?, ?, ?, ?, ?)
 		"#,
 		ban.steam_id,
 		ip_address,
@@ -101,7 +119,6 @@ pub async fn create(
 		server_id,
 		plugin_version_id,
 		banned_by,
-		expires_on,
 	}
 	.execute(transaction.as_mut())
 	.await

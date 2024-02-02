@@ -21,7 +21,7 @@ pub struct GetPlayersParams {
 	pub offset: Offset,
 }
 
-/// Players who have joined officially approved KZ servers.
+/// Fetch players who have joined a KZ server before.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,

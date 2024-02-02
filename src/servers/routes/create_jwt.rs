@@ -1,16 +1,20 @@
 use axum::Json;
-use servers::Server;
 use tracing::trace;
 
-use crate::auth::servers::{self, AccessToken, RefreshToken};
-use crate::responses::{self, Created};
-use crate::{AppState, Error, Result};
+use crate::auth::servers::{AccessToken, RefreshToken};
+use crate::auth::Server;
+use crate::responses::Created;
+use crate::{responses, AppState, Error, Result};
 
+/// Create a new JWT for authenticating CS2 server requests.
+///
+/// This endpoint will be used by CS2 servers while they are running.
+/// Each token is only valid for 30 minutes.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
-  put,
-  tag = "Auth",
-  path = "/auth/servers/refresh_key",
+  post,
+  tag = "Servers",
+  path = "/servers/key",
   request_body = RefreshToken,
   responses(
     responses::Created<AccessToken>,
@@ -20,7 +24,7 @@ use crate::{AppState, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn refresh_key(
+pub async fn create_jwt(
 	state: AppState,
 	Json(refresh): Json<RefreshToken>,
 ) -> Result<Created<Json<AccessToken>>> {

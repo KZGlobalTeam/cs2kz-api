@@ -1,33 +1,38 @@
-use axum::extract::Query;
 use axum::Json;
+use axum_extra::extract::Query;
 use cs2kz::SteamID;
+use itertools::Itertools;
 use serde::Deserialize;
 use utoipa::IntoParams;
 
-use crate::auth::RoleFlags;
+use crate::admins::Admin;
+use crate::auth::{Role, RoleFlags};
 use crate::params::{Limit, Offset};
-use crate::players::routes::get_many::GetPlayersParams;
-use crate::players::Admin;
 use crate::{responses, AppState, Error, Result};
 
-/// Query Parameters for fetching [`Admin`]s.
+/// Query Parameters for fetching KZ admins.
 #[derive(Debug, Default, Deserialize, IntoParams)]
 #[serde(default)]
 pub struct GetAdminsParams {
+	/// Only include admins with these roles.
+	pub roles: Vec<Role>,
+
 	/// Maximum amount of results.
+	#[param(value_type = Option<u64>, maximum = 1000)]
 	pub limit: Limit,
 
 	/// Offset used for pagination.
+	#[param(value_type = Option<i64>)]
 	pub offset: Offset,
 }
 
-/// Players who have joined officially approved KZ servers.
+/// Fetch users with elevated permissions.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
-  tag = "Players",
-  path = "/players/admins",
-  params(GetPlayersParams),
+  tag = "Admins",
+  path = "/admins",
+  params(GetAdminsParams),
   responses(
     responses::Ok<Admin>,
     responses::NoContent,
@@ -35,23 +40,28 @@ pub struct GetAdminsParams {
     responses::InternalServerError,
   ),
 )]
-pub async fn get_admins(
+pub async fn get_many(
 	state: AppState,
 	Query(params): Query<GetAdminsParams>,
 ) -> Result<Json<Vec<Admin>>> {
+	let role_flags = params.roles.into_iter().collect::<RoleFlags>();
+
 	let admins = sqlx::query! {
 		r#"
 		SELECT
-		  steam_id `steam_id: SteamID`,
 		  name,
-		  role_flags
+		  steam_id `steam_id: SteamID`,
+		  role_flags `role_flags: RoleFlags`
 		FROM
 		  Players
 		WHERE
-		  role_flags != 0
+		  role_flags > 0
+		  AND (role_flags & ?) = ?
 		LIMIT
 		  ? OFFSET ?
 		"#,
+		role_flags,
+		role_flags,
 		params.limit,
 		params.offset,
 	}
@@ -59,11 +69,11 @@ pub async fn get_admins(
 	.await?
 	.into_iter()
 	.map(|row| Admin {
-		steam_id: row.steam_id,
 		name: row.name,
-		roles: Vec::from_iter(RoleFlags(row.role_flags)),
+		steam_id: row.steam_id,
+		roles: row.role_flags.iter().collect(),
 	})
-	.collect::<Vec<_>>();
+	.collect_vec();
 
 	if admins.is_empty() {
 		return Err(Error::no_data());

@@ -44,7 +44,7 @@ pub struct GetBansParams<'a> {
 	pub offset: Offset,
 }
 
-/// Player Bans.
+/// Fetch bans.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,

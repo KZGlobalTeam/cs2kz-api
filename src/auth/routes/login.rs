@@ -12,8 +12,7 @@ pub struct Login {
 	pub return_to: Url,
 }
 
-/// Redirects the user to Steam to log in, and then back to `return_to` after a successful
-/// login.
+/// Login with Steam.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -23,6 +22,7 @@ pub struct Login {
   responses( //
     responses::SeeOther,
     responses::BadRequest,
+    responses::InternalServerError,
   ),
 )]
 pub async fn login(state: AppState, Query(login): Query<Login>) -> Redirect {

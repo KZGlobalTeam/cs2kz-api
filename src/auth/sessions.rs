@@ -10,7 +10,7 @@ use time::{Duration, OffsetDateTime};
 use tracing::trace;
 
 use super::{RoleFlags, User};
-use crate::{audit, AppState, Error, Result};
+use crate::{audit, AppState, Error, Result, State};
 
 #[derive(Debug, Clone)]
 pub struct Session<const REQUIRED_FLAGS: u32 = 0> {
@@ -132,18 +132,14 @@ impl<const REQUIRED_FLAGS: u32> Session<REQUIRED_FLAGS> {
 }
 
 #[async_trait]
-impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static crate::State>
-	for Session<REQUIRED_FLAGS>
-{
+impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static State> for Session<REQUIRED_FLAGS> {
 	type Rejection = Error;
 
 	async fn from_request_parts(
 		parts: &mut request::Parts,
-		state: &&'static crate::State,
+		state: &&'static State,
 	) -> Result<Self> {
-		let (mut cookie, session_token) = parts
-			.headers
-			.get_all(header::COOKIE)
+		let (mut cookie, session_token) = dbg!(parts.headers.get_all(header::COOKIE))
 			.into_iter()
 			.flat_map(|value| value.to_str())
 			.flat_map(|value| value.split(';'))
@@ -216,7 +212,7 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static crate::State>
 		transaction.commit().await?;
 
 		let user = User::new(session.steam_id, session.role_flags);
-		let required_flags = RoleFlags(REQUIRED_FLAGS);
+		let required_flags = RoleFlags::from(REQUIRED_FLAGS);
 
 		if !user.role_flags.contains(required_flags) {
 			return Err(Error::missing("required permissions")

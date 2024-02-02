@@ -1,5 +1,4 @@
 use axum::Json;
-use serde_json::json;
 
 use crate::auth::{Jwt, Server};
 use crate::players::NewPlayer;
@@ -7,8 +6,9 @@ use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
 use crate::{audit, responses, AppState, Error, Result};
 
-/// This route is used by CS2 servers for registering new players who are playing KZ for the very
-/// first time.
+/// Register a new player.
+///
+/// It is only usable by CS2 servers and will return an error for existing players.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
@@ -18,6 +18,8 @@ use crate::{audit, responses, AppState, Error, Result};
   responses(
     responses::Created<()>,
     responses::BadRequest,
+    responses::Unauthorized,
+    responses::Conflict,
     responses::UnprocessableEntity,
     responses::InternalServerError,
   ),
@@ -45,10 +47,7 @@ pub async fn create(
 	.await
 	.map_err(|err| {
 		if err.is_foreign_key_violation() {
-			Error::invalid("SteamID").with_detail(json!({
-				"steam_id": player.steam_id,
-				"reason": "player already exists"
-			}))
+			Error::already_exists("player")
 		} else {
 			Error::from(err)
 		}

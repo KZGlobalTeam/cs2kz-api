@@ -1,26 +1,20 @@
-use axum::routing::{get, post, put};
+use axum::routing::{get, post};
 use axum::Router;
 
-use crate::auth::Role;
-use crate::{middleware, State};
+use crate::{cors, State};
 
 pub mod models;
-pub use models::{Admin, NewPlayer, Player};
+pub use models::{NewPlayer, Player};
 
 pub mod routes;
 
 pub fn router(state: &'static State) -> Router {
-	let auth = axum::middleware::from_fn_with_state(
-		state,
-		middleware::auth::web::layer::<{ Role::Admin as u32 }>,
-	);
-
 	Router::new()
 		.route("/", get(routes::get_many))
+		.route_layer(cors::get())
 		.route("/", post(routes::create))
-		.route("/admins", get(routes::get_admins))
+		.route_layer(cors::post())
 		.route("/:player", get(routes::get_single))
-		.route("/:player/roles", get(routes::get_roles))
-		.route("/:player/roles", put(routes::update_roles).layer(auth))
+		.route_layer(cors::get())
 		.with_state(state)
 }

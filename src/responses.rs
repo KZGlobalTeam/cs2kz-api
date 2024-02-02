@@ -41,6 +41,12 @@ where
 #[response(status = NO_CONTENT)]
 pub struct NoContent;
 
+impl IntoResponse for NoContent {
+	fn into_response(self) -> AxumResponse {
+		StatusCode::NO_CONTENT.into_response()
+	}
+}
+
 #[derive(IntoResponses)]
 #[response(status = SEE_OTHER)]
 pub struct SeeOther;
@@ -54,8 +60,8 @@ pub struct BadRequest;
 pub struct Unauthorized;
 
 #[derive(IntoResponses)]
-#[response(status = FORBIDDEN)]
-pub struct Forbidden;
+#[response(status = CONFLICT)]
+pub struct Conflict;
 
 #[derive(IntoResponses)]
 #[response(status = UNPROCESSABLE_ENTITY)]
@@ -64,3 +70,7 @@ pub struct UnprocessableEntity;
 #[derive(IntoResponses)]
 #[response(status = INTERNAL_SERVER_ERROR, description = "Something unexpected happened. This is a bug; please report it.")]
 pub struct InternalServerError;
+
+#[derive(IntoResponses)]
+#[response(status = BAD_GATEWAY, description = "Communication with an external service failed (e.g. Steam).")]
+pub struct BadGateway;

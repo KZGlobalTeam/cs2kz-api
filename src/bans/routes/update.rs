@@ -3,9 +3,10 @@ use axum::Json;
 use sqlx::QueryBuilder;
 
 use crate::bans::BanUpdate;
+use crate::responses::NoContent;
 use crate::{audit, responses, AppState, Error, Result};
 
-/// Update an existing ban.
+/// Update a ban.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   patch,
@@ -14,10 +15,9 @@ use crate::{audit, responses, AppState, Error, Result};
   params(("ban_id" = u32, Path, description = "The ban's ID")),
   request_body = BanUpdate,
   responses(
-    responses::Ok<()>,
+    responses::NoContent,
     responses::BadRequest,
     responses::Unauthorized,
-    responses::Forbidden,
     responses::UnprocessableEntity,
     responses::InternalServerError,
   ),
@@ -29,7 +29,7 @@ pub async fn update(
 	state: AppState,
 	Path(ban_id): Path<u32>,
 	Json(ban_update): Json<BanUpdate>,
-) -> Result<()> {
+) -> Result<NoContent> {
 	let mut query = QueryBuilder::new("UPDATE Bans");
 	let mut delimiter = " SET ";
 
@@ -56,5 +56,5 @@ pub async fn update(
 
 	audit!("updated ban", id = %ban_id, update = ?ban_update);
 
-	Ok(())
+	Ok(NoContent)
 }

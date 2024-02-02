@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS Bans (
   `plugin_version_id` INT2 UNSIGNED NOT NULL,
   `banned_by` INT4 UNSIGNED,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `expires_on` TIMESTAMP,
+  `expires_on` TIMESTAMP NOT NULL DEFAULT DATE_ADD(NOW(), INTERVAL 100 YEAR),
   PRIMARY KEY (`id`),
   FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`),
   FOREIGN KEY (`server_id`) REFERENCES Servers (`id`),

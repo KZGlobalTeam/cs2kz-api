@@ -23,10 +23,6 @@ pub struct State {
 	pub http_client: reqwest::Client,
 
 	/// A cached version of query parameters used for Steam authentication.
-	///
-	/// See [`LoginForm::origin_url()`] for more details.
-	///
-	/// [`LoginForm::origin_url()`]: steam::LoginForm::origin_url
 	pub steam_login_form: steam::LoginForm,
 
 	/// JWT secrets.

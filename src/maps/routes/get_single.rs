@@ -12,13 +12,11 @@ use crate::{responses, AppState, Error, Result};
 /// Query Parameters for fetching a [`KZMap`].
 #[derive(Debug, Default, Deserialize, IntoParams)]
 pub struct GetMapParams {
-	/// Filter by [global status].
-	///
-	/// [global status]: GlobalStatus
+	/// Filter by global status.
 	pub global_status: Option<GlobalStatus>,
 }
 
-/// Fetch a single map by ID or name.
+/// Fetch a single map.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,

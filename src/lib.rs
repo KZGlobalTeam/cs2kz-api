@@ -1,12 +1,9 @@
 use std::io;
 use std::net::SocketAddr;
 
-use axum::http::{header, HeaderValue, Method};
-use axum::routing::get;
 use axum::Router;
 use itertools::Itertools;
 use tokio::net::TcpListener;
-use tower_http::cors::CorsLayer;
 use tracing::debug;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -31,6 +28,7 @@ pub use state::State;
 /// Convenience alias for extracting [`State`] in handlers.
 pub type AppState = axum::extract::State<&'static crate::State>;
 
+mod cors;
 mod database;
 mod middleware;
 mod params;
@@ -41,10 +39,13 @@ mod status;
 mod steam;
 mod util;
 
-mod players;
 mod maps;
 mod servers;
+mod records;
+mod jumpstats;
+mod players;
 mod bans;
+mod admins;
 mod auth;
 
 #[derive(OpenApi)]
@@ -77,14 +78,6 @@ mod auth;
       database::RankedStatus,
       database::GlobalStatus,
 
-      auth::Role,
-      auth::RoleFlags,
-      auth::servers::RefreshToken,
-
-      players::models::Player,
-      players::models::NewPlayer,
-      players::models::Admin,
-
       maps::models::KZMap,
       maps::models::Course,
       maps::models::Filter,
@@ -100,6 +93,9 @@ mod auth;
       servers::models::CreatedServer,
       servers::models::ServerUpdate,
 
+      players::models::Player,
+      players::models::NewPlayer,
+
       bans::models::Ban,
       bans::models::BannedPlayer,
       bans::models::Unban,
@@ -108,17 +104,15 @@ mod auth;
       bans::models::BanUpdate,
       bans::models::NewUnban,
       bans::models::CreatedUnban,
+
+      admins::models::Admin,
+
+      auth::Role,
+      auth::RoleFlags,
     ),
   ),
   paths(
-    status::hello_world,
-
-    players::routes::get_many::get_many,
-    players::routes::create::create,
-    players::routes::get_admins::get_admins,
-    players::routes::get_single::get_single,
-    players::routes::get_roles::get_roles,
-    players::routes::update_roles::update_roles,
+    status::status,
 
     maps::routes::get_many::get_many,
     maps::routes::create::create,
@@ -132,16 +126,23 @@ mod auth;
     servers::routes::replace_key::replace_key,
     servers::routes::delete_key::delete_key,
 
+    players::routes::get_many::get_many,
+    players::routes::create::create,
+    players::routes::get_single::get_single,
+
     bans::routes::get_many::get_many,
     bans::routes::create::create,
     bans::routes::get_single::get_single,
     bans::routes::update::update,
     bans::routes::unban::unban,
 
+    admins::routes::get_many::get_many,
+    admins::routes::get_single::get_single,
+    admins::routes::update::update,
+
     auth::routes::login::login,
     auth::routes::logout::logout,
     auth::steam::routes::callback::callback,
-    auth::servers::routes::refresh_key::refresh_key,
   ),
 )]
 pub struct API {
@@ -176,40 +177,25 @@ impl API {
 	#[tracing::instrument(skip(self))]
 	pub async fn run(self) {
 		let state: &'static _ = Box::leak(Box::new(self.state));
-
-		// FIXME(AlphaKeks)
-		let cors = CorsLayer::new()
-			.allow_origin(if state.config.environment.is_dev() {
-				"http://127.0.0.1".parse::<HeaderValue>().unwrap()
-			} else {
-				"https://dashboard.cs2.kz".parse::<HeaderValue>().unwrap()
-			})
-			.allow_credentials(true)
-			.allow_methods([
-				Method::GET,
-				Method::POST,
-				Method::PUT,
-				Method::PATCH,
-				Method::DELETE,
-			])
-			.allow_headers([header::CONTENT_TYPE, header::COOKIE]);
-
-		let service = Router::new()
-			.route("/", get(status::hello_world))
-			.with_state(state)
-			.nest("/players", players::router(state))
+		let logging = axum::middleware::from_fn(middleware::logging::layer);
+		let swagger_ui = Self::swagger_ui();
+		let router = Router::new()
+			.nest("/", status::router())
 			.nest("/maps", maps::router(state))
 			.nest("/servers", servers::router(state))
+			.nest("/records", records::router(state))
+			.nest("/jumpstats", jumpstats::router(state))
+			.nest("/players", players::router(state))
 			.nest("/bans", bans::router(state))
+			.nest("/admins", admins::router(state))
 			.nest("/auth", auth::router(state))
-			.layer(cors)
-			.layer(axum::middleware::from_fn(middleware::logging::layer))
-			.merge(Self::swagger_ui())
+			.layer(logging)
+			.merge(swagger_ui)
 			.into_make_service();
 
 		audit!("starting axum server");
 
-		axum::serve(self.tcp_listener, service)
+		axum::serve(self.tcp_listener, router)
 			.await
 			.expect("failed to run axum");
 	}

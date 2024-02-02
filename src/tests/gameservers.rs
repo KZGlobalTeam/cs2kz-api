@@ -48,9 +48,9 @@ async fn get_access_token(ctx: &Context) -> Result<String> {
 		.fetch_one(&ctx.connection_pool)
 		.await?;
 
-	let url = ctx.url("/auth/servers/refresh_key");
+	let url = ctx.url("/servers/key");
 	let request_body = RefreshToken { key: server.api_key, plugin_version: "0.0.1".parse()? };
-	let response = ctx.http_client.put(url).json(&request_body).send().await?;
+	let response = ctx.http_client.post(url).json(&request_body).send().await?;
 
 	ensure!(response.status() == StatusCode::CREATED, "got {}", response.status());
 
