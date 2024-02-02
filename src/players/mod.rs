@@ -12,8 +12,9 @@ pub mod routes;
 pub fn router(state: &'static State) -> Router {
 	let root = Router::new()
 		.route("/", get(routes::get_many))
+		.route_layer(cors::permissive(Method::GET))
 		.route("/", post(routes::create))
-		.route_layer(cors::permissive([Method::GET, Method::POST]))
+		.route_layer(cors::permissive(Method::POST))
 		.with_state(state);
 
 	let ident = Router::new()

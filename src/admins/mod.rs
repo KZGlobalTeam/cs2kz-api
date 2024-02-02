@@ -23,8 +23,9 @@ pub fn router(state: &'static State) -> Router {
 
 	let ident = Router::new()
 		.route("/:steam_id", get(routes::get_single))
+		.route_layer(cors::permissive(Method::GET))
 		.route("/:steam_id", put(routes::update).route_layer(auth))
-		.route_layer(cors::dashboard([Method::GET, Method::PUT]))
+		.route_layer(cors::dashboard(Method::PUT))
 		.with_state(state);
 
 	root.merge(ident)

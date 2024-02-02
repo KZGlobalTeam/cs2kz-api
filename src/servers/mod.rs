@@ -22,15 +22,20 @@ pub fn router(state: &'static State) -> Router {
 
 	let root = Router::new()
 		.route("/", get(routes::get_many))
+		.route_layer(cors::permissive(Method::GET))
 		.route("/", post(routes::create).route_layer(auth()))
-		.route_layer(cors::dashboard([Method::GET, Method::POST]))
+		.route_layer(cors::dashboard(Method::POST))
+		.with_state(state);
+
+	let key = Router::new()
+		.route("/key", post(routes::create_jwt))
 		.with_state(state);
 
 	let ident = Router::new()
-		.route("/key", post(routes::create_jwt))
 		.route("/:server", get(routes::get_single))
+		.route_layer(cors::permissive(Method::GET))
 		.route("/:server", patch(routes::update).route_layer(auth()))
-		.route_layer(cors::dashboard([Method::GET, Method::POST, Method::PATCH]))
+		.route_layer(cors::dashboard(Method::PATCH))
 		.with_state(state);
 
 	let server_key = Router::new()
@@ -39,5 +44,5 @@ pub fn router(state: &'static State) -> Router {
 		.route_layer(cors::dashboard([Method::PUT, Method::DELETE]))
 		.with_state(state);
 
-	root.merge(ident).merge(server_key)
+	root.merge(key).merge(ident).merge(server_key)
 }

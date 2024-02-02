@@ -22,14 +22,16 @@ pub fn router(state: &'static State) -> Router {
 
 	let root = Router::new()
 		.route("/", get(routes::get_many))
+		.route_layer(cors::permissive(Method::GET))
 		.route("/", put(routes::create).route_layer(auth()))
-		.route_layer(cors::permissive([Method::GET, Method::PUT]))
+		.route_layer(cors::dashboard(Method::PUT))
 		.with_state(state);
 
 	let ident = Router::new()
 		.route("/:map", get(routes::get_single))
+		.route_layer(cors::permissive(Method::GET))
 		.route("/:map", patch(routes::update).route_layer(auth()))
-		.route_layer(cors::permissive([Method::GET, Method::PATCH]))
+		.route_layer(cors::dashboard(Method::PATCH))
 		.with_state(state);
 
 	root.merge(ident)
