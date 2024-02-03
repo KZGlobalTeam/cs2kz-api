@@ -35,7 +35,8 @@ pub fn router(state: &'static State) -> Router {
 
 	let server_key = Router::new()
 		.route("/:server/key", put(routes::replace_key))
-		.route("/:server/key", delete(routes::delete_key).route_layer(auth()))
+		.route("/:server/key", delete(routes::delete_key))
+		.route_layer(auth())
 		.route_layer(cors::dashboard([Method::PUT, Method::DELETE]))
 		.with_state(state);
 
