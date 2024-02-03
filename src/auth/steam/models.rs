@@ -137,11 +137,7 @@ impl FromRequestParts<&'static State> for Auth {
 	) -> Result<Self> {
 		let Query(mut auth) = Query::<Self>::from_request_parts(parts, state).await?;
 
-		let api_host = state
-			.config
-			.public_url
-			.host_str()
-			.expect("api url must have a host");
+		let api_host = &state.config.domain;
 
 		let Some(origin_host) = auth.origin_url.host_str() else {
 			trace!(%auth.origin_url, "origin has no host");
