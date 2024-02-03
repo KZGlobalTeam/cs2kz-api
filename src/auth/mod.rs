@@ -27,8 +27,9 @@ pub mod openapi;
 pub fn router(state: &'static State) -> Router {
 	Router::new()
 		.route("/login", get(routes::login))
-		.route("/logout", get(routes::logout))
 		.route_layer(cors::permissive(Method::GET))
+		.route("/logout", get(routes::logout))
+		.route_layer(cors::dashboard(Method::GET))
 		.with_state(state)
 		.nest("/steam", steam::router(state))
 }
