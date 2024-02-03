@@ -12,6 +12,7 @@ publish = false
 
 [features]
 console = ["dep:console-subscriber", "tokio/tracing"]
+production = []
 
 [dependencies.cs2kz]
 path = "./crates/cs2kz"

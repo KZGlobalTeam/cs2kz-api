@@ -1,7 +1,7 @@
 use std::error::Error as StdError;
 
 use cs2kz_api::{Config, API};
-use tracing::info;
+use tracing::{info, warn};
 
 mod logging;
 
@@ -31,6 +31,10 @@ async fn main() -> Result<(), Box<dyn StdError>> {
 
 	info!("Hosting SwaggerUI: <http://{local_addr}/docs/swagger-ui>");
 	info!("Hosting OpenAPI Spec: <http://{local_addr}/docs/open-api.json>");
+
+	if cfg!(not(feature = "production")) {
+		warn!("running in development mode");
+	}
 
 	// Run the API.
 	api.run().await;

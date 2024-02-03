@@ -83,7 +83,7 @@ impl Session {
 		let cookie = Cookie::build((Self::COOKIE_NAME, token.to_string()))
 			.domain(&state.config.domain)
 			.path("/")
-			.secure(state.config.environment.is_prod())
+			.secure(cfg!(feature = "production"))
 			.http_only(true)
 			.expires(expires_on)
 			.build();

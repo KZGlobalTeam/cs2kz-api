@@ -193,7 +193,7 @@ impl API {
 			.merge(swagger_ui)
 			.into_make_service();
 
-		audit!("starting axum server");
+		audit!("starting axum server", prod = %cfg!(feature = "production"));
 
 		axum::serve(self.tcp_listener, router)
 			.await

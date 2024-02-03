@@ -104,11 +104,11 @@ impl MapFile {
 			.ok_or_else(|| {
 				let error = Error::download_workshop_map();
 
-				if config.environment.is_dev() {
-					error.with_detail("missing workshop asset directory")
-				} else {
-					error
+				if cfg!(feature = "production") {
+					return error;
 				}
+
+				error.with_detail("missing workshop asset directory")
 			})?;
 
 		let downloader = config
@@ -118,11 +118,11 @@ impl MapFile {
 			.ok_or_else(|| {
 				let error = Error::download_workshop_map();
 
-				if config.environment.is_dev() {
-					error.with_detail("missing path to DepotDownloader executable")
-				} else {
-					error
+				if cfg!(feature = "production") {
+					return error;
 				}
+
+				error.with_detail("missing path to DepotDownloader executable")
 			})?;
 
 		let output = Command::new(downloader)
@@ -144,11 +144,11 @@ impl MapFile {
 
 			let error = Error::download_workshop_map();
 
-			if config.environment.is_dev() {
-				return Err(error.with_detail("DepotDownloader exited abnormally"));
+			if cfg!(feature = "production") {
+				return Err(error);
 			}
 
-			return Err(error);
+			return Err(error.with_detail("DepotDownloader exited abnormally"));
 		}
 
 		let path = Path::new(&*steam_workshop_path).join(format!("{workshop_id}.vpk"));
@@ -156,13 +156,13 @@ impl MapFile {
 		let file = File::open(path).await.map_err(|err| {
 			let error = Error::download_workshop_map();
 
-			if config.environment.is_dev() {
-				error
-					.with_message("failed to open map file")
-					.with_detail(err.to_string())
-			} else {
-				error
+			if cfg!(feature = "production") {
+				return error;
 			}
+
+			error
+				.with_message("failed to open map file")
+				.with_detail(err.to_string())
 		})?;
 
 		Ok(Self { file })

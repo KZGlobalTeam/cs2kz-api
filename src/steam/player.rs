@@ -63,7 +63,7 @@ impl Player {
 		Cookie::build((Self::COOKIE_NAME, json))
 			.domain(&config.domain)
 			.path("/")
-			.secure(config.environment.is_prod())
+			.secure(cfg!(feature = "production"))
 			.http_only(false)
 			.permanent()
 			.build()

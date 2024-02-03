@@ -8,9 +8,6 @@ use url::Url;
 mod error;
 pub use error::{Error, Result};
 
-mod environment;
-pub use environment::Environment;
-
 pub mod axiom;
 pub mod database;
 pub mod jwt;
@@ -30,9 +27,6 @@ pub struct Config {
 	/// Wildcard `Domain` field for HTTP cookies.
 	#[debug("`{}`")]
 	pub domain: String,
-
-	/// The environment the API is currently running in.
-	pub environment: Environment,
 
 	/// The API's database configuration.
 	pub database: database::Config,
@@ -63,22 +57,12 @@ impl Config {
 				.expect("API url should have a host"),
 		};
 
-		let environment = get_env_var("KZ_API_ENV")?;
 		let database = database::Config::new()?;
 		let axiom = axiom::Config::new().ok();
 		let jwt = jwt::Config::new()?;
 		let steam = steam::Config::new()?;
 
-		Ok(Self {
-			socket_addr,
-			public_url,
-			domain,
-			environment,
-			database,
-			axiom,
-			jwt,
-			steam,
-		})
+		Ok(Self { socket_addr, public_url, domain, database, axiom, jwt, steam })
 	}
 }
 

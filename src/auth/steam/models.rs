@@ -151,7 +151,7 @@ impl FromRequestParts<&'static State> for Auth {
 
 		let mut is_known_host = origin_host.ends_with(api_host);
 
-		if !is_known_host && state.config.environment.is_dev() {
+		if !is_known_host && cfg!(not(feature = "production")) {
 			warn!(%origin_host, %api_host, "allowing mismatching hosts due to dev mode");
 			is_known_host = true;
 		}

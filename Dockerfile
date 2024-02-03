@@ -17,7 +17,7 @@ COPY Cargo.lock .
 COPY crates crates
 COPY src src
 COPY .sqlx .sqlx
-RUN cargo build --release --locked --package cs2kz-api
+RUN cargo build --release --locked --package cs2kz-api -F production
 
 FROM debian:bullseye-slim AS runtime
 WORKDIR /kz
