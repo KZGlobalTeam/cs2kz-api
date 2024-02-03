@@ -2,8 +2,8 @@ use axum::http::Method;
 use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
 
-use crate::auth::Role;
-use crate::{cors, middleware, State};
+use crate::middleware::auth;
+use crate::{cors, State};
 
 mod queries;
 
@@ -13,12 +13,7 @@ pub use models::{CreatedServer, NewServer, Server, ServerUpdate};
 pub mod routes;
 
 pub fn router(state: &'static State) -> Router {
-	let auth = || {
-		axum::middleware::from_fn_with_state(
-			state,
-			middleware::auth::web::layer::<{ Role::Servers as u32 }>,
-		)
-	};
+	let auth = auth::layer!(Servers with state);
 
 	let root = Router::new()
 		.route("/", get(routes::get_many))
