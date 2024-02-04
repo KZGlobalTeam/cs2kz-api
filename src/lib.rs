@@ -37,7 +37,6 @@ mod responses;
 mod sqlx;
 mod status;
 mod steam;
-mod util;
 
 mod maps;
 mod servers;
@@ -177,7 +176,6 @@ impl API {
 	#[tracing::instrument(skip(self))]
 	pub async fn run(self) {
 		let state: &'static _ = Box::leak(Box::new(self.state));
-		let logging = axum::middleware::from_fn(middleware::logging::layer);
 		let swagger_ui = Self::swagger_ui();
 		let router = Router::new()
 			.nest("/", status::router())
@@ -189,8 +187,8 @@ impl API {
 			.nest("/bans", bans::router(state))
 			.nest("/admins", admins::router(state))
 			.nest("/auth", auth::router(state))
-			.layer(logging)
 			.merge(swagger_ui)
+			.layer(middleware::logging::layer!())
 			.into_make_service();
 
 		audit!("starting axum server", prod = %cfg!(feature = "production"));
