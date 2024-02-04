@@ -31,7 +31,7 @@ pub fn make_span_with(request: &Request) -> tracing::Span {
 		response_code = tracing::field::Empty,
 		response_headers = tracing::field::Empty,
 		response_body = tracing::field::Empty,
-		took = tracing::field::Empty,
+		latency = tracing::field::Empty,
 	}
 }
 
@@ -58,5 +58,5 @@ pub fn on_body_chunk(_chunk: &Bytes, _latency: Duration, _span: &tracing::Span) 
 pub fn on_response(response: &Response, latency: Duration, span: &tracing::Span) {
 	span.record("response_code", format_args!("{}", response.status().as_u16()))
 		.record("response_headers", format_args!("{:?}", response.headers()))
-		.record("took", format_args!("{latency:?}"));
+		.record("latency", format_args!("{latency:?}"));
 }
