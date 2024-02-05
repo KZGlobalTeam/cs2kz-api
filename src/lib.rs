@@ -194,9 +194,6 @@ impl API {
 		audit!("starting axum server", prod = %cfg!(feature = "production"));
 
 		axum::serve(self.tcp_listener, router)
-			// .with_graceful_shutdown(async {
-			// 	tokio::time::sleep(std::time::Duration::from_secs(30)).await;
-			// })
 			.await
 			.expect("failed to run axum");
 	}

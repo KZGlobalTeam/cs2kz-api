@@ -50,7 +50,7 @@ pub async fn init(
 
 	let registry = tracing_subscriber::registry()
 		.with(stderr)
-		// .with(axiom)
+		.with(axiom)
 		.with(audit_logs);
 
 	#[cfg(feature = "console")]
