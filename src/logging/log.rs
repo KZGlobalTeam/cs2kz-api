@@ -1,64 +1,62 @@
-use std::fmt;
+use std::collections::HashMap;
+use std::fmt::Debug;
 
 use serde::Serialize;
 use serde_json::Value as JsonValue;
 use tracing::field::{self, Field};
 
-type JsonObject = serde_json::Map<String, JsonValue>;
+type JsonObject = HashMap<&'static str, String>;
 
 /// [`tracing`] field visitor for recording information.
 #[derive(Debug, Serialize)]
-pub struct Visitor {
+pub struct Log {
 	pub(super) level: &'static str,
-	pub(super) source: String,
+	pub(super) target: &'static str,
+	pub(super) source: &'static str,
 	pub(super) message: Option<String>,
 	pub(super) fields: JsonObject,
-
-	#[serde(skip)]
-	pub(super) is_audit: bool,
-
-	#[serde(skip)]
-	pub(super) is_axiom: bool,
 }
 
-impl Visitor {
-	pub fn new(metadata: &'static tracing::Metadata<'static>) -> Self {
+impl From<&'static tracing::Metadata<'static>> for Log {
+	fn from(metadata: &'static tracing::Metadata<'static>) -> Self {
 		let level = metadata.level().as_str();
-		let source = metadata
-			.module_path()
-			.map(ToOwned::to_owned)
-			.unwrap_or_else(|| String::from("unknown"));
+		let target = metadata.target();
+		let source = metadata.module_path().unwrap_or("unknown");
 
-		Self {
-			level,
-			source,
-			message: None,
-			fields: Default::default(),
-			is_audit: false,
-			is_axiom: true,
-		}
+		Self { level, target, source, message: None, fields: Default::default() }
 	}
+}
 
+impl Log {
 	fn set_field(&mut self, field: &Field, value: impl Into<JsonValue>) {
 		match (field.name(), value.into()) {
-			("audit", JsonValue::Bool(is_audit)) => {
-				self.is_audit = is_audit;
-			}
-			("skip_axiom", JsonValue::Bool(skip_axiom)) => {
-				self.is_axiom = skip_axiom;
-			}
 			("message", value) => {
-				self.message = Some(value.to_string());
+				self.message = Some(stringify_json_value(value));
 			}
-			(field, value) => {
-				self.fields.insert(field.to_owned(), value);
-			}
+			(field, value) => match self.fields.get_mut(field) {
+				None => {
+					let _ = self.fields.insert(field, stringify_json_value(value));
+				}
+				Some(old) => {
+					*old = stringify_json_value(value);
+				}
+			},
 		}
 	}
 }
 
-impl field::Visit for Visitor {
-	fn record_debug(&mut self, field: &Field, value: &dyn fmt::Debug) {
+fn stringify_json_value(value: JsonValue) -> String {
+	match value {
+		JsonValue::Null => String::from("null"),
+		JsonValue::Bool(x) => x.to_string(),
+		JsonValue::Number(x) => x.to_string(),
+		JsonValue::String(x) => x,
+		val @ (JsonValue::Array(_) | JsonValue::Object(_)) => format!("{val}"),
+	}
+}
+
+impl field::Visit for Log {
+	fn record_debug(&mut self, field: &Field, value: &dyn Debug) {
 		self.set_field(field, format!("{value:?}"));
 	}
 
@@ -91,25 +89,10 @@ impl field::Visit for Visitor {
 	}
 
 	fn record_bool(&mut self, field: &Field, value: bool) {
-		match field.name() {
-			"audit" => {
-				self.is_audit = value;
-			}
-			"skip_axiom" => {
-				self.is_axiom = false;
-			}
-			_ => {
-				self.set_field(field, value);
-			}
-		}
+		self.set_field(field, value);
 	}
 
 	fn record_str(&mut self, field: &Field, value: &str) {
-		if field.name() == "message" {
-			self.message = Some(value.to_owned());
-			return;
-		}
-
 		self.set_field(field, value);
 	}
 }

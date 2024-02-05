@@ -11,10 +11,16 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer as _};
 
-use self::layer::Layer;
-
-mod visitor;
 mod layer;
+use layer::Layer;
+
+mod log;
+pub use log::Log;
+
+mod audit_logs;
+pub use audit_logs::AuditLogs;
+
+pub mod axiom;
 
 pub async fn init(
 	database_config: &database::Config,
@@ -30,13 +36,22 @@ pub async fn init(
 		.with_thread_names(true)
 		.with_span_events(span_events)
 		.with_writer(io::stderr)
-		.with_filter(EnvFilter::from_default_env());
+		.with_filter({
+			let filter = EnvFilter::from_default_env();
+			eprintln!("stderr filter: {filter}");
+			filter
+		});
 
-	let custom = Layer::new(database_config.url.as_str(), axiom_config)
-		.await?
-		.with_filter(EnvFilter::from_default_env());
+	let axiom = axiom_config.map(axiom::Client::new).map(Layer::new);
 
-	let registry = tracing_subscriber::registry().with(stderr).with(custom);
+	let audit_logs = AuditLogs::new(database_config.url.as_str())
+		.await
+		.map(Layer::new)?;
+
+	let registry = tracing_subscriber::registry()
+		.with(stderr)
+		// .with(axiom)
+		.with(audit_logs);
 
 	#[cfg(feature = "console")]
 	let registry =

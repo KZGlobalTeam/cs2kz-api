@@ -1,4 +1,5 @@
 use smart_debug::SmartDebug;
+use url::Url;
 
 use super::{get_env_var, Result};
 
@@ -20,7 +21,7 @@ pub struct Config {
 	pub dataset: String,
 
 	/// A filter for [`tracing_subscriber`] logs.
-	pub log_filter: String,
+	pub url: Url,
 }
 
 impl Config {
@@ -28,8 +29,8 @@ impl Config {
 		let token = get_env_var("AXIOM_TOKEN")?;
 		let org_id = get_env_var("AXIOM_ORG_ID")?;
 		let dataset = get_env_var("AXIOM_DATASET")?;
-		let log_filter = get_env_var("AXIOM_LOG_FILTER")?;
+		let url = format!("https://api.axiom.co/v1/datasets/{dataset}/ingest").parse()?;
 
-		Ok(Self { token, org_id, dataset, log_filter })
+		Ok(Self { token, org_id, dataset, url })
 	}
 }
