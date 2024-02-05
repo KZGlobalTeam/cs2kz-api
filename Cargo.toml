@@ -10,9 +10,6 @@ repository = "https://github.com/KZGlobalTeam/cs2kz-api.git"
 license-file = "./LICENSE"
 publish = false
 
-[profile.dev]
-opt-level = 0
-
 [profile.release]
 debug = true
 
@@ -116,9 +113,8 @@ features = [
   "debug",
 ]
 
-[dependencies.utoipa-swagger-ui]
-version = "6.0.0"
-features = ["axum"]
+[dependencies.axum-swagger-ui]
+version = "0.3.0"
 
 [dependencies.itertools]
 workspace = true

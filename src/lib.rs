@@ -6,7 +6,6 @@ use itertools::Itertools;
 use tokio::net::TcpListener;
 use tracing::debug;
 use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi;
 
 use self::auth::openapi::Security;
 
@@ -38,6 +37,7 @@ mod sqlx;
 mod status;
 mod steam;
 
+mod docs;
 mod maps;
 mod servers;
 mod records;
@@ -176,9 +176,10 @@ impl API {
 	#[tracing::instrument(skip(self))]
 	pub async fn run(self) {
 		let state: &'static _ = Box::leak(Box::new(self.state));
-		let swagger_ui = Self::swagger_ui();
+
 		let router = Router::new()
 			.nest("/", status::router())
+			.nest("/docs", docs::router())
 			.nest("/maps", maps::router(state))
 			.nest("/servers", servers::router(state))
 			.nest("/records", records::router(state))
@@ -187,7 +188,6 @@ impl API {
 			.nest("/bans", bans::router(state))
 			.nest("/admins", admins::router(state))
 			.nest("/auth", auth::router(state))
-			.merge(swagger_ui)
 			.layer(middleware::logging::layer!())
 			.into_make_service();
 
@@ -218,11 +218,6 @@ impl API {
 
 			format!("`{uri}` [{methods}]")
 		})
-	}
-
-	/// Returns a router for hosting a SwaggerUI web page and the OpenAPI spec as a JSON file.
-	pub fn swagger_ui() -> SwaggerUi {
-		SwaggerUi::new("/docs/swagger-ui").url("/docs/open-api.json", Self::openapi())
 	}
 
 	/// Returns a pretty-printed version of the OpenAPI spec in JSON.
