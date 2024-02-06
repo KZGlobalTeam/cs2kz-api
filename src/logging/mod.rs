@@ -15,14 +15,15 @@ mod stderr;
 mod audit_logs;
 
 pub fn init(audit_log_db: MySqlPool) {
+#[cfg(feature = "console")]
+mod console;
 	let registry = Registry::default()
 		.with(stderr::layer())
 		.with(AuditLogs::layer(audit_log_db));
+	#[cfg(feature = "console")]
+	let registry = registry.with(console::layer());
 
 	registry.init();
 
-	info! {
-		tokio_console = cfg!(feature = "console"),
-		"Initialized logging",
-	};
+	info!(tokio_console = cfg!(feature = "console"), "Initialized logging");
 }
