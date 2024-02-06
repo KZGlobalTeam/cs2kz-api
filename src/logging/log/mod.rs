@@ -16,6 +16,8 @@ pub struct Log {
 	pub level: &'static Level,
 	pub source: Option<&'static str>,
 	pub message: Option<String>,
+
+	#[serde(flatten, skip_serializing_if = "HashMap::is_empty")]
 	pub fields: HashMap<&'static str, Value>,
 }
 

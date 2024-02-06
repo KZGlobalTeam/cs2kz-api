@@ -44,7 +44,7 @@ version = "0.2.0"
 optional = true
 
 [dependencies.axum]
-version = "0.7.3"
+version = "0.7.4"
 default-features = false
 features = [
   "http1",
@@ -60,7 +60,7 @@ version = "0.9.1"
 features = ["cookie", "typed-header", "query"]
 
 [dependencies.tower-http]
-version = "0.5.0"
+version = "0.5.1"
 features = ["cors", "trace"]
 
 [dependencies.crossbeam]
@@ -85,7 +85,7 @@ version = "1.0.21"
 features = ["serde"]
 
 [dependencies.reqwest]
-version = "0.11.23"
+version = "0.11.24"
 default-features = false
 features = ["rustls-tls", "json"]
 
@@ -156,7 +156,7 @@ version = "0.15.7"
 version = "1.0.56"
 
 [workspace.dependencies.tokio]
-version = "1.35.1"
+version = "1.36.0"
 features = ["rt-multi-thread", "net", "process", "macros"]
 
 [workspace.dependencies.tracing]
@@ -179,11 +179,11 @@ version = "2.5.0"
 features = ["serde"]
 
 [workspace.dependencies.serde]
-version = "1.0.195"
+version = "1.0.196"
 features = ["derive"]
 
 [workspace.dependencies.serde_json]
-version = "1.0.111"
+version = "1.0.113"
 
 [workspace.dependencies.itertools]
 version = "0.12.0"

@@ -1,7 +1,7 @@
 use audit_logs::AuditLogs;
 use axiom::Axiom;
 use cs2kz_api::config::axiom::Config as AxiomConfig;
-use sqlx::MySqlPool;
+use sqlx::MySqlConnection;
 use tracing::info;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -20,7 +20,7 @@ mod axiom;
 #[cfg(feature = "console")]
 mod console;
 
-pub fn init(audit_log_db: MySqlPool, axiom_config: Option<AxiomConfig>) {
+pub fn init(audit_log_db: MySqlConnection, axiom_config: Option<AxiomConfig>) {
 	let registry = Registry::default()
 		.with(stderr::layer())
 		.with(AuditLogs::layer(audit_log_db))

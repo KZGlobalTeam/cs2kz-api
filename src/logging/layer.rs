@@ -6,18 +6,18 @@ use crate::logging::log::Log;
 
 /// A generic tracing layer that will collect [`Log`]s and save them according to the
 /// [`Consumer`] implementation of the logger it is wrapping.
-pub struct Layer<C> {
-	consumer: C,
+pub struct Layer<C: 'static> {
+	consumer: &'static C,
 }
 
 impl<C> Layer<C> {
-	pub const fn new(consumer: C) -> Self {
-		Self { consumer }
+	pub fn new(consumer: C) -> Self {
+		Self { consumer: Box::leak(Box::new(consumer)) }
 	}
 }
 
 pub trait Consumer {
-	fn save_log(&self, log: Log);
+	fn save_log(&'static self, log: Log);
 }
 
 impl<S, C> tracing_subscriber::Layer<S> for Layer<C>

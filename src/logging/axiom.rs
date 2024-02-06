@@ -42,8 +42,8 @@ impl Axiom {
 }
 
 impl Consumer for Axiom {
-	fn save_log(&self, log: Log) {
-		let json = serde_json::to_vec(&[&log]).expect("invalid logs");
+	fn save_log(&'static self, log: Log) {
+		let json = serde_json::to_vec(&[log]).expect("invalid logs");
 		let request = self.http_client.post(self.config.url.clone()).body(json);
 
 		task::spawn(async move {

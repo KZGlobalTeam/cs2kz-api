@@ -1,5 +1,7 @@
+use crossbeam::queue::SegQueue;
 use sqlx::types::Json as SqlJson;
-use sqlx::MySqlPool;
+use sqlx::{MySqlConnection, QueryBuilder};
+use tokio::sync::Mutex;
 use tokio::task;
 use tracing::error;
 use tracing_subscriber::filter::FilterFn;
@@ -10,39 +12,72 @@ use crate::logging::layer::Consumer;
 use crate::logging::{Layer, Log};
 
 pub struct AuditLogs {
-	database: MySqlPool,
+	database: Mutex<MySqlConnection>,
+	queue: SegQueue<Log>,
 }
 
 impl AuditLogs {
-	pub fn layer<S>(database: MySqlPool) -> impl tracing_subscriber::Layer<S>
+	pub fn layer<S>(database: MySqlConnection) -> impl tracing_subscriber::Layer<S>
 	where
 		S: tracing::Subscriber + for<'a> LookupSpan<'a>,
 	{
-		Layer::new(Self { database })
+		let database = Mutex::new(database);
+		let queue = SegQueue::new();
+
+		Layer::new(Self { database, queue })
 			.with_filter(FilterFn::new(|metadata| metadata.target() == "audit_log"))
 	}
 }
 
 impl Consumer for AuditLogs {
-	fn save_log(&self, Log { level, source, message, fields }: Log) {
-		let database = self.database.clone();
-		let query = sqlx::query! {
-			r#"
-			INSERT INTO
-			  AuditLogs (level, source, message, fields)
-			VALUES
-			  (?, ?, ?, ?)
-			"#,
-			level.as_str(),
-			source,
-			message,
-			SqlJson(fields),
+	fn save_log(&'static self, log: Log) {
+		let Ok(mut database) = self.database.try_lock() else {
+			self.queue.push(log);
+			return;
 		};
 
-		task::spawn(async move {
-			if let Err(error) = query.execute(&database).await {
-				error!(%error, "failed to save audit log");
+		if self.queue.is_empty() {
+			let query = sqlx::query! {
+				r#"
+				INSERT INTO
+				  AuditLogs (level, source, message, fields)
+				VALUES
+				  (?, ?, ?, ?)
+				"#,
+				log.level.as_str(),
+				log.source,
+				log.message,
+				SqlJson(log.fields),
+			};
+
+			task::spawn(async move {
+				if let Err(error) = query.execute(&mut *database).await {
+					error!(%error, "failed to save audit log");
+				}
+			});
+		} else {
+			let mut logs = vec![log];
+
+			while let Some(log) = self.queue.pop() {
+				logs.push(log);
 			}
-		});
+
+			let mut query =
+				QueryBuilder::new("INSERT INTO AuditLogs (level, source, message, fields)");
+
+			query.push_values(logs, |mut query, Log { level, source, message, fields }| {
+				query
+					.push_bind(level.as_str())
+					.push_bind(source)
+					.push_bind(message)
+					.push_bind(SqlJson(fields));
+			});
+
+			task::spawn(async move {
+				if let Err(error) = query.build().execute(&mut *database).await {
+					error!(%error, "failed to save audit logs");
+				}
+			});
+		}
 	}
 }
