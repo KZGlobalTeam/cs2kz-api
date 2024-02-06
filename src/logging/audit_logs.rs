@@ -1,12 +1,13 @@
 use sqlx::types::Json as SqlJson;
 use sqlx::MySqlPool;
 use tokio::task;
-use tracing::{error, span};
+use tracing::error;
 use tracing_subscriber::filter::FilterFn;
 use tracing_subscriber::registry::LookupSpan;
-use tracing_subscriber::{layer, Layer};
+use tracing_subscriber::Layer as _;
 
-use crate::logging::log::Log;
+use super::layer::Consumer;
+use crate::logging::{Layer, Log};
 
 pub struct AuditLogs {
 	database: MySqlPool,
@@ -17,9 +18,12 @@ impl AuditLogs {
 	where
 		S: tracing::Subscriber + for<'a> LookupSpan<'a>,
 	{
-		Self { database }.with_filter(FilterFn::new(|metadata| metadata.target() == "audit_log"))
+		Layer::new(Self { database })
+			.with_filter(FilterFn::new(|metadata| metadata.target() == "audit_log"))
 	}
+}
 
+impl Consumer for AuditLogs {
 	fn save_log(&self, Log { level, source, message, fields, .. }: Log) {
 		let database = self.database.clone();
 		let query = sqlx::query! {
@@ -40,49 +44,5 @@ impl AuditLogs {
 				error!(%error, "failed to save audit log");
 			}
 		});
-	}
-}
-
-impl<S> tracing_subscriber::Layer<S> for AuditLogs
-where
-	S: tracing::Subscriber + for<'a> LookupSpan<'a>,
-{
-	fn on_new_span(
-		&self,
-		attributes: &span::Attributes<'_>,
-		span_id: &span::Id,
-		ctx: layer::Context<'_, S>,
-	) {
-		let log = Log::from(attributes);
-		let span = ctx.span(span_id).expect("invalid span id");
-		let mut extensions = span.extensions_mut();
-
-		extensions.insert(log);
-	}
-
-	fn on_record(&self, span_id: &span::Id, values: &span::Record<'_>, ctx: layer::Context<'_, S>) {
-		let span = ctx.span(span_id).expect("invalid span id");
-		let mut extensions = span.extensions_mut();
-
-		if let Some(log) = extensions.get_mut::<Log>() {
-			values.record(log);
-		} else {
-			let mut log = Log::from(span.metadata());
-			values.record(&mut log);
-			extensions.insert(log);
-		}
-	}
-
-	fn on_event(&self, event: &tracing::Event<'_>, _ctx: layer::Context<'_, S>) {
-		self.save_log(Log::from(event));
-	}
-
-	fn on_close(&self, span_id: span::Id, ctx: layer::Context<'_, S>) {
-		let span = ctx.span(&span_id).expect("invalid span id");
-		let mut extensions = span.extensions_mut();
-
-		if let Some(log) = extensions.remove::<Log>() {
-			self.save_log(log);
-		}
 	}
 }

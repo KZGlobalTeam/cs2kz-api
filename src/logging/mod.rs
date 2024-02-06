@@ -5,8 +5,13 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Registry;
 
-mod stderr;
 mod log;
+pub use log::Log;
+
+mod layer;
+pub use layer::Layer;
+
+mod stderr;
 mod audit_logs;
 
 pub fn init(audit_log_db: MySqlPool) {
