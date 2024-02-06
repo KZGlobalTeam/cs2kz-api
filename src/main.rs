@@ -2,6 +2,7 @@ use std::error::Error as StdError;
 use std::fmt::Write;
 
 use cs2kz_api::{Config, API};
+use sqlx::MySqlPool;
 use tracing::{info, warn};
 
 mod logging;
@@ -13,8 +14,9 @@ async fn main() -> Result<(), Box<dyn StdError>> {
 	}
 
 	let config = Config::new()?;
+	let audit_log_db = MySqlPool::connect(config.database.url.as_str()).await?;
 
-	logging::init();
+	logging::init(audit_log_db);
 
 	let api = API::new(config).await?;
 

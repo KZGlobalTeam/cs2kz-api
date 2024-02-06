@@ -3,7 +3,7 @@ use std::error::Error;
 use std::fmt::Debug;
 
 use tracing::field::{self, Field};
-use tracing::Level;
+use tracing::{span, Level};
 
 mod value;
 use value::Value;
@@ -11,7 +11,6 @@ use value::Value;
 /// A tracing visitor that can record span/event fields.
 pub struct Log {
 	pub level: &'static Level,
-	pub target: &'static str,
 	pub source: Option<&'static str>,
 	pub message: Option<String>,
 	pub fields: HashMap<&'static str, Value>,
@@ -19,7 +18,17 @@ pub struct Log {
 
 impl Log {
 	fn set_field(&mut self, field: &Field, value: impl Into<Value>) {
-		self.fields.insert(field.name(), value.into());
+		match (field.name(), value.into()) {
+			("message", Value::String(message)) => {
+				self.message = Some(message);
+			}
+			("message", value) => {
+				panic!("cannot override `message` field (`{value:?}`)");
+			}
+			(field, value) => {
+				self.fields.insert(field, value);
+			}
+		}
 	}
 }
 
@@ -31,11 +40,18 @@ impl From<&tracing::Event<'_>> for Log {
 	}
 }
 
+impl From<&span::Attributes<'_>> for Log {
+	fn from(attributes: &span::Attributes<'_>) -> Self {
+		let mut log = Self::from(attributes.metadata());
+		attributes.record(&mut log);
+		log
+	}
+}
+
 impl From<&'static tracing::Metadata<'_>> for Log {
 	fn from(metadata: &'static tracing::Metadata<'_>) -> Self {
 		Self {
 			level: metadata.level(),
-			target: metadata.target(),
 			source: metadata.module_path(),
 			message: None,
 			fields: HashMap::new(),

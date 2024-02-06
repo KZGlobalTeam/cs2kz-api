@@ -1,21 +1,18 @@
 use std::error::Error;
-use std::fmt::{self, Debug, Display};
+use std::fmt::Debug;
+
+use serde::Serialize;
 
 /// A value that can be recorded in a [`Log`].
 ///
 /// [`Log`]: super::Log
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
+#[serde(untagged)]
 pub enum Value {
 	Bool(bool),
 	Int(i64),
 	Float(f64),
 	String(String),
-}
-
-impl Display for Value {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		todo!()
-	}
 }
 
 macro_rules! from {
