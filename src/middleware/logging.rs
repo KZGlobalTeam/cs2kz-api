@@ -24,7 +24,7 @@ pub fn make_span_with(request: &Request) -> tracing::Span {
 		Level::TRACE,
 		"request",
 		method = %request.method(),
-		path = format_args!("`{}`", request.uri()),
+		path = format_args!("{}", request.uri()),
 		version = ?request.version(),
 		request_headers = ?request.headers(),
 		request_body = tracing::field::Empty,

@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn StdError>> {
 	let config = Config::new()?;
 	let audit_log_db = MySqlPool::connect(config.database.url.as_str()).await?;
 
-	logging::init(audit_log_db);
+	logging::init(audit_log_db, config.axiom.clone());
 
 	let api = API::new(config).await?;
 

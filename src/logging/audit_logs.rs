@@ -6,7 +6,7 @@ use tracing_subscriber::filter::FilterFn;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::Layer as _;
 
-use super::layer::Consumer;
+use crate::logging::layer::Consumer;
 use crate::logging::{Layer, Log};
 
 pub struct AuditLogs {
@@ -24,7 +24,7 @@ impl AuditLogs {
 }
 
 impl Consumer for AuditLogs {
-	fn save_log(&self, Log { level, source, message, fields, .. }: Log) {
+	fn save_log(&self, Log { level, source, message, fields }: Log) {
 		let database = self.database.clone();
 		let query = sqlx::query! {
 			r#"

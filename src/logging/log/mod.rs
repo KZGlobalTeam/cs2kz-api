@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Debug;
 
+use serde::{Serialize, Serializer};
 use tracing::field::{self, Field};
 use tracing::{span, Level};
 
@@ -9,7 +10,9 @@ mod value;
 use value::Value;
 
 /// A tracing visitor that can record span/event fields.
+#[derive(Debug, Serialize)]
 pub struct Log {
+	#[serde(serialize_with = "Log::serialize_level")]
 	pub level: &'static Level,
 	pub source: Option<&'static str>,
 	pub message: Option<String>,
@@ -29,6 +32,13 @@ impl Log {
 				self.fields.insert(field, value);
 			}
 		}
+	}
+
+	fn serialize_level<S>(level: &Level, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		level.as_str().serialize(serializer)
 	}
 }
 

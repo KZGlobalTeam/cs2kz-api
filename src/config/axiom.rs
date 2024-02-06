@@ -20,7 +20,7 @@ pub struct Config {
 	#[debug("…")]
 	pub dataset: String,
 
-	/// A filter for [`tracing_subscriber`] logs.
+	/// URL for POSTing new logs.
 	pub url: Url,
 }
 
