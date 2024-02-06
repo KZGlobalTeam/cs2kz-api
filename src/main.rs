@@ -1,4 +1,5 @@
 use std::error::Error as StdError;
+use std::fmt::Write;
 
 use cs2kz_api::{Config, API};
 use tracing::{info, warn};
@@ -7,25 +8,25 @@ mod logging;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn StdError>> {
-	// Load `.env` file.
 	if let Err(error) = dotenvy::dotenv() {
 		eprintln!("Failed to load `.env` file: {error}");
 	}
 
-	// Load API configuration.
 	let config = Config::new()?;
 
-	// Initialize logging.
-	logging::init(&config.database, config.axiom.clone()).await?;
+	logging::init();
 
-	// Initialize the API.
 	let api = API::new(config).await?;
 
 	info!("Initialized API service.");
 
+	let mut routes = String::from("\n");
+
 	for route in API::routes() {
-		info!("Registered route: {route}");
+		writeln!(&mut routes, "\t\t\t\t\t\t• {route}")?;
 	}
+
+	info!("Registered API routes: {routes}");
 
 	let local_addr = api.local_addr()?;
 
@@ -36,7 +37,6 @@ async fn main() -> Result<(), Box<dyn StdError>> {
 		warn!("running in development mode");
 	}
 
-	// Run the API.
 	api.run().await;
 
 	Ok(())
