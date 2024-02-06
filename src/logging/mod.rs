@@ -4,6 +4,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Registry;
 
 mod stderr;
+mod log;
 
 pub fn init() {
 	let registry = Registry::default().with(stderr::layer());
