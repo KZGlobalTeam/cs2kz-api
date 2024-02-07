@@ -7,7 +7,7 @@ use tracing::field::{self, Field};
 use tracing::{span, Level};
 
 mod value;
-use value::Value;
+pub use value::Value;
 
 /// A tracing visitor that can record span/event fields.
 #[derive(Debug, Serialize)]
@@ -15,25 +15,26 @@ pub struct Log {
 	#[serde(serialize_with = "Log::serialize_level")]
 	pub level: &'static Level,
 	pub source: Option<&'static str>,
-	pub message: Option<String>,
 
 	#[serde(flatten, skip_serializing_if = "HashMap::is_empty")]
 	pub fields: HashMap<&'static str, Value>,
 }
 
 impl Log {
-	fn set_field(&mut self, field: &Field, value: impl Into<Value>) {
-		match (field.name(), value.into()) {
-			("message", Value::String(message)) => {
-				self.message = Some(message);
-			}
-			("message", value) => {
-				panic!("cannot override `message` field (`{value:?}`)");
-			}
-			(field, value) => {
-				self.fields.insert(field, value);
-			}
+	pub fn message(&mut self) -> Option<String> {
+		if let Value::String(message) = self.fields.remove("message")? {
+			Some(message)
+		} else {
+			panic!("invalid type for message");
 		}
+	}
+
+	pub fn field(&self, name: &str) -> Option<&Value> {
+		self.fields.get(name)
+	}
+
+	fn set_field(&mut self, field: &Field, value: impl Into<Value>) {
+		self.fields.insert(field.name(), value.into());
 	}
 
 	fn serialize_level<S>(level: &Level, serializer: S) -> Result<S::Ok, S::Error>
@@ -65,7 +66,6 @@ impl From<&'static tracing::Metadata<'_>> for Log {
 		Self {
 			level: metadata.level(),
 			source: metadata.module_path(),
-			message: None,
 			fields: HashMap::new(),
 		}
 	}

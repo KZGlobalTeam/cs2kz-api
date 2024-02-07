@@ -4,6 +4,7 @@ use axum::body::Bytes;
 use axum::extract::Request;
 use axum::response::Response;
 use tracing::Level;
+use uuid::Uuid;
 
 /// Middleware for logging incoming requests and outgoing responses.
 macro_rules! layer {
@@ -23,6 +24,7 @@ pub fn make_span_with(request: &Request) -> tracing::Span {
 	tracing::span! {
 		Level::TRACE,
 		"request",
+		id = %Uuid::new_v4(),
 		method = %request.method(),
 		path = format_args!("{}", request.uri()),
 		version = ?request.version(),

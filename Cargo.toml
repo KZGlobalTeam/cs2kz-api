@@ -80,6 +80,10 @@ features = [
 [dependencies.url]
 workspace = true
 
+[dependencies.uuid]
+version = "1.7.0"
+features = ["v4", "serde"]
+
 [dependencies.semver]
 version = "1.0.21"
 features = ["serde"]

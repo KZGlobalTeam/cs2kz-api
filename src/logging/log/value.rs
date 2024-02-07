@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt::Debug;
 
 use serde::Serialize;
+use uuid::Uuid;
 
 /// A value that can be recorded in a [`Log`].
 ///
@@ -42,3 +43,4 @@ from!(bool, Bool);
 from!(&str, |value| { Self::String(value.to_owned()) });
 from!(&dyn Debug, |value| { Self::String(format!("{value:?}")) });
 from!(&dyn Error, |value| { Self::String(format!("{value}")) });
+from!(Uuid, |value| { Self::String(format!("{value}")) });

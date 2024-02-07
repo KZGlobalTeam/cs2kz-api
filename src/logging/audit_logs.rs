@@ -30,13 +30,15 @@ impl AuditLogs {
 }
 
 impl Consumer for AuditLogs {
-	fn save_log(&'static self, log: Log) {
+	fn save_log(&'static self, mut log: Log) {
 		let Ok(mut database) = self.database.try_lock() else {
 			self.queue.push(log);
 			return;
 		};
 
 		if self.queue.is_empty() {
+			let message = log.message();
+
 			let query = sqlx::query! {
 				r#"
 				INSERT INTO
@@ -46,7 +48,7 @@ impl Consumer for AuditLogs {
 				"#,
 				log.level.as_str(),
 				log.source,
-				log.message,
+				message,
 				SqlJson(log.fields),
 			};
 
@@ -65,12 +67,12 @@ impl Consumer for AuditLogs {
 			let mut query =
 				QueryBuilder::new("INSERT INTO AuditLogs (level, source, message, fields)");
 
-			query.push_values(logs, |mut query, Log { level, source, message, fields }| {
+			query.push_values(logs, |mut query, mut log| {
 				query
-					.push_bind(level.as_str())
-					.push_bind(source)
-					.push_bind(message)
-					.push_bind(SqlJson(fields));
+					.push_bind(log.level.as_str())
+					.push_bind(log.source)
+					.push_bind(log.message())
+					.push_bind(SqlJson(log.fields));
 			});
 
 			task::spawn(async move {
