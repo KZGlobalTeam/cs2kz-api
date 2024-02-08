@@ -5,8 +5,17 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub struct Player {
+	/// The player's SteamID.
+	pub steam_id: SteamID,
+
+	/// The player's latest known name.
+	pub name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow, ToSchema)]
+pub struct FullPlayer {
 	/// The player's SteamID.
 	pub steam_id: SteamID,
 

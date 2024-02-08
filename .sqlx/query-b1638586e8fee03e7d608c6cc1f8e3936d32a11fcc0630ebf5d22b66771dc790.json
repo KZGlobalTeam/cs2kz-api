@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t  steam_id `steam_id: SteamID`,\n\t\t  name,\n\t\t  is_banned `is_banned: bool`\n\t\tFROM\n\t\t  Players\n\t\tLIMIT\n\t\t  ? OFFSET ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t  p.steam_id `steam_id: SteamID`,\n\t\t  p.name,\n\t\t  (\n\t\t    SELECT\n\t\t      COUNT(b.id)\n\t\t    FROM\n\t\t      Bans b\n\t\t    WHERE\n\t\t      b.player_id = p.steam_id\n\t\t      AND b.expires_on > NOW()\n\t\t  ) `is_banned!: bool`\n\t\tFROM\n\t\t  Players p\n\t\tLIMIT\n\t\t  ? OFFSET ?\n\t\t",
   "describe": {
     "columns": [
       {
@@ -25,12 +25,12 @@
       },
       {
         "ordinal": 2,
-        "name": "is_banned: bool",
+        "name": "is_banned!: bool",
         "type_info": {
-          "type": "Tiny",
-          "flags": "NOT_NULL",
+          "type": "LongLong",
+          "flags": "BINARY",
           "char_set": 63,
-          "max_size": 1
+          "max_size": 21
         }
       }
     ],
@@ -40,8 +40,8 @@
     "nullable": [
       false,
       false,
-      false
+      true
     ]
   },
-  "hash": "6c8c224d5bdde72cbbaf14d9bda111048a93f4c4b668853bc0cbfcf019b0858c"
+  "hash": "b1638586e8fee03e7d608c6cc1f8e3936d32a11fcc0630ebf5d22b66771dc790"
 }

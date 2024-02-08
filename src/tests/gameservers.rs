@@ -7,7 +7,7 @@ use tracing::info;
 
 use super::Context;
 use crate::auth::servers::{AccessToken, RefreshToken};
-use crate::players::Player;
+use crate::players::FullPlayer;
 
 #[crate::test]
 async fn register_player(ctx: Context) {
@@ -36,7 +36,7 @@ async fn register_player(ctx: Context) {
 		.get(url)
 		.send()
 		.await?
-		.json::<Player>()
+		.json::<FullPlayer>()
 		.await?;
 
 	ensure!(szwagi.steam_id == steam_id);

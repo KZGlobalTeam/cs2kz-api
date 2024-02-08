@@ -3,7 +3,7 @@ use axum::Json;
 use cs2kz::PlayerIdentifier;
 use sqlx::QueryBuilder;
 
-use crate::players::Player;
+use crate::players::{queries, FullPlayer, Player};
 use crate::{responses, AppState, Error, Result};
 
 /// Fetch a specific player.
@@ -23,8 +23,10 @@ use crate::{responses, AppState, Error, Result};
 pub async fn get_single(
 	state: AppState,
 	Path(player): Path<PlayerIdentifier<'_>>,
-) -> Result<Json<Player>> {
-	let mut query = QueryBuilder::new("SELECT steam_id, name, is_banned FROM Players WHERE");
+) -> Result<Json<FullPlayer>> {
+	let mut query = QueryBuilder::new(queries::GET_FULL_PLAYER);
+
+	query.push(" WHERE ");
 
 	match player {
 		PlayerIdentifier::SteamID(steam_id) => {
@@ -36,7 +38,7 @@ pub async fn get_single(
 	}
 
 	query
-		.build_query_as::<Player>()
+		.build_query_as::<FullPlayer>()
 		.fetch_optional(&state.database)
 		.await
 		.map_err(Error::from)?

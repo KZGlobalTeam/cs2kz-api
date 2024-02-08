@@ -1,11 +1,11 @@
 use std::net::{Ipv4Addr, SocketAddrV4};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use cs2kz::SteamID;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use sqlx::mysql::MySqlRow;
-use sqlx::{FromRow, Row};
+use sqlx::{FromRow, MySql, Row};
 use utoipa::ToSchema;
 
 use crate::players::Player;
@@ -21,8 +21,7 @@ pub struct Ban {
 	pub player: BannedPlayer,
 
 	/// The reason for the ban.
-	// TODO(AlphaKeks): make this an enum?
-	pub reason: String,
+	pub reason: BanReason,
 
 	/// The server the player was banned on (if any).
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -50,6 +49,71 @@ pub struct Ban {
 	/// The corresponding unban to this ban.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub unban: Option<Unban>,
+}
+
+/// All the reasons players can get banned for.
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum BanReason {
+	AutoBhop,
+	AutoStrafe,
+}
+
+impl BanReason {
+	/// Returns the ban duration for this reason.
+	pub fn duration(&self, previous_offenses: u8) -> Duration {
+		match (self, previous_offenses) {
+			(Self::AutoBhop | Self::AutoStrafe, 0) => Duration::weeks(1),
+			(Self::AutoBhop | Self::AutoStrafe, 1) => Duration::weeks(4),
+			(Self::AutoBhop | Self::AutoStrafe, 2) => Duration::weeks(12),
+			(Self::AutoBhop | Self::AutoStrafe, _) => Duration::weeks(24),
+		}
+	}
+}
+
+impl sqlx::Type<MySql> for BanReason {
+	fn type_info() -> <MySql as sqlx::Database>::TypeInfo {
+		<&'static str as sqlx::Type<MySql>>::type_info()
+	}
+}
+
+impl<'query, DB: sqlx::Database> sqlx::Encode<'query, DB> for BanReason
+where
+	&'static str: sqlx::Encode<'query, DB>,
+{
+	fn encode_by_ref(
+		&self,
+		buf: &mut <DB as sqlx::database::HasArguments<'query>>::ArgumentBuffer,
+	) -> sqlx::encode::IsNull {
+		<&'static str as sqlx::Encode<'query, DB>>::encode(
+			match self {
+				BanReason::AutoBhop => "auto_bhop",
+				BanReason::AutoStrafe => "auto_strafe",
+			},
+			buf,
+		)
+	}
+}
+
+impl<'row, DB: sqlx::Database> sqlx::Decode<'row, DB> for BanReason
+where
+	String: sqlx::Decode<'row, DB>,
+{
+	fn decode(
+		value: <DB as sqlx::database::HasValueRef<'row>>::ValueRef,
+	) -> std::result::Result<Self, sqlx::error::BoxDynError> {
+		#[derive(Debug, thiserror::Error)]
+		#[error("unknown variant `{0}`")]
+		struct UnknownVariant(String);
+
+		let value = <String as sqlx::Decode<'row, DB>>::decode(value)?;
+
+		match value.as_str() {
+			"auto_bhop" => Ok(Self::AutoBhop),
+			"auto_strafe" => Ok(Self::AutoStrafe),
+			_ => Err(Box::new(UnknownVariant(value))),
+		}
+	}
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -104,7 +168,6 @@ impl FromRow<'_, MySqlRow> for Ban {
 				owned_by: Player {
 					steam_id: row.try_get("server_owner_steam_id")?,
 					name: row.try_get("server_owner_name")?,
-					is_banned: row.try_get("server_owner_is_banned")?,
 				},
 				approved_on: row.try_get("server_approved_on")?,
 			})
@@ -121,11 +184,7 @@ impl FromRow<'_, MySqlRow> for Ban {
 			})?;
 
 		let banned_by = if let Ok(steam_id) = row.try_get("banned_by_steam_id") {
-			Some(Player {
-				steam_id,
-				name: row.try_get("banned_by_name")?,
-				is_banned: row.try_get("banned_by_is_banned")?,
-			})
+			Some(Player { steam_id, name: row.try_get("banned_by_name")? })
 		} else {
 			None
 		};
@@ -172,11 +231,7 @@ impl FromRow<'_, MySqlRow> for Unban {
 		let created_on = row.try_get("unban_created_on")?;
 
 		let unbanned_by = if let Ok(steam_id) = row.try_get("unbanned_by_steam_id") {
-			Some(Player {
-				steam_id,
-				name: row.try_get("unbanned_by_name")?,
-				is_banned: row.try_get("unbanned_by_is_banned")?,
-			})
+			Some(Player { steam_id, name: row.try_get("unbanned_by_name")? })
 		} else {
 			None
 		};
@@ -195,7 +250,7 @@ pub struct NewBan {
 	pub ip_address: Option<Ipv4Addr>,
 
 	/// The reason for the ban.
-	pub reason: String,
+	pub reason: BanReason,
 }
 
 /// A newly created ban.
@@ -203,13 +258,16 @@ pub struct NewBan {
 pub struct CreatedBan {
 	/// The ban's ID.
 	pub ban_id: u32,
+
+	/// When this ban will expire.
+	pub expires_on: DateTime<Utc>,
 }
 
 /// An update to a ban.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct BanUpdate {
 	/// A new ban reason.
-	pub reason: Option<String>,
+	pub reason: Option<BanReason>,
 
 	/// A new expiration date.
 	pub expires_on: Option<DateTime<Utc>>,
@@ -224,6 +282,9 @@ pub struct NewUnban {
 /// A newly reverted ban.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedUnban {
+	/// The ban that was reverted by this unban.
+	pub ban_id: u32,
+
 	/// The unban's ID.
 	pub unban_id: u32,
 }

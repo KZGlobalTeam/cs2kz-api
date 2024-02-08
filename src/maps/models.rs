@@ -100,7 +100,6 @@ impl FromRow<'_, MySqlRow> for KZMap {
 		let mappers = vec![Player {
 			steam_id: row.try_get("mapper_steam_id")?,
 			name: row.try_get("mapper_name")?,
-			is_banned: row.try_get("mapper_is_banned")?,
 		}];
 
 		let courses = vec![Course {
@@ -111,7 +110,6 @@ impl FromRow<'_, MySqlRow> for KZMap {
 			mappers: vec![Player {
 				steam_id: row.try_get("course_mapper_steam_id")?,
 				name: row.try_get("course_mapper_name")?,
-				is_banned: row.try_get("course_mapper_is_banned")?,
 			}],
 			filters: vec![Filter {
 				id: row.try_get("filter_id")?,

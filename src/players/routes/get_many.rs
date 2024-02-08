@@ -5,7 +5,7 @@ use serde::Deserialize;
 use utoipa::IntoParams;
 
 use crate::params::{Limit, Offset};
-use crate::players::Player;
+use crate::players::{FullPlayer, Player};
 use crate::{responses, AppState, Error, Result};
 
 /// Query Parameters for fetching [`Player`]s.
@@ -38,16 +38,24 @@ pub struct GetPlayersParams {
 pub async fn get_many(
 	state: AppState,
 	Query(params): Query<GetPlayersParams>,
-) -> Result<Json<Vec<Player>>> {
+) -> Result<Json<Vec<FullPlayer>>> {
 	let players = sqlx::query_as! {
-		Player,
+		FullPlayer,
 		r#"
 		SELECT
-		  steam_id `steam_id: SteamID`,
-		  name,
-		  is_banned `is_banned: bool`
+		  p.steam_id `steam_id: SteamID`,
+		  p.name,
+		  (
+		    SELECT
+		      COUNT(b.id)
+		    FROM
+		      Bans b
+		    WHERE
+		      b.player_id = p.steam_id
+		      AND b.expires_on > NOW()
+		  ) `is_banned!: bool`
 		FROM
-		  Players
+		  Players p
 		LIMIT
 		  ? OFFSET ?
 		"#,
