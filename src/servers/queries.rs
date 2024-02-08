@@ -6,7 +6,6 @@ pub static BASE_SELECT: &str = r#"
 	  s.port,
 	  p.steam_id owned_by_steam_id,
 	  p.name owned_by_name,
-	  p.is_banned owned_by_is_banned,
 	  s.approved_on
 	FROM
 	  Servers s

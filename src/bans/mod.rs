@@ -8,7 +8,7 @@ use crate::{cors, State};
 mod queries;
 
 pub mod models;
-pub use models::{Ban, BanUpdate, CreatedBan, CreatedUnban, NewBan, NewUnban};
+pub use models::{Ban, BanReason, BanUpdate, CreatedBan, CreatedUnban, NewBan, NewUnban};
 
 pub mod routes;
 

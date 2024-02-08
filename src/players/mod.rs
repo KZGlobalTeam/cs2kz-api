@@ -4,8 +4,10 @@ use axum::Router;
 
 use crate::{cors, State};
 
+mod queries;
+
 pub mod models;
-pub use models::{NewPlayer, Player};
+pub use models::{FullPlayer, NewPlayer, Player};
 
 pub mod routes;
 

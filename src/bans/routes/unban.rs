@@ -76,23 +76,9 @@ pub async fn unban(
 		.await
 		.map(|row| row.id as _)?;
 
-	audit!("unban created", id = %unban_id, by = %session.user.steam_id, reason = %unban.reason);
-
-	sqlx::query! {
-		r#"
-		UPDATE
-		  Players
-		SET
-		  is_banned = false
-		WHERE
-		  steam_id = (SELECT player_id FROM Bans where id = ?)
-		"#,
-		ban_id,
-	}
-	.execute(transaction.as_mut())
-	.await?;
-
 	transaction.commit().await?;
 
-	Ok(Created(Json(CreatedUnban { unban_id })))
+	audit!("unban created", id = %unban_id, by = %session.user.steam_id, reason = ?unban.reason);
+
+	Ok(Created(Json(CreatedUnban { ban_id, unban_id })))
 }

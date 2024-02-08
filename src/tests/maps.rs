@@ -33,14 +33,10 @@ async fn get(ctx: Context) {
 		.find(|c| c.stage == 2)
 		.context("missing stage 2 on kz_victoria")?;
 
-	ensure!(
-		stage_2.mappers
-			== vec![Player {
-				steam_id: "STEAM_1:1:207612938".parse()?,
-				name: String::from("lars"),
-				is_banned: false,
-			}]
-	);
+	let expected_mappers =
+		vec![Player { steam_id: "STEAM_1:1:207612938".parse()?, name: String::from("lars") }];
+
+	ensure!(stage_2.mappers == expected_mappers);
 }
 
 #[crate::test]

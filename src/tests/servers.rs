@@ -36,6 +36,5 @@ async fn get(ctx: Context) {
 	ensure!(alphas_kz.owned_by == Player {
 		steam_id: SteamID::from_u32(322356345)?,
 		name: String::from("AlphaKeks"),
-		is_banned: false,
 	});
 }

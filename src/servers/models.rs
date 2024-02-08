@@ -40,7 +40,6 @@ impl FromRow<'_, MySqlRow> for Server {
 		let owned_by = Player {
 			steam_id: row.try_get("owned_by_steam_id")?,
 			name: row.try_get("owned_by_name")?,
-			is_banned: row.try_get("owned_by_is_banned")?,
 		};
 
 		let approved_on = row.try_get("approved_on")?;

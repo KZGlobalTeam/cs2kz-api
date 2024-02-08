@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS Unbans (
   `unbanned_by` INT4 UNSIGNED,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`ban_id`) REFERENCES Bans (`id`),
+  FOREIGN KEY (`ban_id`) REFERENCES Bans (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`unbanned_by`) REFERENCES Players (`steam_id`),
   UNIQUE (`ban_id`)
 );

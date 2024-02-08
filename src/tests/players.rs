@@ -1,6 +1,6 @@
 use color_eyre::eyre::ensure;
 
-use crate::players::Player;
+use crate::players::FullPlayer;
 
 #[crate::test]
 async fn get(ctx: Context) {
@@ -9,7 +9,7 @@ async fn get(ctx: Context) {
 		.get(ctx.url("/players"))
 		.send()
 		.await?
-		.json::<Vec<Player>>()
+		.json::<Vec<FullPlayer>>()
 		.await?;
 
 	ensure!(all_players.len() == 17, "incorrect amount of players");
@@ -25,7 +25,7 @@ async fn get(ctx: Context) {
 		.get(ctx.url("/players/304674089"))
 		.send()
 		.await?
-		.json::<Player>()
+		.json::<FullPlayer>()
 		.await?;
 
 	ensure!(ibrahizy.steam_id == 304674089_u32);
@@ -36,7 +36,7 @@ async fn get(ctx: Context) {
 		.get(ctx.url("/players/STEAM_1:1:161178172"))
 		.send()
 		.await?
-		.json::<Player>()
+		.json::<FullPlayer>()
 		.await?;
 
 	ensure!(alphakeks.steam_id == 322356345_u32);
@@ -47,7 +47,7 @@ async fn get(ctx: Context) {
 		.get(ctx.url("/players/er0."))
 		.send()
 		.await?
-		.json::<Player>()
+		.json::<FullPlayer>()
 		.await?;
 
 	ensure!(zer0k.steam_id == 158416176_u32);

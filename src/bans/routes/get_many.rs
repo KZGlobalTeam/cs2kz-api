@@ -6,7 +6,7 @@ use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
 use crate::auth::{Role, Session};
-use crate::bans::{queries, Ban};
+use crate::bans::{queries, Ban, BanReason};
 use crate::database::ToID;
 use crate::params::{Limit, Offset};
 use crate::query::{self, Filter};
@@ -22,7 +22,7 @@ pub struct GetBansParams<'a> {
 	pub player: Option<PlayerIdentifier<'a>>,
 
 	/// Filter by ban reason.
-	pub reason: Option<String>,
+	pub reason: Option<BanReason>,
 
 	/// Filter by server.
 	///
@@ -78,10 +78,7 @@ pub async fn get_many(
 	}
 
 	if let Some(ref reason) = params.reason {
-		query
-			.push(filter)
-			.push(" b.reason LIKE ")
-			.push_bind(format!("%{reason}%"));
+		query.push(filter).push(" b.reason LIKE ").push_bind(reason);
 
 		filter.switch();
 	}

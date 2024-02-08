@@ -1,4 +1,5 @@
 use axum::Json;
+use chrono::Utc;
 use serde_json::json;
 
 use crate::auth::{Jwt, Role, Server, Session};
@@ -40,25 +41,27 @@ pub async fn create(
 		return Err(Error::bug());
 	}
 
-	let already_banned = sqlx::query! {
+	let (already_banned, previous_bans) = sqlx::query! {
 		r#"
 		SELECT
-		  is_banned `is_banned: bool`
+		  COUNT(b1.id) > 0 `already_banned: bool`,
+		  COUNT(b2.id) `previous_bans: u8`
 		FROM
-		  Players
+		  Players p
+		  LEFT JOIN Bans b1 ON b1.player_id = p.steam_id AND b1.expires_on > NOW()
+		  LEFT JOIN Bans b2 ON b2.player_id = p.steam_id AND b2.expires_on < NOW()
 		WHERE
-		  steam_id = ?
+		  p.steam_id = ?
 		"#,
 		ban.steam_id,
 	}
 	.fetch_optional(&state.database)
 	.await?
-	.map(|row| row.is_banned)
+	.map(|row| (row.already_banned, row.previous_bans))
 	.ok_or_else(|| Error::unknown("SteamID").with_detail(ban.steam_id))?;
 
 	if already_banned {
-		return Err(Error::already_exists("ban")
-			.with_detail("player is currently banned; try to update their ban instead"));
+		return Err(Error::already_exists("ban").with_detail("try to update their ban instead"));
 	}
 
 	let (server_id, plugin_version_id) = server
@@ -66,6 +69,7 @@ pub async fn create(
 		.unzip();
 
 	let banned_by = session.map(|session| session.user.steam_id);
+	let expires_on = Utc::now() + ban.reason.duration(previous_bans);
 
 	let mut transaction = state.begin_transaction().await?;
 
@@ -108,10 +112,11 @@ pub async fn create(
 		    reason,
 		    server_id,
 		    plugin_version_id,
-		    banned_by
+		    banned_by,
+		    expires_on
 		  )
 		VALUES
-		  (?, ?, ?, ?, ?, ?)
+		  (?, ?, ?, ?, ?, ?, ?)
 		"#,
 		ban.steam_id,
 		ip_address,
@@ -119,6 +124,7 @@ pub async fn create(
 		server_id,
 		plugin_version_id,
 		banned_by,
+		expires_on,
 	}
 	.execute(transaction.as_mut())
 	.await
@@ -146,23 +152,9 @@ pub async fn create(
 		.await
 		.map(|row| row.id as _)?;
 
-	audit!("ban created", id = %ban_id, steam_id = %ban.steam_id, reason = %ban.reason);
-
-	sqlx::query! {
-		r#"
-		UPDATE
-		  Players
-		SET
-		  is_banned = true
-		WHERE
-		  steam_id = ?
-		"#,
-		ban.steam_id,
-	}
-	.execute(transaction.as_mut())
-	.await?;
-
 	transaction.commit().await?;
 
-	Ok(Created(Json(CreatedBan { ban_id })))
+	audit!("ban created", id = %ban_id, steam_id = %ban.steam_id, reason = ?ban.reason);
+
+	Ok(Created(Json(CreatedBan { ban_id, expires_on })))
 }

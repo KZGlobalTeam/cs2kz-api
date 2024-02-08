@@ -11,20 +11,17 @@ pub static BASE_SELECT: &str = r#"
 	  s.port server_port,
 	  p2.steam_id server_owner_steam_id,
 	  p2.name server_owner_name,
-	  p2.is_banned server_owner_is_banned,
 	  s.approved_on server_approved_on,
 	  v.version plugin_version,
 	  p3.steam_id banned_by_steam_id,
 	  p3.name banned_by_name,
-	  p3.is_banned banned_by_is_banned,
 	  b.created_on,
 	  b.expires_on,
 	  ub.id unban_id,
 	  ub.reason unban_reason,
 	  ub.created_on unban_created_on,
 	  p4.steam_id unbanned_by_steam_id,
-	  p4.name unbanned_by_name,
-	  p4.is_banned unbanned_by_is_banned
+	  p4.name unbanned_by_name
 	FROM
 	  Bans b
 	  JOIN Players p1 ON p1.steam_id = b.player_id
