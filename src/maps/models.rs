@@ -1,7 +1,10 @@
+use std::cmp;
+use std::num::{NonZeroU32, NonZeroU8};
+
 use chrono::{DateTime, Utc};
 use cs2kz::{Mode, SteamID, Tier};
 use itertools::Itertools;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
@@ -16,7 +19,8 @@ pub struct KZMap {
 	pub id: u16,
 
 	/// The map's Steam Workshop ID.
-	pub workshop_id: u32,
+	#[schema(value_type = u32, minimum = 1)]
+	pub workshop_id: NonZeroU32,
 
 	/// The map's name.
 	pub name: String,
@@ -89,8 +93,8 @@ impl KZMap {
 
 impl FromRow<'_, MySqlRow> for KZMap {
 	fn from_row(row: &'_ MySqlRow) -> sqlx::Result<Self> {
-		let id = row.try_get("id")?;
-		let workshop_id = row.try_get("workshop_id")?;
+		let id = crate::sqlx::non_zero!("id" as u16, row)?;
+		let workshop_id = crate::sqlx::non_zero!("workshop_id" as u32, row)?;
 		let name = row.try_get("name")?;
 		let global_status = row.try_get("global_status")?;
 		let description = row.try_get("description").ok();
@@ -103,16 +107,16 @@ impl FromRow<'_, MySqlRow> for KZMap {
 		}];
 
 		let courses = vec![Course {
-			id: row.try_get("course_id")?,
+			id: crate::sqlx::non_zero!("course_id" as u32, row)?,
 			name: row.try_get("course_name")?,
 			description: row.try_get("course_description").ok(),
-			stage: row.try_get("course_stage")?,
+			stage: crate::sqlx::non_zero!("course_stage" as u8, row)?,
 			mappers: vec![Player {
 				steam_id: row.try_get("course_mapper_steam_id")?,
 				name: row.try_get("course_mapper_name")?,
 			}],
 			filters: vec![Filter {
-				id: row.try_get("filter_id")?,
+				id: crate::sqlx::non_zero!("filter_id" as u32, row)?,
 				mode: row.try_get("filter_mode")?,
 				teleports: row.try_get("filter_teleports")?,
 				tier: row.try_get("filter_tier")?,
@@ -150,7 +154,8 @@ pub struct Course {
 	pub description: Option<String>,
 
 	/// The course's stage.
-	pub stage: u8,
+	#[schema(value_type = u8, minimum = 1)]
+	pub stage: NonZeroU8,
 
 	/// List of the players who have contributed to creating this course.
 	pub mappers: Vec<Player>,
@@ -185,37 +190,120 @@ pub struct Filter {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewMap {
 	/// The map's workshop ID.
-	pub workshop_id: u32,
+	#[schema(value_type = u32, minimum = 1)]
+	pub workshop_id: NonZeroU32,
 
 	/// The initial global status of this map.
 	pub global_status: GlobalStatus,
 
 	/// Description of the map.
+	#[serde(deserialize_with = "crate::serde::deserialize_empty_string_as_none")]
 	pub description: Option<String>,
 
 	/// List of players who have contributed to creating this map.
+	#[serde(deserialize_with = "crate::serde::deserialize_non_empty_vec")]
 	pub mappers: Vec<SteamID>,
 
 	/// List of courses.
+	#[serde(deserialize_with = "NewMap::deserialize_courses")]
 	pub courses: Vec<NewCourse>,
+}
+
+impl NewMap {
+	fn deserialize_courses<'de, D>(deserializer: D) -> Result<Vec<NewCourse>, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		use serde::de::Error as E;
+
+		let mut courses: Vec<NewCourse> = crate::serde::deserialize_non_empty_vec(deserializer)?;
+
+		courses.sort_by_key(|course| course.stage);
+
+		let are_contiguous = courses.windows(2).all(|courses| match courses.get(1) {
+			None => true,
+			Some(course) if course.stage.get() == courses[0].stage.get() + 1 => true,
+			Some(_) => false,
+		});
+
+		if !are_contiguous {
+			return Err(E::custom("course stages are not contiguous"));
+		}
+
+		Ok(courses)
+	}
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewCourse {
 	/// The course's stage.
-	pub stage: u8,
+	#[schema(value_type = u8, minimum = 1)]
+	pub stage: NonZeroU8,
 
 	/// The course's name.
+	#[serde(deserialize_with = "crate::serde::deserialize_empty_string_as_none")]
 	pub name: Option<String>,
 
 	/// Description of the course.
+	#[serde(deserialize_with = "crate::serde::deserialize_empty_string_as_none")]
 	pub description: Option<String>,
 
 	/// List of players who have contributed to creating this course.
+	#[serde(deserialize_with = "crate::serde::deserialize_non_empty_vec")]
 	pub mappers: Vec<SteamID>,
 
 	/// List of filters for this course.
+	#[serde(deserialize_with = "NewCourse::validate_filters")]
 	pub filters: [NewFilter; 4],
+}
+
+impl NewCourse {
+	fn validate_filters<'de, D>(deserializer: D) -> Result<[NewFilter; 4], D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		use serde::de::Error as E;
+
+		let mut filters = <[NewFilter; 4]>::deserialize(deserializer)?;
+
+		filters.sort_by_key(|filter| (filter.mode, cmp::Reverse(filter.teleports)));
+
+		const EXPECTED: [(Mode, bool); 4] = [
+			(Mode::Vanilla, true),
+			(Mode::Vanilla, false),
+			(Mode::Classic, true),
+			(Mode::Classic, false),
+		];
+
+		if let Some((_, (mode, teleports))) = filters
+			.iter()
+			.map(|filter| (filter.mode, filter.teleports))
+			.zip(EXPECTED)
+			.find(|(a, b)| a != b)
+		{
+			return Err(E::custom(format_args!(
+				"filter for ({mode}, {runtype}) is missing",
+				runtype = match teleports {
+					true => "TP",
+					false => "Pro",
+				},
+			)));
+		}
+
+		if let Some(tier) = filters
+			.iter()
+			.find(|filter| {
+				filter.tier > Tier::Death && filter.ranked_status == RankedStatus::Ranked
+			})
+			.map(|filter| filter.tier)
+		{
+			return Err(E::custom(format_args!(
+				"tier `{tier}` is too high for a ranked filter"
+			)));
+		}
+
+		Ok(filters)
+	}
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -233,6 +321,7 @@ pub struct NewFilter {
 	pub ranked_status: RankedStatus,
 
 	/// Notes about the filter.
+	#[serde(deserialize_with = "crate::serde::deserialize_empty_string_as_none")]
 	pub notes: Option<String>,
 }
 
@@ -244,29 +333,33 @@ pub struct CreatedMap {
 }
 
 /// An update to a map.
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Default, Deserialize, ToSchema)]
 pub struct MapUpdate {
 	/// A new global status.
 	pub global_status: Option<GlobalStatus>,
 
 	/// New description for the map.
+	#[serde(deserialize_with = "crate::serde::deserialize_empty_string_as_none")]
 	pub description: Option<String>,
 
 	/// A new workshop ID.
-	pub workshop_id: Option<u32>,
+	pub workshop_id: Option<NonZeroU32>,
 
 	/// Fetch the latest version of the map from Steam and update its name and checksum.
 	#[serde(default)]
 	pub check_steam: bool,
 
 	/// List of mappers to add.
-	pub added_mappers: Option<Vec<SteamID>>,
+	#[serde(default)]
+	pub added_mappers: Vec<SteamID>,
 
 	/// List of mappers to remove.
-	pub removed_mappers: Option<Vec<SteamID>>,
+	#[serde(default)]
+	pub removed_mappers: Vec<SteamID>,
 
 	/// List of course updates.
-	pub course_updates: Option<Vec<CourseUpdate>>,
+	#[serde(default)]
+	pub course_updates: Vec<CourseUpdate>,
 }
 
 /// An update to a [`Course`].
@@ -276,19 +369,24 @@ pub struct CourseUpdate {
 	pub id: u32,
 
 	/// New name for the course.
+	#[serde(deserialize_with = "crate::serde::deserialize_empty_string_as_none")]
 	pub name: Option<String>,
 
 	/// New description for the course.
+	#[serde(deserialize_with = "crate::serde::deserialize_empty_string_as_none")]
 	pub description: Option<String>,
 
 	/// List of mappers to add.
-	pub added_mappers: Option<Vec<SteamID>>,
+	#[serde(default)]
+	pub added_mappers: Vec<SteamID>,
 
 	/// List of mappers to remove.
-	pub removed_mappers: Option<Vec<SteamID>>,
+	#[serde(default)]
+	pub removed_mappers: Vec<SteamID>,
 
 	/// List of updates to filters.
-	pub filter_updates: Option<Vec<FilterUpdate>>,
+	#[serde(default)]
+	pub filter_updates: Vec<FilterUpdate>,
 }
 
 /// An update to a course filter.
@@ -304,5 +402,6 @@ pub struct FilterUpdate {
 	pub ranked_status: Option<RankedStatus>,
 
 	/// New notes for the course.
+	#[serde(deserialize_with = "crate::serde::deserialize_empty_string_as_none")]
 	pub notes: Option<String>,
 }

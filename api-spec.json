@@ -124,7 +124,7 @@
                       "type": "integer",
                       "format": "uint32",
                       "description": "The map's Steam Workshop ID.",
-                      "minimum": 0
+                      "minimum": 1
                     },
                     "name": {
                       "type": "string",
@@ -315,7 +315,7 @@
                       "type": "integer",
                       "format": "uint32",
                       "description": "The map's Steam Workshop ID.",
-                      "minimum": 0
+                      "minimum": 1
                     },
                     "name": {
                       "type": "string",
@@ -572,7 +572,7 @@
                       "type": "integer",
                       "format": "uint32",
                       "description": "The server's semi-permanent API Key.",
-                      "minimum": 0
+                      "minimum": 1
                     }
                   }
                 }
@@ -780,7 +780,7 @@
                       "type": "integer",
                       "format": "uint32",
                       "description": "The server's semi-permanent API Key.",
-                      "minimum": 0
+                      "minimum": 1
                     }
                   }
                 }
@@ -2086,7 +2086,7 @@
             "type": "integer",
             "format": "uint8",
             "description": "The course's stage.",
-            "minimum": 0
+            "minimum": 1
           },
           "mappers": {
             "type": "array",
@@ -2132,24 +2132,21 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of mappers to add.",
-            "nullable": true
+            "description": "List of mappers to add."
           },
           "removed_mappers": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of mappers to remove.",
-            "nullable": true
+            "description": "List of mappers to remove."
           },
           "filter_updates": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/FilterUpdate"
             },
-            "description": "List of updates to filters.",
-            "nullable": true
+            "description": "List of updates to filters."
           }
         }
       },
@@ -2192,7 +2189,7 @@
             "type": "integer",
             "format": "uint32",
             "description": "The server's semi-permanent API Key.",
-            "minimum": 0
+            "minimum": 1
           }
         }
       },
@@ -2347,7 +2344,7 @@
             "type": "integer",
             "format": "uint32",
             "description": "The map's Steam Workshop ID.",
-            "minimum": 0
+            "minimum": 1
           },
           "name": {
             "type": "string",
@@ -2424,11 +2421,12 @@
             "nullable": true
           },
           "workshop_id": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "A new workshop ID.",
-            "nullable": true,
-            "minimum": 0
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/NonZeroU32"
+              }
+            ],
+            "nullable": true
           },
           "check_steam": {
             "type": "boolean",
@@ -2439,24 +2437,21 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of mappers to add.",
-            "nullable": true
+            "description": "List of mappers to add."
           },
           "removed_mappers": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of mappers to remove.",
-            "nullable": true
+            "description": "List of mappers to remove."
           },
           "course_updates": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CourseUpdate"
             },
-            "description": "List of course updates.",
-            "nullable": true
+            "description": "List of course updates."
           }
         }
       },
@@ -2499,7 +2494,7 @@
             "type": "integer",
             "format": "uint8",
             "description": "The course's stage.",
-            "minimum": 0
+            "minimum": 1
           },
           "name": {
             "type": "string",
@@ -2569,7 +2564,7 @@
             "type": "integer",
             "format": "uint32",
             "description": "The map's workshop ID.",
-            "minimum": 0
+            "minimum": 1
           },
           "global_status": {
             "$ref": "#/components/schemas/GlobalStatus"

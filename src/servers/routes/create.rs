@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use axum::Json;
 
 use crate::auth::{Role, Session};
@@ -30,7 +32,7 @@ pub async fn create(
 	Json(server): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
 	let mut transaction = state.begin_transaction().await?;
-	let api_key = rand::random::<u32>();
+	let api_key = rand::random::<NonZeroU32>();
 
 	sqlx::query! {
 		r#"
@@ -43,7 +45,7 @@ pub async fn create(
 		server.ip_address.ip().to_string(),
 		server.ip_address.port(),
 		server.owned_by,
-		api_key,
+		api_key.get(),
 	}
 	.execute(transaction.as_mut())
 	.await
@@ -58,7 +60,7 @@ pub async fn create(
 	let server_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())
 		.await
-		.map(|row| row.id as _)?;
+		.map(|row| row.id as u16)?;
 
 	audit! {
 		"created server",

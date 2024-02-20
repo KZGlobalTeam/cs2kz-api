@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t  COUNT(b1.id) > 0 `already_banned: bool`,\n\t\t  COUNT(b2.id) `previous_bans: u8`\n\t\tFROM\n\t\t  Players p\n\t\t  LEFT JOIN Bans b1 ON b1.player_id = p.steam_id AND b1.expires_on > NOW()\n\t\t  LEFT JOIN Bans b2 ON b2.player_id = p.steam_id AND b2.expires_on < NOW()\n\t\tWHERE\n\t\t  p.steam_id = ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t  COUNT(b1.id) > 0 `already_banned: bool`,\n\t\t  COUNT(b2.id) `previous_bans: u8`\n\t\tFROM\n\t\t  Players p\n\t\t  LEFT JOIN Bans b1 ON b1.player_id = p.steam_id\n\t\t  AND b1.expires_on > NOW()\n\t\t  LEFT JOIN Bans b2 ON b2.player_id = p.steam_id\n\t\t  AND b2.expires_on < NOW()\n\t\tWHERE\n\t\t  p.steam_id = ?\n\t\t",
   "describe": {
     "columns": [
       {
@@ -32,5 +32,5 @@
       false
     ]
   },
-  "hash": "aba228bfc735b653001ec61add4df88a709921488880b4227a2e83e2d89cbad4"
+  "hash": "727da58e4e596efc3a1006b9b1bf1ae0ea78d4d20349f580686a3ee9318f616b"
 }

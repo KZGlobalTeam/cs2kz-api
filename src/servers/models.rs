@@ -1,4 +1,5 @@
 use std::net::SocketAddrV4;
+use std::num::NonZeroU32;
 
 use chrono::{DateTime, Utc};
 use cs2kz::SteamID;
@@ -23,7 +24,7 @@ pub struct Server {
 
 impl FromRow<'_, MySqlRow> for Server {
 	fn from_row(row: &'_ MySqlRow) -> sqlx::Result<Self> {
-		let id = row.try_get("id")?;
+		let id = crate::sqlx::non_zero!("id" as u16, row)?;
 		let name = row.try_get("name")?;
 
 		let ip_address = row
@@ -68,12 +69,14 @@ pub struct CreatedServer {
 	pub server_id: u16,
 
 	/// The server's semi-permanent API Key.
-	pub api_key: u32,
+	#[schema(value_type = u32, minimum = 1)]
+	pub api_key: NonZeroU32,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ServerUpdate {
 	/// A new name for the server.
+	#[serde(deserialize_with = "crate::serde::deserialize_empty_string_as_none")]
 	pub name: Option<String>,
 
 	/// A new IP address for the server.

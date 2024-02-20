@@ -74,7 +74,7 @@ pub async fn unban(
 	let unban_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())
 		.await
-		.map(|row| row.id as _)?;
+		.map(|row| row.id as u32)?;
 
 	transaction.commit().await?;
 

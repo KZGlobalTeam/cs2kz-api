@@ -29,3 +29,16 @@ impl SqlErrorExt for sqlx::Error {
 		err.message().contains(fk)
 	}
 }
+
+macro_rules! non_zero {
+	($name:literal as $non_zero:ident, $row:expr) => {
+		$row.try_get($name).and_then(|value: $non_zero| {
+			TryFrom::try_from(value).map_err(|err| sqlx::Error::ColumnDecode {
+				index: String::from($name),
+				source: Box::new(err),
+			})
+		})
+	};
+}
+
+pub(crate) use non_zero;

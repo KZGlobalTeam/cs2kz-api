@@ -48,8 +48,10 @@ pub async fn create(
 		  COUNT(b2.id) `previous_bans: u8`
 		FROM
 		  Players p
-		  LEFT JOIN Bans b1 ON b1.player_id = p.steam_id AND b1.expires_on > NOW()
-		  LEFT JOIN Bans b2 ON b2.player_id = p.steam_id AND b2.expires_on < NOW()
+		  LEFT JOIN Bans b1 ON b1.player_id = p.steam_id
+		  AND b1.expires_on > NOW()
+		  LEFT JOIN Bans b2 ON b2.player_id = p.steam_id
+		  AND b2.expires_on < NOW()
 		WHERE
 		  p.steam_id = ?
 		"#,
@@ -150,7 +152,7 @@ pub async fn create(
 	let ban_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())
 		.await
-		.map(|row| row.id as _)?;
+		.map(|row| row.id as u32)?;
 
 	transaction.commit().await?;
 

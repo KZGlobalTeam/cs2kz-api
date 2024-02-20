@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
 use axum::Json;
-use cs2kz::{Mode, SteamID, Tier};
-use serde_json::json;
+use cs2kz::SteamID;
 use sqlx::{MySql, MySqlExecutor, QueryBuilder, Transaction};
 
-use crate::database::{GlobalStatus, RankedStatus};
+use crate::database::GlobalStatus;
 use crate::maps::models::NewCourse;
 use crate::maps::{CreatedMap, MappersTable, NewMap};
 use crate::responses::Created;
@@ -38,41 +37,7 @@ use crate::{audit, responses, AppState, Error, Result};
     ("Steam Session" = ["maps"]),
   ),
 )]
-pub async fn create(
-	state: AppState,
-	Json(mut map): Json<NewMap>,
-) -> Result<Created<Json<CreatedMap>>> {
-	if map.mappers.is_empty() {
-		return Err(Error::missing("mappers"));
-	}
-
-	if map.courses.is_empty() {
-		return Err(Error::missing("courses"));
-	}
-
-	map.courses.sort_by_key(|course| course.stage);
-
-	if let Some(course) = map
-		.courses
-		.iter()
-		.find(|course| !(1..=100).contains(&course.stage))
-	{
-		return Err(Error::invalid("stage").with_detail(course.stage));
-	}
-
-	let is_contiguous = map
-		.courses
-		.windows(2)
-		.all(|courses| courses[0].stage + 1 == courses[1].stage);
-
-	if !is_contiguous {
-		return Err(Error::invalid("stages").with_detail("stages must be contiguous"));
-	}
-
-	for course in &map.courses {
-		validate_course(course)?;
-	}
-
+pub async fn create(state: AppState, Json(map): Json<NewMap>) -> Result<Created<Json<CreatedMap>>> {
 	let mut transaction = state.begin_transaction().await?;
 
 	let map_id = insert_map(&map, &state.http_client, &state.config, &mut transaction).await?;
@@ -83,54 +48,6 @@ pub async fn create(
 	transaction.commit().await?;
 
 	Ok(Created(Json(CreatedMap { map_id })))
-}
-
-fn validate_course(course: &NewCourse) -> Result<()> {
-	if course.mappers.is_empty() {
-		return Err(Error::missing("course mappers").with_detail(json!({
-			"stage": course.stage
-		})));
-	}
-
-	const POSSIBLE_FILTERS: [(Mode, bool); 4] = [
-		(Mode::Vanilla, true),
-		(Mode::Vanilla, false),
-		(Mode::Classic, true),
-		(Mode::Classic, false),
-	];
-
-	if let Some((stage, mode, teleports)) = POSSIBLE_FILTERS
-		.into_iter()
-		.find(|&filter| {
-			!course
-				.filters
-				.iter()
-				.any(|f| filter == (f.mode, f.teleports))
-		})
-		.map(|(mode, teleports)| (course.stage, mode, teleports))
-	{
-		return Err(Error::missing("filter").with_detail(json!({
-			"stage": stage,
-			"mode": mode,
-			"teleports": teleports
-		})));
-	}
-
-	if let Some((stage, mode, teleports)) = course
-		.filters
-		.iter()
-		.find(|filter| filter.tier > Tier::Death && filter.ranked_status == RankedStatus::Ranked)
-		.map(|filter| (course.stage, filter.mode, filter.teleports))
-	{
-		return Err(Error::invalid("filter").with_detail(json!({
-			"stage": stage,
-			"mode": mode,
-			"teleports": teleports,
-			"reason": "tier too high for ranked status"
-		})));
-	}
-
-	Ok(())
 }
 
 async fn insert_map(
@@ -180,12 +97,18 @@ async fn insert_map(
 	sqlx::query! {
 		r#"
 		INSERT INTO
-		  Maps (name, workshop_id, checksum, global_status, description)
+		  Maps (
+		    name,
+		    workshop_id,
+		    CHECKSUM,
+		    global_status,
+		    description
+		  )
 		VALUES
 		  (?, ?, ?, ?, ?)
 		"#,
 		workshop_map.name,
-		map.workshop_id,
+		map.workshop_id.get(),
 		checksum,
 		map.global_status,
 		if matches!(map.description.as_deref(), Some("")) {
@@ -200,7 +123,7 @@ async fn insert_map(
 	let map_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
 		.fetch_one(transaction.as_mut())
 		.await
-		.map(|row| row.id as _)?;
+		.map(|row| row.id as u16)?;
 
 	audit! {
 		"created map",
@@ -226,7 +149,7 @@ pub(super) async fn insert_mappers(
 	let table_id = match table {
 		MappersTable::Map(map_id) => {
 			query.push("Mappers (map_id, ");
-			map_id as u32
+			map_id.into()
 		}
 		MappersTable::Course(course_id) => {
 			query.push("CourseMappers (course_id, ");
@@ -262,13 +185,13 @@ async fn insert_courses(
 	query.push_values(courses, |mut query, course| {
 		query
 			.push_bind(map_id)
-			.push_bind(course.stage)
-			.push_bind(if matches!(course.name.as_deref(), Some("")) {
+			.push_bind(course.stage.get())
+			.push_bind(if let Some("") = course.name.as_deref() {
 				&None
 			} else {
 				&course.name
 			})
-			.push_bind(if matches!(course.description.as_deref(), Some("")) {
+			.push_bind(if let Some("") = course.description.as_deref() {
 				&None
 			} else {
 				&course.description
@@ -287,7 +210,10 @@ async fn insert_courses(
 		FROM
 		  Courses
 		WHERE
-		  id >= (SELECT LAST_INSERT_ID())
+		  id >= (
+		    SELECT
+		      LAST_INSERT_ID()
+		  )
 		"#,
 	}
 	.fetch_all(transaction.as_mut())
@@ -298,7 +224,7 @@ async fn insert_courses(
 
 	for course in courses {
 		let course_id = course_ids
-			.get(&course.stage)
+			.get(&course.stage.get())
 			.copied()
 			.expect("we just inserted this");
 

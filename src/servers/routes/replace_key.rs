@@ -1,3 +1,5 @@
+use std::num::NonZeroU32;
+
 use axum::extract::Path;
 use axum::Json;
 
@@ -27,7 +29,7 @@ pub async fn replace_key(
 	state: AppState,
 	Path(server_id): Path<u16>,
 ) -> Result<Created<Json<CreatedServer>>> {
-	let api_key = rand::random::<u32>();
+	let api_key = rand::random::<NonZeroU32>();
 
 	let result = sqlx::query! {
 		r#"
@@ -38,7 +40,7 @@ pub async fn replace_key(
 		WHERE
 		  id = ?
 		"#,
-		api_key,
+		api_key.get(),
 		server_id,
 	}
 	.execute(&state.database)

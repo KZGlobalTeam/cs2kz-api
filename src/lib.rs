@@ -33,6 +33,7 @@ mod middleware;
 mod params;
 mod query;
 mod responses;
+mod serde;
 mod sqlx;
 mod status;
 mod steam;

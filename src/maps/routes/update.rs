@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::num::NonZeroU32;
 
 use axum::extract::Path;
 use axum::Json;
@@ -59,6 +60,8 @@ pub async fn update(
 			.fetch_one(transaction.as_mut())
 			.await?
 			.workshop_id
+			.try_into()
+			.map_err(|_| Error::bug())?
 	};
 
 	if map_update.check_steam {
@@ -72,16 +75,25 @@ pub async fn update(
 		.await?;
 	}
 
-	if let Some(mappers) = &map_update.added_mappers {
-		super::create::insert_mappers(MappersTable::Map(map_id), mappers, transaction.as_mut())
-			.await?;
+	if !map_update.added_mappers.is_empty() {
+		super::create::insert_mappers(
+			MappersTable::Map(map_id),
+			&map_update.added_mappers,
+			transaction.as_mut(),
+		)
+		.await?;
 	}
 
-	if let Some(mappers) = &map_update.removed_mappers {
-		remove_mappers(MappersTable::Map(map_id), mappers, transaction.as_mut()).await?;
+	if !map_update.removed_mappers.is_empty() {
+		remove_mappers(
+			MappersTable::Map(map_id),
+			&map_update.removed_mappers,
+			transaction.as_mut(),
+		)
+		.await?;
 	}
 
-	for course_update in map_update.course_updates.iter().flatten() {
+	for course_update in &map_update.course_updates {
 		update_course(map_id, course_update, &mut transaction).await?;
 	}
 
@@ -120,7 +132,6 @@ async fn validate_update(
 	if let Some(course_id) = map_update
 		.course_updates
 		.iter()
-		.flatten()
 		.map(|course| course.id)
 		.find(|course_id| !course_ids.contains(course_id))
 	{
@@ -130,7 +141,7 @@ async fn validate_update(
 		})));
 	}
 
-	for course_update in map_update.course_updates.iter().flatten() {
+	for course_update in &map_update.course_updates {
 		let filter_ids = sqlx::query! {
 			r#"
 			SELECT
@@ -149,7 +160,6 @@ async fn validate_update(
 		if let Some(filter) = course_update
 			.filter_updates
 			.iter()
-			.flatten()
 			.find(|filter| !filter_ids.iter().map(|row| row.id).contains(&filter.id))
 		{
 			return Err(Error::invalid("filter").with_detail(json!({
@@ -222,7 +232,7 @@ async fn update_description(
 
 async fn update_workshop_id(
 	map_id: u16,
-	workshop_id: u32,
+	workshop_id: NonZeroU32,
 	executor: impl MySqlExecutor<'_>,
 ) -> Result<()> {
 	let result = sqlx::query! {
@@ -234,7 +244,7 @@ async fn update_workshop_id(
 		WHERE
 		  id = ?
 		"#,
-		workshop_id,
+		workshop_id.get(),
 		map_id,
 	}
 	.execute(executor)
@@ -251,7 +261,7 @@ async fn update_workshop_id(
 
 async fn update_name_and_checksum(
 	map_id: u16,
-	workshop_id: u32,
+	workshop_id: NonZeroU32,
 	http_client: &reqwest::Client,
 	config: &crate::Config,
 	executor: impl MySqlExecutor<'_>,
@@ -327,17 +337,22 @@ async fn update_course(
 	update: &CourseUpdate,
 	transaction: &mut Transaction<'static, MySql>,
 ) -> Result<()> {
-	if let Some(mappers) = &update.added_mappers {
+	if !update.added_mappers.is_empty() {
 		super::create::insert_mappers(
 			MappersTable::Course(update.id),
-			mappers,
+			&update.added_mappers,
 			transaction.as_mut(),
 		)
 		.await?;
 	}
 
-	if let Some(mappers) = &update.removed_mappers {
-		remove_mappers(MappersTable::Course(update.id), mappers, transaction.as_mut()).await?;
+	if !update.removed_mappers.is_empty() {
+		remove_mappers(
+			MappersTable::Course(update.id),
+			&update.removed_mappers,
+			transaction.as_mut(),
+		)
+		.await?;
 	}
 
 	if let Some(description) = update.description.as_deref() {
@@ -366,7 +381,7 @@ async fn update_course(
 		audit!("updated course description", id = %update.id, %description);
 	}
 
-	for FilterUpdate { id, tier, ranked_status, notes } in update.filter_updates.iter().flatten() {
+	for FilterUpdate { id, tier, ranked_status, notes } in update.filter_updates.iter() {
 		if tier.is_none() && ranked_status.is_none() {
 			continue;
 		}

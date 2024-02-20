@@ -30,7 +30,7 @@ async fn get(ctx: Context) {
 	let stage_2 = victoria
 		.courses
 		.iter()
-		.find(|c| c.stage == 2)
+		.find(|c| c.stage.get() == 2)
 		.context("missing stage 2 on kz_victoria")?;
 
 	let expected_mappers =

@@ -48,9 +48,9 @@ pub fn on_body_chunk(_chunk: &Bytes, _latency: Duration, _span: &tracing::Span) 
 	/// either empty, or invalid UTF-8.
 	///
 	/// This is intended to be used with request/response payloads.
-	const fn _stringify_bytes(bytes: &[u8]) -> &str {
+	fn _stringify_bytes(bytes: &[u8]) -> &str {
 		match std::str::from_utf8(bytes) {
-			Ok(s) if s.is_empty() => "null",
+			Ok("") => "null",
 			Ok(s) => s,
 			Err(_) => "<bytes>",
 		}

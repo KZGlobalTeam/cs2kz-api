@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t  id,\n\t\t  map_stage\n\t\tFROM\n\t\t  Courses\n\t\tWHERE\n\t\t  id >= (SELECT LAST_INSERT_ID())\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t  id,\n\t\t  map_stage\n\t\tFROM\n\t\t  Courses\n\t\tWHERE\n\t\t  id >= (\n\t\t    SELECT\n\t\t      LAST_INSERT_ID()\n\t\t  )\n\t\t",
   "describe": {
     "columns": [
       {
@@ -32,5 +32,5 @@
       false
     ]
   },
-  "hash": "345fb405f564adcc09e8d8517edb61acad09b80131c3a0893c9b91977a21bfa6"
+  "hash": "cfcef0cd5be125c189fb5b2e2591995eb6afa3efe00b308cc1d3b6d59ecd47b8"
 }
