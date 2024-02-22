@@ -8,7 +8,7 @@ use crate::auth::{steam, Jwt};
 mod error;
 pub use error::{Error, Result};
 
-mod jwt;
+pub mod jwt;
 
 /// The API's global state.
 #[derive(Debug)]
@@ -22,11 +22,11 @@ pub struct State {
 	/// HTTP client for making requests to external services such as Steam.
 	pub http_client: reqwest::Client,
 
-	/// A cached version of query parameters used for Steam authentication.
-	pub steam_login_form: steam::LoginForm,
-
 	/// JWT secrets.
 	pub jwt: jwt::State,
+
+	/// A cached version of query parameters used for Steam authentication.
+	steam_login_form: steam::LoginForm,
 }
 
 impl State {
@@ -51,13 +51,17 @@ impl State {
 		self.database.begin().await.map_err(Error::from)
 	}
 
+	/// Returns query parameters to redirect a user to Steam with.
+	pub fn steam_login(&self) -> steam::LoginForm {
+		self.steam_login_form.clone()
+	}
+
 	/// Encodes the given `payload` as a JWT using the API's secret.
 	pub fn encode_jwt<T>(&self, payload: &Jwt<T>) -> Result<String>
 	where
 		T: Serialize,
 	{
-		jsonwebtoken::encode(&self.jwt.header, payload, &self.jwt.encoding_key)
-			.map_err(Error::JwtEncode)
+		self.jwt.encode(payload).map_err(Error::JwtEncode)
 	}
 
 	/// Decodes the given `jwt` into the desired payload type `T`.
@@ -65,8 +69,6 @@ impl State {
 	where
 		T: DeserializeOwned,
 	{
-		jsonwebtoken::decode(jwt, &self.jwt.decoding_key, &self.jwt.validation)
-			.map(|token| token.claims)
-			.map_err(Error::JwtDecode)
+		self.jwt.decode(jwt).map_err(Error::JwtDecode)
 	}
 }

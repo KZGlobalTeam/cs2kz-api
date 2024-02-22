@@ -5,12 +5,12 @@ use axum::response::{IntoResponseParts, ResponseParts};
 use axum_extra::extract::cookie::Cookie;
 use cs2kz::SteamID;
 use itertools::Itertools;
-use sqlx::MySqlExecutor;
+use sqlx::{MySqlExecutor, MySqlPool};
 use time::{Duration, OffsetDateTime};
 use tracing::trace;
 
 use super::{RoleFlags, User};
-use crate::{audit, AppState, Error, Result, State};
+use crate::{audit, Error, Result, State};
 
 #[derive(Debug, Clone)]
 pub struct Session<const REQUIRED_FLAGS: u32 = 0> {
@@ -36,8 +36,12 @@ pub struct Session<const REQUIRED_FLAGS: u32 = 0> {
 
 impl Session {
 	/// Generates a new session in the database.
-	pub async fn new(steam_id: SteamID, state: AppState) -> Result<Self> {
-		let mut transaction = state.begin_transaction().await?;
+	pub async fn new(
+		steam_id: SteamID,
+		database: &MySqlPool,
+		config: &'static crate::Config,
+	) -> Result<Self> {
+		let mut transaction = database.begin().await?;
 		let token = rand::random::<u64>();
 		let expires_on = OffsetDateTime::now_utc() + Self::EXPIRES_AFTER;
 
@@ -75,13 +79,13 @@ impl Session {
 			"#,
 			steam_id,
 		}
-		.fetch_optional(&state.database)
+		.fetch_optional(database)
 		.await?
 		.map(|row| User::new(steam_id, row.role_flags))
 		.ok_or_else(|| Error::unknown("SteamID").with_detail("{steam_id}"))?;
 
 		let cookie = Cookie::build((Self::COOKIE_NAME, token.to_string()))
-			.domain(&state.config.domain)
+			.domain(&config.domain)
 			.path("/")
 			.secure(cfg!(feature = "production"))
 			.http_only(true)

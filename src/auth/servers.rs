@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use super::Jwt;
-use crate::Result;
+use crate::state::{jwt, Result};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Server {
@@ -20,10 +20,10 @@ impl Server {
 		Self { id, plugin_version_id }
 	}
 
-	pub fn into_jwt(self, state: &crate::State) -> Result<AccessToken> {
+	pub fn into_jwt(self, state: &jwt::State) -> Result<AccessToken> {
 		let expires_after = Duration::minutes(30);
 		let jwt = Jwt::new(self, expires_after);
-		let jwt = state.encode_jwt(&jwt)?;
+		let jwt = state.encode(&jwt)?;
 
 		Ok(AccessToken(jwt))
 	}

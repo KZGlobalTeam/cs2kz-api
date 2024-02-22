@@ -49,5 +49,9 @@ pub async fn create_jwt(
 		Error::invalid("API key").unauthorized()
 	})?;
 
-	server.into_jwt(&state).map(Json).map(Created)
+	server
+		.into_jwt(&state.jwt)
+		.map(Json)
+		.map(Created)
+		.map_err(Error::from)
 }

@@ -1,6 +1,10 @@
 use jsonwebtoken::errors::Result;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
+use serde::de::DeserializeOwned;
+use serde::Serialize;
 use smart_debug::SmartDebug;
+
+use crate::auth::Jwt;
 
 #[derive(SmartDebug)]
 pub struct State {
@@ -25,5 +29,21 @@ impl State {
 		let validation = Validation::default();
 
 		Ok(Self { header, encoding_key, decoding_key, validation })
+	}
+
+	/// Encodes the given `payload` as a JWT using the API's secret.
+	pub fn encode<T>(&self, payload: &Jwt<T>) -> Result<String>
+	where
+		T: Serialize,
+	{
+		jsonwebtoken::encode(&self.header, payload, &self.encoding_key)
+	}
+
+	/// Decodes the given `jwt` into the desired payload type `T`.
+	pub fn decode<T>(&self, jwt: &str) -> Result<T>
+	where
+		T: DeserializeOwned,
+	{
+		jsonwebtoken::decode(jwt, &self.decoding_key, &self.validation).map(|token| token.claims)
 	}
 }
