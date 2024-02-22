@@ -15,8 +15,11 @@ use crate::{audit, Error, Result, State};
 /// Utility type for handling JWT payloads.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Jwt<T> {
+	/// The JWT's payload.
 	#[serde(flatten)]
 	payload: T,
+
+	/// The expiration timestamp.
 	exp: u64,
 }
 

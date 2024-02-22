@@ -1,3 +1,9 @@
+/// Base query for `SELECT`ing maps from the database.
+///
+/// See [`KZMap`]'s [`FromRow`] implementation for details on how the results are parsed.
+///
+/// [`KZMap`]: crate::maps::KZMap
+/// [`FromRow`]: sqlx::FromRow
 pub static BASE_SELECT: &str = r#"
 	SELECT
 	  m.id,

@@ -1,3 +1,9 @@
+/// Base query for `SELECT`ing bans from the database.
+///
+/// See [`Ban`]'s [`FromRow`] implementation for details on how the results are parsed.
+///
+/// [`Ban`]: crate::bans::Ban
+/// [`FromRow`]: sqlx::FromRow
 pub static BASE_SELECT: &str = r#"
 	SELECT
 	  b.id,

@@ -34,9 +34,13 @@ pub struct Player {
 }
 
 impl Player {
+	/// Steam API URL for fetchign player information.
 	pub const GET_URL: &'static str =
 		"http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002";
 
+	/// The cookie name which stores a JSON representation of this [`Player`].
+	///
+	/// See [`Player::to_cookie()`].
 	pub const COOKIE_NAME: &'static str = "kz-player";
 
 	/// Fetches the player with the given `steam_id` from Steam's API.
@@ -70,6 +74,7 @@ impl Player {
 	}
 }
 
+/// God bless the Steam API :prayge:
 impl<'de> Deserialize<'de> for Player {
 	fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
 	where

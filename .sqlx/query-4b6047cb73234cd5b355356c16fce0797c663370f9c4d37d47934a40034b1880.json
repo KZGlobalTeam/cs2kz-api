@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\tINSERT INTO\n\t\t\t\t  AuditLogs (`level`, source, message, `fields`)\n\t\t\t\tVALUES\n\t\t\t\t  (?, ?, ?, ?)\n\t\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "4b6047cb73234cd5b355356c16fce0797c663370f9c4d37d47934a40034b1880"
+}

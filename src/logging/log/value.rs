@@ -14,6 +14,7 @@ pub enum Value {
 	Int(i64),
 	Float(f64),
 	String(String),
+	Uuid(Uuid),
 }
 
 macro_rules! from {
@@ -43,4 +44,4 @@ from!(bool, Bool);
 from!(&str, |value| { Self::String(value.to_owned()) });
 from!(&dyn Debug, |value| { Self::String(format!("{value:?}")) });
 from!(&dyn Error, |value| { Self::String(format!("{value}")) });
-from!(Uuid, |value| { Self::String(format!("{value}")) });
+from!(Uuid, |value| { Self::Uuid(value) });

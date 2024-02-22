@@ -1,3 +1,5 @@
+//! Utilities for building SQL queries.
+
 use std::fmt;
 
 use sqlx::{Encode, MySql, QueryBuilder, Type};

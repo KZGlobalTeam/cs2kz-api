@@ -4,6 +4,7 @@ use utoipa::ToSchema;
 
 use crate::auth::Role;
 
+/// Response body for `/admins` endpoints.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub struct Admin {
 	/// The admin's latest known name.

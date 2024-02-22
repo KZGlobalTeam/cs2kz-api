@@ -8,7 +8,10 @@ use utoipa::OpenApi as _;
 
 use crate::API;
 
+/// Cache of the API's OpenAPI spec file.
 static SPEC: OnceLock<OpenApi> = OnceLock::new();
+
+/// Cache of the SwaggerUI page that should be served as a web page.
 static SWAGGER_UI: OnceLock<String> = OnceLock::new();
 
 pub fn router() -> Router {

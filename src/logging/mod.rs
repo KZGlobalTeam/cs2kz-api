@@ -20,6 +20,7 @@ mod axiom;
 #[cfg(feature = "console")]
 mod console;
 
+/// Initializes a [`Registry`] for collecting logs and distributing them to various outputs.
 pub fn init(audit_log_db: MySqlConnection, axiom_config: Option<AxiomConfig>) {
 	let registry = Registry::default()
 		.with(stderr::layer())

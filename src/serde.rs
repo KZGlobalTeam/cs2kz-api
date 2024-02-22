@@ -1,5 +1,6 @@
 use serde::{Deserialize, Deserializer};
 
+/// Deserializes an `Option<String>` such that an empty string is treated as `None`.
 pub fn deserialize_empty_string_as_none<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
 	D: Deserializer<'de>,
@@ -10,6 +11,7 @@ where
 	})
 }
 
+/// Deserializes a `Vec<T>` but rejects if there are 0 elements.
 pub fn deserialize_non_empty_vec<'de, T, D>(deserializer: D) -> Result<Vec<T>, D::Error>
 where
 	T: Deserialize<'de>,

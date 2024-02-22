@@ -39,7 +39,7 @@ pub async fn delete_key(state: AppState, Path(server_id): Path<u16>) -> Result<N
 	.await?;
 
 	if result.rows_affected() == 0 {
-		return Err(Error::unknown("server ID").with_detail(server_id));
+		return Err(Error::unknown_id("server", server_id));
 	}
 
 	audit!("deleted API key for server", id = %server_id);

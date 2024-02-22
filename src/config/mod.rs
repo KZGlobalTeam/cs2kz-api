@@ -66,6 +66,7 @@ impl Config {
 	}
 }
 
+/// Helper function for grabbing a variable from the environment and parsing it.
 fn get_env_var<T>(var: &'static str) -> Result<T>
 where
 	T: FromStr,

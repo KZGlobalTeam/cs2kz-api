@@ -12,15 +12,22 @@ pub use value::Value;
 /// A tracing visitor that can record span/event fields.
 #[derive(Debug, Serialize)]
 pub struct Log {
+	/// The log level.
 	#[serde(serialize_with = "Log::serialize_level")]
 	pub level: &'static Level,
+
+	/// Path to the source of this log (if available).
 	pub source: Option<&'static str>,
 
+	/// Any additional fields.
 	#[serde(flatten, skip_serializing_if = "HashMap::is_empty")]
 	pub fields: HashMap<&'static str, Value>,
 }
 
 impl Log {
+	/// Removes the log message from its [fields].
+	///
+	/// [fields]: Log::fields
 	pub fn message(&mut self) -> Option<String> {
 		if let Value::String(message) = self.fields.remove("message")? {
 			Some(message)
@@ -37,6 +44,7 @@ impl Log {
 		self.fields.insert(field.name(), value.into());
 	}
 
+	// Why does `Level` not already implement this?
 	fn serialize_level<S>(level: &Level, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: Serializer,

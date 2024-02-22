@@ -240,6 +240,7 @@ impl FromRow<'_, MySqlRow> for Unban {
 	}
 }
 
+/// Request body for a new player ban.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewBan {
 	/// The player's SteamID.
@@ -253,7 +254,9 @@ pub struct NewBan {
 	pub reason: BanReason,
 }
 
-/// A newly created ban.
+/// Response body for a newly created player ban.
+///
+/// See [`NewBan`].
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedBan {
 	/// The ban's ID.
@@ -263,7 +266,7 @@ pub struct CreatedBan {
 	pub expires_on: DateTime<Utc>,
 }
 
-/// An update to a ban.
+/// Request body for updates to a ban.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct BanUpdate {
 	/// A new ban reason.
@@ -273,13 +276,14 @@ pub struct BanUpdate {
 	pub expires_on: Option<DateTime<Utc>>,
 }
 
+/// Request body for reverting a ban.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewUnban {
 	/// The reason for the unban.
 	pub reason: String,
 }
 
-/// A newly reverted ban.
+/// Response body for a reverted ban.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedUnban {
 	/// The ban that was reverted by this unban.

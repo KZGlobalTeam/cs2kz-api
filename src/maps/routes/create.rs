@@ -50,6 +50,7 @@ pub async fn create(state: AppState, Json(map): Json<NewMap>) -> Result<Created<
 	Ok(Created(Json(CreatedMap { map_id })))
 }
 
+/// Creates a database entry for the given `map` and returns its ID.
 async fn insert_map(
 	map: &NewMap,
 	http_client: &reqwest::Client,

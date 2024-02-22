@@ -15,10 +15,12 @@ use crate::{audit, Error, Result};
 
 /// A Steam Workshop Map.
 pub struct Map {
+	/// The map's name.
 	pub name: String,
 }
 
 impl Map {
+	/// Steam API URL for fetching information about workshop maps.
 	pub const URL: &'static str =
 		"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1";
 

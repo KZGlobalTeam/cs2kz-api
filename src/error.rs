@@ -77,6 +77,10 @@ impl Error {
 	/// If the inner `detail` already exists, and both it and the supplied `detail` are
 	/// objects, it will be extended with the provided `detail` value. Otherwise the inner
 	/// `detail` will be replaced.
+	///
+	/// # Panics
+	///
+	/// This method will panic if `detail` is not serializable to JSON.
 	pub fn with_detail(mut self, detail: impl Serialize) -> Self {
 		let value = serde_json::to_value(detail).expect("invalid json value");
 

@@ -7,11 +7,15 @@ use tracing_subscriber::filter::FilterFn;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::Layer as _;
 
-use crate::logging::layer::Consumer;
+use crate::logging::layer::ConsumeLog;
 use crate::logging::{Layer, Log};
 
+/// Log layer for sending logs to https://axiom.co
 pub struct Axiom {
+	/// Config holding various details about the axiom dataset.
 	config: AxiomConfig,
+
+	/// HTTP client for sending the requests.
 	http_client: reqwest::Client,
 }
 
@@ -41,8 +45,8 @@ impl Axiom {
 	}
 }
 
-impl Consumer for Axiom {
-	fn save_log(&'static self, log: Log) {
+impl ConsumeLog for Axiom {
+	fn consume_log(&'static self, log: Log) {
 		let json = serde_json::to_vec(&[log]).expect("invalid logs");
 		let request = self.http_client.post(self.config.url.clone()).body(json);
 

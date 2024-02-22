@@ -6,6 +6,7 @@ use smart_debug::SmartDebug;
 
 use crate::auth::Jwt;
 
+/// Any JWT related state.
 #[derive(SmartDebug)]
 pub struct State {
 	#[debug(skip)]

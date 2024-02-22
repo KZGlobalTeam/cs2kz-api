@@ -4,6 +4,8 @@ use utoipa::Modify;
 
 use super::Session;
 
+/// This only exists for OpenAPI purposes.
+/// It defines the different kinds of available authentication.
 pub struct Security;
 
 impl Modify for Security {

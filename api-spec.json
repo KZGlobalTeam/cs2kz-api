@@ -198,12 +198,12 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "HACK: if we derived `IntoResponses` on `Created` directly, we would have to put\na `ToSchema` bound on `T` (on the struct itself), which we do not want.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A newly created map.",
+                  "description": "Response body for newly created maps.\n\nSee [`NewMap`].",
                   "required": [
                     "map_id"
                   ],
@@ -490,6 +490,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "Response body for fetching KZ servers.",
                   "required": [
                     "id",
                     "name",
@@ -501,20 +502,24 @@
                     "id": {
                       "type": "integer",
                       "format": "uint16",
+                      "description": "The server's ID.",
                       "minimum": 0
                     },
                     "name": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "The server's name."
                     },
                     "ip_address": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "The server's IP address."
                     },
                     "owned_by": {
                       "$ref": "#/components/schemas/Player"
                     },
                     "approved_on": {
                       "type": "string",
-                      "format": "date-time"
+                      "format": "date-time",
+                      "description": "When this server was approved."
                     }
                   }
                 }
@@ -551,12 +556,12 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "HACK: if we derived `IntoResponses` on `Created` directly, we would have to put\na `ToSchema` bound on `T` (on the struct itself), which we do not want.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A newly registered CS2 server.",
+                  "description": "A newly approved KZ server.\n\nSee [`NewServer`].",
                   "required": [
                     "server_id",
                     "api_key"
@@ -636,6 +641,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "Response body for fetching KZ servers.",
                   "required": [
                     "id",
                     "name",
@@ -647,20 +653,24 @@
                     "id": {
                       "type": "integer",
                       "format": "uint16",
+                      "description": "The server's ID.",
                       "minimum": 0
                     },
                     "name": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "The server's name."
                     },
                     "ip_address": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "The server's IP address."
                     },
                     "owned_by": {
                       "$ref": "#/components/schemas/Player"
                     },
                     "approved_on": {
                       "type": "string",
-                      "format": "date-time"
+                      "format": "date-time",
+                      "description": "When this server was approved."
                     }
                   }
                 }
@@ -759,12 +769,12 @@
         ],
         "responses": {
           "201": {
-            "description": "",
+            "description": "HACK: if we derived `IntoResponses` on `Created` directly, we would have to put\na `ToSchema` bound on `T` (on the struct itself), which we do not want.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A newly registered CS2 server.",
+                  "description": "A newly approved KZ server.\n\nSee [`NewServer`].",
                   "required": [
                     "server_id",
                     "api_key"
@@ -892,6 +902,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "Basic information about a KZ player.\n\nThis is included as a field inside many other types.",
                   "required": [
                     "steam_id",
                     "name"
@@ -939,7 +950,7 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "HACK: if we derived `IntoResponses` on `Created` directly, we would have to put\na `ToSchema` bound on `T` (on the struct itself), which we do not want.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1005,6 +1016,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "Basic information about a KZ player.\n\nThis is included as a field inside many other types.",
                   "required": [
                     "steam_id",
                     "name"
@@ -1231,12 +1243,12 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "HACK: if we derived `IntoResponses` on `Created` directly, we would have to put\na `ToSchema` bound on `T` (on the struct itself), which we do not want.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A newly created ban.",
+                  "description": "Response body for a newly created player ban.\n\nSee [`NewBan`].",
                   "required": [
                     "ban_id",
                     "expires_on"
@@ -1477,12 +1489,12 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "HACK: if we derived `IntoResponses` on `Created` directly, we would have to put\na `ToSchema` bound on `T` (on the struct itself), which we do not want.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A newly reverted ban.",
+                  "description": "Response body for a reverted ban.",
                   "required": [
                     "ban_id",
                     "unban_id"
@@ -1580,6 +1592,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "Response body for `/admins` endpoints.",
                   "required": [
                     "name",
                     "steam_id",
@@ -1643,6 +1656,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "Response body for `/admins` endpoints.",
                   "required": [
                     "name",
                     "steam_id",
@@ -1929,6 +1943,7 @@
     "schemas": {
       "Admin": {
         "type": "object",
+        "description": "Response body for `/admins` endpoints.",
         "required": [
           "name",
           "steam_id",
@@ -2017,7 +2032,7 @@
       },
       "BanUpdate": {
         "type": "object",
-        "description": "An update to a ban.",
+        "description": "Request body for updates to a ban.",
         "properties": {
           "reason": {
             "allOf": [
@@ -2106,7 +2121,6 @@
       },
       "CourseUpdate": {
         "type": "object",
-        "description": "An update to a [`Course`].",
         "required": [
           "id"
         ],
@@ -2152,7 +2166,7 @@
       },
       "CreatedBan": {
         "type": "object",
-        "description": "A newly created ban.",
+        "description": "Response body for a newly created player ban.\n\nSee [`NewBan`].",
         "required": [
           "ban_id",
           "expires_on"
@@ -2173,7 +2187,7 @@
       },
       "CreatedServer": {
         "type": "object",
-        "description": "A newly registered CS2 server.",
+        "description": "A newly approved KZ server.\n\nSee [`NewServer`].",
         "required": [
           "server_id",
           "api_key"
@@ -2195,7 +2209,7 @@
       },
       "CreatedUnban": {
         "type": "object",
-        "description": "A newly reverted ban.",
+        "description": "Response body for a reverted ban.",
         "required": [
           "ban_id",
           "unban_id"
@@ -2266,7 +2280,6 @@
       },
       "FilterUpdate": {
         "type": "object",
-        "description": "An update to a course filter.",
         "required": [
           "id"
         ],
@@ -2405,7 +2418,7 @@
       },
       "MapUpdate": {
         "type": "object",
-        "description": "An update to a map.",
+        "description": "Request body for updates to a map.",
         "properties": {
           "global_status": {
             "allOf": [
@@ -2464,6 +2477,7 @@
       },
       "NewBan": {
         "type": "object",
+        "description": "Request body for a new player ban.",
         "required": [
           "steam_id",
           "reason"
@@ -2553,6 +2567,7 @@
       },
       "NewMap": {
         "type": "object",
+        "description": "The request body for creating a new map.",
         "required": [
           "workshop_id",
           "global_status",
@@ -2592,6 +2607,7 @@
       },
       "NewPlayer": {
         "type": "object",
+        "description": "Request body for registering new KZ players.",
         "required": [
           "steam_id",
           "name",
@@ -2613,6 +2629,7 @@
       },
       "NewServer": {
         "type": "object",
+        "description": "Request body for newly approved servers.",
         "required": [
           "name",
           "ip_address",
@@ -2634,6 +2651,7 @@
       },
       "NewUnban": {
         "type": "object",
+        "description": "Request body for reverting a ban.",
         "required": [
           "reason"
         ],
@@ -2651,6 +2669,7 @@
       },
       "Player": {
         "type": "object",
+        "description": "Basic information about a KZ player.\n\nThis is included as a field inside many other types.",
         "required": [
           "steam_id",
           "name"
@@ -2686,6 +2705,7 @@
       },
       "Role": {
         "type": "string",
+        "description": "The available roles as a descriptive enum.",
         "enum": [
           "bans",
           "servers",
@@ -2696,10 +2716,12 @@
       "RoleFlags": {
         "type": "integer",
         "format": "uint32",
+        "description": "Bitfield as [`Role`]s are stored in the database.",
         "minimum": 0
       },
       "Server": {
         "type": "object",
+        "description": "Response body for fetching KZ servers.",
         "required": [
           "id",
           "name",
@@ -2711,20 +2733,24 @@
           "id": {
             "type": "integer",
             "format": "uint16",
+            "description": "The server's ID.",
             "minimum": 0
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "The server's name."
           },
           "ip_address": {
-            "type": "string"
+            "type": "string",
+            "description": "The server's IP address."
           },
           "owned_by": {
             "$ref": "#/components/schemas/Player"
           },
           "approved_on": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "When this server was approved."
           }
         }
       },
@@ -2742,6 +2768,7 @@
       },
       "ServerUpdate": {
         "type": "object",
+        "description": "Request body for updates to a server.",
         "properties": {
           "name": {
             "type": "string",

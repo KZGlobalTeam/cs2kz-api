@@ -35,6 +35,9 @@ pub fn router(state: &'static State) -> Router {
 /// Helper enum for inserting mappers into the database.
 #[derive(Debug)]
 enum MappersTable {
+	/// The `Mappers` table should be used.
 	Map(u16),
+
+	/// The `CourseMappers` table should be used.
 	Course(u32),
 }

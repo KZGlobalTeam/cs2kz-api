@@ -65,7 +65,7 @@ pub async fn unban(
 	.await
 	.map_err(|err| {
 		if err.is_foreign_key_violation_of("ban_id") {
-			Error::unknown("Ban ID").with_detail(ban_id)
+			Error::unknown_id("ban", ban_id)
 		} else {
 			Error::from(err)
 		}

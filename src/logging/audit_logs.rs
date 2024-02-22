@@ -1,5 +1,5 @@
 use crossbeam::queue::SegQueue;
-use sqlx::types::Json as SqlJson;
+use sqlx::types::Json;
 use sqlx::{MySqlConnection, QueryBuilder};
 use tokio::sync::Mutex;
 use tokio::task;
@@ -8,11 +8,16 @@ use tracing_subscriber::filter::FilterFn;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::Layer as _;
 
-use crate::logging::layer::Consumer;
+use crate::logging::layer::ConsumeLog;
 use crate::logging::{Layer, Log};
 
+/// Log layer for "important" logs that need to be saved in the database.
 pub struct AuditLogs {
+	/// This layer only has access to a single connection, so we don't overload the database
+	/// with log queries. Because logging is synchronous, we use a queue for backpressure.
 	database: Mutex<MySqlConnection>,
+
+	/// Queue for keeping logs while the database connection is unavailable.
 	queue: SegQueue<Log>,
 }
 
@@ -29,8 +34,16 @@ impl AuditLogs {
 	}
 }
 
-impl Consumer for AuditLogs {
-	fn save_log(&'static self, mut log: Log) {
+impl ConsumeLog for AuditLogs {
+	// Implementation details:
+	//
+	// Since we only have a single database connection available to us, only one call to
+	// `consume_log` can insert logs into the database at any given time.
+	// Any other tasks / threads that call `consume_log` during this time will insert their
+	// logs into the queue and return immediately.
+	// Whoever has the lock is responsible for emptying the queue and inserting all available
+	// logs into the database.
+	fn consume_log(&'static self, mut log: Log) {
 		let Ok(mut database) = self.database.try_lock() else {
 			self.queue.push(log);
 			return;
@@ -42,14 +55,14 @@ impl Consumer for AuditLogs {
 			let query = sqlx::query! {
 				r#"
 				INSERT INTO
-				  AuditLogs (level, source, message, fields)
+				  AuditLogs (`level`, source, message, `fields`)
 				VALUES
 				  (?, ?, ?, ?)
 				"#,
 				log.level.as_str(),
 				log.source,
 				message,
-				SqlJson(log.fields),
+				Json(log.fields),
 			};
 
 			task::spawn(async move {
@@ -58,21 +71,23 @@ impl Consumer for AuditLogs {
 				}
 			});
 		} else {
-			let mut logs = vec![log];
+			let mut logs = Vec::with_capacity(self.queue.len() + 1);
+
+			logs.push(log);
 
 			while let Some(log) = self.queue.pop() {
 				logs.push(log);
 			}
 
 			let mut query =
-				QueryBuilder::new("INSERT INTO AuditLogs (level, source, message, fields)");
+				QueryBuilder::new("INSERT INTO AuditLogs (`level`, source, message, `fields`)");
 
 			query.push_values(logs, |mut query, mut log| {
 				query
 					.push_bind(log.level.as_str())
 					.push_bind(log.source)
 					.push_bind(log.message())
-					.push_bind(SqlJson(log.fields));
+					.push_bind(Json(log.fields));
 			});
 
 			task::spawn(async move {

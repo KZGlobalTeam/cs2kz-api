@@ -2,6 +2,7 @@ use cs2kz::SteamID;
 
 use super::RoleFlags;
 
+/// An authenticated user.
 #[derive(Debug, Clone, Copy)]
 pub struct User {
 	/// The [SteamID] of the user.

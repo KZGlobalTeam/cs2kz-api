@@ -6,6 +6,7 @@ use utoipa::IntoParams;
 
 use crate::{responses, AppState};
 
+/// Query parameters for login requests.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct Login {
 	/// The URL to return to after logging in.

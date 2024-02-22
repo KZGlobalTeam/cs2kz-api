@@ -34,7 +34,11 @@ pub struct LoginForm {
 }
 
 impl LoginForm {
+	/// API route that Steam is supposed to redirect back to after the login process is
+	/// complete.
 	pub const CALLBACK_ROUTE: &'static str = "/auth/steam/callback";
+
+	/// Steam API URL to redirect a user to so they can login.
 	pub const REDIRECT_URL: &'static str = "https://steamcommunity.com/openid/login";
 
 	pub fn new(callback_host: Url) -> Self {
@@ -110,6 +114,7 @@ pub struct Auth {
 }
 
 impl Auth {
+	/// Steam API URL for verifying OpenID login requests.
 	pub const VERIFY_URL: &'static str = "https://steamcommunity.com/openid/login";
 
 	/// Extracts the SteamID from this request.
@@ -117,7 +122,7 @@ impl Auth {
 	/// # Panics
 	///
 	/// This method will panic if `self` does not contain a valid SteamID.
-	/// For validated requests this should never happen, and is probably a bug if it does.
+	/// For validated requests this should never happen, and so is probably a bug if it does.
 	pub fn steam_id(&self) -> SteamID {
 		self.claimed_id
 			.path_segments()

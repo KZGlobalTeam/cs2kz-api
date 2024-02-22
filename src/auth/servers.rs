@@ -6,6 +6,7 @@ use utoipa::ToSchema;
 use super::Jwt;
 use crate::state::{jwt, Result};
 
+/// An authenticated server.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Server {
 	/// The server's unique ID.
@@ -20,6 +21,7 @@ impl Server {
 		Self { id, plugin_version_id }
 	}
 
+	/// Generates an access token (JWT) for this server.
 	pub fn into_jwt(self, state: &jwt::State) -> Result<AccessToken> {
 		let expires_after = Duration::minutes(30);
 		let jwt = Jwt::new(self, expires_after);
@@ -29,6 +31,7 @@ impl Server {
 	}
 }
 
+/// A semi-permanent authentication token used by servers to generate [`AccessToken`]s.
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct RefreshToken {
 	/// The server's API key.

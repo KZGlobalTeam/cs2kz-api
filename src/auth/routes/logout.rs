@@ -7,6 +7,7 @@ use utoipa::IntoParams;
 use crate::auth::Session;
 use crate::{responses, AppState, Result};
 
+/// Query parameters for logging out.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct Logout {
 	/// URL to redirect back to.

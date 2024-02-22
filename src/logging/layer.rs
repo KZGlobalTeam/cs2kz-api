@@ -12,19 +12,25 @@ pub struct Layer<C: 'static> {
 }
 
 impl<C> Layer<C> {
+	/// Create a new layer with the given `consumer`.
+	///
+	/// NOTE: this will create an intentional memory leak!
+	/// Only one [`Layer`] per [`Consumer`] should ever be instantiated.
 	pub fn new(consumer: C) -> Self {
 		Self { consumer: Box::leak(Box::new(consumer)) }
 	}
 }
 
-pub trait Consumer {
-	fn save_log(&'static self, log: Log);
+/// Some type that can consume [`Log`]s emitted by [`Layer`].
+pub trait ConsumeLog {
+	/// Consume a log.
+	fn consume_log(&'static self, log: Log);
 }
 
 impl<S, C> tracing_subscriber::Layer<S> for Layer<C>
 where
 	S: tracing::Subscriber + for<'a> LookupSpan<'a>,
-	C: Consumer + 'static,
+	C: ConsumeLog + 'static,
 {
 	fn on_new_span(
 		&self,
@@ -64,7 +70,7 @@ where
 			log.fields.insert("request_id", request_id.into());
 		}
 
-		self.consumer.save_log(log);
+		self.consumer.consume_log(log);
 	}
 
 	fn on_close(&self, span_id: span::Id, ctx: layer::Context<'_, S>) {
@@ -81,7 +87,7 @@ where
 			log.fields.insert("request_id", request_id.into());
 		}
 
-		self.consumer.save_log(log);
+		self.consumer.consume_log(log);
 	}
 }
 

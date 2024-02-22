@@ -10,15 +10,23 @@ use utoipa::ToSchema;
 
 use crate::players::Player;
 
+/// Response body for fetching KZ servers.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Server {
+	/// The server's ID.
 	pub id: u16,
+
+	/// The server's name.
 	pub name: String,
 
+	/// The server's IP address.
 	#[schema(value_type = String)]
 	pub ip_address: SocketAddrV4,
 
+	/// The player who owns this server.
 	pub owned_by: Player,
+
+	/// When this server was approved.
 	pub approved_on: DateTime<Utc>,
 }
 
@@ -49,6 +57,7 @@ impl FromRow<'_, MySqlRow> for Server {
 	}
 }
 
+/// Request body for newly approved servers.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewServer {
 	/// The server's name.
@@ -62,7 +71,9 @@ pub struct NewServer {
 	pub owned_by: SteamID,
 }
 
-/// A newly registered CS2 server.
+/// A newly approved KZ server.
+///
+/// See [`NewServer`].
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedServer {
 	/// The server's ID.
@@ -73,6 +84,7 @@ pub struct CreatedServer {
 	pub api_key: NonZeroU32,
 }
 
+/// Request body for updates to a server.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ServerUpdate {
 	/// A new name for the server.

@@ -1,9 +1,12 @@
+//! Roles assigned to authorized users.
+
 use std::fmt::{self, Display};
 use std::ops::BitOr;
 
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+/// The available roles as a descriptive enum.
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
@@ -25,6 +28,7 @@ impl Display for Role {
 	}
 }
 
+/// Bitfield as [`Role`]s are stored in the database.
 #[repr(transparent)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, sqlx::Type, ToSchema)]
 #[sqlx(transparent)]
@@ -89,8 +93,12 @@ impl FromIterator<Role> for RoleFlags {
 	}
 }
 
+/// Iterator over [`Role`]s.
 pub struct RoleIter {
+	/// The original flags.
 	flags: RoleFlags,
+
+	/// The current bit we are looking at.
 	idx: u32,
 }
 

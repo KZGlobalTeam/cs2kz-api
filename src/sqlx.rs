@@ -1,8 +1,14 @@
 use sqlx::error::ErrorKind;
 
+/// Utility trait for extending [`sqlx::Error`].
 pub trait SqlErrorExt {
+	/// Tests whether the error is of a certain kind.
 	fn is(&self, other: ErrorKind) -> bool;
+
+	/// Tests whether the error is an FK violation.
 	fn is_foreign_key_violation(&self) -> bool;
+
+	/// Tests whether the error is a specific FK violation.
 	fn is_foreign_key_violation_of(&self, fk: &str) -> bool;
 }
 
@@ -30,6 +36,11 @@ impl SqlErrorExt for sqlx::Error {
 	}
 }
 
+/// Convenience macro for decoding `NonZeroU*` types from database queries.
+///
+/// This can be removed once [#1926] is resolved.
+///
+/// [#1926]: https://github.com/launchbadge/sqlx/issues/1926
 macro_rules! non_zero {
 	($name:literal as $non_zero:ident, $row:expr) => {
 		$row.try_get($name).and_then(|value: $non_zero| {

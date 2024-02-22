@@ -50,7 +50,9 @@ pub struct KZMap {
 }
 
 impl KZMap {
-	/// Flattens a list of maps containing overlaps. See [`KZMap::reduce()`] for more details.
+	/// Groups any maps with the same ID and reduces them into a single value.
+	///
+	/// See [`KZMap::reduce()`].
 	pub fn flatten(maps: Vec<Self>) -> Vec<Self> {
 		maps.into_iter()
 			.group_by(|map| map.id)
@@ -60,8 +62,9 @@ impl KZMap {
 	}
 
 	/// Combines two maps into one, aggregating common mappers and courses.
-	/// Used for database queries, since SQL does not like nested data.
 	pub fn reduce(mut self, other: Self) -> Self {
+		assert_eq!(self.id, other.id);
+
 		for mapper in other.mappers {
 			if !self.mappers.iter().any(|m| m.steam_id == mapper.steam_id) {
 				self.mappers.push(mapper);
@@ -187,6 +190,7 @@ pub struct Filter {
 	pub notes: Option<String>,
 }
 
+/// The request body for creating a new map.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewMap {
 	/// The map's workshop ID.
@@ -210,6 +214,12 @@ pub struct NewMap {
 }
 
 impl NewMap {
+	/// Custom deserialization logic for a new map's courses.
+	///
+	/// This will enforce the following invariants:
+	///   - [`NewMap::courses`] is not empty
+	///   - [`NewMap::courses`] is sorted by [`NewCourse::stage`]
+	///   - [`NewMap::courses`] is contiguous by [`NewCourse::stage`]
 	fn deserialize_courses<'de, D>(deserializer: D) -> Result<Vec<NewCourse>, D::Error>
 	where
 		D: Deserializer<'de>,
@@ -258,6 +268,14 @@ pub struct NewCourse {
 }
 
 impl NewCourse {
+	/// Custom deserialization logic for a new course's filters.
+	///
+	/// This will enforce the following invariants:
+	///   - There are exactly 4 filters
+	///   - [`NewCourse::filters`] is sorted
+	///   - All 4 permutations of (mode, teleports) are covered
+	///   - Any filters with a tier higher than [`Tier::Death`] cannot also be marked as
+	///     [`RankedStatus::Ranked`]
 	fn validate_filters<'de, D>(deserializer: D) -> Result<[NewFilter; 4], D::Error>
 	where
 		D: Deserializer<'de>,
@@ -325,14 +343,16 @@ pub struct NewFilter {
 	pub notes: Option<String>,
 }
 
-/// A newly created map.
+/// Response body for newly created maps.
+///
+/// See [`NewMap`].
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedMap {
 	/// The map's ID.
 	pub map_id: u16,
 }
 
-/// An update to a map.
+/// Request body for updates to a map.
 #[derive(Debug, Default, Deserialize, ToSchema)]
 pub struct MapUpdate {
 	/// A new global status.
@@ -362,7 +382,6 @@ pub struct MapUpdate {
 	pub course_updates: Vec<CourseUpdate>,
 }
 
-/// An update to a [`Course`].
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CourseUpdate {
 	/// The course's ID.
@@ -389,7 +408,6 @@ pub struct CourseUpdate {
 	pub filter_updates: Vec<FilterUpdate>,
 }
 
-/// An update to a course filter.
 #[derive(Debug, Clone, Deserialize, ToSchema)]
 pub struct FilterUpdate {
 	/// The filter's ID.

@@ -1,3 +1,4 @@
+/// Base query for `SELECT`ing players from the database.
 pub static GET_FULL_PLAYER: &str = r#"
 	SELECT
 	  p.steam_id,

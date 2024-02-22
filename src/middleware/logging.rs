@@ -20,6 +20,9 @@ macro_rules! layer {
 
 pub(crate) use layer;
 
+/// Creates a [`tracing::Span`] for an [HTTP request].
+///
+/// [HTTP request]: Request
 pub fn make_span_with(request: &Request) -> tracing::Span {
 	tracing::span! {
 		Level::TRACE,
@@ -46,8 +49,6 @@ pub fn on_body_chunk(_chunk: &Bytes, _latency: Duration, _span: &tracing::Span) 
 
 	/// Turns a byte-slice into a string-slice with fallback values if the given `bytes` are
 	/// either empty, or invalid UTF-8.
-	///
-	/// This is intended to be used with request/response payloads.
 	fn _stringify_bytes(bytes: &[u8]) -> &str {
 		match std::str::from_utf8(bytes) {
 			Ok("") => "null",

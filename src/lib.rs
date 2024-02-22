@@ -1,3 +1,6 @@
+#![warn(clippy::cognitive_complexity, clippy::style, clippy::perf)]
+#![forbid(rustdoc::broken_intra_doc_links, rustdoc::private_intra_doc_links)]
+
 use std::io;
 use std::net::SocketAddr;
 
@@ -146,7 +149,10 @@ mod auth;
   ),
 )]
 pub struct API {
+	/// The TCP listener used by the underlying HTTP server.
 	tcp_listener: TcpListener,
+
+	/// The global application state.
 	state: State,
 }
 

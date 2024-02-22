@@ -1,5 +1,6 @@
 pub mod web;
 
+/// Convenience macro for generating middleware layers.
 macro_rules! layer {
 	( $($role:ident),+ with $state:expr ) => (|| {
 		::axum::middleware::from_fn_with_state(

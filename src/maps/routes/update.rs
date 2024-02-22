@@ -102,6 +102,12 @@ pub async fn update(
 	Ok(NoContent)
 }
 
+/// Validates an update to a map.
+///
+/// Certain requirements are not possible to validate in a [`Deserialize`] implementation, because
+/// they require database access, so we have to perform them explictly.
+///
+/// [`Deserialize`]: serde::Deserialize
 async fn validate_update(
 	map_id: u16,
 	map_update: &MapUpdate,

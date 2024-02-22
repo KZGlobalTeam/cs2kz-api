@@ -1,3 +1,4 @@
+/// Base query for `SELECT`ing servers from the database.
 pub static BASE_SELECT: &str = r#"
 	SELECT
 	  s.id,

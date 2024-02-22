@@ -1,3 +1,5 @@
+use std::num::NonZeroU64;
+
 use axum::async_trait;
 use axum::extract::FromRequestParts;
 use axum::http::{header, request};
@@ -12,13 +14,16 @@ use tracing::trace;
 use super::{RoleFlags, User};
 use crate::{audit, Error, Result, State};
 
+/// A user session.
+///
+/// One of these is created for every authenticated request, as well as when a user logs in.
 #[derive(Debug, Clone)]
 pub struct Session<const REQUIRED_FLAGS: u32 = 0> {
 	/// Unique ID for this session.
 	pub id: u64,
 
 	/// Randomly generated session token.
-	pub token: u64,
+	pub token: NonZeroU64,
 
 	/// The authenticated user.
 	pub user: User,
@@ -42,7 +47,7 @@ impl Session {
 		config: &'static crate::Config,
 	) -> Result<Self> {
 		let mut transaction = database.begin().await?;
-		let token = rand::random::<u64>();
+		let token = rand::random::<NonZeroU64>();
 		let expires_on = OffsetDateTime::now_utc() + Self::EXPIRES_AFTER;
 
 		sqlx::query! {
@@ -52,7 +57,7 @@ impl Session {
 			VALUES
 			  (?, ?, ?)
 			"#,
-			token,
+			token.get(),
 			steam_id,
 			expires_on,
 		}
@@ -97,10 +102,20 @@ impl Session {
 }
 
 impl<const REQUIRED_FLAGS: u32> Session<REQUIRED_FLAGS> {
+	/// The name of the cookie used for storing the [session token].
+	///
+	/// [session token]: Session::token
 	pub const COOKIE_NAME: &'static str = "kz-auth";
+
+	/// The duration after which any given session will expire.
 	pub const EXPIRES_AFTER: Duration = Duration::WEEK;
 
 	/// Invalidates this session.
+	///
+	/// This both invalidates it in the database, as well as the [session's cookie], so that it
+	/// can be returned from middleware/handlers to also reflect in the user's browser.
+	///
+	/// [session's cookie]: Session::cookie
 	pub async fn invalidate(&mut self, all: bool, executor: impl MySqlExecutor<'_>) -> Result<()> {
 		sqlx::query! {
 			r#"
@@ -143,6 +158,9 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static State> for Session<REQ
 		parts: &mut request::Parts,
 		state: &&'static State,
 	) -> Result<Self> {
+		// If a session has been extraced previously (specifically in middleware), we don't
+		// want to do it again. The middleware will cache the extracted session in the
+		// request's extensions, so we can just take that.
 		if let Some(session) = parts.extensions.remove::<Self>() {
 			return Ok(session);
 		}
@@ -159,7 +177,7 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static State> for Session<REQ
 					return None;
 				}
 
-				let Ok(session_token) = cookie.value().parse::<u64>() else {
+				let Ok(session_token) = cookie.value().parse::<NonZeroU64>() else {
 					trace!(?cookie, "cookie has invalid value");
 					return None;
 				};
@@ -189,7 +207,7 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static State> for Session<REQ
 			ORDER BY
 			  s.expires_on DESC
 			"#,
-			session_token,
+			session_token.get(),
 		}
 		.fetch_optional(transaction.as_mut())
 		.await?

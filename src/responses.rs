@@ -1,3 +1,8 @@
+//! This module contains various types used for OpenAPI spec generation.
+//!
+//! Most of these will not be used directly, but only in [`utoipa::path`] annotations.
+//! Their purpose should be self-explanatory.
+
 use std::collections::BTreeMap;
 
 use axum::http::StatusCode;
@@ -20,6 +25,8 @@ where
 	T: ToSchema<'static>,
 {
 	fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
+		/// HACK: if we derived `IntoResponses` on `Created` directly, we would have to put
+		/// a `ToSchema` bound on `T` (on the struct itself), which we do not want.
 		#[derive(IntoResponses)]
 		#[response(status = CREATED)]
 		struct Helper<T: ToSchema<'static>>(#[to_schema] T);
