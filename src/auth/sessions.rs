@@ -349,3 +349,39 @@ impl<const REQUIRED_FLAGS: u32> Authenticated for Admin<REQUIRED_FLAGS> {
 		Ok(())
 	}
 }
+
+/// Extracts a server ID from the request URI and checks whether the user owns the server with that
+/// ID.
+#[derive(Debug, Clone, Copy)]
+pub struct ServerOwner;
+
+impl Authenticated for ServerOwner {
+	async fn verify(user: &User, database: &MySqlPool, request: &mut request::Parts) -> Result<()> {
+		let server_id = Path::<u16>::from_request_parts(request, &())
+			.await
+			.map(|path| path.0)
+			.map_err(|rejection| Error::missing("server ID").with_detail(format!("{rejection}")))?;
+
+		let result = sqlx::query! {
+			r#"
+			SELECT
+			  id
+			FROM
+			  Servers
+			WHERE
+			  id = ?
+			  AND owned_by = ?
+			"#,
+			server_id,
+			user.steam_id,
+		}
+		.fetch_optional(database)
+		.await?;
+
+		if result.is_none() {
+			return Err(Error::not_a_server_owner());
+		}
+
+		Ok(())
+	}
+}
