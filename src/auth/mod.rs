@@ -12,7 +12,7 @@ pub mod steam;
 mod users;
 pub use users::User;
 
-mod sessions;
+pub mod sessions;
 pub use sessions::Session;
 
 mod jwt;

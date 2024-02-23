@@ -16,7 +16,7 @@ impl Modify for Security {
 			.expect("OpenAPI Spec has components");
 
 		let session_auth =
-			SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(Session::<0>::COOKIE_NAME)));
+			SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(Session::<()>::COOKIE_NAME)));
 
 		components.add_security_scheme("Steam Session", session_auth);
 

@@ -5,6 +5,7 @@ use serde::Deserialize;
 use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
+use crate::auth::sessions::Admin;
 use crate::auth::{Role, Session};
 use crate::bans::{queries, Ban, BanReason};
 use crate::database::ToID;
@@ -60,7 +61,7 @@ pub struct GetBansParams<'a> {
 )]
 pub async fn get_many(
 	state: AppState,
-	session: Option<Session<{ Role::Bans as u32 }>>,
+	session: Option<Session<Admin<{ Role::Bans as u32 }>>>,
 	Query(params): Query<GetBansParams<'_>>,
 ) -> Result<Json<Vec<Ban>>> {
 	let mut query = QueryBuilder::new(queries::BASE_SELECT);

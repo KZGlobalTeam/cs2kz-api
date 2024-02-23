@@ -2,6 +2,8 @@ use axum::extract::Path;
 use axum::Json;
 use sqlx::QueryBuilder;
 
+use crate::auth::sessions::{Admin, Either, ServerOwner};
+use crate::auth::{Role, Session};
 use crate::responses::NoContent;
 use crate::servers::ServerUpdate;
 use crate::{audit, responses, AppState, Error, Result};
@@ -27,6 +29,7 @@ use crate::{audit, responses, AppState, Error, Result};
 )]
 pub async fn update(
 	state: AppState,
+	session: Session<Either<ServerOwner, Admin<{ Role::Servers as u32 }>>>,
 	Path(server_id): Path<u16>,
 	Json(server_update): Json<ServerUpdate>,
 ) -> Result<NoContent> {

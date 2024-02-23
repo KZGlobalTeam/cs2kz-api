@@ -29,7 +29,7 @@ pub fn router(state: &'static State) -> Router {
 	let ident = Router::new()
 		.route("/:server", get(routes::get_single))
 		.route_layer(cors::permissive(Method::GET))
-		.route("/:server", patch(routes::update).route_layer(auth()))
+		.route("/:server", patch(routes::update))
 		.route_layer(cors::dashboard(Method::PATCH))
 		.with_state(state);
 
