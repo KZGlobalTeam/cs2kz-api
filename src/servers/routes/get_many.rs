@@ -2,12 +2,11 @@ use axum::extract::Query;
 use axum::Json;
 use cs2kz::PlayerIdentifier;
 use serde::Deserialize;
-use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
 use crate::database::ToID;
 use crate::params::{Limit, Offset};
-use crate::query::{self, Filter};
+use crate::query::{self, FilteredQuery};
 use crate::servers::{queries, Server};
 use crate::{responses, AppState, Error, Result};
 
@@ -48,27 +47,20 @@ pub async fn get_many(
 	state: AppState,
 	Query(params): Query<GetServersParams<'_>>,
 ) -> Result<Json<Vec<Server>>> {
-	let mut query = QueryBuilder::new(queries::BASE_SELECT);
-	let mut filter = Filter::new();
+	let mut query = FilteredQuery::new(queries::BASE_SELECT);
 
 	if let Some(ref name) = params.name {
-		query
-			.push(filter)
-			.push(" s.name LIKE ")
-			.push_bind(format!("%{name}%"));
-
-		filter.switch();
+		query.filter(|query| {
+			query.push(" s.name LIKE ").push_bind(format!("%{name}%"));
+		});
 	}
 
 	if let Some(ref player) = params.owner {
 		let steam_id = player.to_id(&state.database).await?;
 
-		query
-			.push(filter)
-			.push(" p.steam_id = ")
-			.push_bind(steam_id);
-
-		filter.switch();
+		query.filter(|query| {
+			query.push(" p.steam_id = ").push_bind(steam_id);
+		});
 	}
 
 	query.push(" ORDER BY s.id ASC ");

@@ -1,10 +1,20 @@
 //! Utilities for building SQL queries.
 
 use std::fmt;
+use std::ops::{Deref, DerefMut};
 
 use sqlx::{Encode, MySql, QueryBuilder, Type};
 
 use crate::params::{Limit, Offset};
+
+/// Pushes `LIMIT` and `OFFSET` parameters into the given `query`.
+pub fn push_limit(limit: Limit, offset: Offset, query: &mut QueryBuilder<'_, MySql>) {
+	query
+		.push(" LIMIT ")
+		.push_bind(limit)
+		.push(" OFFSET ")
+		.push_bind(offset);
+}
 
 /// A helper for building conditional queries.
 ///
@@ -38,13 +48,6 @@ pub enum Filter {
 }
 
 impl Filter {
-	/// Creates a new [`WHERE`] [`Filter`].
-	///
-	/// [`WHERE`]: type@Filter::Where
-	pub const fn new() -> Self {
-		Self::Where
-	}
-
 	/// Switches to [`AND`].
 	///
 	/// [`AND`]: type@Filter::And
@@ -60,15 +63,6 @@ impl fmt::Display for Filter {
 			Filter::And => " AND ",
 		})
 	}
-}
-
-/// Pushes `LIMIT` and `OFFSET` parameters into the given `query`.
-pub fn push_limit(limit: Limit, offset: Offset, query: &mut QueryBuilder<'_, MySql>) {
-	query
-		.push(" LIMIT ")
-		.push_bind(limit)
-		.push(" OFFSET ")
-		.push_bind(offset);
 }
 
 /// Pushes a tuple of `items` into a `SELECT * FROM table WHERE field IN (...)` query.
@@ -100,4 +94,64 @@ where
 	}
 
 	separated.push_unseparated(") ");
+}
+
+/// Helper for building `WHERE` queries.
+///
+/// See [`FilteredQuery::filter()`] for more details.
+#[derive(Default)]
+pub struct FilteredQuery<'q> {
+	query: QueryBuilder<'q, MySql>,
+	filter: Filter,
+}
+
+impl<'q> FilteredQuery<'q> {
+	/// Constructs a new query builder with the given `query` as start contents.
+	/// This proxies to [`QueryBuilder::new()`].
+	pub fn new(query: impl Into<String>) -> Self {
+		QueryBuilder::new(query).into()
+	}
+
+	/// Pushes a `WHERE` / `AND` to the inner query, then executes the given `f`.
+	pub fn filter(&mut self, f: impl FnOnce(&mut QueryBuilder<'q, MySql>)) {
+		self.query.push(self.filter);
+		f(&mut self.query);
+		self.filter.switch();
+	}
+
+	/// Resets the inner filter clause.
+	pub fn reset_filter(&mut self) {
+		self.filter = Filter::default();
+	}
+
+	/// Returns the underlying query builder.
+	pub fn into_query(self) -> QueryBuilder<'q, MySql> {
+		self.into()
+	}
+}
+
+impl<'q> Deref for FilteredQuery<'q> {
+	type Target = QueryBuilder<'q, MySql>;
+
+	fn deref(&self) -> &Self::Target {
+		&self.query
+	}
+}
+
+impl<'q> DerefMut for FilteredQuery<'q> {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.query
+	}
+}
+
+impl<'q> From<QueryBuilder<'q, MySql>> for FilteredQuery<'q> {
+	fn from(query: QueryBuilder<'q, MySql>) -> Self {
+		Self { query, filter: Filter::default() }
+	}
+}
+
+impl<'q> From<FilteredQuery<'q>> for QueryBuilder<'q, MySql> {
+	fn from(value: FilteredQuery<'q>) -> Self {
+		value.query
+	}
 }

@@ -2,7 +2,6 @@ use axum::extract::Query;
 use axum::Json;
 use cs2kz::{PlayerIdentifier, ServerIdentifier};
 use serde::Deserialize;
-use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
 use crate::auth::sessions::Admin;
@@ -10,7 +9,7 @@ use crate::auth::{Role, Session};
 use crate::bans::{queries, Ban, BanReason};
 use crate::database::ToID;
 use crate::params::{Limit, Offset};
-use crate::query::{self, Filter};
+use crate::query::{self, FilteredQuery};
 use crate::{responses, AppState, Error, Result};
 
 /// Query Parameters for fetching [`Ban`]s.
@@ -64,56 +63,46 @@ pub async fn get_many(
 	session: Option<Session<Admin<{ Role::Bans as u32 }>>>,
 	Query(params): Query<GetBansParams<'_>>,
 ) -> Result<Json<Vec<Ban>>> {
-	let mut query = QueryBuilder::new(queries::BASE_SELECT);
-	let mut filter = Filter::new();
+	let mut query = FilteredQuery::new(queries::BASE_SELECT);
 
 	if let Some(ref player) = params.player {
 		let steam_id = player.to_id(&state.database).await?;
 
-		query
-			.push(filter)
-			.push(" b.player_id = ")
-			.push_bind(steam_id);
-
-		filter.switch();
+		query.filter(|query| {
+			query.push(" b.player_id = ").push_bind(steam_id);
+		});
 	}
 
 	if let Some(ref reason) = params.reason {
-		query.push(filter).push(" b.reason LIKE ").push_bind(reason);
-
-		filter.switch();
+		query.filter(|query| {
+			query.push(" b.reason LIKE ").push_bind(reason);
+		});
 	}
 
 	if let Some(ref server) = params.server {
 		let server_id = server.to_id(&state.database).await?;
 
-		query
-			.push(filter)
-			.push(" b.server_id = ")
-			.push_bind(server_id);
-
-		filter.switch();
+		query.filter(|query| {
+			query.push(" b.server_id = ").push_bind(server_id);
+		});
 	}
 
 	if let Some(ref player) = params.banned_by {
 		let steam_id = player.to_id(&state.database).await?;
 
-		query
-			.push(filter)
-			.push(" b.banned_by = ")
-			.push_bind(steam_id);
-
-		filter.switch();
+		query.filter(|query| {
+			query.push(" b.banned_by = ").push_bind(steam_id);
+		});
 	}
 
 	if let Some(has_expired) = params.has_expired {
-		query.push(filter).push(if has_expired {
-			" b.expires_on < CURRENT_TIMESTAMP() "
-		} else {
-			" (b.expires_on > CURRENT_TIMESTAMP() OR b.expires_on IS NULL) "
+		query.filter(|query| {
+			query.push(if has_expired {
+				" b.expires_on < CURRENT_TIMESTAMP() "
+			} else {
+				" (b.expires_on > CURRENT_TIMESTAMP() OR b.expires_on IS NULL) "
+			});
 		});
-
-		filter.switch();
 	}
 
 	query.push(" ORDER BY b.id DESC ");

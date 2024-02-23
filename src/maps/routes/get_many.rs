@@ -3,13 +3,12 @@ use axum::Json;
 use cs2kz::PlayerIdentifier;
 use itertools::Itertools;
 use serde::Deserialize;
-use sqlx::QueryBuilder;
 use utoipa::IntoParams;
 
 use crate::database::{GlobalStatus, ToID};
 use crate::maps::{queries, KZMap};
 use crate::params::{Limit, Offset};
-use crate::query::Filter;
+use crate::query::FilteredQuery;
 use crate::{responses, AppState, Error, Result};
 
 /// Query Parameters for fetching [`KZMap`]s.
@@ -52,45 +51,39 @@ pub async fn get_many(
 	state: AppState,
 	Query(params): Query<GetMapsParams<'_>>,
 ) -> Result<Json<Vec<KZMap>>> {
-	let mut query = QueryBuilder::new(queries::BASE_SELECT);
-	let mut filter = Filter::new();
+	let mut query = FilteredQuery::new(queries::BASE_SELECT);
 
-	if let Some(ref name) = params.name {
-		query
-			.push(filter)
-			.push(" m.name LIKE ")
-			.push_bind(format!("%{name}%"));
-
-		filter.switch();
+	if let Some(name) = params.name {
+		query.filter(|query| {
+			query.push(" m.name LIKE ").push_bind(format!("%{name}%"));
+		});
 	}
 
-	if let Some(ref player) = params.mapper {
-		query.push(filter).push(
-			r#"
-			m.id IN (
-			  SELECT
-			    Maps.id
-			  FROM
-			    Maps
-			    JOIN Mappers ON Mappers.map_id = Maps.id
-			  WHERE
-			    Mappers.player_id =
-			"#,
-		);
-
+	if let Some(player) = params.mapper {
 		let steam_id = player.to_id(&state.database).await?;
 
-		query.push_bind(steam_id).push(")");
-		filter.switch();
+		query.filter(|query| {
+			query.push(
+				r#"
+				m.id IN (
+				  SELECT
+				    Maps.id
+				  FROM
+				    Maps
+				    JOIN Mappers ON Mappers.map_id = Maps.id
+				  WHERE
+				    Mappers.player_id =
+				"#,
+			);
+
+			query.push_bind(steam_id).push(")");
+		});
 	}
 
 	if let Some(global_status) = params.global_status {
-		query
-			.push(filter)
-			.push(" m.global_status = ")
-			.push_bind(global_status);
-
-		filter.switch();
+		query.filter(|query| {
+			query.push(" m.global_status = ").push_bind(global_status);
+		});
 	}
 
 	query.push(" ORDER BY m.id ASC ");
