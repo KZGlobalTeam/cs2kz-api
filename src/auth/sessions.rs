@@ -305,6 +305,28 @@ impl Authenticated for () {
 	}
 }
 
+/// Helper for checking 2 conditions on a [`Session`] and allowing either one.
+///
+/// `A` will always be checked first.
+#[derive(Debug)]
+pub struct Either<A, B> {
+	_marker: PhantomData<(A, B)>,
+}
+
+impl<A, B> Authenticated for Either<A, B>
+where
+	A: Authenticated,
+	B: Authenticated,
+{
+	async fn verify(user: &User, database: &MySqlPool, request: &mut request::Parts) -> Result<()> {
+		if let Ok(()) = A::verify(user, database, request).await {
+			Ok(())
+		} else {
+			B::verify(user, database, request).await
+		}
+	}
+}
+
 /// Checks whether the user has certain permissions.
 #[derive(Debug, Clone, Copy)]
 pub struct Admin<const REQUIRED_FLAGS: u32>;
