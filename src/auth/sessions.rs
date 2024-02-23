@@ -1,7 +1,9 @@
+use std::future::Future;
+use std::marker::PhantomData;
 use std::num::NonZeroU64;
 
 use axum::async_trait;
-use axum::extract::FromRequestParts;
+use axum::extract::{FromRequestParts, Path};
 use axum::http::{header, request};
 use axum::response::{IntoResponseParts, ResponseParts};
 use axum_extra::extract::cookie::Cookie;
@@ -18,7 +20,7 @@ use crate::{audit, Error, Result, State};
 ///
 /// One of these is created for every authenticated request, as well as when a user logs in.
 #[derive(Debug, Clone)]
-pub struct Session<const REQUIRED_FLAGS: u32 = 0> {
+pub struct Session<A = ()> {
 	/// Unique ID for this session.
 	pub id: u64,
 
@@ -37,6 +39,18 @@ pub struct Session<const REQUIRED_FLAGS: u32 = 0> {
 	///
 	/// [`cookie`]: Self::cookie
 	invalidated: bool,
+
+	_marker: PhantomData<A>,
+}
+
+/// A trait for verifying [`Session`]s.
+pub trait Authenticated: Sized + Send + Sync + 'static {
+	/// Verifies whether a given `user`'s session is valid.
+	fn verify(
+		user: &User,
+		database: &MySqlPool,
+		request: &mut request::Parts,
+	) -> impl Future<Output = Result<()>> + Send;
 }
 
 impl Session {
@@ -97,11 +111,11 @@ impl Session {
 			.expires(expires_on)
 			.build();
 
-		Ok(Self { id, token, user, cookie, invalidated: false })
+		Ok(Self { id, token, user, cookie, invalidated: false, _marker: PhantomData })
 	}
 }
 
-impl<const REQUIRED_FLAGS: u32> Session<REQUIRED_FLAGS> {
+impl<A> Session<A> {
 	/// The name of the cookie used for storing the [session token].
 	///
 	/// [session token]: Session::token
@@ -151,7 +165,10 @@ impl<const REQUIRED_FLAGS: u32> Session<REQUIRED_FLAGS> {
 }
 
 #[async_trait]
-impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static State> for Session<REQUIRED_FLAGS> {
+impl<A> FromRequestParts<&'static State> for Session<A>
+where
+	A: Authenticated,
+{
 	type Rejection = Error;
 
 	async fn from_request_parts(
@@ -240,28 +257,24 @@ impl<const REQUIRED_FLAGS: u32> FromRequestParts<&'static State> for Session<REQ
 		transaction.commit().await?;
 
 		let user = User::new(session.steam_id, session.role_flags);
-		let required_flags = RoleFlags::from(REQUIRED_FLAGS);
-
-		if !user.role_flags.contains(required_flags) {
-			return Err(Error::missing("required permissions")
-				.with_message("you do not have the required permissions to make this request")
-				.with_detail(required_flags.into_iter().join(", "))
-				.unauthorized());
-		}
-
-		audit!("user authenticated", ?user);
-
-		Ok(Self {
+		let session = Self {
 			id: session.id,
 			token: session_token,
 			user,
 			cookie,
 			invalidated: false,
-		})
+			_marker: PhantomData,
+		};
+
+		A::verify(&user, &state.database, parts).await?;
+
+		audit!("user authenticated", ?user);
+
+		Ok(session)
 	}
 }
 
-impl<const REQUIRED_FLAGS: u32> IntoResponseParts for Session<REQUIRED_FLAGS> {
+impl<A> IntoResponseParts for Session<A> {
 	type Error = Error;
 
 	fn into_response_parts(mut self, mut response: ResponseParts) -> Result<ResponseParts> {
@@ -279,5 +292,38 @@ impl<const REQUIRED_FLAGS: u32> IntoResponseParts for Session<REQUIRED_FLAGS> {
 		response.headers_mut().insert(header::SET_COOKIE, cookie);
 
 		Ok(response)
+	}
+}
+
+impl Authenticated for () {
+	async fn verify(
+		_user: &User,
+		_database: &MySqlPool,
+		_request: &mut request::Parts,
+	) -> Result<()> {
+		Ok(())
+	}
+}
+
+/// Checks whether the user has certain permissions.
+#[derive(Debug, Clone, Copy)]
+pub struct Admin<const REQUIRED_FLAGS: u32>;
+
+impl<const REQUIRED_FLAGS: u32> Authenticated for Admin<REQUIRED_FLAGS> {
+	async fn verify(
+		user: &User,
+		_database: &MySqlPool,
+		_request: &mut request::Parts,
+	) -> Result<()> {
+		let required_flags = RoleFlags::from(REQUIRED_FLAGS);
+
+		if !user.role_flags.contains(required_flags) {
+			return Err(Error::missing("required permissions")
+				.with_message("you do not have the required permissions to make this request")
+				.with_detail(required_flags.into_iter().join(", "))
+				.unauthorized());
+		}
+
+		Ok(())
 	}
 }

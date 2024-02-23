@@ -153,6 +153,13 @@ impl Error {
 		Self::bug().with_message("failed to download workshop map")
 	}
 
+	/// Indicate that a request must be made by a server owner.
+	#[track_caller]
+	pub fn not_a_server_owner() -> Self {
+		Self::new(StatusCode::UNAUTHORIZED)
+			.with_message("you must be the server owner to make this request")
+	}
+
 	/// Generate a new error with the given status `code`.
 	#[track_caller]
 	fn new(code: StatusCode) -> Self {

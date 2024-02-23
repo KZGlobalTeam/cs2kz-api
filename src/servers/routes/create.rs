@@ -2,6 +2,7 @@ use std::num::NonZeroU32;
 
 use axum::Json;
 
+use crate::auth::sessions::Admin;
 use crate::auth::{Role, Session};
 use crate::responses::Created;
 use crate::servers::{CreatedServer, NewServer};
@@ -28,7 +29,7 @@ use crate::{audit, responses, AppState, Error, Result};
 )]
 pub async fn create(
 	state: AppState,
-	session: Session<{ Role::Servers as u32 }>,
+	session: Session<Admin<{ Role::Servers as u32 }>>,
 	Json(server): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
 	let mut transaction = state.begin_transaction().await?;
