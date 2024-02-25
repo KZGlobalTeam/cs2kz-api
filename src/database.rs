@@ -132,9 +132,9 @@ pub enum GlobalStatus {
 impl fmt::Display for GlobalStatus {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.write_str(match self {
-			GlobalStatus::NotGlobal => "not global",
-			GlobalStatus::InTesting => "in testing",
-			GlobalStatus::Global => "global",
+			Self::NotGlobal => "not global",
+			Self::InTesting => "in testing",
+			Self::Global => "global",
 		})
 	}
 }

@@ -6,7 +6,7 @@ use crate::auth::{Role, Session};
 use crate::bans::{CreatedUnban, NewUnban};
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
-use crate::{audit, responses, AppState, Error, Result};
+use crate::{audit, query, responses, AppState, Error, Result};
 
 /// Revert a ban.
 #[tracing::instrument(skip(state))]
@@ -72,10 +72,7 @@ pub async fn unban(
 		}
 	})?;
 
-	let unban_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
-		.fetch_one(transaction.as_mut())
-		.await
-		.map(|row| row.id as u32)?;
+	let unban_id = query::last_insert_id::<u32>(transaction.as_mut()).await?;
 
 	transaction.commit().await?;
 

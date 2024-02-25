@@ -84,15 +84,6 @@
             "schema": {
               "$ref": "#/components/schemas/Limit"
             }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "description": "Offset used for pagination.",
-            "required": false,
-            "schema": {
-              "$ref": "#/components/schemas/Offset"
-            }
           }
         ],
         "responses": {

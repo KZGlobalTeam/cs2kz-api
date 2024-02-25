@@ -19,6 +19,7 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 	let Test { name, ctx_arg, body } = parse_macro_input!(item as Test);
 
 	quote! {
+		#[allow(clippy::semicolon_outside_block)]
 		#[::tokio::test]
 		async fn #name() -> ::color_eyre::Result<()> {
 			use ::std::fmt::Write as _;

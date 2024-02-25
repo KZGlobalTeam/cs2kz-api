@@ -20,10 +20,10 @@ pub enum Role {
 impl Display for Role {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.write_str(match self {
-			Role::Bans => "bans",
-			Role::Servers => "servers",
-			Role::Maps => "maps",
-			Role::Admin => "admin",
+			Self::Bans => "bans",
+			Self::Servers => "servers",
+			Self::Maps => "maps",
+			Self::Admin => "admin",
 		})
 	}
 }

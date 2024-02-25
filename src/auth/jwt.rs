@@ -26,7 +26,12 @@ pub struct Jwt<T> {
 impl<T> Jwt<T> {
 	/// Constructs a new JWT which will expire after a certain amount of time.
 	pub fn new(payload: T, expires_after: Duration) -> Self {
-		let exp = jsonwebtoken::get_current_timestamp() + expires_after.num_seconds() as u64;
+		let expires_after: u64 = expires_after
+			.num_seconds()
+			.try_into()
+			.expect("positive amount of seconds");
+
+		let exp = jsonwebtoken::get_current_timestamp() + expires_after;
 
 		Self { payload, exp }
 	}

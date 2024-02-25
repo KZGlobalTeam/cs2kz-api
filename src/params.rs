@@ -12,6 +12,14 @@ impl<const DEFAULT: u64, const MAX: u64> Default for Limit<DEFAULT, MAX> {
 	}
 }
 
+impl From<Limit> for usize {
+	// this will never truncate on a 64-bit platform
+	#[allow(clippy::cast_possible_truncation)]
+	fn from(value: Limit) -> Self {
+		value.0 as _
+	}
+}
+
 impl<'de, const DEFAULT: u64, const MAX: u64> Deserialize<'de> for Limit<DEFAULT, MAX> {
 	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where

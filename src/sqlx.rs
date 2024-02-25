@@ -14,7 +14,7 @@ pub trait SqlErrorExt {
 
 impl SqlErrorExt for sqlx::Error {
 	fn is(&self, other: ErrorKind) -> bool {
-		matches!(self, sqlx::Error::Database(err) if err.kind() == other)
+		matches!(self, Self::Database(err) if err.kind() == other)
 	}
 
 	fn is_foreign_key_violation(&self) -> bool {

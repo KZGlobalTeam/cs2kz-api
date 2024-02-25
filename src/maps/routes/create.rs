@@ -10,7 +10,7 @@ use crate::maps::{CreatedMap, MappersTable, NewMap};
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
 use crate::steam::workshop;
-use crate::{audit, responses, AppState, Error, Result};
+use crate::{audit, query, responses, AppState, Error, Result};
 
 /// Create or update a map.
 ///
@@ -121,10 +121,7 @@ async fn insert_map(
 	.execute(transaction.as_mut())
 	.await?;
 
-	let map_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
-		.fetch_one(transaction.as_mut())
-		.await
-		.map(|row| row.id as u16)?;
+	let map_id = query::last_insert_id::<u16>(transaction.as_mut()).await?;
 
 	audit! {
 		"created map",

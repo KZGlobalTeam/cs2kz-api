@@ -7,7 +7,7 @@ use crate::auth::{Role, Session};
 use crate::responses::Created;
 use crate::servers::{CreatedServer, NewServer};
 use crate::sqlx::SqlErrorExt;
-use crate::{audit, responses, AppState, Error, Result};
+use crate::{audit, query, responses, AppState, Error, Result};
 
 /// Register a new CS2 server.
 #[tracing::instrument(skip(state))]
@@ -58,10 +58,9 @@ pub async fn create(
 		}
 	})?;
 
-	let server_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
-		.fetch_one(transaction.as_mut())
-		.await
-		.map(|row| row.id as u16)?;
+	let server_id = query::last_insert_id::<u16>(transaction.as_mut()).await?;
+
+	transaction.commit().await?;
 
 	audit! {
 		"created server",
@@ -69,8 +68,6 @@ pub async fn create(
 		owner = %server.owned_by,
 		approved_by = %session.user.steam_id
 	};
-
-	transaction.commit().await?;
 
 	Ok(Created(Json(CreatedServer { server_id, api_key })))
 }

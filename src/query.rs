@@ -1,9 +1,9 @@
 //! Utilities for building SQL queries.
 
-use std::fmt;
+use std::fmt::{self, Debug};
 use std::ops::{Deref, DerefMut};
 
-use sqlx::{Encode, MySql, QueryBuilder, Type};
+use sqlx::{Encode, MySql, MySqlExecutor, QueryBuilder, Type};
 
 use crate::params::{Limit, Offset};
 
@@ -14,6 +14,29 @@ pub fn push_limit(limit: Limit, offset: Offset, query: &mut QueryBuilder<'_, MyS
 		.push_bind(limit)
 		.push(" OFFSET ")
 		.push_bind(offset);
+}
+
+/// Fetches the last ID that was inserted within the context of the passed `executor` and
+/// converts it to a type.
+///
+/// This is useful when your primary key is a smaller integer, e.g. an `INT UNSIGNED`, and so
+/// you want a [`u32`] rather than a [`u64`].
+///
+/// # Panics
+///
+/// This function will panic if `ID` cannot be constructed from a `u64`.
+pub async fn last_insert_id<ID>(executor: impl MySqlExecutor<'_>) -> sqlx::Result<ID>
+where
+	u64: TryInto<ID>,
+	<u64 as TryInto<ID>>::Error: Debug,
+{
+	let id = sqlx::query!("SELECT LAST_INSERT_ID() id")
+		.fetch_one(executor)
+		.await
+		.map(|row| <u64 as TryInto<ID>>::try_into(row.id))?
+		.expect("invalid row id");
+
+	Ok(id)
 }
 
 /// A helper for building conditional queries.
@@ -59,8 +82,8 @@ impl Filter {
 impl fmt::Display for Filter {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.write_str(match self {
-			Filter::Where => " WHERE ",
-			Filter::And => " AND ",
+			Self::Where => " WHERE ",
+			Self::And => " AND ",
 		})
 	}
 }

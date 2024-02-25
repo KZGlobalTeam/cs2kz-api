@@ -43,19 +43,26 @@ pub struct Config {
 
 impl Config {
 	/// Creates a new [Config] instance by parsing relevant environment variables.
+	///
+	/// # Panics
+	///
+	/// This function will panic if the `KZ_API_URL` environment variable has an unexpected
+	/// shape.
 	pub fn new() -> Result<Self> {
 		let ip_addr = get_env_var::<Ipv4Addr>("KZ_API_IP")?;
 		let port = get_env_var::<u16>("KZ_API_PORT")?;
 		let socket_addr = SocketAddrV4::new(ip_addr, port);
 		let public_url = get_env_var::<Url>("KZ_API_URL")?;
 
-		let domain = match public_url.domain() {
-			Some(domain) => domain_to_wildcard(domain).to_owned(),
-			None => public_url
-				.host_str()
-				.map(ToOwned::to_owned)
-				.expect("API url should have a host"),
-		};
+		let domain = public_url
+			.domain()
+			.map(|domain| domain_to_wildcard(domain).to_owned())
+			.unwrap_or_else(|| {
+				public_url
+					.host_str()
+					.map(ToOwned::to_owned)
+					.expect("API url should have a host")
+			});
 
 		let database = database::Config::new()?;
 		let axiom = axiom::Config::new().ok();

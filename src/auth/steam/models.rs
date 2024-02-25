@@ -58,7 +58,7 @@ impl LoginForm {
 
 	/// Creates a [Redirect] to Steam, which will redirect back to the given `origin_url` after
 	/// a successful login.
-	pub fn with_origin_url(mut self, origin_url: Url) -> Redirect {
+	pub fn with_origin_url(mut self, origin_url: &Url) -> Redirect {
 		self.callback_url
 			.query_pairs_mut()
 			.append_pair("origin_url", origin_url.as_str());

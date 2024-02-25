@@ -1,5 +1,44 @@
-#![warn(clippy::cognitive_complexity, clippy::style, clippy::perf)]
 #![forbid(rustdoc::broken_intra_doc_links, rustdoc::private_intra_doc_links)]
+#![deny(
+	clippy::cast_possible_truncation,
+	clippy::cast_possible_wrap,
+	clippy::cast_sign_loss,
+	clippy::checked_conversions,
+	clippy::many_single_char_names,
+	clippy::missing_panics_doc,
+	clippy::needless_for_each,
+	clippy::ref_option_ref,
+	clippy::unimplemented,
+	clippy::unnecessary_self_imports,
+	clippy::wildcard_dependencies,
+	clippy::wildcard_imports
+)]
+#![warn(
+	clippy::style,
+	clippy::perf,
+	clippy::absolute_paths,
+	clippy::branches_sharing_code,
+	clippy::cloned_instead_of_copied,
+	clippy::cognitive_complexity,
+	clippy::collection_is_never_read,
+	clippy::dbg_macro,
+	clippy::enum_glob_use,
+	clippy::inconsistent_struct_constructor,
+	clippy::mismatching_type_param_order,
+	clippy::missing_const_for_fn,
+	clippy::needless_continue,
+	clippy::needless_pass_by_ref_mut,
+	clippy::needless_pass_by_value,
+	clippy::option_if_let_else,
+	clippy::redundant_else,
+	clippy::semicolon_if_nothing_returned,
+	clippy::semicolon_outside_block,
+	clippy::similar_names,
+	clippy::todo,
+	clippy::unnested_or_patterns,
+	clippy::unused_async,
+	clippy::use_self
+)]
 
 use std::io;
 use std::net::SocketAddr;
@@ -225,6 +264,10 @@ impl API {
 	}
 
 	/// Returns a pretty-printed version of the OpenAPI spec in JSON.
+	///
+	/// # Panics
+	///
+	/// This will panic if any types used in the spec cannot be serialized as JSON.
 	pub fn spec() -> String {
 		Self::openapi()
 			.to_pretty_json()

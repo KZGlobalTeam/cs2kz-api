@@ -7,7 +7,7 @@ use utoipa::IntoParams;
 
 use crate::database::{GlobalStatus, ToID};
 use crate::maps::{queries, KZMap};
-use crate::params::{Limit, Offset};
+use crate::params::Limit;
 use crate::query::FilteredQuery;
 use crate::{responses, AppState, Error, Result};
 
@@ -28,9 +28,6 @@ pub struct GetMapsParams<'a> {
 
 	/// Maximum amount of results.
 	pub limit: Limit,
-
-	/// Offset used for pagination.
-	pub offset: Offset,
 }
 
 /// Fetch globally approved maps.
@@ -94,8 +91,7 @@ pub async fn get_many(
 		.await
 		.map(KZMap::flatten)?
 		.into_iter()
-		.skip(params.offset.0 as _)
-		.take(params.limit.0 as _)
+		.take(params.limit.into())
 		.collect_vec();
 
 	if maps.is_empty() {

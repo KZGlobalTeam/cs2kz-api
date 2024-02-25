@@ -5,7 +5,7 @@ use cs2kz::SteamID;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use sqlx::mysql::MySqlRow;
-use sqlx::{FromRow, MySql, Row};
+use sqlx::{database, FromRow, MySql, Row};
 use utoipa::ToSchema;
 
 use crate::players::Player;
@@ -83,12 +83,12 @@ where
 {
 	fn encode_by_ref(
 		&self,
-		buf: &mut <DB as sqlx::database::HasArguments<'query>>::ArgumentBuffer,
+		buf: &mut <DB as database::HasArguments<'query>>::ArgumentBuffer,
 	) -> sqlx::encode::IsNull {
 		<&'static str as sqlx::Encode<'query, DB>>::encode(
 			match self {
-				BanReason::AutoBhop => "auto_bhop",
-				BanReason::AutoStrafe => "auto_strafe",
+				Self::AutoBhop => "auto_bhop",
+				Self::AutoStrafe => "auto_strafe",
 			},
 			buf,
 		)
@@ -100,7 +100,7 @@ where
 	String: sqlx::Decode<'row, DB>,
 {
 	fn decode(
-		value: <DB as sqlx::database::HasValueRef<'row>>::ValueRef,
+		value: <DB as database::HasValueRef<'row>>::ValueRef,
 	) -> std::result::Result<Self, sqlx::error::BoxDynError> {
 		#[derive(Debug, thiserror::Error)]
 		#[error("unknown variant `{0}`")]

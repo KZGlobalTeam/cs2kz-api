@@ -40,10 +40,12 @@ pub fn make_span_with(request: &Request) -> tracing::Span {
 	}
 }
 
+#[allow(clippy::missing_const_for_fn)] // this will become non-const once implemented
 pub fn on_request(_request: &Request, _span: &tracing::Span) {
 	// Currently a NOOP.
 }
 
+#[allow(clippy::missing_const_for_fn)] // this will become non-const once implemented
 pub fn on_body_chunk(_chunk: &Bytes, _latency: Duration, _span: &tracing::Span) {
 	// TODO(AlphaKeks): figure out how to identify chunks to log them correctly
 

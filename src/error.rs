@@ -24,10 +24,10 @@ pub type Result<T> = StdResult<T, Error>;
 /// Any errors that can occurr during runtime will be transformed into this type before turning
 /// into an HTTP response.
 #[derive(Debug, ThisError)]
-#[error("Failed with code {}{}", code.as_u16(), match message {
-	None => String::new(),
-	Some(message) => format!(": {message}"),
-})]
+#[error("Failed with code {code}{message}",
+	code = code.as_u16(),
+	message = message.as_ref().map(|message| format!(": {message}")).unwrap_or_default(),
+)]
 pub struct Error {
 	/// HTTP Status Code to return in the response.
 	code: StatusCode,
@@ -97,7 +97,7 @@ impl Error {
 	}
 
 	/// Set the status code to `404 Unauthorized`.
-	pub fn unauthorized(mut self) -> Self {
+	pub const fn unauthorized(mut self) -> Self {
 		self.code = StatusCode::UNAUTHORIZED;
 		self
 	}

@@ -7,7 +7,7 @@ use crate::auth::{Jwt, Role, Server, Session};
 use crate::bans::{CreatedBan, NewBan};
 use crate::responses::Created;
 use crate::sqlx::SqlErrorExt;
-use crate::{audit, responses, AppState, Error, Result};
+use crate::{audit, query, responses, AppState, Error, Result};
 
 /// Ban a player.
 ///
@@ -150,10 +150,7 @@ pub async fn create(
 		}
 	})?;
 
-	let ban_id = sqlx::query!("SELECT LAST_INSERT_ID() id")
-		.fetch_one(transaction.as_mut())
-		.await
-		.map(|row| row.id as u32)?;
+	let ban_id = query::last_insert_id::<u32>(transaction.as_mut()).await?;
 
 	transaction.commit().await?;
 

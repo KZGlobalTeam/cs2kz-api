@@ -14,7 +14,7 @@ use time::{Duration, OffsetDateTime};
 use tracing::trace;
 
 use super::{RoleFlags, User};
-use crate::{audit, Error, Result, State};
+use crate::{audit, query, Error, Result, State};
 
 /// A user session.
 ///
@@ -78,10 +78,7 @@ impl Session {
 		.execute(transaction.as_mut())
 		.await?;
 
-		let id = sqlx::query!("SELECT LAST_INSERT_ID() id")
-			.fetch_one(transaction.as_mut())
-			.await
-			.map(|row| row.id)?;
+		let id = query::last_insert_id::<u64>(transaction.as_mut()).await?;
 
 		transaction.commit().await?;
 
