@@ -66,7 +66,7 @@ pub async fn create(
 		"created server",
 		id = %server_id,
 		owner = %server.owned_by,
-		approved_by = %session.user.steam_id
+		approved_by = %session.user().steam_id
 	};
 
 	Ok(Created(Json(CreatedServer { server_id, api_key })))

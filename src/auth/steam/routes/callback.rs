@@ -32,9 +32,7 @@ pub async fn callback(
 	trace!(?player, "fetched player from steam");
 
 	let session = Session::new(steam_id, &state.database, &state.config).await?;
-	let cookies = cookies
-		.add(player.to_cookie(&state.config))
-		.add(session.cookie);
+	let cookies = cookies.add(player.to_cookie(&state.config)).add(session);
 
 	Ok((cookies, Redirect::to(auth.origin_url.as_str())))
 }

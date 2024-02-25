@@ -22,24 +22,15 @@ use crate::{audit, query, Error, Result, State};
 #[derive(Debug, Clone)]
 pub struct Session<A = ()> {
 	/// Unique ID for this session.
-	pub id: u64,
-
-	/// Randomly generated session token.
-	pub token: NonZeroU64,
+	id: u64,
 
 	/// The authenticated user.
-	pub user: User,
+	user: User,
 
-	/// Cookie used for storing the [`token`] in the client's browser.
-	///
-	/// [`token`]: Self::token
-	pub cookie: Cookie<'static>,
+	/// Cookie used for storing the session token in the client's browser.
+	cookie: Cookie<'static>,
 
-	/// Remove [`cookie`] in the [`IntoResponseParts`] impl.
-	///
-	/// [`cookie`]: Self::cookie
-	invalidated: bool,
-
+	/// Used for [`Authenticated`] impls
 	_marker: PhantomData<A>,
 }
 
@@ -108,18 +99,26 @@ impl Session {
 			.expires(expires_on)
 			.build();
 
-		Ok(Self { id, token, user, cookie, invalidated: false, _marker: PhantomData })
+		Ok(Self { id, user, cookie, _marker: PhantomData })
 	}
 }
 
 impl<A> Session<A> {
-	/// The name of the cookie used for storing the [session token].
-	///
-	/// [session token]: Session::token
+	/// The name of the cookie used for storing the session token.
 	pub const COOKIE_NAME: &'static str = "kz-auth";
 
 	/// The duration after which any given session will expire.
 	pub const EXPIRES_AFTER: Duration = Duration::WEEK;
+
+	/// The unique ID associated with this session.
+	pub const fn id(&self) -> u64 {
+		self.id
+	}
+
+	/// The user associated with this session.
+	pub const fn user(&self) -> &User {
+		&self.user
+	}
 
 	/// Invalidates this session.
 	///
@@ -155,9 +154,15 @@ impl<A> Session<A> {
 			audit!("session invalidated", id = %self.id, steam_id = %self.user.steam_id);
 		}
 
-		self.invalidated = true;
+		self.cookie.set_expires(OffsetDateTime::now_utc());
 
 		Ok(())
+	}
+}
+
+impl<A> From<Session<A>> for Cookie<'static> {
+	fn from(session: Session<A>) -> Self {
+		session.cookie
 	}
 }
 
@@ -254,14 +259,7 @@ where
 		transaction.commit().await?;
 
 		let user = User::new(session.steam_id, session.role_flags);
-		let session = Self {
-			id: session.id,
-			token: session_token,
-			user,
-			cookie,
-			invalidated: false,
-			_marker: PhantomData,
-		};
+		let session = Self { id: session.id, user, cookie, _marker: PhantomData };
 
 		A::verify(&user, &state.database, parts).await?;
 
@@ -274,13 +272,8 @@ where
 impl<A> IntoResponseParts for Session<A> {
 	type Error = Error;
 
-	fn into_response_parts(mut self, mut response: ResponseParts) -> Result<ResponseParts> {
-		if self.invalidated {
-			self.cookie.set_expires(OffsetDateTime::now_utc());
-		}
-
-		let cookie = self
-			.cookie
+	fn into_response_parts(self, mut response: ResponseParts) -> Result<ResponseParts> {
+		let cookie = Cookie::from(self)
 			.encoded()
 			.to_string()
 			.parse()

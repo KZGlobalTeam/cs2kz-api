@@ -71,7 +71,7 @@ pub async fn create(
 		.map(|server| (server.id, server.plugin_version_id))
 		.unzip();
 
-	let banned_by = session.map(|session| session.user.steam_id);
+	let banned_by = session.map(|session| session.user().steam_id);
 	let expires_on = Utc::now() + ban.reason.duration(previous_bans);
 
 	let mut transaction = state.begin_transaction().await?;

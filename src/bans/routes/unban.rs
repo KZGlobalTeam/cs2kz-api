@@ -60,7 +60,7 @@ pub async fn unban(
 		"#,
 		ban_id,
 		unban.reason,
-		session.user.steam_id,
+		session.user().steam_id,
 	}
 	.execute(transaction.as_mut())
 	.await
@@ -76,7 +76,7 @@ pub async fn unban(
 
 	transaction.commit().await?;
 
-	audit!("unban created", id = %unban_id, by = %session.user.steam_id, reason = ?unban.reason);
+	audit!("unban created", id = %unban_id, by = %session.user().steam_id, reason = ?unban.reason);
 
 	Ok(Created(Json(CreatedUnban { ban_id, unban_id })))
 }
