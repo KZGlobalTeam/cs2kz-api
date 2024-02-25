@@ -62,6 +62,10 @@ impl KZMap {
 	}
 
 	/// Combines two maps into one, aggregating common mappers and courses.
+	///
+	/// # Panics
+	///
+	/// This function may panic if a sanity check fails. If this ever happens, it is a bug.
 	pub fn reduce(mut self, other: Self) -> Self {
 		assert_eq!(self.id, other.id);
 

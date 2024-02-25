@@ -25,6 +25,10 @@ impl Map {
 		"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1";
 
 	/// Fetches the Workshop Map with ID `id` from Steam using the provided `http_client`.
+	///
+	/// # Panics
+	///
+	/// This function will panic if there is a bug in an internal serialization implementation.
 	pub async fn get(id: NonZeroU32, http_client: &reqwest::Client) -> Result<Self> {
 		let params = serde_urlencoded::to_string(GetMapParams { id }).expect("this is valid");
 

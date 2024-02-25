@@ -87,23 +87,28 @@ where
 /// Converts a domain to a wildcard domain for cookies.
 /// Subdomains are simply cut off.
 fn domain_to_wildcard(mut domain: &str) -> &str {
-	let mut first_period = None;
-	let mut total_periods = 0;
+	/// State Machine to keep track of `.` count
+	enum State {
+		/// We have seen none so far
+		None,
 
-	for (idx, char) in domain.chars().enumerate() {
-		if char != '.' {
-			continue;
-		}
+		/// We have seen one; at byte index `idx`
+		One { idx: usize },
 
-		total_periods += 1;
-
-		if first_period.is_none() {
-			first_period = Some(idx);
-		}
+		/// We have seen more than one; the first one was at byte index `idx`
+		Many { first_idx: usize },
 	}
 
-	if total_periods > 1 {
-		domain = &domain[first_period.unwrap()..];
+	let final_state = domain
+		.char_indices()
+		.fold(State::None, |state, (idx, char)| match (char, state) {
+			('.', State::None) => State::One { idx },
+			('.', State::One { idx }) => State::Many { first_idx: idx },
+			(_, state) => state,
+		});
+
+	if let State::Many { first_idx } = final_state {
+		domain = &domain[first_idx..];
 	}
 
 	domain

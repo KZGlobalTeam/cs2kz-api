@@ -44,6 +44,10 @@ impl Player {
 	pub const COOKIE_NAME: &'static str = "kz-player";
 
 	/// Fetches the player with the given `steam_id` from Steam's API.
+	///
+	/// # Panics
+	///
+	/// This function will panic if there is a bug in an internal serialization implementation.
 	pub async fn fetch(
 		steam_id: SteamID,
 		api_key: &str,
@@ -61,6 +65,10 @@ impl Player {
 	}
 
 	/// Creates a cookie containing `self` serialized as JSON.
+	///
+	/// # Panics
+	///
+	/// This function will panic if `self` cannot be serialized to JSON.
 	pub fn to_cookie(&self, config: &'static crate::Config) -> Cookie<'static> {
 		let json = serde_json::to_string(self).expect("this is valid json");
 

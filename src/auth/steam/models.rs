@@ -41,6 +41,11 @@ impl LoginForm {
 	/// Steam API URL to redirect a user to so they can login.
 	pub const REDIRECT_URL: &'static str = "https://steamcommunity.com/openid/login";
 
+	/// Constructs a new [`LoginForm`].
+	///
+	/// # Panics
+	///
+	/// This function will panic if there is a bug in an internal serialization implementation.
 	pub fn new(callback_host: Url) -> Self {
 		let callback_url = callback_host
 			.join(Self::CALLBACK_ROUTE)
@@ -58,6 +63,10 @@ impl LoginForm {
 
 	/// Creates a [Redirect] to Steam, which will redirect back to the given `origin_url` after
 	/// a successful login.
+	///
+	/// # Panics
+	///
+	/// This function will panic if there is a bug in an internal serialization implementation.
 	pub fn with_origin_url(mut self, origin_url: &Url) -> Redirect {
 		self.callback_url
 			.query_pairs_mut()

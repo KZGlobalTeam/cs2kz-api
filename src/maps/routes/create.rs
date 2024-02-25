@@ -133,6 +133,7 @@ async fn insert_map(
 	Ok(map_id)
 }
 
+/// Inserts the given `mappers` into the given database `table`.
 pub(super) async fn insert_mappers(
 	table: MappersTable,
 	mappers: &[SteamID],
@@ -173,6 +174,11 @@ pub(super) async fn insert_mappers(
 	Ok(())
 }
 
+/// Inserts the given `courses` as database rows.
+///
+/// # Panics
+///
+/// This function will panic if there's a bug in the implementation.
 async fn insert_courses(
 	map_id: u16,
 	courses: &[NewCourse],
@@ -232,6 +238,7 @@ async fn insert_courses(
 	Ok(())
 }
 
+/// Inserts detauls about a course with ID `course_id` into the database.
 async fn insert_course_details(
 	course_id: u32,
 	course: &NewCourse,

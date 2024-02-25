@@ -25,6 +25,10 @@ pub struct Jwt<T> {
 
 impl<T> Jwt<T> {
 	/// Constructs a new JWT which will expire after a certain amount of time.
+	///
+	/// # Panics
+	///
+	/// This function will panic if `expires_after` is a nonsensical duration.
 	pub fn new(payload: T, expires_after: Duration) -> Self {
 		let expires_after: u64 = expires_after
 			.num_seconds()
