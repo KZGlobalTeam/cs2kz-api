@@ -22,5 +22,5 @@ jobs:
           script: |
             cd ${{ secrets.REPO_DIR }}
             git pull
-            docker compose build cs2kz-api --build-arg DEPOT_DOWNLOADER_URL=https://github.com/SteamRE/DepotDownloader/releases/download/DepotDownloader_2.5.0/DepotDownloader-linux-arm64.zip
-            docker compose up -d --force-recreate cs2kz-api
+            docker compose build --build-arg DEPOT_DOWNLOADER_URL=https://github.com/SteamRE/DepotDownloader/releases/download/DepotDownloader_2.5.0/DepotDownloader-linux-arm64.zip cs2kz-api
+            docker compose up --detach --wait --force-recreate cs2kz-api

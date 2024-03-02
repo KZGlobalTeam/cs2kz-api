@@ -58,7 +58,7 @@ generate-open-api-spec:
 # create query cache for sqlx
 sqlx-cache:
 	@just create-database
-	cargo sqlx prepare
+	cargo sqlx prepare -- --tests
 
 # run the API locally
 run:
@@ -74,4 +74,5 @@ run-with-console:
 deploy:
 	just create-database
 	docker compose build --build-arg DEPOT_DOWNLOADER_URL=https://github.com/SteamRE/DepotDownloader/releases/download/DepotDownloader_2.5.0/DepotDownloader-linux-arm64.zip cs2kz-api
+	docker compose up --detach --wait --force-recreate cs2kz-api
 	docker compose logs --follow cs2kz-api

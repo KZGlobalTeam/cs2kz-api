@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT api_key `api_key!: u32` FROM Servers LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "api_key!: u32",
+        "type_info": {
+          "type": "Long",
+          "flags": "UNIQUE_KEY | UNSIGNED",
+          "char_set": 63,
+          "max_size": 10
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "4aa81d622dd8b75529a32e054766291c114867259de61e31705fc5f7afceaa34"
+}
