@@ -1,6 +1,6 @@
 use std::fmt::{self, Debug};
 
-use crate::env::{self, Result};
+use crate::env;
 
 /// Configuration for managing [JWTs].
 ///
@@ -11,7 +11,7 @@ pub struct Config {
 }
 
 impl Config {
-	pub fn new() -> Result<Self> {
+	pub fn new() -> env::Result<Self> {
 		let secret = env::get("API_JWT_SECRET")?;
 
 		Ok(Self { secret })

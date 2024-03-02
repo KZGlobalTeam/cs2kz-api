@@ -3,8 +3,7 @@ use std::net::{Ipv4Addr, SocketAddrV4};
 
 use url::Url;
 
-mod error;
-pub use error::{Error, Result};
+use crate::env;
 
 pub mod database;
 pub mod jwt;
@@ -38,7 +37,7 @@ impl Config {
 	///
 	/// This function will panic if the `KZ_API_URL` environment variable has an unexpected
 	/// shape.
-	pub fn new() -> Result<Self> {
+	pub fn new() -> env::Result<Self> {
 		let ip_addr = crate::env::get::<Ipv4Addr>("API_IP")?;
 		let port = crate::env::get::<u16>("API_PORT")?;
 		let socket_addr = SocketAddrV4::new(ip_addr, port);

@@ -1,6 +1,6 @@
 use std::fmt::{self, Debug};
 
-use cs2kz_api::env::{self, Result};
+use cs2kz_api::env;
 use url::Url;
 
 /// Config for managing [axiom] log ingestions.
@@ -22,7 +22,7 @@ pub struct Config {
 }
 
 impl Config {
-	pub fn new() -> Result<Self> {
+	pub fn new() -> env::Result<Self> {
 		let token = env::get("AXIOM_TOKEN")?;
 		let org_id = env::get("AXIOM_ORG_ID")?;
 		let dataset = env::get("AXIOM_DATASET")?;

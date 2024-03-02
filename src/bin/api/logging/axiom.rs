@@ -12,7 +12,7 @@ use crate::logging::{Layer, Log};
 mod config;
 pub use config::Config;
 
-/// Log layer for sending logs to https://axiom.co
+/// Log layer for sending logs to <https://axiom.co>
 pub struct Axiom {
 	/// Config holding various details about the axiom dataset.
 	config: Config,

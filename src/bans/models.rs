@@ -61,7 +61,7 @@ pub enum BanReason {
 
 impl BanReason {
 	/// Returns the ban duration for this reason.
-	pub fn duration(&self, previous_offenses: u8) -> Duration {
+	pub const fn duration(&self, previous_offenses: u8) -> Duration {
 		match (self, previous_offenses) {
 			(Self::AutoBhop | Self::AutoStrafe, 0) => Duration::weeks(1),
 			(Self::AutoBhop | Self::AutoStrafe, 1) => Duration::weeks(4),

@@ -1,7 +1,7 @@
 use std::fmt::{self, Debug};
 use std::path::PathBuf;
 
-use crate::env::{self, Result};
+use crate::env;
 
 /// Configuration for communicating with Steam.
 pub struct Config {
@@ -18,7 +18,7 @@ pub struct Config {
 }
 
 impl Config {
-	pub fn new() -> Result<Self> {
+	pub fn new() -> env::Result<Self> {
 		let api_key = env::get("STEAM_KEY")?;
 
 		fn treat_empty_as_none(value: PathBuf) -> Option<PathBuf> {

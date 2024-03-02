@@ -47,7 +47,5 @@ async fn main() -> Result<()> {
 		warn!("running in development mode");
 	}
 
-	api.run().await;
-
-	Ok(())
+	api.run().await
 }

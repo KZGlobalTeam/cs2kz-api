@@ -44,6 +44,7 @@ use std::io;
 use std::net::SocketAddr;
 
 use axum::Router;
+use color_eyre::eyre::Context;
 use itertools::Itertools;
 use tokio::net::TcpListener;
 use tracing::debug;
@@ -223,7 +224,7 @@ impl API {
 
 	/// Runs the [axum] server for the API.
 	#[tracing::instrument(skip(self))]
-	pub async fn run(self) {
+	pub async fn run(self) -> color_eyre::Result<()> {
 		let state: &'static _ = Box::leak(Box::new(self.state));
 
 		let router = Router::new()
@@ -244,7 +245,7 @@ impl API {
 
 		axum::serve(self.tcp_listener, router)
 			.await
-			.expect("failed to run axum");
+			.context("failed to run axum")
 	}
 
 	/// Returns the local socket address for the underlying TCP server.

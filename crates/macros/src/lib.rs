@@ -75,7 +75,8 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 					.await
 					.expect("failed to create api")
 					.run()
-					.await;
+					.await
+					.expect("failed to run api");
 
 				unreachable!("api shutdown?");
 			});

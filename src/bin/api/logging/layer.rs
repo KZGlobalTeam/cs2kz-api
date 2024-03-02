@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::logging::log::{Log, Value};
 
 /// A generic tracing layer that will collect [`Log`]s and save them according to the
-/// [`Consumer`] implementation of the logger it is wrapping.
+/// [`ConsumeLog`] implementation of the logger it is wrapping.
 pub struct Layer<C: 'static> {
 	consumer: &'static C,
 }
@@ -15,7 +15,9 @@ impl<C> Layer<C> {
 	/// Create a new layer with the given `consumer`.
 	///
 	/// NOTE: this will create an intentional memory leak!
-	/// Only one [`Layer`] per [`Consumer`] should ever be instantiated.
+	/// Only one [`Layer`] per [consumer] should ever be instantiated.
+	///
+	/// [consumer]: ConsumeLog
 	pub fn new(consumer: C) -> Self {
 		Self { consumer: Box::leak(Box::new(consumer)) }
 	}

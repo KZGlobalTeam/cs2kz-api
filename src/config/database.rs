@@ -2,7 +2,7 @@ use std::fmt::{self, Debug};
 
 use url::Url;
 
-use crate::env::{self, Result};
+use crate::env;
 
 /// Configuration for managing database connections.
 pub struct Config {
@@ -11,7 +11,7 @@ pub struct Config {
 }
 
 impl Config {
-	pub fn new() -> Result<Self> {
+	pub fn new() -> env::Result<Self> {
 		let url = env::get("DATABASE_URL")?;
 
 		Ok(Self { url })
