@@ -1,6 +1,7 @@
-use std::error::Error as StdError;
 use std::fmt::Write;
 
+use color_eyre::eyre::Context;
+use color_eyre::Result;
 use cs2kz_api::{Config, API};
 use sqlx::{Connection, MySqlConnection};
 use tracing::{info, warn};
@@ -8,15 +9,22 @@ use tracing::{info, warn};
 mod logging;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn StdError>> {
+async fn main() -> Result<()> {
 	if let Err(error) = dotenvy::dotenv() {
-		eprintln!("Failed to load `.env` file: {error}");
+		eprintln!("WARN: Failed to load `.env` file: {error}");
 	}
 
 	let config = Config::new()?;
-	let audit_log_db = MySqlConnection::connect(config.database.url.as_str()).await?;
+	let mut db_connection = MySqlConnection::connect(config.database.url.as_str())
+		.await
+		.context("failed to connect to database")?;
 
-	logging::init(audit_log_db, config.axiom.clone());
+	sqlx::migrate!("./database/migrations")
+		.run(&mut db_connection)
+		.await
+		.context("failed to run migrations")?;
+
+	logging::init(db_connection);
 
 	let api = API::new(config).await?;
 

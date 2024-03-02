@@ -196,9 +196,6 @@ version = "1.0.114"
 [dependencies.serde_urlencoded]
 version = "0.7.1"
 
-[dependencies.smart-debug]
-version = "0.0.3"
-
 [dev-dependencies.ctor]
 version = "0.2.7"
 

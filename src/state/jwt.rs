@@ -1,24 +1,17 @@
+use std::fmt::{self, Debug};
+
 use jsonwebtoken::errors::Result;
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use smart_debug::SmartDebug;
 
 use crate::auth::Jwt;
 
 /// Any JWT related state.
-#[derive(SmartDebug)]
 pub struct State {
-	#[debug(skip)]
 	pub header: Header,
-
-	#[debug(skip)]
 	pub encoding_key: EncodingKey,
-
-	#[debug(skip)]
 	pub decoding_key: DecodingKey,
-
-	#[debug(skip)]
 	pub validation: Validation,
 }
 
@@ -46,5 +39,11 @@ impl State {
 		T: DeserializeOwned,
 	{
 		jsonwebtoken::decode(jwt, &self.decoding_key, &self.validation).map(|token| token.claims)
+	}
+}
+
+impl Debug for State {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("State").finish_non_exhaustive()
 	}
 }

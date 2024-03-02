@@ -13,8 +13,8 @@ pub type Result<T> = StdResult<T, Error>;
 #[derive(Debug, ThisError)]
 #[non_exhaustive]
 pub enum Error {
-	#[error("Missing environment variable `{0}`.")]
-	MissingEnvironmentVariable(&'static str),
+	#[error(transparent)]
+	Environment(#[from] crate::env::Error),
 
 	#[error("Failed to parse network address: {0}")]
 	InvalidSocketAddr(#[from] net::AddrParseError),

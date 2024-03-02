@@ -32,14 +32,16 @@ pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
 
 			config.socket_addr.set_port(port);
 
-			let mut database_url = ::std::env::var("TEST_DATABASE_URL")
-				.context("missing `TEST_DATABASE_URL` environment variable")?;
+			let mut database_url = ::std::env::var("DATABASE_TEST_URL")
+				.context("missing `DATABASE_TEST_URL` environment variable")?;
+
+			::std::env::set_var("DATABASE_URL", &database_url);
 
 			write!(&mut database_url, "-test-{port}")?;
 
 			config.database.url = database_url
 				.parse()
-				.context("invalid `TEST_DATABASE_URL`")?;
+				.context("invalid `DATABASE_TEST_URL`")?;
 
 			::sqlx::mysql::MySql::drop_database(&database_url)
 				.await

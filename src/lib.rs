@@ -69,6 +69,9 @@ pub use state::State;
 /// Convenience alias for extracting [`State`] in handlers.
 pub type AppState = axum::extract::State<&'static crate::State>;
 
+#[doc(hidden)]
+pub mod env;
+
 mod cors;
 mod database;
 mod middleware;

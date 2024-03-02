@@ -1,20 +1,27 @@
-use smart_debug::SmartDebug;
+use std::fmt::{self, Debug};
+
 use url::Url;
 
-use super::{get_env_var, Result};
+use crate::env::{self, Result};
 
 /// Configuration for managing database connections.
-#[derive(SmartDebug)]
 pub struct Config {
 	/// Database URL to connect to.
-	#[debug("…")]
 	pub url: Url,
 }
 
 impl Config {
 	pub fn new() -> Result<Self> {
-		let url = get_env_var("DATABASE_URL")?;
+		let url = env::get("DATABASE_URL")?;
 
 		Ok(Self { url })
+	}
+}
+
+impl Debug for Config {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("Config")
+			.field("url", &self.url.as_str())
+			.finish()
 	}
 }

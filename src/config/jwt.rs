@@ -1,21 +1,25 @@
-use smart_debug::SmartDebug;
+use std::fmt::{self, Debug};
 
-use super::{get_env_var, Result};
+use crate::env::{self, Result};
 
 /// Configuration for managing [JWTs].
 ///
 /// [JWTs]: https://jwt.io
-#[derive(SmartDebug)]
 pub struct Config {
 	/// The secret used for encoding / decoding payloads.
-	#[debug("…")]
 	pub secret: String,
 }
 
 impl Config {
 	pub fn new() -> Result<Self> {
-		let secret = get_env_var("KZ_API_JWT_SECRET")?;
+		let secret = env::get("API_JWT_SECRET")?;
 
 		Ok(Self { secret })
+	}
+}
+
+impl Debug for Config {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("Config").field("secret", &"*****").finish()
 	}
 }

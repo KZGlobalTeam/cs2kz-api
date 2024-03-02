@@ -105,7 +105,7 @@ impl MapFile {
 	pub async fn download(workshop_id: NonZeroU32, config: &crate::Config) -> Result<Self> {
 		let steam_workshop_path = config
 			.steam
-			.steam_workshop_path
+			.workshop_artifacts_path
 			.as_deref()
 			.map(Path::to_string_lossy)
 			.ok_or_else(|| {

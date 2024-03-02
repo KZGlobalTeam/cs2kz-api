@@ -1,6 +1,5 @@
 use audit_logs::AuditLogs;
 use axiom::Axiom;
-use cs2kz_api::config::axiom::Config as AxiomConfig;
 use sqlx::MySqlConnection;
 use tracing::info;
 use tracing_subscriber::layer::SubscriberExt;
@@ -21,7 +20,9 @@ mod axiom;
 mod console;
 
 /// Initializes a [`Registry`] for collecting logs and distributing them to various outputs.
-pub fn init(audit_log_db: MySqlConnection, axiom_config: Option<AxiomConfig>) {
+pub fn init(audit_log_db: MySqlConnection) {
+	let axiom_config = axiom::Config::new().ok();
+
 	let registry = Registry::default()
 		.with(stderr::layer())
 		.with(AuditLogs::layer(audit_log_db))

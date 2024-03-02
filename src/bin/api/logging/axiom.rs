@@ -1,5 +1,4 @@
 use cs2kz_api::audit;
-use cs2kz_api::config::axiom::Config as AxiomConfig;
 use reqwest::header::{self, HeaderMap, HeaderValue};
 use reqwest::Response;
 use tokio::task;
@@ -10,17 +9,20 @@ use tracing_subscriber::Layer as _;
 use crate::logging::layer::ConsumeLog;
 use crate::logging::{Layer, Log};
 
+mod config;
+pub use config::Config;
+
 /// Log layer for sending logs to https://axiom.co
 pub struct Axiom {
 	/// Config holding various details about the axiom dataset.
-	config: AxiomConfig,
+	config: Config,
 
 	/// HTTP client for sending the requests.
 	http_client: reqwest::Client,
 }
 
 impl Axiom {
-	pub fn layer<S>(config: AxiomConfig) -> impl tracing_subscriber::Layer<S>
+	pub fn layer<S>(config: Config) -> impl tracing_subscriber::Layer<S>
 	where
 		S: tracing::Subscriber + for<'a> LookupSpan<'a>,
 	{
