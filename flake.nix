@@ -13,7 +13,7 @@
       nativeBuildInputs = with pkgs; [ rustup ];
       buildInputs = with pkgs; [
         mariadb_110
-        just
+        cargo-make
         sqlx-cli
         tokio-console
       ];

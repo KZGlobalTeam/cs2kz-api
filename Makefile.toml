@@ -1,0 +1,118 @@
+env_files = [".env"]
+
+[config]
+skip_core_tasks = true
+
+[tasks.default]
+alias = "build"
+
+[tasks.clippy]
+category = "Tools"
+description = "clippy"
+command = "cargo"
+args = ["clippy", "--all-features", "--tests"]
+
+[tasks.fmt]
+category = "Tools"
+description = "rustfmt"
+command = "cargo"
+args = ["fmt"]
+toolchain = "nightly"
+
+[tasks.doc]
+category = "Tools"
+description = "generate rust and OpenAPI documentation"
+script = '''
+  cargo doc ${@} --all-features --document-private-items
+  cargo run --bin spec-generator -- --output api-spec.json
+'''
+
+[tasks.sqlx-cache]
+category = "Tools"
+description = "generate sqlx cache files"
+command = "cargo"
+args = ["sqlx", "prepare", "--", "--tests"]
+
+[tasks.build]
+category = "Compilation"
+description = "build API crate"
+command = "cargo"
+args = ["build", "--bin", "api"]
+
+[tasks.test]
+category = "Tests"
+description = "run tests"
+command = "cargo"
+args = ["test", "${@}", "--", "--nocapture"]
+dependencies = ["database"]
+
+[tasks.run]
+category = "Run"
+description = "run the API"
+command = "cargo"
+args = ["run", "--bin", "api"]
+dependencies = ["database"]
+
+[tasks.run-with-console]
+category = "Run"
+description = "run the API with tokio-console"
+command = "cargo"
+args = ["run", "--bin", "api"]
+env = { "RUSTFLAGS" = "--cfg tokio_unstable" }
+dependencies = ["database"]
+
+[tasks.deploy]
+category = "Run"
+description = "run the API in docker"
+dependencies = ["database"]
+script = '''
+  docker compose build --build-arg DEPOT_DOWNLOADER_URL=https://github.com/SteamRE/DepotDownloader/releases/download/DepotDownloader_2.5.0/DepotDownloader-linux-arm64.zip cs2kz-api
+  docker compose up --detach --wait --force-recreate cs2kz-api
+  docker compose logs --follow cs2kz-api
+'''
+
+[tasks.database]
+category = "Database"
+description = "create the database"
+command = "docker"
+args = ["compose", "up", "--detach", "--wait", "cs2kz-database"]
+
+[tasks.clean-database]
+category = "Database"
+description = "stop the database and remove persistent data"
+script = '''
+  docker compose down --timeout 1 cs2kz-database
+  sudo rm -rf ./database/volumes/cs2kz
+'''
+
+[tasks.database-connection]
+category = "Database"
+description = "connect to the database"
+script = '''
+  if command -v mycli &>/dev/null; then
+    export cmd=mycli
+  elif command -v mariadb &>/dev/null; then
+    export cmd=mariadb
+  else
+    export cmd=mysql
+  fi
+
+  export cmd="$cmd \
+    -u kz \
+    -pcsgo-kz-is-dead-boys \
+    -h 127.0.0.1 \
+    -P $DATABASE_PORT \
+    -D cs2kz
+  "
+
+  eval "$cmd"
+'''
+
+[tasks.migrations]
+category = "Database"
+description = "run migrations"
+command = "sqlx"
+args = ["migrate", "run", "--source", "./database/migrations/"]
+
+[tasks.precommit]
+dependencies = ["clippy", "fmt", "doc", "sqlx-cache"]

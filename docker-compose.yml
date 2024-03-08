@@ -30,5 +30,3 @@ services:
       - ${KZ_API_PORT:-42069}:${KZ_API_PORT:-42069}
     volumes:
       - ./workshop:/kz/workshop
-    depends_on:
-      - cs2kz-database
