@@ -49,6 +49,7 @@ use itertools::Itertools;
 use tokio::net::TcpListener;
 use tracing::debug;
 use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 use self::auth::openapi::Security;
 
@@ -88,7 +89,6 @@ mod admins;
 mod auth;
 mod bans;
 mod course_sessions;
-mod docs;
 mod jumpstats;
 mod maps;
 mod players;
@@ -245,10 +245,11 @@ impl API {
 	#[tracing::instrument(skip(self))]
 	pub async fn run(self) -> color_eyre::Result<()> {
 		let state: &'static _ = Box::leak(Box::new(self.state));
+		let swagger_ui =
+			SwaggerUi::new("/docs/swagger-ui").url("/docs/open-api.json", Self::openapi());
 
 		let router = Router::new()
 			.nest("/", status::router())
-			.nest("/docs", docs::router())
 			.nest("/maps", maps::router(state))
 			.nest("/servers", servers::router(state))
 			.nest("/records", records::router(state))
@@ -259,6 +260,7 @@ impl API {
 			.nest("/auth", auth::router(state))
 			.nest("/sessions", sessions::router(state))
 			.nest("/course-sessions", course_sessions::router(state))
+			.merge(swagger_ui)
 			.layer(middleware::logging::layer!())
 			.into_make_service();
 
