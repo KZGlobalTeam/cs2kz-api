@@ -131,7 +131,7 @@ pub struct BannedPlayer {
 }
 
 impl FromRow<'_, MySqlRow> for Ban {
-	fn from_row(row: &'_ MySqlRow) -> sqlx::Result<Self> {
+	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		let id = crate::sqlx::non_zero!("id" as u32, row)?;
 		let player = BannedPlayer {
 			steam_id: row.try_get("player_id")?,
@@ -225,7 +225,7 @@ pub struct Unban {
 }
 
 impl FromRow<'_, MySqlRow> for Unban {
-	fn from_row(row: &'_ MySqlRow) -> sqlx::Result<Self> {
+	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		let id = crate::sqlx::non_zero!("unban_id" as u32, row)?;
 		let reason = row.try_get("unban_reason")?;
 		let created_on = row.try_get("unban_created_on")?;

@@ -33,7 +33,8 @@ CREATE TABLE IF NOT EXISTS Sessions (
 CREATE TABLE IF NOT EXISTS CourseSessions (
   `id` INT4 UNSIGNED NOT NULL AUTO_INCREMENT,
   `player_id` INT4 UNSIGNED NOT NULL,
-  `filter_id` INT4 UNSIGNED NOT NULL,
+  `course_id` INT4 UNSIGNED NOT NULL,
+  `mode_id` INT1 UNSIGNED NOT NULL,
   `server_id` INT2 UNSIGNED NOT NULL,
   `playtime` INT2 UNSIGNED NOT NULL,
   `total_runs` INT2 UNSIGNED NOT NULL,
@@ -51,6 +52,7 @@ CREATE TABLE IF NOT EXISTS CourseSessions (
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`player_id`) REFERENCES Players (`steam_id`),
-  FOREIGN KEY (`filter_id`) REFERENCES CourseFilters (`id`),
+  FOREIGN KEY (`course_id`) REFERENCES Courses (`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`mode_id`) REFERENCES Modes (`id`),
   FOREIGN KEY (`server_id`) REFERENCES Servers (`id`)
 );

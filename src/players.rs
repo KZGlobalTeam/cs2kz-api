@@ -1,5 +1,5 @@
 use axum::http::Method;
-use axum::routing::{get, post};
+use axum::routing::{get, patch, post};
 use axum::Router;
 
 use crate::{cors, State};
@@ -7,7 +7,7 @@ use crate::{cors, State};
 mod queries;
 
 pub mod models;
-pub use models::{FullPlayer, NewPlayer, Player};
+pub use models::{FullPlayer, NewPlayer, Player, PlayerUpdate};
 
 pub mod routes;
 
@@ -22,6 +22,7 @@ pub fn router(state: &'static State) -> Router {
 	let ident = Router::new()
 		.route("/:player", get(routes::get_single))
 		.route_layer(cors::permissive(Method::GET))
+		.route("/:player", patch(routes::update))
 		.with_state(state);
 
 	root.merge(ident)
