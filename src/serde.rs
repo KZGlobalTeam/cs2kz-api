@@ -1,5 +1,27 @@
 use serde::{Deserialize, Deserializer};
 
+pub mod duration {
+	pub mod as_secs {
+		use std::time::Duration;
+
+		use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+		pub fn serialize<S>(duration: &Duration, serializer: S) -> Result<S::Ok, S::Error>
+		where
+			S: Serializer,
+		{
+			duration.as_secs().serialize(serializer)
+		}
+
+		pub fn deserialize<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+		where
+			D: Deserializer<'de>,
+		{
+			u64::deserialize(deserializer).map(Duration::from_secs)
+		}
+	}
+}
+
 /// Deserializes an `Option<String>` such that an empty string is treated as `None`.
 pub fn deserialize_empty_string_as_none<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where

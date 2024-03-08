@@ -11,7 +11,7 @@ use utoipa::ToSchema;
 use crate::players::Player;
 
 /// Response body for fetching KZ servers.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 pub struct Server {
 	/// The server's ID.
 	pub id: u16,
@@ -31,7 +31,7 @@ pub struct Server {
 }
 
 impl FromRow<'_, MySqlRow> for Server {
-	fn from_row(row: &'_ MySqlRow) -> sqlx::Result<Self> {
+	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		let id = crate::sqlx::non_zero!("id" as u16, row)?;
 		let name = row.try_get("name")?;
 

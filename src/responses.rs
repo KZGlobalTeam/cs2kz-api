@@ -25,8 +25,8 @@ where
 	T: ToSchema<'static>,
 {
 	fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
-		/// HACK: if we derived `IntoResponses` on `Created` directly, we would have to put
-		/// a `ToSchema` bound on `T` (on the struct itself), which we do not want.
+		// HACK: if we derived `IntoResponses` on `Created` directly, we would have to put
+		// a `ToSchema` bound on `T` (on the struct itself), which we do not want.
 		#[derive(IntoResponses)]
 		#[response(status = CREATED)]
 		struct Helper<T: ToSchema<'static>>(#[to_schema] T);

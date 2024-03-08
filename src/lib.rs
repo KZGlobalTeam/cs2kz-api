@@ -84,15 +84,17 @@ mod sqlx;
 mod status;
 mod steam;
 
-mod docs;
-mod maps;
-mod servers;
-mod records;
-mod jumpstats;
-mod players;
-mod bans;
 mod admins;
 mod auth;
+mod bans;
+mod course_sessions;
+mod docs;
+mod jumpstats;
+mod maps;
+mod players;
+mod records;
+mod servers;
+mod sessions;
 
 #[derive(OpenApi)]
 #[rustfmt::skip]
@@ -140,7 +142,11 @@ mod auth;
       servers::models::ServerUpdate,
 
       players::models::Player,
+      players::models::FullPlayer,
       players::models::NewPlayer,
+      players::models::PlayerUpdate,
+      players::models::PlayerUpdateSession,
+      players::models::PlayerUpdateCourseSession,
 
       bans::models::Ban,
       bans::models::BannedPlayer,
@@ -155,6 +161,12 @@ mod auth;
 
       auth::Role,
       auth::RoleFlags,
+
+      sessions::models::Session,
+      sessions::models::TimeSpent,
+      sessions::models::BhopStats,
+
+      course_sessions::models::CourseSession,
     ),
   ),
   paths(
@@ -175,6 +187,7 @@ mod auth;
     players::routes::get_many::get_many,
     players::routes::create::create,
     players::routes::get_single::get_single,
+    players::routes::update::update,
 
     bans::routes::get_many::get_many,
     bans::routes::create::create,
@@ -189,6 +202,12 @@ mod auth;
     auth::routes::login::login,
     auth::routes::logout::logout,
     auth::steam::routes::callback::callback,
+
+    sessions::routes::get_many::get_many,
+    sessions::routes::get_single::get_single,
+
+    course_sessions::routes::get_many::get_many,
+    course_sessions::routes::get_single::get_single,
   ),
 )]
 pub struct API {
@@ -238,6 +257,8 @@ impl API {
 			.nest("/bans", bans::router(state))
 			.nest("/admins", admins::router(state))
 			.nest("/auth", auth::router(state))
+			.nest("/sessions", sessions::router(state))
+			.nest("/course-sessions", course_sessions::router(state))
 			.layer(middleware::logging::layer!())
 			.into_make_service();
 

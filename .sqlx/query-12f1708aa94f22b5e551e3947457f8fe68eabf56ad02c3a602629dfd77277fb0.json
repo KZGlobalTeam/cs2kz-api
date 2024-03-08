@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tINSERT INTO\n\t\t  CourseSessions (\n\t\t    player_id,\n\t\t    course_id,\n\t\t    mode_id,\n\t\t    server_id,\n\t\t    playtime,\n\t\t    total_runs,\n\t\t    finished_runs,\n\t\t    perfs,\n\t\t    bhops_tick0,\n\t\t    bhops_tick1,\n\t\t    bhops_tick2,\n\t\t    bhops_tick3,\n\t\t    bhops_tick4,\n\t\t    bhops_tick5,\n\t\t    bhops_tick6,\n\t\t    bhops_tick7,\n\t\t    bhops_tick8\n\t\t  )\n\t\tVALUES\n\t\t  (\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?,\n\t\t    ?\n\t\t  )\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 17
+    },
+    "nullable": []
+  },
+  "hash": "12f1708aa94f22b5e551e3947457f8fe68eabf56ad02c3a602629dfd77277fb0"
+}

@@ -99,7 +99,7 @@ impl KZMap {
 }
 
 impl FromRow<'_, MySqlRow> for KZMap {
-	fn from_row(row: &'_ MySqlRow) -> sqlx::Result<Self> {
+	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		let id = crate::sqlx::non_zero!("id" as u16, row)?;
 		let workshop_id = crate::sqlx::non_zero!("workshop_id" as u32, row)?;
 		let name = row.try_get("name")?;
