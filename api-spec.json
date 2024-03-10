@@ -852,6 +852,335 @@
         ]
       }
     },
+    "/records": {
+      "get": {
+        "tags": [
+          "Records"
+        ],
+        "operationId": "get_many",
+        "parameters": [
+          {
+            "name": "player",
+            "in": "query",
+            "description": "Filter by a specific player.",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/PlayerIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "map",
+            "in": "query",
+            "description": "Filter by a specific map.",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/MapIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "server",
+            "in": "query",
+            "description": "Filter by a specific server.",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/ServerIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "description": "Only include sessions after this timestamp.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "Only include sessions before this timestamp.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Maximum amount of results.",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Offset used for pagination.",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "player",
+                    "map",
+                    "server",
+                    "mode",
+                    "style",
+                    "teleports",
+                    "time",
+                    "bhop_stats",
+                    "plugin_version",
+                    "created_on"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The record's ID.",
+                      "minimum": 0
+                    },
+                    "player": {
+                      "$ref": "#/components/schemas/Player"
+                    },
+                    "map": {
+                      "$ref": "#/components/schemas/MapInfo"
+                    },
+                    "server": {
+                      "$ref": "#/components/schemas/ServerInfo"
+                    },
+                    "mode": {
+                      "$ref": "#/components/schemas/Mode"
+                    },
+                    "style": {
+                      "$ref": "#/components/schemas/Style"
+                    },
+                    "teleports": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The amount of teleports used during this run.",
+                      "minimum": 0
+                    },
+                    "time": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "The time it took to complete this run."
+                    },
+                    "bhop_stats": {
+                      "$ref": "#/components/schemas/BhopStats"
+                    },
+                    "plugin_version": {
+                      "type": "string",
+                      "description": "The CS2KZ plugin version this run was performed on."
+                    },
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "When this run was submitted."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Records"
+        ],
+        "operationId": "create",
+        "requestBody": {
+          "description": "",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewRecord"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "record_id"
+                  ],
+                  "properties": {
+                    "record_id": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": ""
+          },
+          "401": {
+            "description": ""
+          },
+          "422": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        },
+        "security": [
+          {
+            "CS2 Server JWT": []
+          }
+        ]
+      }
+    },
+    "/records/{record_id}": {
+      "get": {
+        "tags": [
+          "Records"
+        ],
+        "operationId": "get_single",
+        "parameters": [
+          {
+            "name": "record_id",
+            "in": "path",
+            "description": "The record's ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "player",
+                    "map",
+                    "server",
+                    "mode",
+                    "style",
+                    "teleports",
+                    "time",
+                    "bhop_stats",
+                    "plugin_version",
+                    "created_on"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The record's ID.",
+                      "minimum": 0
+                    },
+                    "player": {
+                      "$ref": "#/components/schemas/Player"
+                    },
+                    "map": {
+                      "$ref": "#/components/schemas/MapInfo"
+                    },
+                    "server": {
+                      "$ref": "#/components/schemas/ServerInfo"
+                    },
+                    "mode": {
+                      "$ref": "#/components/schemas/Mode"
+                    },
+                    "style": {
+                      "$ref": "#/components/schemas/Style"
+                    },
+                    "teleports": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The amount of teleports used during this run.",
+                      "minimum": 0
+                    },
+                    "time": {
+                      "type": "number",
+                      "format": "double",
+                      "description": "The time it took to complete this run."
+                    },
+                    "bhop_stats": {
+                      "$ref": "#/components/schemas/BhopStats"
+                    },
+                    "plugin_version": {
+                      "type": "string",
+                      "description": "The CS2KZ plugin version this run was performed on."
+                    },
+                    "created_on": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "When this run was submitted."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": "Something unexpected happened. This is a bug; please report it."
+          }
+        }
+      }
+    },
     "/players": {
       "get": {
         "tags": [
@@ -2894,6 +3223,19 @@
           }
         }
       },
+      "CreatedRecord": {
+        "type": "object",
+        "required": [
+          "record_id"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        }
+      },
       "CreatedServer": {
         "type": "object",
         "description": "A newly approved KZ server.\n\nSee [`NewServer`].",
@@ -3147,6 +3489,23 @@
           }
         ]
       },
+      "MapInfo": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "MapUpdate": {
         "type": "object",
         "description": "Request body for updates to a map.",
@@ -3358,6 +3717,46 @@
           }
         }
       },
+      "NewRecord": {
+        "type": "object",
+        "required": [
+          "course_id",
+          "steam_id",
+          "mode",
+          "style",
+          "teleports",
+          "time",
+          "bhop_stats"
+        ],
+        "properties": {
+          "course_id": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          },
+          "steam_id": {
+            "$ref": "#/components/schemas/SteamID"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/Mode"
+          },
+          "style": {
+            "$ref": "#/components/schemas/Style"
+          },
+          "teleports": {
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0
+          },
+          "time": {
+            "type": "number",
+            "format": "double"
+          },
+          "bhop_stats": {
+            "$ref": "#/components/schemas/BhopStats"
+          }
+        }
+      },
       "NewServer": {
         "type": "object",
         "description": "Request body for newly approved servers.",
@@ -3515,6 +3914,68 @@
           "ranked"
         ]
       },
+      "Record": {
+        "type": "object",
+        "required": [
+          "id",
+          "player",
+          "map",
+          "server",
+          "mode",
+          "style",
+          "teleports",
+          "time",
+          "bhop_stats",
+          "plugin_version",
+          "created_on"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "uint64",
+            "description": "The record's ID.",
+            "minimum": 0
+          },
+          "player": {
+            "$ref": "#/components/schemas/Player"
+          },
+          "map": {
+            "$ref": "#/components/schemas/MapInfo"
+          },
+          "server": {
+            "$ref": "#/components/schemas/ServerInfo"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/Mode"
+          },
+          "style": {
+            "$ref": "#/components/schemas/Style"
+          },
+          "teleports": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "The amount of teleports used during this run.",
+            "minimum": 0
+          },
+          "time": {
+            "type": "number",
+            "format": "double",
+            "description": "The time it took to complete this run."
+          },
+          "bhop_stats": {
+            "$ref": "#/components/schemas/BhopStats"
+          },
+          "plugin_version": {
+            "type": "string",
+            "description": "The CS2KZ plugin version this run was performed on."
+          },
+          "created_on": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this run was submitted."
+          }
+        }
+      },
       "Role": {
         "type": "string",
         "description": "The available roles as a descriptive enum.",
@@ -3577,6 +4038,23 @@
             "type": "string"
           }
         ]
+      },
+      "ServerInfo": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "uint16",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string"
+          }
+        }
       },
       "ServerUpdate": {
         "type": "object",

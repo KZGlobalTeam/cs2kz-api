@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t  id\n\t\tFROM\n\t\t  CourseFilters\n\t\tWHERE\n\t\t  course_id = ?\n\t\t  AND mode_id = ?\n\t\t  AND teleports = ?\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 10
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5034ab60ecd61ab692e056c96666829f935017bf3cb8a9eea2ea10c6a53f58b0"
+}

@@ -1,3 +1,4 @@
+/// Base query for `SELECT`ing sessions from the database.
 pub static BASE_SELECT: &str = r#"
 	SELECT
 	  s.id,

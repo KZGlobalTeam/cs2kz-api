@@ -8,7 +8,7 @@ use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
 use crate::players::Player;
-use crate::sessions::models::BhopStats;
+use crate::records::models::BhopStats;
 
 /// Response body for course sessions.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]

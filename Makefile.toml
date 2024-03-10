@@ -10,7 +10,7 @@ alias = "build"
 category = "Tools"
 description = "clippy"
 command = "cargo"
-args = ["clippy", "--all-features", "--tests"]
+args = ["clippy", "--all-features", "--tests", "${@}"]
 
 [tasks.fmt]
 category = "Tools"
