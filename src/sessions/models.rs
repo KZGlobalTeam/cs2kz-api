@@ -8,6 +8,7 @@ use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
 use crate::players::Player;
+use crate::records::models::BhopStats;
 use crate::servers::Server;
 
 /// Response body for player sessions.
@@ -103,18 +104,4 @@ pub struct TimeSpent {
 	#[serde(with = "crate::serde::duration::as_secs")]
 	#[schema(value_type = u16)]
 	pub afk: Duration,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
-pub struct BhopStats {
-	pub perfs: u16,
-	pub tick0: u16,
-	pub tick1: u16,
-	pub tick2: u16,
-	pub tick3: u16,
-	pub tick4: u16,
-	pub tick5: u16,
-	pub tick6: u16,
-	pub tick7: u16,
-	pub tick8: u16,
 }

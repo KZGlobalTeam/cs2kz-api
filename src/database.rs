@@ -2,7 +2,7 @@ use std::fmt;
 use std::future::Future;
 use std::result::Result as StdResult;
 
-use cs2kz::{PlayerIdentifier, ServerIdentifier, SteamID};
+use cs2kz::{MapIdentifier, PlayerIdentifier, ServerIdentifier, SteamID};
 use serde::{Deserialize, Serialize};
 use sqlx::MySqlExecutor;
 use thiserror::Error as ThisError;
@@ -42,6 +42,31 @@ impl ToID for PlayerIdentifier<'_> {
 			.fetch_optional(executor)
 			.await?
 			.map(|row| row.steam_id)
+			.ok_or(Error::no_data()),
+		}
+	}
+}
+
+impl ToID for MapIdentifier<'_> {
+	type ID = u16;
+
+	async fn to_id<'c>(&self, executor: impl MySqlExecutor<'c>) -> Result<u16> {
+		match *self {
+			MapIdentifier::ID(id) => Ok(id),
+			MapIdentifier::Name(ref name) => sqlx::query! {
+				r#"
+				SELECT
+				  id
+				FROM
+				  Maps
+				WHERE
+				  name LIKE ?
+				"#,
+				format!("%{name}%"),
+			}
+			.fetch_optional(executor)
+			.await?
+			.map(|row| row.id)
 			.ok_or(Error::no_data()),
 		}
 	}

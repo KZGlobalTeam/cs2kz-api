@@ -141,6 +141,13 @@ mod sessions;
       servers::models::CreatedServer,
       servers::models::ServerUpdate,
 
+      records::models::Record,
+      records::models::MapInfo,
+      records::models::ServerInfo,
+      records::models::NewRecord,
+      records::models::CreatedRecord,
+      records::models::BhopStats,
+
       players::models::Player,
       players::models::FullPlayer,
       players::models::NewPlayer,
@@ -164,7 +171,6 @@ mod sessions;
 
       sessions::models::Session,
       sessions::models::TimeSpent,
-      sessions::models::BhopStats,
 
       course_sessions::models::CourseSession,
     ),
@@ -183,6 +189,10 @@ mod sessions;
     servers::routes::update::update,
     servers::routes::replace_key::replace_key,
     servers::routes::delete_key::delete_key,
+
+    records::routes::get_many::get_many,
+    records::routes::create::create,
+    records::routes::get_single::get_single,
 
     players::routes::get_many::get_many,
     players::routes::create::create,

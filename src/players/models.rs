@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use utoipa::ToSchema;
 
-use crate::sessions::models::{BhopStats, TimeSpent};
+use crate::records::models::BhopStats;
+use crate::sessions::models::TimeSpent;
 
 /// Basic information about a KZ player.
 ///
