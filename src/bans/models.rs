@@ -1,294 +1,219 @@
-use std::net::{Ipv4Addr, SocketAddrV4};
+//! Types used for describing bans and related concepts.
 
-use chrono::{DateTime, Duration, Utc};
+use std::net::Ipv4Addr;
+use std::num::NonZeroU64;
+use std::str::FromStr;
+
+use chrono::{DateTime, Utc};
 use cs2kz::SteamID;
-use semver::Version;
 use serde::{Deserialize, Serialize};
 use sqlx::mysql::MySqlRow;
 use sqlx::{database, FromRow, MySql, Row};
+use thiserror::Error;
+use time::Duration;
 use utoipa::ToSchema;
 
 use crate::players::Player;
-use crate::servers::Server;
+use crate::servers::ServerInfo;
 
 /// A player ban.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Ban {
 	/// The ban's ID.
-	pub id: u32,
+	#[schema(value_type = u64)]
+	pub id: NonZeroU64,
 
-	/// The player.
-	pub player: BannedPlayer,
+	/// The player affected by this ban.
+	pub player: Player,
 
-	/// The reason for the ban.
+	/// The server that the ban happened on.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub server: Option<ServerInfo>,
+
+	/// The reason for this ban.
 	pub reason: BanReason,
 
-	/// The server the player was banned on (if any).
+	/// The admin who issued this ban.
 	#[serde(skip_serializing_if = "Option::is_none")]
-	pub server: Option<Server>,
+	pub admin: Option<Player>,
 
-	/// The cs2kz plugin version at the time of the ban.
-	///
-	/// This is either the version the [`server`] was currently running on, or the latest
-	/// current version, if they player got banned by an admin directly.
-	///
-	/// [`server`]: Ban::server
-	#[schema(value_type = String)]
-	pub plugin_version: Version,
-
-	/// The admin who issued this ban (if any).
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub banned_by: Option<Player>,
-
-	/// When this ban was issued.
+	/// When this ban was submitted.
 	pub created_on: DateTime<Utc>,
 
 	/// When this ban will expire.
 	pub expires_on: Option<DateTime<Utc>>,
 
-	/// The corresponding unban to this ban.
+	/// The unban associated with this ban.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub unban: Option<Unban>,
 }
 
-/// All the reasons players can get banned for.
+impl FromRow<'_, MySqlRow> for Ban {
+	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
+		Ok(Self {
+			id: crate::sqlx::non_zero!("id" as NonZeroU64, row)?,
+			player: Player::from_row(row)?,
+			server: ServerInfo::from_row(row).ok(),
+			reason: row.try_get("reason")?,
+			admin: row
+				.try_get(concat!("admin", "_name"))
+				.and_then(|name| Ok((name, row.try_get(concat!("admin", "_id"))?)))
+				.map(|(name, steam_id)| Player { name, steam_id })
+				.ok(),
+			created_on: row.try_get("created_on")?,
+			expires_on: row.try_get("expires_on")?,
+			unban: Unban::from_row(row).ok(),
+		})
+	}
+}
+
+/// The different reasons for which players can be banned.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum BanReason {
-	AutoBhop,
+	/// Perfect strafes
 	AutoStrafe,
+
+	/// Perfect bhops
+	AutoBhop,
 }
 
 impl BanReason {
-	/// Returns the ban duration for this reason.
+	/// Calculates the ban duration for this particular reason and the amount of previous bans.
 	pub const fn duration(&self, previous_offenses: u8) -> Duration {
 		match (self, previous_offenses) {
-			(Self::AutoBhop | Self::AutoStrafe, 0) => Duration::weeks(1),
-			(Self::AutoBhop | Self::AutoStrafe, 1) => Duration::weeks(4),
-			(Self::AutoBhop | Self::AutoStrafe, 2) => Duration::weeks(12),
-			(Self::AutoBhop | Self::AutoStrafe, _) => Duration::weeks(24),
+			(Self::AutoStrafe, 0) => Duration::weeks(2),
+			(Self::AutoStrafe, 1) => Duration::weeks(12),
+			(Self::AutoStrafe, _) => Duration::weeks(24),
+			(Self::AutoBhop, 0) => Duration::weeks(2),
+			(Self::AutoBhop, 1) => Duration::weeks(12),
+			(Self::AutoBhop, _) => Duration::weeks(24),
+		}
+	}
+}
+
+/// Parsing a [`BanReason`] from a string failed.
+#[derive(Debug, Error)]
+#[error("`{0}` is not a valid ban reason")]
+pub struct InvalidBanReason(String);
+
+impl FromStr for BanReason {
+	type Err = InvalidBanReason;
+
+	fn from_str(value: &str) -> Result<Self, Self::Err> {
+		match value {
+			"auto_strafe" => Ok(Self::AutoStrafe),
+			"auto_bhop" => Ok(Self::AutoBhop),
+			invalid => Err(InvalidBanReason(invalid.to_owned())),
 		}
 	}
 }
 
 impl sqlx::Type<MySql> for BanReason {
 	fn type_info() -> <MySql as sqlx::Database>::TypeInfo {
-		<&'static str as sqlx::Type<MySql>>::type_info()
+		str::type_info()
 	}
 }
 
-impl<'query, DB: sqlx::Database> sqlx::Encode<'query, DB> for BanReason
-where
-	&'static str: sqlx::Encode<'query, DB>,
-{
+impl<'q> sqlx::Encode<'q, MySql> for BanReason {
 	fn encode_by_ref(
 		&self,
-		buf: &mut <DB as database::HasArguments<'query>>::ArgumentBuffer,
+		buf: &mut <MySql as database::HasArguments<'q>>::ArgumentBuffer,
 	) -> sqlx::encode::IsNull {
-		<&'static str as sqlx::Encode<'query, DB>>::encode(
-			match self {
-				Self::AutoBhop => "auto_bhop",
-				Self::AutoStrafe => "auto_strafe",
-			},
-			buf,
-		)
-	}
-}
-
-impl<'row, DB: sqlx::Database> sqlx::Decode<'row, DB> for BanReason
-where
-	String: sqlx::Decode<'row, DB>,
-{
-	fn decode(
-		value: <DB as database::HasValueRef<'row>>::ValueRef,
-	) -> std::result::Result<Self, sqlx::error::BoxDynError> {
-		#[derive(Debug, thiserror::Error)]
-		#[error("unknown variant `{0}`")]
-		struct UnknownVariant(String);
-
-		let value = <String as sqlx::Decode<'row, DB>>::decode(value)?;
-
-		match value.as_str() {
-			"auto_bhop" => Ok(Self::AutoBhop),
-			"auto_strafe" => Ok(Self::AutoStrafe),
-			_ => Err(Box::new(UnknownVariant(value))),
+		match self {
+			BanReason::AutoStrafe => "auto_strafe",
+			BanReason::AutoBhop => "auto_bhop",
 		}
+		.encode_by_ref(buf)
 	}
 }
 
-#[derive(Debug, Serialize, ToSchema)]
-pub struct BannedPlayer {
-	/// The player's SteamID.
-	pub steam_id: SteamID,
-
-	/// The player's name.
-	pub name: String,
-
-	/// The player's IP address at the time of their ban.
-	#[serde(skip_serializing_if = "Option::is_none")]
-	#[schema(value_type = Option<String>)]
-	pub ip_address: Option<Ipv4Addr>,
-}
-
-impl FromRow<'_, MySqlRow> for Ban {
-	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
-		let id = crate::sqlx::non_zero!("id" as u32, row)?;
-		let player = BannedPlayer {
-			steam_id: row.try_get("player_id")?,
-			name: row.try_get("player_name")?,
-			ip_address: row
-				.try_get::<&str, _>("player_ip")?
-				.parse()
-				.map(Some)
-				.map_err(|err| sqlx::Error::ColumnDecode {
-					index: String::from("player_ip"),
-					source: Box::new(err),
-				})?,
-		};
-
-		let reason = row.try_get("reason")?;
-
-		let server = if let Ok(server_id) = crate::sqlx::non_zero!("server_id" as u16, row) {
-			Some(Server {
-				id: server_id,
-				name: row.try_get("server_name")?,
-				ip_address: {
-					let ip = row
-						.try_get::<&str, _>("server_ip_address")?
-						.parse()
-						.map_err(|err| sqlx::Error::ColumnDecode {
-							index: String::from("server_ip_address"),
-							source: Box::new(err),
-						})?;
-
-					let port = row.try_get("server_port")?;
-
-					SocketAddrV4::new(ip, port)
-				},
-				owned_by: Player {
-					steam_id: row.try_get("server_owner_steam_id")?,
-					name: row.try_get("server_owner_name")?,
-				},
-				approved_on: row.try_get("server_approved_on")?,
-			})
-		} else {
-			None
-		};
-
-		let plugin_version = row
-			.try_get::<&str, _>("plugin_version")?
-			.parse()
-			.map_err(|err| sqlx::Error::ColumnDecode {
-				index: String::from("plugin_version"),
-				source: Box::new(err),
-			})?;
-
-		let banned_by = if let Ok(steam_id) = row.try_get("banned_by_steam_id") {
-			Some(Player { steam_id, name: row.try_get("banned_by_name")? })
-		} else {
-			None
-		};
-
-		let created_on = row.try_get("created_on")?;
-		let expires_on = row.try_get("expires_on")?;
-		let unban = Unban::from_row(row).ok();
-
-		Ok(Self {
-			id,
-			player,
-			reason,
-			server,
-			plugin_version,
-			banned_by,
-			created_on,
-			expires_on,
-			unban,
-		})
+impl<'q> sqlx::Decode<'q, MySql> for BanReason {
+	fn decode(
+		value: <MySql as database::HasValueRef<'q>>::ValueRef,
+	) -> Result<Self, sqlx::error::BoxDynError> {
+		Ok(<&'q str>::decode(value).map(|value| value.parse::<Self>())??)
 	}
 }
 
 /// A reverted ban.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Unban {
-	/// The ID of this unban.
-	pub id: u32,
+	/// The unban's ID.
+	#[schema(value_type = u64)]
+	pub id: NonZeroU64,
 
 	/// The reason for the unban.
 	pub reason: String,
 
-	/// The player who reverted this ban.
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub unbanned_by: Option<Player>,
+	/// The admin who reverted this ban.
+	pub admin: Option<Player>,
 
-	/// When this unban was created.
+	/// When the ban was reverted.
 	pub created_on: DateTime<Utc>,
 }
 
 impl FromRow<'_, MySqlRow> for Unban {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
-		let id = crate::sqlx::non_zero!("unban_id" as u32, row)?;
-		let reason = row.try_get("unban_reason")?;
-		let created_on = row.try_get("unban_created_on")?;
-
-		let unbanned_by = if let Ok(steam_id) = row.try_get("unbanned_by_steam_id") {
-			Some(Player { steam_id, name: row.try_get("unbanned_by_name")? })
-		} else {
-			None
-		};
-
-		Ok(Self { id, reason, unbanned_by, created_on })
+		Ok(Self {
+			id: crate::sqlx::non_zero!("unban_id" as NonZeroU64, row)?,
+			reason: row.try_get("unban_reason")?,
+			admin: row
+				.try_get(concat!("unban_admin", "_name"))
+				.and_then(|name| Ok((name, row.try_get(concat!("unban_admin", "_id"))?)))
+				.map(|(name, steam_id)| Player { name, steam_id })
+				.ok(),
+			created_on: row.try_get("unban_created_on")?,
+		})
 	}
 }
 
-/// Request body for a new player ban.
+/// Request body for submitting new bans.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewBan {
 	/// The player's SteamID.
-	pub steam_id: SteamID,
+	pub player_id: SteamID,
 
 	/// The player's IP address.
-	#[schema(value_type = Option<String>)]
-	pub ip_address: Option<Ipv4Addr>,
+	pub player_ip: Option<Ipv4Addr>,
 
-	/// The reason for the ban.
+	/// The ban reason.
 	pub reason: BanReason,
 }
 
-/// Response body for a newly created player ban.
-///
-/// See [`NewBan`].
+/// A newly created ban.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedBan {
 	/// The ban's ID.
-	pub ban_id: u32,
-
-	/// When this ban will expire.
-	pub expires_on: DateTime<Utc>,
+	#[schema(value_type = u64)]
+	pub ban_id: NonZeroU64,
 }
 
-/// Request body for updates to a ban.
+/// Request body for updating bans.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct BanUpdate {
 	/// A new ban reason.
 	pub reason: Option<BanReason>,
 
 	/// A new expiration date.
-	pub expires_on: Option<DateTime<Utc>>,
+	///
+	/// Not specifying this at all means the expiration date will not be modified.
+	/// If this is explicitly `null`, the expiration date will be deleted and the ban counts as
+	/// permanent.
+	pub expires_on: Option<Option<DateTime<Utc>>>,
 }
 
 /// Request body for reverting a ban.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewUnban {
-	/// The reason for the unban.
+	/// The reason this ban should be reverted.
 	pub reason: String,
 }
 
-/// Response body for a reverted ban.
+/// A newly reverted ban.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedUnban {
-	/// The ban that was reverted by this unban.
-	pub ban_id: u32,
-
 	/// The unban's ID.
-	pub unban_id: u32,
+	#[schema(value_type = u64)]
+	pub unban_id: NonZeroU64,
 }

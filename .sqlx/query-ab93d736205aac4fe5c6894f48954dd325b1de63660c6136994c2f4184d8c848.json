@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tUPDATE\n\t\t  Players\n\t\tSET\n\t\t  name = ?,\n\t\t  ip_address = ?\n\t\tWHERE\n\t\t  id = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "ab93d736205aac4fe5c6894f48954dd325b1de63660c6136994c2f4184d8c848"
+}

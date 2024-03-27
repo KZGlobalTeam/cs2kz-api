@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tINSERT INTO\n\t\t  GameSessions (\n\t\t    player_id,\n\t\t    server_id,\n\t\t    time_active,\n\t\t    time_spectating,\n\t\t    time_afk,\n\t\t    perfs,\n\t\t    bhops_tick0,\n\t\t    bhops_tick1,\n\t\t    bhops_tick2,\n\t\t    bhops_tick3,\n\t\t    bhops_tick4,\n\t\t    bhops_tick5,\n\t\t    bhops_tick6,\n\t\t    bhops_tick7,\n\t\t    bhops_tick8\n\t\t  )\n\t\tVALUES\n\t\t  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 15
+    },
+    "nullable": []
+  },
+  "hash": "3665e4e4e9f523529b5810f2bdfe912b4eea7477b0a49e479443174b27cd536d"
+}

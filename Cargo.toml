@@ -3,202 +3,154 @@ name = "cs2kz-api"
 version = "0.0.0"
 authors = ["AlphaKeks <alphakeks@dawn.sh>"]
 edition = "2021"
-description = "The backend API for CS2KZ"
 readme = "./README.md"
 homepage = "https://cs2.kz"
-repository = "https://github.com/KZGlobalTeam/cs2kz-api.git"
+repository = "https://github.com/KZGlobalTeam/cs2kz-api"
 license-file = "./LICENSE"
 publish = false
-default-run = "api"
+
+[workspace]
+resolver = "2"
+members = ["crates/spec-generator", "crates/macros"]
 
 [features]
-console = ["dep:console-subscriber", "tokio/tracing"]
 production = []
-
-[[bin]]
-name = "api"
-path = "src/bin/api/main.rs"
-
-[[bin]]
-name = "spec-generator"
-path = "src/bin/spec-generator/main.rs"
+console = ["dep:console-subscriber", "tokio/tracing"]
 
 [dependencies.cs2kz]
 path = "./crates/cs2kz"
-features = [
-  "serde",
-  "utoipa",
-  "sqlx",
-]
-
-[dependencies.color-eyre]
-version = "0.6.2"
+features = ["serde", "sqlx", "utoipa"]
 
 [dependencies.thiserror]
-version = "1.0.57"
-
-[dependencies.dotenvy]
-version = "0.15.7"
-
-[dependencies.clap]
-version = "4.5.1"
-features = [
-  "derive",
-]
-
-[dependencies.similar]
-version = "2.4.0"
-
-[dependencies.tracing]
-version = "0.1.40"
-
-[dependencies.tracing-subscriber]
-version = "0.3.18"
-default-features = false
-features = [
-  "std",
-  "fmt",
-  "ansi",
-  "env-filter",
-  "time",
-  "json",
-]
-
-[dependencies.console-subscriber]
-version = "0.2.0"
-optional = true
+version = "1.0"
 
 [dependencies.tokio]
-version = "1.36.0"
-features = [
-  "macros",
-  "rt-multi-thread",
-  "net",
-  "process",
-]
+version = "1.36"
+features = ["rt-multi-thread", "net", "process", "macros"]
 
-[dependencies.tower-http]
-version = "0.5.2"
-features = [
-  "trace",
-  "cors",
-]
-
-[dependencies.axum]
-version = "0.7.4"
-default-features = false
-features = [
-  "http1",
-  "http2",
-  "tracing",
-  "tokio",
-  "query",
-  "json",
-  "macros",
-]
-
-[dependencies.axum-extra]
-version = "0.9.2"
-features = [
-  "typed-header",
-  "cookie",
-  "query",
-]
-
-[dependencies.utoipa]
-version = "4.2.0"
-features = [
-  "axum_extras",
-  "url",
-  "chrono",
-  "non_strict_integers",
-  "preserve_order",
-  "preserve_path_order",
-  "debug",
-]
-
-[dependencies.utoipa-swagger-ui]
-version = "6.0.0"
-features = ["axum"]
-
-[dependencies.jsonwebtoken]
-version = "9.2.0"
+[dependencies.futures]
+version = "0.3"
 
 [dependencies.reqwest]
-version = "0.11.24"
+version = "0.12"
 default-features = false
-features = [
-  "rustls-tls",
-  "json",
-]
+features = ["rustls-tls", "json"]
 
-[dependencies.url]
-version = "2.5.0"
-features = [
-  "serde",
-]
+[dependencies.axum]
+version = "0.7"
+default-features = false
+features = ["http1", "http2", "tokio", "query", "json", "macros"]
+
+[dependencies.axum-extra]
+version = "0.9"
+features = ["typed-header", "cookie", "query"]
+
+[dependencies.tower-http]
+version = "0.5"
+features = ["trace", "cors"]
 
 [dependencies.sqlx]
-version = "0.7.3"
+version = "0.7"
+default-features = false
 features = [
   "runtime-tokio-rustls",
-  "macros",
   "mysql",
   "chrono",
   "time",
-]
-
-[dependencies.chrono]
-version = "0.4.34"
-default-features = false
-features = [
-  "std",
-  "clock",
-  "serde",
-]
-
-[dependencies.time]
-version = "0.3.34"
-features = [
+  "json",
+  "uuid",
   "macros",
+  "migrate",
 ]
 
-[dependencies.rand]
-version = "0.8.5"
-
-[dependencies.itertools]
-version = "0.12.1"
-
-[dependencies.crc32fast]
-version = "1.4.0"
-
-[dependencies.crossbeam]
-version = "0.8.4"
-
-[dependencies.uuid]
-version = "1.7.0"
+[dependencies.utoipa]
+version = "4.2"
 features = [
-  "v4",
-  "serde",
+  "debug",
+  "preserve_order",
+  "preserve_path_order",
+  "non_strict_integers",
+  "url",
+  "chrono",
+  "uuid",
+  "axum_extras",
 ]
 
-[dependencies.semver]
-version = "1.0.22"
-features = [
-  "serde",
-]
+[dependencies.utoipa-swagger-ui]
+version = "6.0"
+features = ["axum"]
+
+[dependencies.tracing]
+version = "0.1"
+
+[dependencies.tracing-subscriber]
+version = "0.3"
+default-features = false
+features = ["std", "fmt", "ansi", "json", "env-filter"]
+
+[dependencies.tracing-bunyan-formatter]
+version = "0.3.9"
+
+[dependencies.tracing-appender]
+version = "0.2"
+
+[dependencies.console-subscriber]
+version = "0.2"
+optional = true
+
+[dependencies.dotenvy]
+version = "0.15"
 
 [dependencies.serde]
-version = "1.0.197"
+version = "1.0"
+features = ["derive"]
 
 [dependencies.serde_json]
-version = "1.0.114"
+version = "1.0"
 
 [dependencies.serde_urlencoded]
-version = "0.7.1"
+version = "0.7"
+
+[dependencies.envy]
+version = "0.4"
+
+[dependencies.url]
+version = "2.5"
+features = ["serde"]
+
+[dependencies.rand]
+version = "0.8"
+
+[dependencies.uuid]
+version = "1.7"
+features = ["v4", "fast-rng", "serde"]
+
+[dependencies.jsonwebtoken]
+version = "9.2"
+
+[dependencies.semver]
+version = "1.0"
+features = ["serde"]
+
+[dependencies.chrono]
+version = "0.4"
+default-features = false
+features = ["std", "serde"]
+
+[dependencies.time]
+version = "0.3"
+
+[dependencies.itertools]
+version = "0.12"
+
+[dependencies.crc32fast]
+version = "1.4"
 
 [dev-dependencies.ctor]
-version = "0.2.7"
+version = "0.2"
+
+[dev-dependencies.eyre]
+version = "0.6"
 
 [dev-dependencies.cs2kz-api-macros]
 path = "./crates/macros"

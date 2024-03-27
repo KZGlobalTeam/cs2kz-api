@@ -1,29 +1,63 @@
-use std::str::FromStr;
+//! Difficulty ratings for CS2KZ courses.
 
-use derive_more::Display;
+use std::fmt::{self, Display};
+use std::str::FromStr;
 
 use crate::{Error, Result};
 
-#[derive(Debug, Display, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(feature = "utoipa", schema(rename_all = "snake_case"))]
+/// The 10 difficulty tiers for KZ courses.
+///
+/// Only the first 8 are considered "humanly possible". [Unfeasible] is technically possible,
+/// but not realistically. [Impossible] is _actually_ impossible.
+///
+/// [Unfeasible]: type@Tier::Unfeasible
+/// [Impossible]: type@Tier::Impossible
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Tier {
-	#[display("Very Easy")]
+	/// The lowest tier.
+	///
+	/// Someone who has never played KZ before should be able to complete this.
 	VeryEasy = 1,
+
+	/// Requires some prior KZ knowledge, such as air strafing and bunnyhopping.
 	Easy = 2,
+
+	/// Players who have the KZ basics down should be able to complete this.
 	Medium = 3,
+
+	/// Players who have played KZ consistently for a while and are starting to
+	/// learn more advanced techniques like ladders and surfs.
 	Advanced = 4,
+
+	/// Just like [Advanced], but harder.
+	///
+	/// [Advanced]: type@Tier::Advanced
 	Hard = 5,
-	#[display("Very Hard")]
+
+	/// Just like [Hard], but very.
+	///
+	/// [Hard]: type@Tier::Hard
 	VeryHard = 6,
+
+	/// For players with a lot of KZ experience who want to challenge themselves.
+	/// Getting a top time on these requires mastering KZ.
 	Extreme = 7,
+
+	/// These are the hardest in the game, and only very good KZ players can
+	/// complete these at all.
 	Death = 8,
+
+	/// Technically possible, but not feasible for humans. This tier is reserved for
+	/// TAS runs, and any runs submitted by humans will be reviewed for cheats.
 	Unfeasible = 9,
+
+	/// Technically impossible. Even with perfect inputs.
 	Impossible = 10,
 }
 
 impl Tier {
-	/// Formats the tier in a standardized way that is consistent with the API.
+	/// A string format compatible with the API.
 	#[inline]
 	pub const fn api(&self) -> &'static str {
 		match self {
@@ -41,10 +75,26 @@ impl Tier {
 	}
 }
 
+impl Display for Tier {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str(match self {
+			Self::VeryEasy => "Very Easy",
+			Self::Easy => "Easy",
+			Self::Medium => "Medium",
+			Self::Advanced => "Advanced",
+			Self::Hard => "Hard",
+			Self::VeryHard => "Very Hard",
+			Self::Extreme => "Extreme",
+			Self::Death => "Death",
+			Self::Unfeasible => "Unfeasible",
+			Self::Impossible => "Impossible",
+		})
+	}
+}
+
 impl From<Tier> for u8 {
-	#[inline]
-	fn from(value: Tier) -> Self {
-		value as u8
+	fn from(tier: Tier) -> Self {
+		tier as u8
 	}
 }
 
@@ -63,7 +113,7 @@ impl TryFrom<u8> for Tier {
 			8 => Ok(Self::Death),
 			9 => Ok(Self::Unfeasible),
 			10 => Ok(Self::Impossible),
-			_ => Err(Error::InvalidTier { value: value.to_string() }),
+			_ => Err(Error::InvalidTier),
 		}
 	}
 }
@@ -72,126 +122,239 @@ impl FromStr for Tier {
 	type Err = Error;
 
 	fn from_str(value: &str) -> Result<Self> {
-		if value.eq_ignore_ascii_case("very_easy") {
-			return Ok(Self::VeryEasy);
+		if let Ok(value) = value.parse::<u8>() {
+			return Self::try_from(value);
 		}
 
-		if value.eq_ignore_ascii_case("easy") {
-			return Ok(Self::Easy);
+		match value {
+			"very easy" | "very_easy" => Ok(Self::VeryEasy),
+			"easy" => Ok(Self::Easy),
+			"medium" => Ok(Self::Medium),
+			"advanced" => Ok(Self::Advanced),
+			"hard" => Ok(Self::Hard),
+			"very hard" | "very_hard" => Ok(Self::VeryHard),
+			"extreme" => Ok(Self::Extreme),
+			"death" => Ok(Self::Death),
+			"unfeasible" => Ok(Self::Unfeasible),
+			"impossible" => Ok(Self::Impossible),
+			_ => Err(Error::InvalidTier),
 		}
-
-		if value.eq_ignore_ascii_case("medium") {
-			return Ok(Self::Medium);
-		}
-
-		if value.eq_ignore_ascii_case("advanced") {
-			return Ok(Self::Advanced);
-		}
-
-		if value.eq_ignore_ascii_case("hard") {
-			return Ok(Self::Hard);
-		}
-
-		if value.eq_ignore_ascii_case("very_hard") {
-			return Ok(Self::VeryHard);
-		}
-
-		if value.eq_ignore_ascii_case("extreme") {
-			return Ok(Self::Extreme);
-		}
-
-		if value.eq_ignore_ascii_case("death") {
-			return Ok(Self::Death);
-		}
-
-		if value.eq_ignore_ascii_case("unfeasible") {
-			return Ok(Self::Unfeasible);
-		}
-
-		if value.eq_ignore_ascii_case("impossible") {
-			return Ok(Self::Impossible);
-		}
-
-		Err(Error::InvalidTier { value: value.to_owned() })
 	}
 }
 
 #[cfg(feature = "serde")]
 mod serde_impls {
-	use serde::{Deserialize, Deserializer, Serialize, Serializer};
+	mod ser {
+		use serde::{Serialize, Serializer};
 
-	use super::Tier;
-	use crate::serde::IntOrStr;
+		use crate::Tier;
 
-	impl Tier {
-		/// Serializes the given `tier` in the standardized API format.
-		pub fn serialize_api<S: Serializer>(tier: &Self, serializer: S) -> Result<S::Ok, S::Error> {
-			tier.api().serialize(serializer)
-		}
-
-		/// Serializes the given `tier` as an integer.
-		pub fn serialize_integer<S: Serializer>(
-			tier: &Self,
-			serializer: S,
-		) -> Result<S::Ok, S::Error> {
-			(*tier as u8).serialize(serializer)
-		}
-	}
-
-	impl Serialize for Tier {
-		/// By default [`Tier::serialize_api`] is used for serialization, but you can use
-		/// any of the `serialize_*` functions and pass them to
-		/// `#[serde(serialize_with = "...")]` if you need a different method.
-		fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-			Self::serialize_api(self, serializer)
-		}
-	}
-
-	impl Tier {
-		/// Deserializes from a string.
-		pub fn deserialize_str<'de, D: Deserializer<'de>>(
-			deserializer: D,
-		) -> Result<Self, D::Error> {
-			<&str as Deserialize>::deserialize(deserializer)?
-				.parse()
-				.map_err(serde::de::Error::custom)
-		}
-
-		/// Deserializes from an integer.
-		pub fn deserialize_integer<'de, D: Deserializer<'de>>(
-			deserializer: D,
-		) -> Result<Self, D::Error> {
-			<u8>::deserialize(deserializer)?
-				.try_into()
-				.map_err(serde::de::Error::custom)
-		}
-	}
-
-	impl<'de> Deserialize<'de> for Tier {
-		/// The default [`Deserialize`] implementation is a best-effort.
-		///
-		/// This means it considers as many cases as possible; if you want / need
-		/// a specific format, consider using `#[serde(deserialize_with = "...")]` in
-		/// combination with any of the `deserialize_*` methods on [`Tier`].
-		fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-			match <IntOrStr<u8> as Deserialize<'de>>::deserialize(deserializer)? {
-				IntOrStr::Int(value) => value.try_into(),
-				IntOrStr::Str(value) => value.parse(),
+		impl Tier {
+			/// Serialize in a API compatible format.
+			pub fn serialize_api<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+			where
+				S: Serializer,
+			{
+				self.api().serialize(serializer)
 			}
-			.map_err(serde::de::Error::custom)
+
+			/// Serialize as an integer.
+			pub fn serialize_int<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+			where
+				S: Serializer,
+			{
+				(*self as u8).serialize(serializer)
+			}
+		}
+
+		impl Serialize for Tier {
+			fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+			where
+				S: Serializer,
+			{
+				self.serialize_api(serializer)
+			}
+		}
+	}
+
+	mod de {
+		use serde::de::{Error, Unexpected as U};
+		use serde::{Deserialize, Deserializer};
+
+		use crate::Tier;
+
+		impl Tier {
+			/// Deserializes the value returned by [`Tier::api()`].
+			pub fn deserialize_api<'de, D>(deserializer: D) -> Result<Self, D::Error>
+			where
+				D: Deserializer<'de>,
+			{
+				match <&'de str>::deserialize(deserializer)? {
+					"very easy" | "very_easy" => Ok(Self::VeryEasy),
+					"easy" => Ok(Self::Easy),
+					"medium" => Ok(Self::Medium),
+					"advanced" => Ok(Self::Advanced),
+					"hard" => Ok(Self::Hard),
+					"very hard" | "very_hard" => Ok(Self::VeryHard),
+					"extreme" => Ok(Self::Extreme),
+					"death" => Ok(Self::Death),
+					"unfeasible" => Ok(Self::Unfeasible),
+					"impossible" => Ok(Self::Impossible),
+					value => Err(Error::invalid_value(U::Str(value), &"tier")),
+				}
+			}
+
+			/// Deserializes from an integer.
+			pub fn deserialize_int<'de, D>(deserializer: D) -> Result<Self, D::Error>
+			where
+				D: Deserializer<'de>,
+			{
+				match <u8>::deserialize(deserializer)? {
+					1 => Ok(Self::VeryEasy),
+					2 => Ok(Self::Easy),
+					3 => Ok(Self::Medium),
+					4 => Ok(Self::Advanced),
+					5 => Ok(Self::Hard),
+					6 => Ok(Self::VeryHard),
+					7 => Ok(Self::Extreme),
+					8 => Ok(Self::Death),
+					9 => Ok(Self::Unfeasible),
+					10 => Ok(Self::Impossible),
+					value => Err(Error::invalid_value(
+						U::Unsigned(value as u64),
+						&"value between 1 and 10",
+					)),
+				}
+			}
+		}
+
+		impl<'de> Deserialize<'de> for Tier {
+			/// Best-effort attempt at deserializing a [`Tier`] of unknown format.
+			///
+			/// If you know / expect the specific format, consider using
+			/// `#[serde(deserialize_with = "…")]` with one of the `deserialize_*`
+			/// methods instead.
+			fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+			where
+				D: Deserializer<'de>,
+			{
+				#[derive(Deserialize)]
+				#[serde(untagged)]
+				enum Helper<'a> {
+					U8(u8),
+					Str(&'a str),
+				}
+
+				match <Helper<'de>>::deserialize(deserializer)? {
+					Helper::U8(value) => value.try_into(),
+					Helper::Str(value) => value.parse(),
+				}
+				.map_err(Error::custom)
+			}
 		}
 	}
 }
 
 #[cfg(feature = "sqlx")]
 mod sqlx_impls {
-	use super::Tier;
+	use sqlx::database::{HasArguments, HasValueRef};
+	use sqlx::encode::IsNull;
+	use sqlx::error::BoxDynError;
+	use sqlx::{Database, Decode, Encode, Type};
 
-	crate::sqlx::from_row_as!(Tier as u8 {
-		encode: |tier| { *tier as u8 }
-		decode: |int| { Tier::try_from(int) }
-	});
+	use crate::Tier;
+
+	impl<DB> Type<DB> for Tier
+	where
+		DB: Database,
+		u8: Type<DB>,
+	{
+		fn type_info() -> <DB as Database>::TypeInfo {
+			<u8 as Type<DB>>::type_info()
+		}
+	}
+
+	impl<'q, DB> Encode<'q, DB> for Tier
+	where
+		DB: Database,
+		u8: Encode<'q, DB>,
+	{
+		fn encode_by_ref(&self, buf: &mut <DB as HasArguments<'q>>::ArgumentBuffer) -> IsNull {
+			(*self as u8).encode_by_ref(buf)
+		}
+	}
+
+	impl<'r, DB> Decode<'r, DB> for Tier
+	where
+		DB: Database,
+		u8: Decode<'r, DB>,
+	{
+		fn decode(value: <DB as HasValueRef<'r>>::ValueRef) -> Result<Self, BoxDynError> {
+			u8::decode(value).map(Self::try_from)?.map_err(Into::into)
+		}
+	}
 }
 
 #[cfg(feature = "utoipa")]
-crate::utoipa::into_params!(Tier as "tier": "");
+mod utoipa_impls {
+	use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};
+	use utoipa::openapi::schema::AnyOfBuilder;
+	use utoipa::openapi::{ObjectBuilder, RefOr, Schema, SchemaType};
+	use utoipa::{IntoParams, ToSchema};
+
+	use crate::Tier;
+
+	impl<'s> ToSchema<'s> for Tier {
+		fn schema() -> (&'s str, RefOr<Schema>) {
+			(
+				"Tier",
+				Schema::AnyOf(
+					AnyOfBuilder::new()
+						.nullable(false)
+						.example(Some("hard".into()))
+						.item(Schema::Object(
+							ObjectBuilder::new()
+								.title(Some("Name"))
+								.schema_type(SchemaType::String)
+								.example(Some("hard".into()))
+								.enum_values(Some([
+									"very_easy",
+									"easy",
+									"medium",
+									"advanced",
+									"hard",
+									"very_hard",
+									"extreme",
+									"death",
+									"unfeasible",
+									"impossible",
+								]))
+								.build(),
+						))
+						.item(Schema::Object(
+							ObjectBuilder::new()
+								.title(Some("Numeric Value"))
+								.schema_type(SchemaType::Integer)
+								.example(Some(1.into()))
+								.enum_values(Some(1..=10))
+								.build(),
+						))
+						.build(),
+				)
+				.into(),
+			)
+		}
+	}
+
+	impl IntoParams for Tier {
+		fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter> {
+			vec![
+				ParameterBuilder::new()
+					.name("tier")
+					.parameter_in(parameter_in_provider().unwrap_or_default())
+					.schema(Some(Self::schema().1))
+					.build(),
+			]
+		}
+	}
+}

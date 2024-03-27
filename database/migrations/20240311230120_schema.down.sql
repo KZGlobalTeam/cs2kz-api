@@ -1,0 +1,37 @@
+DROP TABLE IF EXISTS `LoginSessions`;
+
+DROP TABLE IF EXISTS `CourseSessions`;
+
+DROP TABLE IF EXISTS `GameSessions`;
+
+DROP TABLE IF EXISTS `Unbans`;
+
+DROP TABLE IF EXISTS `Bans`;
+
+DROP TABLE IF EXISTS `Records`;
+
+DROP TABLE IF EXISTS `Jumpstats`;
+
+DROP TABLE IF EXISTS `Servers`;
+
+DROP TABLE IF EXISTS `CourseFilters`;
+
+DROP TABLE IF EXISTS `CourseMappers`;
+
+DROP TABLE IF EXISTS `Courses`;
+
+DROP TABLE IF EXISTS `Mappers`;
+
+DROP TABLE IF EXISTS `Maps`;
+
+DROP TABLE IF EXISTS `Players`;
+
+DROP TABLE IF EXISTS `JumpTypes`;
+
+DROP TABLE IF EXISTS `Styles`;
+
+DROP TABLE IF EXISTS `Modes`;
+
+DROP TABLE IF EXISTS `PluginVersions`;
+
+DROP TABLE IF EXISTS `Logs`;

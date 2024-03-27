@@ -1,38 +1,85 @@
-use std::str::FromStr;
+//! An enum for the styles available in CS2KZ.
 
-use derive_more::Display;
+use std::fmt::{self, Display};
+use std::str::FromStr;
 
 use crate::{Error, Result};
 
+/// The current gameplay styles in CS2KZ.
 #[repr(u8)]
-#[derive(Default, Debug, Display, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[cfg_attr(feature = "utoipa", schema(rename_all = "lowercase"))]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Style {
+	/// The default style
 	#[default]
 	Normal = 1,
+
+	/// You can only move backwards
 	Backwards = 2,
+
+	/// You can only move sideways
 	Sideways = 3,
-	WOnly = 4,
+
+	/// You can only move half-sideways
+	HalfSideways = 4,
+
+	/// You can only use +forward
+	WOnly = 5,
+
+	/// Low gravity
+	LowGravity = 6,
+
+	/// High gravity
+	HighGravity = 7,
+
+	/// No prestrafing allowed
+	NoPrestrafe = 8,
+
+	/// You have to hold a negev (lower running speed)
+	Negev = 9,
+
+	/// The floor is ice
+	Ice = 10,
 }
 
 impl Style {
-	/// Formats the style in a standardized way that is consistent with the API.
+	/// A string format compatible with the API.
 	#[inline]
 	pub const fn api(&self) -> &'static str {
 		match self {
 			Self::Normal => "normal",
 			Self::Backwards => "backwards",
 			Self::Sideways => "sideways",
+			Self::HalfSideways => "half_sideways",
 			Self::WOnly => "w_only",
+			Self::LowGravity => "low_gravity",
+			Self::HighGravity => "high_gravity",
+			Self::NoPrestrafe => "no_prestrafe",
+			Self::Negev => "negev",
+			Self::Ice => "ice",
 		}
 	}
 }
 
+impl Display for Style {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.write_str(match self {
+			Self::Normal => "Normal",
+			Self::Backwards => "Backwards",
+			Self::Sideways => "Sideways",
+			Self::HalfSideways => "Half Sideways",
+			Self::WOnly => "W Only",
+			Self::LowGravity => "Low Gravity",
+			Self::HighGravity => "High Gravity",
+			Self::NoPrestrafe => "No Prestrafe",
+			Self::Negev => "Negev",
+			Self::Ice => "Ice",
+		})
+	}
+}
+
 impl From<Style> for u8 {
-	#[inline]
-	fn from(value: Style) -> Self {
-		value as u8
+	fn from(style: Style) -> Self {
+		style as u8
 	}
 }
 
@@ -44,8 +91,14 @@ impl TryFrom<u8> for Style {
 			1 => Ok(Self::Normal),
 			2 => Ok(Self::Backwards),
 			3 => Ok(Self::Sideways),
-			4 => Ok(Self::WOnly),
-			_ => Err(Error::InvalidStyleID { value }),
+			4 => Ok(Self::HalfSideways),
+			5 => Ok(Self::WOnly),
+			6 => Ok(Self::LowGravity),
+			7 => Ok(Self::HighGravity),
+			8 => Ok(Self::NoPrestrafe),
+			9 => Ok(Self::Negev),
+			10 => Ok(Self::Ice),
+			_ => Err(Error::InvalidStyle),
 		}
 	}
 }
@@ -54,102 +107,241 @@ impl FromStr for Style {
 	type Err = Error;
 
 	fn from_str(value: &str) -> Result<Self> {
-		if value.eq_ignore_ascii_case("normal") {
-			return Ok(Self::Normal);
+		if let Ok(value) = value.parse::<u8>() {
+			return Self::try_from(value);
 		}
 
-		if value.eq_ignore_ascii_case("backwards") {
-			return Ok(Self::Backwards);
+		match value {
+			"normal" => Ok(Self::Normal),
+			"backwards" => Ok(Self::Backwards),
+			"sideways" => Ok(Self::Sideways),
+			"half_sideways" => Ok(Self::HalfSideways),
+			"w_only" => Ok(Self::WOnly),
+			"low_gravity" => Ok(Self::LowGravity),
+			"high_gravity" => Ok(Self::HighGravity),
+			"no_prestrafe" => Ok(Self::NoPrestrafe),
+			"negev" => Ok(Self::Negev),
+			"ice" => Ok(Self::Ice),
+			_ => Err(Error::InvalidStyle),
 		}
-
-		if value.eq_ignore_ascii_case("sideways") {
-			return Ok(Self::Sideways);
-		}
-
-		if value.eq_ignore_ascii_case("w_only") || value.eq_ignore_ascii_case("w-only") {
-			return Ok(Self::WOnly);
-		}
-
-		Err(Error::InvalidStyle { value: value.to_owned() })
 	}
 }
 
 #[cfg(feature = "serde")]
 mod serde_impls {
-	use serde::{Deserialize, Deserializer, Serialize, Serializer};
+	mod ser {
+		use serde::{Serialize, Serializer};
 
-	use super::Style;
-	use crate::serde::IntOrStr;
+		use crate::Style;
 
-	impl Style {
-		/// Serializes the given `style` in the standardized API format.
-		pub fn serialize_api<S: Serializer>(
-			style: &Self,
-			serializer: S,
-		) -> Result<S::Ok, S::Error> {
-			style.api().serialize(serializer)
-		}
-
-		/// Serializes the given `style` as an ID.
-		pub fn serialize_id<S: Serializer>(style: &Self, serializer: S) -> Result<S::Ok, S::Error> {
-			(*style as u8).serialize(serializer)
-		}
-	}
-
-	impl Serialize for Style {
-		/// By default [`Style::serialize_api`] is used for serialization, but you can use
-		/// any of the `serialize_*` functions and pass them to
-		/// `#[serde(serialize_with = "...")]` if you need a different method.
-		fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-			Self::serialize_api(self, serializer)
-		}
-	}
-
-	impl Style {
-		/// Deserializes from a string.
-		pub fn deserialize_str<'de, D: Deserializer<'de>>(
-			deserializer: D,
-		) -> Result<Self, D::Error> {
-			<&str as Deserialize>::deserialize(deserializer)?
-				.parse()
-				.map_err(serde::de::Error::custom)
-		}
-
-		/// Deserializes from an integer.
-		pub fn deserialize_integer<'de, D: Deserializer<'de>>(
-			deserializer: D,
-		) -> Result<Self, D::Error> {
-			<u8>::deserialize(deserializer)?
-				.try_into()
-				.map_err(serde::de::Error::custom)
-		}
-	}
-
-	impl<'de> Deserialize<'de> for Style {
-		/// The default [`Deserialize`] implementation is a best-effort.
-		///
-		/// This means it considers as many cases as possible; if you want / need
-		/// a specific format, consider using `#[serde(deserialize_with = "...")]` in
-		/// combination with any of the `deserialize_*` methods on [`Style`].
-		fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-			match <IntOrStr<u8> as Deserialize<'de>>::deserialize(deserializer)? {
-				IntOrStr::Int(value) => value.try_into(),
-				IntOrStr::Str(value) => value.parse(),
+		impl Style {
+			/// Serialize in a API compatible format.
+			pub fn serialize_api<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+			where
+				S: Serializer,
+			{
+				self.api().serialize(serializer)
 			}
-			.map_err(serde::de::Error::custom)
+
+			/// Serialize this style's ID.
+			pub fn serialize_id<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+			where
+				S: Serializer,
+			{
+				(*self as u8).serialize(serializer)
+			}
+		}
+
+		impl Serialize for Style {
+			/// Uses the [`Style::serialize_api()`] method.
+			///
+			/// If you need a different format, consider using
+			/// `#[serde(serialize_with = "…")]` with one of the other available
+			/// `serialize_*` methods.
+			fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+			where
+				S: Serializer,
+			{
+				self.serialize_api(serializer)
+			}
+		}
+	}
+
+	mod de {
+		use serde::de::{Error, Unexpected as U};
+		use serde::{Deserialize, Deserializer};
+
+		use crate::Style;
+
+		impl Style {
+			/// Deserializes the value returned by [`Style::api()`].
+			pub fn deserialize_api<'de, D>(deserializer: D) -> Result<Self, D::Error>
+			where
+				D: Deserializer<'de>,
+			{
+				match <&'de str>::deserialize(deserializer)? {
+					"normal" => Ok(Self::Normal),
+					"backwards" => Ok(Self::Backwards),
+					"sideways" => Ok(Self::Sideways),
+					"half_sideways" => Ok(Self::HalfSideways),
+					"w_only" => Ok(Self::WOnly),
+					"low_gravity" => Ok(Self::LowGravity),
+					"high_gravity" => Ok(Self::HighGravity),
+					"no_prestrafe" => Ok(Self::NoPrestrafe),
+					"negev" => Ok(Self::Negev),
+					"ice" => Ok(Self::Ice),
+					value => Err(Error::invalid_value(U::Str(value), &"style")),
+				}
+			}
+
+			/// Deserializes a style ID.
+			pub fn deserialize_id<'de, D>(deserializer: D) -> Result<Self, D::Error>
+			where
+				D: Deserializer<'de>,
+			{
+				match u8::deserialize(deserializer)? {
+					1 => Ok(Self::Normal),
+					2 => Ok(Self::Backwards),
+					3 => Ok(Self::Sideways),
+					4 => Ok(Self::HalfSideways),
+					5 => Ok(Self::WOnly),
+					6 => Ok(Self::LowGravity),
+					7 => Ok(Self::HighGravity),
+					8 => Ok(Self::NoPrestrafe),
+					9 => Ok(Self::Negev),
+					10 => Ok(Self::Ice),
+					value => Err(Error::invalid_value(U::Unsigned(value as u64), &"style ID")),
+				}
+			}
+		}
+
+		impl<'de> Deserialize<'de> for Style {
+			/// Best-effort attempt at deserializing a [`Style`] of unknown format.
+			///
+			/// If you know / expect the specific format, consider using
+			/// `#[serde(deserialize_with = "…")]` with one of the `deserialize_*`
+			/// methods instead.
+			fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+			where
+				D: Deserializer<'de>,
+			{
+				#[derive(Deserialize)]
+				#[serde(untagged)]
+				enum Helper<'a> {
+					U8(u8),
+					Str(&'a str),
+				}
+
+				match <Helper<'de>>::deserialize(deserializer)? {
+					Helper::U8(value) => value.try_into(),
+					Helper::Str(value) => value.parse(),
+				}
+				.map_err(Error::custom)
+			}
 		}
 	}
 }
 
 #[cfg(feature = "sqlx")]
 mod sqlx_impls {
-	use super::Style;
+	use sqlx::database::{HasArguments, HasValueRef};
+	use sqlx::encode::IsNull;
+	use sqlx::error::BoxDynError;
+	use sqlx::{Database, Decode, Encode, Type};
 
-	crate::sqlx::from_row_as!(Style as u8 {
-		encode: |style| { *style as u8 }
-		decode: |int| { Style::try_from(int) }
-	});
+	use crate::Style;
+
+	impl<DB> Type<DB> for Style
+	where
+		DB: Database,
+		u8: Type<DB>,
+	{
+		fn type_info() -> <DB as Database>::TypeInfo {
+			<u8 as Type<DB>>::type_info()
+		}
+	}
+
+	impl<'q, DB> Encode<'q, DB> for Style
+	where
+		DB: Database,
+		u8: Encode<'q, DB>,
+	{
+		fn encode_by_ref(&self, buf: &mut <DB as HasArguments<'q>>::ArgumentBuffer) -> IsNull {
+			(*self as u8).encode_by_ref(buf)
+		}
+	}
+
+	impl<'r, DB> Decode<'r, DB> for Style
+	where
+		DB: Database,
+		u8: Decode<'r, DB>,
+	{
+		fn decode(value: <DB as HasValueRef<'r>>::ValueRef) -> Result<Self, BoxDynError> {
+			u8::decode(value).map(Self::try_from)?.map_err(Into::into)
+		}
+	}
 }
 
 #[cfg(feature = "utoipa")]
-crate::utoipa::into_params!(Style as "style": "");
+mod utoipa_impls {
+	use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};
+	use utoipa::openapi::schema::AnyOfBuilder;
+	use utoipa::openapi::{ObjectBuilder, RefOr, Schema, SchemaType};
+	use utoipa::{IntoParams, ToSchema};
+
+	use crate::Style;
+
+	impl<'s> ToSchema<'s> for Style {
+		fn schema() -> (&'s str, RefOr<Schema>) {
+			(
+				"Style",
+				Schema::AnyOf(
+					AnyOfBuilder::new()
+						.nullable(false)
+						.example(Some("normal".into()))
+						.item(Schema::Object(
+							ObjectBuilder::new()
+								.title(Some("Name"))
+								.schema_type(SchemaType::String)
+								.example(Some("normal".into()))
+								.enum_values(Some([
+									"normal",
+									"backwards",
+									"sideways",
+									"half_sideways",
+									"w_only",
+									"low_gravity",
+									"high_gravity",
+									"no_prestrafe",
+									"negev",
+									"ice",
+								]))
+								.build(),
+						))
+						.item(Schema::Object(
+							ObjectBuilder::new()
+								.title(Some("ID"))
+								.schema_type(SchemaType::Integer)
+								.example(Some(1.into()))
+								.enum_values(Some(1..=10))
+								.build(),
+						))
+						.build(),
+				)
+				.into(),
+			)
+		}
+	}
+
+	impl IntoParams for Style {
+		fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter> {
+			vec![
+				ParameterBuilder::new()
+					.parameter_in(parameter_in_provider().unwrap_or_default())
+					.name("style")
+					.schema(Some(Self::schema().1))
+					.build(),
+			]
+		}
+	}
+}

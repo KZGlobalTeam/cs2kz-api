@@ -1,73 +1,100 @@
-use std::borrow::Cow;
-use std::convert::Infallible;
-use std::str::FromStr;
+//! Utility type for identifying servers.
 
-use derive_more::Display;
+use std::fmt::{self, Display};
 
-#[derive(Debug, Display, Clone, PartialEq, Eq, Hash)]
+/// Servers are either identified by their ID, which is unique, or their name.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(untagged))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-pub enum ServerIdentifier<'a> {
+pub enum ServerIdentifier {
+	/// A server's ID.
 	ID(u16),
-	Name(Cow<'a, str>),
+
+	/// A server's name.
+	Name(String),
 }
 
-impl From<u16> for ServerIdentifier<'_> {
-	#[inline]
+impl Display for ServerIdentifier {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self {
+			Self::ID(id) => write!(f, "{id}"),
+			Self::Name(name) => write!(f, "{name}"),
+		}
+	}
+}
+
+impl From<u16> for ServerIdentifier {
 	fn from(value: u16) -> Self {
 		Self::ID(value)
 	}
 }
 
-impl<'a> From<&'a str> for ServerIdentifier<'a> {
-	fn from(value: &'a str) -> Self {
-		Self::Name(value.into())
+impl From<&str> for ServerIdentifier {
+	fn from(value: &str) -> Self {
+		value
+			.parse::<u16>()
+			.map(Self::ID)
+			.unwrap_or_else(|_| Self::Name(value.to_owned()))
 	}
 }
 
-impl From<String> for ServerIdentifier<'_> {
+impl From<String> for ServerIdentifier {
 	fn from(value: String) -> Self {
-		Self::Name(value.into())
-	}
-}
-
-impl<'a> From<Cow<'a, str>> for ServerIdentifier<'a> {
-	fn from(value: Cow<'a, str>) -> Self {
-		Self::Name(value)
-	}
-}
-
-impl FromStr for ServerIdentifier<'_> {
-	type Err = Infallible;
-
-	fn from_str(value: &str) -> Result<Self, Self::Err> {
-		Ok(match value.parse::<u16>() {
-			Ok(id) => Self::ID(id),
-
-			// This is kind of unfortunate.
-			Err(_) => Self::Name(Cow::Owned(value.to_owned())),
-		})
+		value
+			.parse::<u16>()
+			.map(Self::ID)
+			.unwrap_or_else(|_| Self::Name(value))
 	}
 }
 
 #[cfg(feature = "serde")]
 mod serde_impls {
-	use serde::{Deserialize, Deserializer};
+	mod de {
+		use serde::{Deserialize, Deserializer};
 
-	use super::ServerIdentifier;
-	use crate::serde::IntOrStr;
+		use crate::ServerIdentifier;
 
-	impl<'de> Deserialize<'de> for ServerIdentifier<'_> {
-		#[rustfmt::skip]
-		fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-			Ok(match <IntOrStr<u16> as Deserialize<'de>>::deserialize(deserializer)? {
-				IntOrStr::Int(value) => value.into(),
-				IntOrStr::Str(value) => value.parse().unwrap_or_else(|_| value.into()),
-			})
+		impl<'de> Deserialize<'de> for ServerIdentifier {
+			fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+			where
+				D: Deserializer<'de>,
+			{
+				#[derive(Deserialize)]
+				#[serde(untagged)]
+				enum Helper {
+					U16(u16),
+					String(String),
+				}
+
+				Helper::deserialize(deserializer).map(|value| match value {
+					Helper::U16(id) => Self::ID(id),
+					Helper::String(id_or_name) => id_or_name
+						.parse::<u16>()
+						.map(Self::ID)
+						.unwrap_or(Self::Name(id_or_name)),
+				})
+			}
 		}
 	}
 }
 
 #[cfg(feature = "utoipa")]
-crate::utoipa::into_params!(ServerIdentifier<'_> as "server": "A server's ID or Name");
+mod utoipa_impls {
+	use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};
+	use utoipa::{IntoParams, ToSchema};
+
+	use crate::ServerIdentifier;
+
+	impl IntoParams for ServerIdentifier {
+		fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter> {
+			vec![
+				ParameterBuilder::new()
+					.name("server")
+					.parameter_in(parameter_in_provider().unwrap_or_default())
+					.schema(Some(Self::schema().1))
+					.build(),
+			]
+		}
+	}
+}

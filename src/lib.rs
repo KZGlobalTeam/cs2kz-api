@@ -1,162 +1,193 @@
-#![forbid(rustdoc::broken_intra_doc_links, rustdoc::private_intra_doc_links)]
-#![deny(
-	clippy::cast_possible_truncation,
-	clippy::cast_possible_wrap,
-	clippy::cast_sign_loss,
-	clippy::checked_conversions,
-	clippy::many_single_char_names,
-	clippy::missing_panics_doc,
-	clippy::needless_for_each,
-	clippy::ref_option_ref,
-	clippy::unimplemented,
-	clippy::unnecessary_self_imports,
-	clippy::wildcard_dependencies,
-	clippy::wildcard_imports
-)]
+//! The CS2KZ API
+
+#![allow(clippy::redundant_closure)]
 #![warn(
-	clippy::style,
-	clippy::perf,
 	clippy::absolute_paths,
-	clippy::branches_sharing_code,
-	clippy::cloned_instead_of_copied,
+	clippy::as_underscore,
 	clippy::cognitive_complexity,
 	clippy::collection_is_never_read,
 	clippy::dbg_macro,
-	clippy::enum_glob_use,
-	clippy::inconsistent_struct_constructor,
-	clippy::mismatching_type_param_order,
-	clippy::missing_const_for_fn,
-	clippy::needless_continue,
-	clippy::needless_pass_by_ref_mut,
-	clippy::needless_pass_by_value,
-	clippy::option_if_let_else,
-	clippy::redundant_else,
-	clippy::semicolon_if_nothing_returned,
-	clippy::semicolon_outside_block,
-	clippy::similar_names,
-	clippy::todo,
-	clippy::unnested_or_patterns,
-	clippy::unused_async,
-	clippy::use_self
+	clippy::future_not_send,
+	clippy::todo
+)]
+#![deny(
+	missing_debug_implementations,
+	missing_docs,
+	clippy::missing_docs_in_private_items,
+	rustdoc::broken_intra_doc_links,
+	clippy::perf,
+	clippy::bool_comparison,
+	clippy::bool_to_int_with_if,
+	clippy::cast_possible_truncation,
+	clippy::clone_on_ref_ptr,
+	clippy::ignored_unit_patterns,
+	clippy::unimplemented
 )]
 
-use std::io;
-use std::net::SocketAddr;
-
+use axum::routing::{get, IntoMakeService};
+use axum::serve::Serve;
 use axum::Router;
-use color_eyre::eyre::Context;
-use itertools::Itertools;
+use futures::Future;
 use tokio::net::TcpListener;
-use tracing::debug;
+use tracing::info;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::auth::openapi::Security;
-
-#[cfg(test)]
-mod tests;
-
-#[cfg(test)]
-pub use cs2kz_api_macros::test;
+use self::security::Security;
 
 mod error;
 pub use error::{Error, Result};
 
-pub mod config;
+mod config;
 pub use config::Config;
 
 mod state;
 pub use state::State;
 
 /// Convenience alias for extracting [`State`] in handlers.
-pub type AppState = axum::extract::State<&'static crate::State>;
+pub type AppState = axum::extract::State<&'static State>;
 
-#[doc(hidden)]
-pub mod env;
+#[cfg(test)]
+mod test;
 
-mod cors;
-mod database;
-mod middleware;
-mod params;
-mod query;
+#[cfg(test)]
+pub(crate) use cs2kz_api_macros::test;
+
 mod responses;
-mod serde;
+mod parameters;
+mod middleware;
 mod sqlx;
-mod status;
-mod steam;
+mod workshop;
+mod security;
+mod serde;
 
-mod admins;
-mod auth;
-mod bans;
-mod course_sessions;
-mod jumpstats;
-mod maps;
 mod players;
-mod records;
+mod maps;
 mod servers;
-mod sessions;
+mod jumpstats;
+mod records;
+mod bans;
+mod game_sessions;
+mod auth;
+mod admins;
+mod plugin;
 
 #[derive(OpenApi)]
 #[rustfmt::skip]
 #[openapi(
   info(
     title = "CS2KZ API",
+    description = "Source Code available on [GitHub](https://github.com/KZGlobalTeam/cs2kz-api).",
     license(
-      name = "GPL-3.0",
+      name = "Licensed under the GPLv3",
       url = "https://www.gnu.org/licenses/gpl-3.0",
     ),
   ),
   modifiers(&Security),
+  paths(
+    players::handlers::root::get,
+    players::handlers::root::post,
+    players::handlers::by_identifier::get,
+    players::handlers::by_identifier::patch,
+    players::handlers::preferences::get,
+    players::handlers::preferences::put,
+
+    maps::handlers::root::get,
+    maps::handlers::root::put,
+    maps::handlers::by_identifier::get,
+    maps::handlers::by_identifier::patch,
+
+    servers::handlers::root::get,
+    servers::handlers::root::post,
+    servers::handlers::by_identifier::get,
+    servers::handlers::by_identifier::patch,
+    servers::handlers::key::generate_temp,
+    servers::handlers::key::put_perma,
+    servers::handlers::key::delete_perma,
+
+    jumpstats::handlers::root::get,
+    jumpstats::handlers::root::post,
+    jumpstats::handlers::by_id::get,
+    jumpstats::handlers::replays::get,
+
+    records::handlers::root::get,
+    records::handlers::root::post,
+    records::handlers::top::get,
+    records::handlers::by_id::get,
+    records::handlers::replays::get,
+
+    bans::handlers::root::get,
+    bans::handlers::root::post,
+    bans::handlers::by_id::get,
+    bans::handlers::by_id::patch,
+    bans::handlers::by_id::delete,
+
+    game_sessions::handlers::by_id::get,
+
+    auth::handlers::login,
+    auth::handlers::logout,
+    auth::handlers::callback,
+
+    admins::handlers::root::get,
+    admins::handlers::by_id::get,
+    admins::handlers::by_id::put,
+
+    plugin::handlers::versions::get,
+    plugin::handlers::versions::post,
+  ),
   components(
     schemas(
       cs2kz::SteamID,
       cs2kz::Mode,
       cs2kz::Style,
-      cs2kz::Jumpstat,
       cs2kz::Tier,
+      cs2kz::JumpType,
       cs2kz::PlayerIdentifier,
       cs2kz::MapIdentifier,
       cs2kz::ServerIdentifier,
+      cs2kz::GlobalStatus,
+      cs2kz::RankedStatus,
 
-      error::Error,
+      parameters::Offset,
+      parameters::Limit,
 
-      params::Limit,
-      params::Offset,
+      responses::Object,
 
-      database::RankedStatus,
-      database::GlobalStatus,
+      players::models::Player,
+      players::models::NewPlayer,
+      players::models::PlayerUpdate,
 
-      maps::models::KZMap,
+      maps::models::FullMap,
       maps::models::Course,
       maps::models::Filter,
       maps::models::NewMap,
       maps::models::NewCourse,
       maps::models::NewFilter,
+      maps::models::CreatedMap,
       maps::models::MapUpdate,
       maps::models::CourseUpdate,
-      maps::models::FilterUpdate,
+      maps::models::MapInfo,
+      maps::models::CourseInfo,
 
       servers::models::Server,
       servers::models::NewServer,
       servers::models::CreatedServer,
       servers::models::ServerUpdate,
+      servers::models::RefreshKeyRequest,
+      servers::models::RefreshKey,
+      servers::models::ServerInfo,
+
+      jumpstats::models::Jumpstat,
+      jumpstats::models::NewJumpstat,
+      jumpstats::models::CreatedJumpstat,
 
       records::models::Record,
-      records::models::MapInfo,
-      records::models::ServerInfo,
+      records::models::BhopStats,
       records::models::NewRecord,
       records::models::CreatedRecord,
-      records::models::BhopStats,
-
-      players::models::Player,
-      players::models::FullPlayer,
-      players::models::NewPlayer,
-      players::models::PlayerUpdate,
-      players::models::PlayerUpdateSession,
-      players::models::PlayerUpdateCourseSession,
 
       bans::models::Ban,
-      bans::models::BannedPlayer,
+      bans::models::BanReason,
       bans::models::Unban,
       bans::models::NewBan,
       bans::models::CreatedBan,
@@ -164,178 +195,84 @@ mod sessions;
       bans::models::NewUnban,
       bans::models::CreatedUnban,
 
+      game_sessions::models::GameSession,
+      game_sessions::models::TimeSpent,
+
       admins::models::Admin,
+      admins::models::AdminUpdate,
 
-      auth::Role,
-      auth::RoleFlags,
-
-      sessions::models::Session,
-      sessions::models::TimeSpent,
-
-      course_sessions::models::CourseSession,
+      plugin::models::PluginVersion,
+      plugin::models::NewPluginVersion,
+      plugin::models::CreatedPluginVersion,
     ),
   ),
-  paths(
-    status::status,
-
-    maps::routes::get_many::get_many,
-    maps::routes::create::create,
-    maps::routes::get_single::get_single,
-    maps::routes::update::update,
-
-    servers::routes::get_many::get_many,
-    servers::routes::create::create,
-    servers::routes::get_single::get_single,
-    servers::routes::update::update,
-    servers::routes::replace_key::replace_key,
-    servers::routes::delete_key::delete_key,
-
-    records::routes::get_many::get_many,
-    records::routes::create::create,
-    records::routes::get_single::get_single,
-
-    players::routes::get_many::get_many,
-    players::routes::create::create,
-    players::routes::get_single::get_single,
-    players::routes::update::update,
-
-    bans::routes::get_many::get_many,
-    bans::routes::create::create,
-    bans::routes::get_single::get_single,
-    bans::routes::update::update,
-    bans::routes::unban::unban,
-
-    admins::routes::get_many::get_many,
-    admins::routes::get_single::get_single,
-    admins::routes::update::update,
-
-    auth::routes::login::login,
-    auth::routes::logout::logout,
-    auth::steam::routes::callback::callback,
-
-    sessions::routes::get_many::get_many,
-    sessions::routes::get_single::get_single,
-
-    course_sessions::routes::get_many::get_many,
-    course_sessions::routes::get_single::get_single,
-  ),
 )]
-pub struct API {
-	/// The TCP listener used by the underlying HTTP server.
-	tcp_listener: TcpListener,
-
-	/// The global application state.
-	state: State,
-}
+#[allow(missing_docs, missing_debug_implementations)]
+pub struct API;
 
 impl API {
-	/// Creates a new API instance with the given `config`.
-	///
-	/// See [`API::run()`] for starting the server.
-	#[tracing::instrument]
-	pub async fn new(config: Config) -> state::Result<Self> {
-		let tcp_listener = TcpListener::bind(config.socket_addr)
+	/// Run the API.
+	pub async fn run(config: Config) -> Result<()> {
+		Self::server(config)
+			.await?
 			.await
-			.expect("failed to bind to TCP socket");
+			.map_err(|err| Error::http_server(err))
+	}
 
-		let local_addr = tcp_listener
-			.local_addr()
-			.expect("failed to get TCP address");
+	/// Run the API, until the given `until` future completes.
+	pub async fn run_until<Until>(config: Config, until: Until) -> Result<()>
+	where
+		Until: Future<Output = ()> + Send + 'static,
+	{
+		Self::server(config)
+			.await?
+			.with_graceful_shutdown(until)
+			.await
+			.map_err(|err| Error::http_server(err))
+	}
 
-		debug!(%local_addr, "Initialized TCP socket");
+	/// Creates a hyper server that will serve the API.
+	async fn server(config: Config) -> Result<Serve<IntoMakeService<Router>, Router>> {
+		info!(target: "audit_log", ?config, "API starting up");
+
+		let tcp_listener = TcpListener::bind(config.socket_addr())
+			.await
+			.map_err(|err| Error::tcp(err))?;
 
 		let state = State::new(config).await?;
-
-		debug!("Initialized API state");
-
-		Ok(Self { tcp_listener, state })
-	}
-
-	/// Runs the [axum] server for the API.
-	#[tracing::instrument(skip(self))]
-	pub async fn run(self) -> color_eyre::Result<()> {
-		let state: &'static _ = Box::leak(Box::new(self.state));
 		let swagger_ui =
-			SwaggerUi::new("/docs/swagger-ui").url("/docs/open-api.json", Self::openapi());
+			SwaggerUi::new("/docs/swagger-ui").url("/docs/openapi.json", Self::openapi());
 
-		let router = Router::new()
-			.nest("/", status::router())
+		let api_service = Router::new()
+			.route("/", get(|| async { "(͡ ͡° ͜ つ ͡͡°)" }))
+			.nest("/players", players::router(state))
 			.nest("/maps", maps::router(state))
 			.nest("/servers", servers::router(state))
-			.nest("/records", records::router(state))
 			.nest("/jumpstats", jumpstats::router(state))
-			.nest("/players", players::router(state))
+			.nest("/records", records::router(state))
 			.nest("/bans", bans::router(state))
-			.nest("/admins", admins::router(state))
+			.nest("/sessions", game_sessions::router(state))
 			.nest("/auth", auth::router(state))
-			.nest("/sessions", sessions::router(state))
-			.nest("/course-sessions", course_sessions::router(state))
-			.merge(swagger_ui)
+			.nest("/admins", admins::router(state))
+			.nest("/plugin", plugin::router(state))
 			.layer(middleware::logging::layer!())
+			.merge(swagger_ui)
 			.into_make_service();
 
-		audit!("starting axum server", prod = %cfg!(feature = "production"));
+		let address = tcp_listener.local_addr().map_err(|err| Error::tcp(err))?;
 
-		axum::serve(self.tcp_listener, router)
-			.await
-			.context("failed to run axum")
+		info! {
+			target: "audit_log",
+			%address,
+			prod = cfg!(feature = "production"),
+			"listening for requests",
+		};
+
+		Ok(axum::serve(tcp_listener, api_service))
 	}
 
-	/// Returns the local socket address for the underlying TCP server.
-	pub fn local_addr(&self) -> io::Result<SocketAddr> {
-		self.tcp_listener.local_addr()
-	}
-
-	/// Returns an iterator over all the routes registered in the OpenAPI spec.
-	pub fn routes() -> impl Iterator<Item = String> {
-		Self::openapi().paths.paths.into_iter().map(|(uri, path)| {
-			let methods = path
-				.operations
-				.into_keys()
-				.map(|method| format!("{method:?}").to_uppercase())
-				.collect_vec()
-				.join(", ");
-
-			format!("`{uri}` [{methods}]")
-		})
-	}
-
-	/// Returns a pretty-printed version of the OpenAPI spec in JSON.
-	///
-	/// # Panics
-	///
-	/// This will panic if any types used in the spec cannot be serialized as JSON.
+	/// Generates a JSON version of the OpenAPI spec.
 	pub fn spec() -> String {
-		Self::openapi()
-			.to_pretty_json()
-			.expect("Failed to format API spec as JSON.")
-	}
-}
-
-/// Logs a message with `audit = true`.
-///
-/// This will cause the log to be saved in the database.
-#[macro_export]
-macro_rules! audit {
-	($level:ident, $message:literal $(,$($fields:tt)*)?) => {
-		::tracing::$level!(target: "audit_log", $($($fields)*,)? $message)
-	};
-
-	($message:literal $(,$($fields:tt)*)?) => {
-		audit!(trace, $message $(,$($fields)*)?)
-	};
-}
-
-#[cfg(test)]
-mod test_setup {
-	use tracing_subscriber::EnvFilter;
-
-	#[ctor::ctor]
-	fn test_setup() {
-		color_eyre::install().unwrap();
-		dotenvy::dotenv().unwrap();
-		tracing_subscriber::fmt()
-			.with_env_filter(EnvFilter::from_default_env())
-			.init();
+		Self::openapi().to_pretty_json().expect("spec is valid")
 	}
 }

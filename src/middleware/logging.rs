@@ -1,67 +1,57 @@
+//! Middleware for logging HTTP requests & responses.
+
 use std::time::Duration;
 
-use axum::body::Bytes;
 use axum::extract::Request;
 use axum::response::Response;
-use tracing::Level;
+use tower_http::classify::ServerErrorsFailureClass;
+use tracing::{error, Level, Span};
 use uuid::Uuid;
 
-/// Middleware for logging incoming requests and outgoing responses.
+/// A tower layer that will log HTTP requests & responses.
 macro_rules! layer {
 	() => {
-		::tower_http::trace::TraceLayer::new_for_http()
+		tower_http::trace::TraceLayer::new_for_http()
 			.make_span_with($crate::middleware::logging::make_span_with)
-			.on_request($crate::middleware::logging::on_request)
-			.on_body_chunk($crate::middleware::logging::on_body_chunk)
-			.on_eos(())
 			.on_response($crate::middleware::logging::on_response)
+			.on_failure($crate::middleware::logging::on_failure)
 	};
 }
 
 pub(crate) use layer;
 
-/// Creates a [`tracing::Span`] for an [HTTP request].
-///
-/// [HTTP request]: Request
-pub fn make_span_with(request: &Request) -> tracing::Span {
+#[doc(hidden)]
+pub(crate) fn make_span_with(request: &Request) -> Span {
 	tracing::span! {
 		Level::TRACE,
 		"request",
 		id = %Uuid::new_v4(),
 		method = %request.method(),
-		path = format_args!("{}", request.uri()),
+		path = %request.uri(),
 		version = ?request.version(),
-		request_headers = ?request.headers(),
-		request_body = tracing::field::Empty,
-		response_code = tracing::field::Empty,
-		response_headers = tracing::field::Empty,
-		response_body = tracing::field::Empty,
+		request.headers = ?request.headers(),
+		status = tracing::field::Empty,
+		response.headers = tracing::field::Empty,
 		latency = tracing::field::Empty,
 	}
 }
 
-#[allow(clippy::missing_const_for_fn)] // this will become non-const once implemented
-pub fn on_request(_request: &Request, _span: &tracing::Span) {
-	// Currently a NOOP.
+#[doc(hidden)]
+pub(crate) fn on_response(response: &Response, latency: Duration, span: &Span) {
+	span.record("status", format_args!("{}", response.status()))
+		.record("response.headers", format_args!("{:?}", response.headers()))
+		.record("latency", format_args!("{:?}", latency));
 }
 
-#[allow(clippy::missing_const_for_fn)] // this will become non-const once implemented
-pub fn on_body_chunk(_chunk: &Bytes, _latency: Duration, _span: &tracing::Span) {
-	// TODO(AlphaKeks): figure out how to identify chunks to log them correctly
-
-	/// Turns a byte-slice into a string-slice with fallback values if the given `bytes` are
-	/// either empty, or invalid UTF-8.
-	fn _stringify_bytes(bytes: &[u8]) -> &str {
-		match std::str::from_utf8(bytes) {
-			Ok("") => "null",
-			Ok(s) => s,
-			Err(_) => "<bytes>",
+#[doc(hidden)]
+pub(crate) fn on_failure(failure: ServerErrorsFailureClass, _latency: Duration, _span: &Span) {
+	match failure {
+		ServerErrorsFailureClass::Error(message) => {
+			error!(target: "audit_log", %message, "encountered runtime error");
 		}
+		ServerErrorsFailureClass::StatusCode(code) if code.is_server_error() => {
+			error!(target: "audit_log", code = format_args!("{code}"), "encountered runtime error");
+		}
+		ServerErrorsFailureClass::StatusCode(_) => {}
 	}
-}
-
-pub fn on_response(response: &Response, latency: Duration, span: &tracing::Span) {
-	span.record("response_code", format_args!("{}", response.status().as_u16()))
-		.record("response_headers", format_args!("{:?}", response.headers()))
-		.record("latency", format_args!("{latency:?}"));
 }

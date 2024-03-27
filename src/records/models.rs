@@ -1,26 +1,26 @@
+//! Types used for describing records ("runs") and related concepts.
+
+use std::num::{NonZeroU32, NonZeroU64};
+use std::time::Duration;
+
 use chrono::{DateTime, Utc};
 use cs2kz::{Mode, SteamID, Style};
-use semver::Version;
 use serde::{Deserialize, Serialize};
 use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
+use crate::maps::{CourseInfo, MapInfo};
 use crate::players::Player;
+use crate::servers::ServerInfo;
+use crate::sqlx::Seconds;
 
+/// A record (or "run").
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Record {
-	/// The record's ID.
-	pub id: u64,
-
-	/// The player who performed this run.
-	pub player: Player,
-
-	/// The map this run was performed on.
-	pub map: MapInfo,
-
-	/// The server this run was performed on.
-	pub server: ServerInfo,
+	/// The record's ID:
+	#[schema(value_type = u64)]
+	pub id: NonZeroU64,
 
 	/// The mode this run was performed in.
 	pub mode: Mode,
@@ -32,14 +32,22 @@ pub struct Record {
 	pub teleports: u16,
 
 	/// The time it took to complete this run.
-	pub time: f64,
+	pub time: Duration,
 
-	/// Bhop statistics.
+	/// The player who performed this run.
+	pub player: Player,
+
+	/// The map this run was performed on.
+	pub map: MapInfo,
+
+	/// The course this run was performed on.
+	pub course: CourseInfo,
+
+	/// The server this run was performed on.
+	pub server: ServerInfo,
+
+	/// Bhop statistics about this run.
 	pub bhop_stats: BhopStats,
-
-	/// The CS2KZ plugin version this run was performed on.
-	#[schema(value_type = String)]
-	pub plugin_version: Version,
 
 	/// When this run was submitted.
 	pub created_on: DateTime<Utc>,
@@ -47,99 +55,95 @@ pub struct Record {
 
 impl FromRow<'_, MySqlRow> for Record {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
-		let id = row.try_get("id")?;
-		let player = Player {
-			steam_id: row.try_get("player_id")?,
-			name: row.try_get("player_name")?,
-		};
-
-		let map = MapInfo { id: row.try_get("map_id")?, name: row.try_get("map_name")? };
-
-		let server =
-			ServerInfo { id: row.try_get("server_id")?, name: row.try_get("server_name")? };
-
-		let mode = row.try_get("mode")?;
-		let style = row.try_get("style")?;
-		let teleports = row.try_get("teleports")?;
-		let time = row.try_get("time")?;
-
-		let bhop_stats = BhopStats {
-			perfs: row.try_get("perfs")?,
-			tick0: row.try_get("bhops_tick0")?,
-			tick1: row.try_get("bhops_tick1")?,
-			tick2: row.try_get("bhops_tick2")?,
-			tick3: row.try_get("bhops_tick3")?,
-			tick4: row.try_get("bhops_tick4")?,
-			tick5: row.try_get("bhops_tick5")?,
-			tick6: row.try_get("bhops_tick6")?,
-			tick7: row.try_get("bhops_tick7")?,
-			tick8: row.try_get("bhops_tick8")?,
-		};
-
-		let plugin_version = row
-			.try_get::<&str, _>("plugin_version")?
-			.parse::<Version>()
-			.map_err(|err| sqlx::Error::ColumnDecode {
-				index: String::from("plugin_version"),
-				source: Box::new(err),
-			})?;
-
-		let created_on = row.try_get("created_on")?;
-
 		Ok(Self {
-			id,
-			player,
-			map,
-			server,
-			mode,
-			style,
-			teleports,
-			time,
-			bhop_stats,
-			plugin_version,
-			created_on,
+			id: crate::sqlx::non_zero!("id" as NonZeroU64, row)?,
+			mode: row.try_get("mode")?,
+			style: row.try_get("style")?,
+			teleports: row.try_get("teleports")?,
+			time: row.try_get::<Seconds, _>("time").map(Into::into)?,
+			player: Player::from_row(row)?,
+			map: MapInfo::from_row(row)?,
+			course: CourseInfo::from_row(row)?,
+			server: ServerInfo::from_row(row)?,
+			bhop_stats: BhopStats::from_row(row)?,
+			created_on: row.try_get("created_on")?,
 		})
 	}
 }
 
-#[derive(Debug, Serialize, ToSchema)]
-pub struct MapInfo {
-	pub id: u16,
-	pub name: String,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
-pub struct ServerInfo {
-	pub id: u16,
-	pub name: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
+/// Bhop statistics over a certain time period.
+#[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct BhopStats {
+	/// The amount of perfect Bhops.
 	pub perfs: u16,
+
+	/// The amount of scrolls at the exact same tick the player hit the ground.
+	#[sqlx(rename = "bhops_tick0")]
 	pub tick0: u16,
+
+	/// The amount of scrolls 1 tick after the player hit the ground.
+	#[sqlx(rename = "bhops_tick1")]
 	pub tick1: u16,
+
+	/// The amount of scrolls 2 ticks after the player hit the ground.
+	#[sqlx(rename = "bhops_tick2")]
 	pub tick2: u16,
+
+	/// The amount of scrolls 3 ticks after the player hit the ground.
+	#[sqlx(rename = "bhops_tick3")]
 	pub tick3: u16,
+
+	/// The amount of scrolls 4 ticks after the player hit the ground.
+	#[sqlx(rename = "bhops_tick4")]
 	pub tick4: u16,
+
+	/// The amount of scrolls 5 ticks after the player hit the ground.
+	#[sqlx(rename = "bhops_tick5")]
 	pub tick5: u16,
+
+	/// The amount of scrolls 6 ticks after the player hit the ground.
+	#[sqlx(rename = "bhops_tick6")]
 	pub tick6: u16,
+
+	/// The amount of scrolls 7 ticks after the player hit the ground.
+	#[sqlx(rename = "bhops_tick7")]
 	pub tick7: u16,
+
+	/// The amount of scrolls 8 ticks after the player hit the ground.
+	#[sqlx(rename = "bhops_tick8")]
 	pub tick8: u16,
 }
 
+/// Request body for submitting new records.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewRecord {
-	pub course_id: u32,
-	pub steam_id: SteamID,
+	/// The SteamID of the player who performed this run.
+	pub player_id: SteamID,
+
+	/// The mode this run was performed in.
 	pub mode: Mode,
+
+	/// The style this run was performed in.
 	pub style: Style,
+
+	/// The ID of the course this run was performed on.
+	#[schema(value_type = u32)]
+	pub course_id: NonZeroU32,
+
+	/// The amount of teleports used during this run.
 	pub teleports: u16,
-	pub time: f64,
+
+	/// The time it took to complete this run.
+	pub time: Duration,
+
+	/// Bhop statistics about this run.
 	pub bhop_stats: BhopStats,
 }
 
+/// A newly created record.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedRecord {
-	pub record_id: u64,
+	/// The record's ID.
+	#[schema(value_type = u64)]
+	pub record_id: NonZeroU64,
 }

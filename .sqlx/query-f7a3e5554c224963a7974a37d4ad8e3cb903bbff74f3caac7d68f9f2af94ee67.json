@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t  COUNT(map_id) count\n\t\tFROM\n\t\t  Mappers\n\t\tWHERE\n\t\t  map_id = ?\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "char_set": 63,
+          "max_size": 21
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f7a3e5554c224963a7974a37d4ad8e3cb903bbff74f3caac7d68f9f2af94ee67"
+}

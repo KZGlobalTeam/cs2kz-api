@@ -1,83 +1,105 @@
-//! This module contains various types used for OpenAPI spec generation.
+//! All types related to HTTP responses live in this module.
 //!
-//! Most of these will not be used directly, but only in [`utoipa::path`] annotations.
-//! Their purpose should be self-explanatory.
+//! Most of them exist purely for documentation purposes via the [`utoipa`] crate, and are used in
+//! its macros. Some however are also used as actual return types, e.g. [`Created<T>`].
+
+// Everything in here should be self-explanatory, and doc comments would end up as descriptions in
+// the OpenAPI spec, which we don't want.
+#![allow(clippy::missing_docs_in_private_items)]
 
 use std::collections::BTreeMap;
 
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response as AxumResponse};
-use utoipa::openapi::response::Response as OpenApiResponse;
-use utoipa::openapi::RefOr;
+use axum::response::{IntoResponse, Response};
+use serde::Serialize;
+use utoipa::openapi::response::Response as ResponseSchema;
+use utoipa::openapi::schema::Schema;
+use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
 use utoipa::{IntoResponses, ToSchema};
 
-#[derive(IntoResponses)]
-#[response(status = OK)]
-pub struct Ok<T: ToSchema<'static>>(#[to_schema] T);
-
-/// Wrapper struct for turning any `T` into a [Response] with status code 201.
-///
-/// [Response]: axum::response::Response
-pub struct Created<T>(pub T);
-
-impl<T> IntoResponses for Created<T>
+#[derive(Debug, Serialize, IntoResponses)]
+#[response(status = 200)]
+pub struct Ok<T>(#[to_schema] pub T)
 where
-	T: ToSchema<'static>,
-{
-	fn responses() -> BTreeMap<String, RefOr<OpenApiResponse>> {
-		// HACK: if we derived `IntoResponses` on `Created` directly, we would have to put
-		// a `ToSchema` bound on `T` (on the struct itself), which we do not want.
-		#[derive(IntoResponses)]
-		#[response(status = CREATED)]
-		struct Helper<T: ToSchema<'static>>(#[to_schema] T);
+	T: ToSchema<'static>;
 
-		Helper::<T>::responses()
-	}
-}
+#[derive(Debug, Serialize)]
+pub struct Created<T = ()>(pub T);
 
 impl<T> IntoResponse for Created<T>
 where
 	T: IntoResponse,
 {
-	fn into_response(self) -> AxumResponse {
+	fn into_response(self) -> Response {
 		(StatusCode::CREATED, self.0).into_response()
 	}
 }
 
-#[derive(IntoResponses)]
-#[response(status = NO_CONTENT)]
+impl<T> IntoResponses for Created<T>
+where
+	T: ToSchema<'static>,
+{
+	#[allow(clippy::missing_docs_in_private_items)]
+	fn responses() -> BTreeMap<String, RefOr<ResponseSchema>> {
+		#[derive(IntoResponses)]
+		#[response(status = 201)]
+		struct Helper<T>(#[to_schema] T)
+		where
+			T: ToSchema<'static>;
+
+		Helper::<T>::responses()
+	}
+}
+
+#[derive(Debug, Serialize, IntoResponses)]
+#[response(status = 204)]
 pub struct NoContent;
 
 impl IntoResponse for NoContent {
-	fn into_response(self) -> AxumResponse {
+	fn into_response(self) -> Response {
 		StatusCode::NO_CONTENT.into_response()
 	}
 }
 
-#[derive(IntoResponses)]
-#[response(status = SEE_OTHER)]
+#[derive(Debug, Serialize, IntoResponses)]
+#[response(status = 303)]
 pub struct SeeOther;
 
-#[derive(IntoResponses)]
-#[response(status = BAD_REQUEST)]
+#[derive(Debug, Serialize, IntoResponses)]
+#[response(status = 400)]
 pub struct BadRequest;
 
-#[derive(IntoResponses)]
-#[response(status = UNAUTHORIZED)]
+#[derive(Debug, Serialize, IntoResponses)]
+#[response(status = 401)]
 pub struct Unauthorized;
 
-#[derive(IntoResponses)]
-#[response(status = CONFLICT)]
+#[derive(Debug, Serialize, IntoResponses)]
+#[response(status = 409)]
 pub struct Conflict;
 
-#[derive(IntoResponses)]
-#[response(status = UNPROCESSABLE_ENTITY)]
+#[derive(Debug, Serialize, IntoResponses)]
+#[response(status = 422)]
 pub struct UnprocessableEntity;
 
-#[derive(IntoResponses)]
-#[response(status = INTERNAL_SERVER_ERROR, description = "Something unexpected happened. This is a bug; please report it.")]
+#[derive(Debug, Serialize, IntoResponses)]
+#[response(status = 500)]
 pub struct InternalServerError;
 
-#[derive(IntoResponses)]
-#[response(status = BAD_GATEWAY, description = "Communication with an external service failed (e.g. Steam).")]
+#[derive(Debug, Serialize, IntoResponses)]
+#[response(status = 502)]
 pub struct BadGateway;
+
+pub struct Object;
+
+impl<'s> ToSchema<'s> for Object {
+	fn schema() -> (&'s str, RefOr<Schema>) {
+		(
+			"Object",
+			ObjectBuilder::new()
+				.title(Some("Object"))
+				.description(Some("arbitrary key-value pairs"))
+				.schema_type(SchemaType::Object)
+				.into(),
+		)
+	}
+}

@@ -1,0 +1,47 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t  id `id: SteamID`,\n\t\t  name,\n\t\t  role_flags `role_flags: RoleFlags`\n\t\tFROM\n\t\t  Players\n\t\tWHERE\n\t\t  id = ?\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: SteamID",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 20
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 128
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "role_flags: RoleFlags",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | UNSIGNED",
+          "char_set": 63,
+          "max_size": 10
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "01639544dfbd84cc1d3b8e1b66db72002b4582028bb3c5ae8ff79bfd3f4109f8"
+}

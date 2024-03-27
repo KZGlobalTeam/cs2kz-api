@@ -1,212 +1,307 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 
 use proc_macro::TokenStream;
 use proc_macro_error::proc_macro_error;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
-use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
-use syn::token::Comma;
-use syn::{parse_macro_input, Block, FnArg, Ident, ItemFn, Lit, Pat, Type};
+use syn::{
+	parse_macro_input, Expr, ExprArray, ExprAssign, ExprLit, ExprPath, FnArg, Ident, ItemFn, Lit,
+	Pat, PatIdent, PatType, PathArguments, PathSegment, ReturnType, Signature, Type, TypePath,
+	TypeReference, Visibility,
+};
 
-static FIXTURES_PATH: &str = "./database/fixtures";
-
+/// Run an integration test.
+///
+/// # Test Setup
+///
+/// This macro will generate the boilerplate necessary for running **integration tests**.
+/// This means that every test will get its own API instance and database! Your test function
+/// should have the following signature:
+///
+/// ```rust,ignore
+/// async fn my_test(ctx: &Context);
+/// ```
+///
+/// Every test implicitly has a return type of `Result<()>` and returns `Ok(())` as the default
+/// case, which means you don't need to specify either of them.
+///
+/// The `Context` parameter can be used to make requests to the API, using the `http_client`
+/// field and `Context::url()` method. A connection pool to the API's database is also
+/// provided, as well as a shutdown signal if the API needs to be shut down prematurely.
+///
+/// # Fixtures
+///
+/// You can specify a list of "fixtures" to be ran after the standard migrations by specifying
+/// `fixtures = […]` as part of the macro arguments, like so:
+///
+/// ```rust,ignore
+/// #[crate::test(fixtures = ["my-fixture"])]
+/// async fn my_test(ctx: &Context) {
+///     // ...
+/// }
+/// ```
+///
+/// The names have to correspond to `.sql` files in `./database/fixtures`. In this example, you
+/// would need to create a file called `./database/fixtures/my-fixture.sql` (from the repo root).
 #[proc_macro_error]
 #[proc_macro_attribute]
-pub fn test(args: TokenStream, item: TokenStream) -> TokenStream {
-	let Args { queries } = parse_macro_input!(args as Args);
-	let Test { name, ctx_arg, body } = parse_macro_input!(item as Test);
+pub fn test(args: TokenStream, test_function: TokenStream) -> TokenStream {
+	let test_args = parse_macro_input!(args as TestArgs);
+	let test_function = parse_macro_input!(test_function as ItemFn);
 
-	quote! {
-		#[allow(clippy::semicolon_outside_block)]
-		#[::tokio::test]
-		async fn #name() -> ::color_eyre::Result<()> {
-			use ::std::fmt::Write as _;
-			use ::color_eyre::eyre::Context as _;
-			use ::sqlx::migrate::MigrateDatabase as _;
-			use ::rand::Rng as _;
-
-			let mut config = crate::Config::new().context("failed to read config")?;
-			let port = ::rand::thread_rng().gen_range(3000..=u16::MAX);
-
-			config.socket_addr.set_port(port);
-
-			let mut database_url = ::std::env::var("DATABASE_TEST_URL")
-				.context("missing `DATABASE_TEST_URL` environment variable")?;
-
-			::std::env::set_var("DATABASE_URL", &database_url);
-
-			write!(&mut database_url, "-test-{port}")?;
-
-			config.database.url = database_url
-				.parse()
-				.context("invalid `DATABASE_TEST_URL`")?;
-
-			::sqlx::mysql::MySql::drop_database(&database_url)
-				.await
-				.with_context(|| format!("failed to drop database {port}"))?;
-
-			::sqlx::mysql::MySql::create_database(&database_url)
-				.await
-				.with_context(|| format!("failed to create database {port}"))?;
-
-			let connection_pool = ::sqlx::mysql::MySqlPool::connect(&database_url)
-				.await
-				.context("failed to connect to test database")?;
-
-			crate::tests::MIGRATOR
-				.run(&connection_pool)
-				.await
-				.with_context(|| format!("failed to run migrations for database {port}"))?;
-
-			#(
-				::sqlx::query!(#queries)
-					.execute(&connection_pool)
-					.await
-					.with_context(|| format!("failed to run migration for database {port}"))?;
-			)*
-
-			let addr = config.socket_addr;
-			let ctx = crate::tests::Context::new(addr, connection_pool);
-
-			::tokio::task::spawn(async move {
-				crate::API::new(config)
-					.await
-					.expect("failed to create api")
-					.run()
-					.await
-					.expect("failed to run api");
-
-				unreachable!("api shutdown?");
-			});
-
-			async fn test(#ctx_arg: crate::tests::Context) -> ::color_eyre::Result<()> {
-				::tokio::task::yield_now().await;
-
-				#body
-
-				::color_eyre::Result::Ok(())
-			}
-
-			test(ctx).await.with_context(|| format!("test {port} failed"))?;
-
-			::sqlx::mysql::MySql::drop_database(&database_url)
-				.await
-				.with_context(|| format!("failed to drop database {port}"))?;
-
-			::color_eyre::Result::Ok(())
-		}
+	match expand(test_args, test_function) {
+		Ok(tokens) => tokens,
+		Err(error) => error.into_compile_error().into(),
 	}
-	.into()
-}
-
-#[derive(Debug)]
-struct Args {
-	queries: Vec<String>,
-}
-
-#[derive(Debug)]
-struct Test {
-	name: Ident,
-	ctx_arg: Ident,
-	body: Block,
 }
 
 macro_rules! error {
-	( $item:expr, $( $arg:tt )+ ) => {
-		return Err(::syn::Error::new($item.span(), format!( $( $arg )+ )));
+	($span:expr, $($message:tt)*) => {
+		return Err(syn::Error::new($span.span(), format_args!($($message)*)));
 	};
 }
 
-impl Parse for Args {
+fn expand(TestArgs { queries }: TestArgs, test_function: ItemFn) -> syn::Result<TokenStream> {
+	let Visibility::Inherited = &test_function.vis else {
+		error!(test_function.vis, "test functions do not have to be marked `pub`");
+	};
+
+	let signature = &test_function.sig;
+	let test_function_ident = &test_function.sig.ident;
+	let test_function_body = *test_function.block;
+	let ctx_param = validate_signature(signature)?;
+	let fixtures = if queries.is_empty() {
+		quote! {}
+	} else {
+		quote! {
+			::tokio::try_join!(#(::sqlx::query!(#queries).execute(&database)),*)?;
+		}
+	};
+
+	let output = quote! {
+		#[tokio::test]
+		async fn #test_function_ident() -> ::eyre::Result<()> {
+			use crate::test::Context;
+			use ::sqlx::{Connection as _, migrate::MigrateDatabase as _};
+			use ::eyre::{Context as _, ContextCompat as _};
+
+			#signature -> ::eyre::Result<()> {
+				use ::eyre::{Context as _, bail, eyre};
+				use crate::test::{assert, assert_eq, assert_ne};
+
+				#test_function_body
+
+				Ok(())
+			}
+
+			let test_id = ::uuid::Uuid::new_v4();
+			let mut config = crate::Config::new()?;
+
+			config.port = <::rand::rngs::ThreadRng as ::rand::Rng>::gen_range(&mut ::rand::thread_rng(), 5000_u16..50000_u16);
+			config.public_url
+				.set_port(Some(config.port))
+				.ok()
+				.context("tests must use a custom port")?;
+
+			let http_client = ::reqwest::Client::new();
+
+			::std::env::set_var("DATABASE_URL", config.database_admin_url.as_str());
+
+			let database_url = format!("{}-test-{}", config.database_admin_url, test_id);
+
+			config.database_url = database_url.parse()?;
+
+			::tracing::debug!("creating database... ({test_id})");
+			::sqlx::MySql::drop_database(&database_url).await?;
+			::sqlx::MySql::create_database(&database_url).await?;
+
+			let database = ::sqlx::MySqlPool::connect(&database_url).await?;
+
+			::tracing::debug!("running migrations... ({test_id})");
+			::sqlx::migrate!("./database/migrations")
+				.run(&database)
+				.await?;
+
+			#fixtures
+
+			let (shutdown, rx) = ::tokio::sync::oneshot::channel();
+
+			::tracing::debug!("starting API... ({test_id})");
+			::tokio::task::spawn(crate::API::run_until(config.clone(), async move {
+				_ = rx.await;
+			}));
+
+			let #ctx_param = Context::new(test_id, config, http_client, database, shutdown)?;
+
+			::tokio::task::yield_now().await;
+
+			#test_function_ident(&#ctx_param)
+				.await
+				.with_context(|| format!("test {test_id} failed"))?;
+
+			::tracing::debug!("cleaning up... ({test_id})");
+
+			let shutdown_fail = #ctx_param.shutdown.send(()).is_err();
+
+			::sqlx::MySql::drop_database(&database_url).await?;
+
+			if shutdown_fail {
+				::eyre::bail!("api already shut down?");
+			}
+
+			Ok(())
+		}
+	};
+
+	Ok(output.into())
+}
+
+struct TestArgs {
+	queries: Vec<String>,
+}
+
+impl Parse for TestArgs {
 	fn parse(input: ParseStream) -> syn::Result<Self> {
-		Punctuated::<Lit, Comma>::parse_terminated(input)?
-			.into_iter()
-			.try_fold(Vec::new(), |mut queries, argument| {
-				let Lit::Str(filename) = argument else {
-					error!(
-						argument,
-						"Invalid attribute argument. Expected one or more filenames."
-					);
-				};
+		let mut args = Self { queries: Vec::new() };
 
-				let path = PathBuf::from(FIXTURES_PATH).join(filename.value());
+		if input.is_empty() {
+			return Ok(args);
+		}
 
-				if !path.extension().is_some_and(|ext| ext == "sql") {
-					error!(filename, "Files must end in `.sql`.");
+		let fixtures = ExprAssign::parse(input)?;
+
+		let Expr::Path(ExprPath {
+			qself: None,
+			path: syn::Path { segments: fixtures_ident_path, .. },
+			..
+		}) = fixtures.left.as_ref()
+		else {
+			error!(fixtures.left.as_ref(), "arguments must be `<ident> = <value>`");
+		};
+
+		let Some(PathSegment { ident: fixtures_ident, arguments: PathArguments::None }) =
+			fixtures_ident_path.first()
+		else {
+			error!(fixtures.left.as_ref(), "arguments must be `<ident> = <value>`");
+		};
+
+		if fixtures_ident != "fixtures" {
+			error!(fixtures_ident, "unknown argument; try `fixtures`");
+		}
+
+		let Expr::Array(ExprArray { elems: fixtures, .. }) = fixtures.right.as_ref() else {
+			error!(
+				fixtures.right,
+				"`fixtures` must be a list of file names: `[\"my-fixture\"]`"
+			);
+		};
+
+		for filename in fixtures {
+			let Expr::Lit(ExprLit { lit: filename, .. }) = filename else {
+				error!(filename, "fixtures must be string literals");
+			};
+
+			let Lit::Str(filename) = filename else {
+				error!(filename, "invalid argument; expected filenames");
+			};
+
+			let path = Path::new("./database/fixtures").join(filename.value() + ".sql");
+			let contents = match fs::read_to_string(&path) {
+				Ok(contents) => contents,
+				Err(err) => {
+					error!(filename, "failed to read {path:?}: {err}");
 				}
+			};
 
-				if !path.exists() {
-					error!(filename, "`{path:?} does not exist.");
-				}
+			let new_queries = contents
+				.split(';')
+				.map(|query| query.trim())
+				.filter(|query| !query.is_empty())
+				.map(|query| query.to_owned());
 
-				let file = fs::read_to_string(&path).map_err(|err| {
-					syn::Error::new(filename.span(), format!("Error reading `{path:?}`: {err}"))
-				})?;
+			args.queries.extend(new_queries);
+		}
 
-				let new_queries = file
-					.split(';')
-					.map(|query| query.trim())
-					.filter(|query| !query.is_empty())
-					.map(|query| query.to_owned());
-
-				queries.extend(new_queries);
-
-				Ok(queries)
-			})
-			.map(|queries| Self { queries })
+		Ok(args)
 	}
 }
 
-impl Parse for Test {
-	fn parse(input: ParseStream) -> syn::Result<Self> {
-		let function = ItemFn::parse(input)?;
-
-		if function.sig.asyncness.is_none() {
-			error!(function.sig, "Tests must be marked as `async`.");
-		}
-
-		if function.sig.inputs.len() > 1 {
-			error!(
-				function.sig.inputs,
-				"Tests can only take a single argument of type `Context`."
-			);
-		}
-
-		let Some(ctx_arg) = function.sig.inputs.iter().next() else {
-			error!(function.sig, "Tests have to take one argument of type `Context`.",);
-		};
-
-		let FnArg::Typed(ctx_arg) = ctx_arg else {
-			error!(ctx_arg, "Tests cannot take a `self` parameter.");
-		};
-
-		if !ctx_arg.attrs.is_empty() {
-			error!(ctx_arg, "Test arguments cannot be annotated.");
-		}
-
-		let Pat::Ident(ctx_arg_ident) = ctx_arg.pat.as_ref() else {
-			error!(
-				ctx_arg.pat,
-				"Test arguemnt identifiers cannot be used with pattern matching."
-			);
-		};
-
-		let Type::Path(ctx_arg_type) = ctx_arg.ty.as_ref() else {
-			error!(ctx_arg.ty, "Tests take a single argument of type `Context`.");
-		};
-
-		if !ctx_arg_type
-			.path
-			.get_ident()
-			.is_some_and(|ident| ident == "Context")
-		{
-			error!(ctx_arg_type, "Tests take a single argument of type `Context`.");
-		}
-
-		let body = *function.block;
-
-		Ok(Self { name: function.sig.ident, ctx_arg: ctx_arg_ident.ident.clone(), body })
+fn validate_signature(signature: &Signature) -> syn::Result<&Ident> {
+	if let Some(constness) = &signature.constness {
+		error!(constness, "test functions cannot be marked `const`");
 	}
+
+	if signature.asyncness.is_none() {
+		error!(&signature.fn_token, "test functions must be marked `async`");
+	}
+
+	if let Some(unsafety) = &signature.unsafety {
+		error!(unsafety, "test functions cannot be marked `unsafe`");
+	}
+
+	if let Some(abi) = &signature.abi {
+		error!(abi, "test functions cannot have a custom ABI");
+	}
+
+	if !signature.generics.params.is_empty() {
+		error!(signature.generics, "test functions cannot take generic parameters");
+	}
+
+	if signature.inputs.len() != 1 {
+		error!(
+			signature.inputs,
+			"test functions must take a single parameter of type `&Context`"
+		);
+	}
+
+	let Some(FnArg::Typed(PatType { pat: ctx_param_ident, ty: ctx_param_ty, .. })) =
+		signature.inputs.first()
+	else {
+		error!(signature.inputs, "test functions do not take a `self` parameter");
+	};
+
+	let Type::Reference(TypeReference {
+		lifetime: None, mutability: None, elem: ctx_ty_path, ..
+	}) = ctx_param_ty.as_ref()
+	else {
+		error!(
+			ctx_param_ty,
+			"test functions must take a single parameter of type `&Context`"
+		);
+	};
+
+	let Type::Path(TypePath { path: ctx_ty_path, .. }) = ctx_ty_path.as_ref() else {
+		error!(
+			ctx_ty_path,
+			"test functions must take a single parameter of type `&Context`"
+		);
+	};
+
+	let ctx_ty_ident = ctx_ty_path.require_ident()?;
+
+	if ctx_ty_ident != "Context" {
+		error!(
+			ctx_ty_path,
+			"test functions must take a single parameter of type `Context`"
+		);
+	}
+
+	if let Some(variadic) = &signature.variadic {
+		error!(variadic, "test functions do not take variadic parameters");
+	}
+
+	if let ReturnType::Type(_, return_ty) = &signature.output {
+		error!(
+			return_ty,
+			"all test functions implicitly return `Result<()>`; remove the return type"
+		);
+	}
+
+	let Pat::Ident(PatIdent { ident: ctx_param_ident, .. }) = ctx_param_ident.as_ref() else {
+		error!(ctx_param_ident, "`ctx` parameter cannot be destructured");
+	};
+
+	Ok(ctx_param_ident)
 }

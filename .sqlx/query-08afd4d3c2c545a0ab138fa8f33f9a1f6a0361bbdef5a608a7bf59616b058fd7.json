@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT workshop_id FROM Maps where id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "workshop_id",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "char_set": 63,
+          "max_size": 10
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "08afd4d3c2c545a0ab138fa8f33f9a1f6a0361bbdef5a608a7bf59616b058fd7"
+}

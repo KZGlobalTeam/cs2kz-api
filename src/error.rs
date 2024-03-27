@@ -1,260 +1,258 @@
-use std::fmt::Display;
-use std::panic::Location;
-use std::result::Result as StdResult;
+//! The main error type used across the code base.
+//!
+//! [`Error`] implements [`IntoResponse`], so that it can be returned by handlers.
+//! Most fallible functions in this crate return [`Result<T>`].
+//!
+//! [`Error`]: struct@Error
 
-use axum::extract::rejection::QueryRejection;
+use std::error::Error as StdError;
+use std::fmt::Display;
+use std::io;
+use std::panic::Location;
+
+use axum::extract::rejection::PathRejection;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use axum_extra::typed_header::TypedHeaderRejection;
-use serde::Serialize;
-use serde_json::{json, Value as JsonValue};
-use thiserror::Error as ThisError;
-use tracing::warn;
-use utoipa::openapi::schema::Schema;
-use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
-use utoipa::ToSchema;
+use serde_json::json;
+use thiserror::Error;
+use tracing::{debug, error};
 
-use crate::{audit, state};
+use crate::auth::RoleFlags;
 
-pub type Result<T> = StdResult<T, Error>;
-
-/// Global error type for request handlers and middleware.
+/// Convenient type alias to use for fallible functions.
 ///
-/// Any errors that can occurr during runtime will be transformed into this type before turning
-/// into an HTTP response.
-#[derive(Debug, ThisError)]
-#[error("Failed with code {code}{message}",
-	code = code.as_u16(),
-	message = message.as_ref().map(|message| format!(": {message}")).unwrap_or_default(),
-)]
-pub struct Error {
-	/// HTTP Status Code to return in the response.
-	code: StatusCode,
+/// All fallible functions in this crate return an [`Error`] in their failure case, so spelling it
+/// out 500 times is not desirable.
+///
+/// [`Error`]: struct@Error
+pub type Result<T> = std::result::Result<T, Error>;
 
-	/// Concise description of the error.
-	///
-	/// This should be human-readable and will be included in the response body.
+/// The main error type used in this crate.
+///
+/// Every fallible function returns it.
+#[derive(Debug, Error)]
+#[error("{}", match message.as_deref() {
+	None => "something unexpected happened! please report this",
+	Some(message) => message,
+})]
+pub struct Error {
+	/// The HTTP status code to use in the response.
+	status: StatusCode,
+
+	/// An error message to display to the user.
 	message: Option<String>,
 
-	/// Additional details about the error.
-	detail: JsonValue,
-
-	/// The source code location of where the error occurred (used for debugging).
+	/// Source code location of where the error occurred.
 	location: &'static Location<'static>,
-}
 
-impl IntoResponse for Error {
-	fn into_response(self) -> Response {
-		warn! {
-			message = ?self.message,
-			detail = ?self.detail,
-			location = %self.location,
-			"encountered runtime error",
-		};
-
-		let mut body = json!({
-			"message": self.message
-		});
-
-		if !self.detail.is_null() {
-			body["detail"] = self.detail;
-		}
-
-		(self.code, Json(body)).into_response()
-	}
+	/// An error source.
+	source: Option<Box<dyn StdError + Send + Sync + 'static>>,
 }
 
 impl Error {
-	/// Set the `message` field for this error.
+	/// Create a new blank error with the given status code.
+	#[track_caller]
+	fn new(status: StatusCode) -> Self {
+		Self { status, message: None, location: Location::caller(), source: None }
+	}
+
+	/// Set the message of the error.
 	pub fn with_message(mut self, message: impl Display) -> Self {
 		self.message = Some(message.to_string());
 		self
 	}
 
-	/// Set the `detail` field for this error.
-	///
-	/// If the inner `detail` already exists, and both it and the supplied `detail` are
-	/// objects, it will be extended with the provided `detail` value. Otherwise the inner
-	/// `detail` will be replaced.
-	///
-	/// # Panics
-	///
-	/// This method will panic if `detail` is not serializable to JSON.
-	pub fn with_detail(mut self, detail: impl Serialize) -> Self {
-		let value = serde_json::to_value(detail).expect("invalid json value");
-
-		match (&mut self.detail, value) {
-			(JsonValue::Object(detail), JsonValue::Object(obj)) => {
-				detail.extend(obj);
-			}
-			(detail, value) => {
-				*detail = value;
-			}
-		}
-
+	/// Set the source of the error.
+	pub fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
+		self.source = Some(Box::new(source));
 		self
 	}
 
-	/// Set the status code to `404 Unauthorized`.
-	pub const fn unauthorized(mut self) -> Self {
-		self.code = StatusCode::UNAUTHORIZED;
-		self
-	}
-
-	/// Generate an error indicating a bug in the application.
+	/// An error caused by a TCP socket.
 	#[track_caller]
-	pub fn bug() -> Self {
-		Self::new(StatusCode::INTERNAL_SERVER_ERROR)
+	pub fn tcp(error: io::Error) -> Self {
+		Self::bug("failed to listen on tcp socket").with_source(error)
 	}
 
-	/// Indicate that something about the request is missing.
+	/// An error caused by axum / hyper's server implementation.
 	#[track_caller]
-	pub fn missing(what: impl Display) -> Self {
-		Self::new(StatusCode::BAD_REQUEST).with_message(format_args!("missing {what}"))
+	pub fn http_server(error: io::Error) -> Self {
+		Self::bug("failed to start http server").with_source(error)
 	}
 
-	/// Indicate that something about the request is unknown.
+	/// An unexpected error.
+	#[track_caller]
+	pub fn bug(message: impl Display) -> Self {
+		error!(target: "audit_log", %message, "unexpected runtime error");
+		Self::new(StatusCode::INTERNAL_SERVER_ERROR).with_message(message)
+	}
+
+	/// `204 No Content` status code.
+	#[track_caller]
+	pub fn no_content() -> Self {
+		Self::new(StatusCode::NO_CONTENT)
+	}
+
+	/// `401 Unauthorized` status code.
+	#[track_caller]
+	pub fn unauthorized() -> Self {
+		Self::new(StatusCode::UNAUTHORIZED)
+	}
+
+	/// Some user input (e.g. an ID) is unknown / invalid.
 	#[track_caller]
 	pub fn unknown(what: impl Display) -> Self {
 		Self::new(StatusCode::BAD_REQUEST).with_message(format_args!("unknown {what}"))
 	}
 
-	/// Indicate that a supplied ID is unknown.
-	///
-	/// This is a convenience wrapper around [`Error::unknown()`].
-	#[track_caller]
-	pub fn unknown_id(what: impl Display, id: impl Serialize) -> Self {
-		Self::unknown(format_args!("{what} ID")).with_detail(json!({ "id": id }))
-	}
-
-	/// Indicate that something about the request is invalid.
-	#[track_caller]
-	pub fn invalid(what: impl Display) -> Self {
-		Self::new(StatusCode::BAD_REQUEST).with_message(format_args!("invalid {what}"))
-	}
-
-	/// Indicate that something about the request already exists and therefore cannot be
-	/// created again.
+	/// Some user input in a POST / PUT request already exists in the database.
 	#[track_caller]
 	pub fn already_exists(what: impl Display) -> Self {
 		Self::new(StatusCode::CONFLICT).with_message(format_args!("{what} already exists"))
 	}
 
-	/// Indicate that there is no data to return in the response.
+	/// When PATCHing maps, the user shouldn't be allowed to remove all mappers from a map /
+	/// course.
 	#[track_caller]
-	pub fn no_data() -> Self {
-		Self::new(StatusCode::NO_CONTENT)
+	pub fn must_have_mappers() -> Self {
+		Self::new(StatusCode::BAD_REQUEST).with_message("map/course cannot have 0 mappers")
 	}
 
-	/// Indicate that the download process of a Steam Workshop map has failed.
+	/// A CS2 server tried to request an access key (JWT) but their supplied refresh key was
+	/// invalid.
 	#[track_caller]
-	pub fn download_workshop_map() -> Self {
-		Self::bug().with_message("failed to download workshop map")
+	pub fn invalid_refresh_key() -> Self {
+		Self::new(StatusCode::UNAUTHORIZED).with_message("refresh key is invalid")
 	}
 
-	/// Indicate that a request must be made by a server owner.
+	/// A CS2 server made an authenticated request but their access key was expired.
 	#[track_caller]
-	pub fn not_a_server_owner() -> Self {
+	pub fn expired_access_key() -> Self {
+		Self::new(StatusCode::UNAUTHORIZED).with_message("access key is expired")
+	}
+
+	/// A user tried to make an authenticated request but was missing their session token.
+	#[track_caller]
+	pub fn missing_session_token() -> Self {
+		Self::new(StatusCode::UNAUTHORIZED).with_message("missing session token")
+	}
+
+	/// A user tried to make an authenticated request but their session token was invalid or
+	/// expired.
+	#[track_caller]
+	pub fn invalid_session_token() -> Self {
+		Self::new(StatusCode::UNAUTHORIZED).with_message("invalid session token")
+	}
+
+	/// A user tried to make an authenticated request but didn't have the required roles.
+	#[track_caller]
+	pub fn missing_roles(roles: RoleFlags) -> Self {
+		Self::new(StatusCode::UNAUTHORIZED).with_message(format_args!(
+			"you are missing the required roles to perform this action ({roles})"
+		))
+	}
+
+	/// A user tried to make an authenticated request but weren't the owner of the server they
+	/// tried to PATCH.
+	#[track_caller]
+	pub fn must_be_server_owner() -> Self {
 		Self::new(StatusCode::UNAUTHORIZED)
-			.with_message("you must be the server owner to make this request")
+			.with_message("you must be the server's owner or an admin to perform this action")
 	}
 
-	/// Generate a new error with the given status `code`.
+	/// An opaque API key was not a valid UUID.
 	#[track_caller]
-	fn new(code: StatusCode) -> Self {
-		Self {
-			code,
-			message: code.canonical_reason().map(ToOwned::to_owned),
-			detail: JsonValue::Null,
-			location: Location::caller(),
+	pub fn key_must_be_uuid(error: uuid::Error) -> Self {
+		Self::new(StatusCode::BAD_REQUEST)
+			.with_message("key must be a valid UUID")
+			.with_source(error)
+	}
+
+	/// An opaque API key was invalid.
+	#[track_caller]
+	pub fn key_invalid() -> Self {
+		Self::new(StatusCode::UNAUTHORIZED).with_message("key is invalid")
+	}
+
+	/// An opaque API key was expired.
+	#[track_caller]
+	pub fn key_expired() -> Self {
+		Self::new(StatusCode::UNAUTHORIZED).with_message("key has expired")
+	}
+}
+
+impl IntoResponse for Error {
+	fn into_response(self) -> Response {
+		debug!(location = %self.location, "runtime error occurred");
+
+		let mut json = json!({ "message": self.to_string() });
+
+		if let Some(source) = self
+			.source
+			.as_deref()
+			.filter(|_| cfg!(not(feature = "production")))
+		{
+			json["debug_info"] = format!("{source:?}").into();
 		}
-	}
-}
 
-impl From<state::Error> for Error {
-	#[track_caller]
-	fn from(error: state::Error) -> Self {
-		use state::Error as E;
-
-		match error {
-			E::MySQL(err) => Self::from(err),
-			E::JsonEncode(err) => {
-				audit!(error, "failed to serialize JSON", %err);
-				Self::bug()
-			}
-			E::JsonDecode(err) => Self::new(StatusCode::BAD_REQUEST)
-				.with_message("failed to decode JSON")
-				.with_detail(err.to_string()),
-			E::Jwt(err) => {
-				unreachable!("not reachable after startup: {err}");
-			}
-			E::JwtEncode(err) => {
-				audit!(error, "failed to encode JWT", %err);
-				Self::bug()
-			}
-			E::JwtDecode(err) => Self::new(StatusCode::BAD_REQUEST)
-				.with_message("failed to decode JWT")
-				.with_detail(err.to_string()),
-		}
-	}
-}
-
-impl From<TypedHeaderRejection> for Error {
-	#[track_caller]
-	fn from(rejection: TypedHeaderRejection) -> Self {
-		use axum_extra::typed_header::TypedHeaderRejectionReason as Reason;
-
-		let error = Self::new(StatusCode::BAD_REQUEST)
-			.with_message(format_args!("failed to decode header `{}`", rejection.name()));
-
-		match rejection.reason() {
-			Reason::Missing => error.with_detail("header is missing"),
-			Reason::Error(err) => error.with_detail(err.to_string()),
-			_ => error,
-		}
-	}
-}
-
-impl From<QueryRejection> for Error {
-	#[track_caller]
-	fn from(rejection: QueryRejection) -> Self {
-		Self::new(rejection.status())
-			.with_message("failed to decode query parameters")
-			.with_detail(rejection.body_text())
-	}
-}
-
-impl From<reqwest::Error> for Error {
-	#[track_caller]
-	fn from(error: reqwest::Error) -> Self {
-		Self::new(StatusCode::BAD_GATEWAY)
-			.with_message("request to external service failed")
-			.with_detail(json!({
-				"code": error.status().map(|code| code.as_u16()),
-				"message": error.to_string()
-			}))
+		(self.status, Json(json)).into_response()
 	}
 }
 
 impl From<sqlx::Error> for Error {
 	#[track_caller]
 	fn from(error: sqlx::Error) -> Self {
-		audit!(error, "database error", %error);
+		use sqlx::Error as E;
 
-		Self::bug().with_message("Encountered database error. This is a bug, please report it.")
+		match error {
+			E::Configuration(_) | E::Tls(_) | E::AnyDriverError(_) | E::Migrate(_) => {
+				unreachable!("these do not happen after initial setup ({error})");
+			}
+			error => {
+				error!(target: "audit_log", %error, "database error");
+				Self::bug("database error").with_source(error)
+			}
+		}
 	}
 }
 
-impl<'s> ToSchema<'s> for Error {
-	fn schema() -> (&'s str, RefOr<Schema>) {
-		(
-			"Error",
-			ObjectBuilder::new()
-				.property("message", ObjectBuilder::new().schema_type(SchemaType::String))
-				.required("message")
-				.property("detail", ObjectBuilder::new().schema_type(SchemaType::Value))
-				.into(),
-		)
+impl From<jsonwebtoken::errors::Error> for Error {
+	#[track_caller]
+	fn from(error: jsonwebtoken::errors::Error) -> Self {
+		error!(target: "audit_log", %error, "failed to (de)serialize jwt");
+		Self::new(StatusCode::INTERNAL_SERVER_ERROR).with_source(error)
+	}
+}
+
+impl From<reqwest::Error> for Error {
+	#[track_caller]
+	fn from(error: reqwest::Error) -> Self {
+		if matches!(error.status(), Some(status) if status.is_server_error()) {
+			Self::new(StatusCode::BAD_GATEWAY)
+		} else {
+			Self::new(StatusCode::INTERNAL_SERVER_ERROR)
+		}
+		.with_message("failed to make http request")
+		.with_source(error)
+	}
+}
+
+impl From<TypedHeaderRejection> for Error {
+	#[track_caller]
+	fn from(rejection: TypedHeaderRejection) -> Self {
+		Self::new(StatusCode::BAD_REQUEST)
+			.with_message(rejection.to_string())
+			.with_source(rejection)
+	}
+}
+
+impl From<PathRejection> for Error {
+	#[track_caller]
+	fn from(rejection: PathRejection) -> Self {
+		Self::new(rejection.status())
+			.with_message(rejection.to_string())
+			.with_source(rejection)
 	}
 }

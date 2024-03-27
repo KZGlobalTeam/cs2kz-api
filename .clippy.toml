@@ -1,3 +1,2 @@
 absolute-paths-max-segments = 3
-single-char-binding-names-threshold = 2
-check-private-items = true
+excessive-nesting-threshold = 6

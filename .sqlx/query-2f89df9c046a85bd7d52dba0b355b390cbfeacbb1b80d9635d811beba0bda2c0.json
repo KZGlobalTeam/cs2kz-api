@@ -1,0 +1,36 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tSELECT\n\t\t\t  name,\n\t\t\t  COALESCE((expires_on < NOW()), FALSE) `is_expired!: bool`\n\t\t\tFROM\n\t\t\t  Credentials\n\t\t\tWHERE\n\t\t\t  token = ?\n\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "is_expired!: bool",
+        "type_info": {
+          "type": "Long",
+          "flags": "BINARY",
+          "char_set": 63,
+          "max_size": 1
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "2f89df9c046a85bd7d52dba0b355b390cbfeacbb1b80d9635d811beba0bda2c0"
+}

@@ -1,7 +1,15 @@
-target
-database/volumes
-.direnv
+# nix
+.direnv/*
+
+# docker volumes
+database/volumes/*
+docker/*
+logs/*
+workshop/*
+
+# rust
+target/*
+
+# env
 .env
 .env.docker
-workshop/*
-cookies*.txt

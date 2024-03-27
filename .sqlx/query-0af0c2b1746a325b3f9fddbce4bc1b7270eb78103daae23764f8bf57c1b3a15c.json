@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tUPDATE\n\t\t  Players\n\t\tSET\n\t\t  role_flags = ?\n\t\tWHERE\n\t\t  id = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "0af0c2b1746a325b3f9fddbce4bc1b7270eb78103daae23764f8bf57c1b3a15c"
+}

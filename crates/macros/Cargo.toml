@@ -5,21 +5,21 @@ authors = ["AlphaKeks <alphakeks@dawn.sh>"]
 edition = "2021"
 readme = "../../README.md"
 homepage = "https://cs2.kz"
-repository = "https://github.com/KZGlobalTeam/cs2kz-api.git"
+repository = "https://github.com/KZGlobalTeam/cs2kz-api"
 license-file = "../../LICENSE"
+publish = false
 
 [lib]
 proc-macro = true
 
+[dependencies.proc-macro-error]
+version = "1.0"
+
 [dependencies.syn]
-version = "2"
+version = "2.0"
 default-features = false
-features = ["parsing", "proc-macro"]
+features = ["proc-macro", "parsing"]
 
 [dependencies.quote]
-version = "1"
-default-features = false
-
-[dependencies.proc-macro-error]
-version = "1"
+version = "1.0"
 default-features = false

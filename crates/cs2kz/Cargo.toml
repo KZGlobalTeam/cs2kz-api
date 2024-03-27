@@ -3,38 +3,27 @@ name = "cs2kz"
 version = "0.0.0"
 authors = ["AlphaKeks <alphakeks@dawn.sh>"]
 edition = "2021"
-description = "The main API for CS2KZ"
-readme = "../README.md"
+readme = "./README.md"
+description = "Types for building around CS2KZ"
 homepage = "https://cs2.kz"
-repository = "https://github.com/KZGlobalTeam/cs2kz-api.git"
-license-file = "../LICENSE"
-publish = false
-
-[features]
-serde = ["dep:serde", "dep:serde_json"]
-utoipa = ["dep:utoipa"]
-sqlx = ["dep:sqlx"]
+repository = "https://github.com/KZGlobalTeam/cs2kz-api"
+license-file = "./LICENSE"
+publish = false # TODO
 
 [dependencies.thiserror]
-version = "1"
-
-[dependencies.derive_more]
-version = "1.0.0-beta.6"
-features = ["display", "as_ref", "deref"]
+version = "1.0"
 
 [dependencies.serde]
-version = "1"
+version = "1.0"
 features = ["derive"]
 optional = true
 
-[dependencies.serde_json]
-version = "1"
+[dependencies.sqlx]
+version = "0.7.3"
+default-features = false
 optional = true
 
 [dependencies.utoipa]
-version = "4"
-optional = true
-
-[dependencies.sqlx]
-version = "0.7"
+version = "4.2.0"
+default-features = false
 optional = true

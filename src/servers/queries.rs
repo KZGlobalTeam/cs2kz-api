@@ -1,14 +1,16 @@
-/// Base query for `SELECT`ing servers from the database.
-pub static BASE_SELECT: &str = r#"
+//! SQL queries that are used in multiple places.
+
+/// SQL query for fetching servers.
+pub static SELECT: &str = r#"
 	SELECT
 	  s.id,
 	  s.name,
 	  s.ip_address,
 	  s.port,
-	  p.steam_id owned_by_steam_id,
-	  p.name owned_by_name,
-	  s.approved_on
+	  p.name owner_name,
+	  p.id owner_id,
+	  s.created_on
 	FROM
 	  Servers s
-	  JOIN Players p ON p.steam_id = s.owned_by
+	  JOIN Players p ON p.id = s.owner_id
 "#;

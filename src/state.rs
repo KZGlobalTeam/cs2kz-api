@@ -1,74 +1,89 @@
+//! The API's main application state.
+//!
+//! This is initialized once on startup, and then passed around the application by axum.
+
+use std::fmt::{self, Debug};
+use std::time::Duration;
+
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::mysql::MySqlPoolOptions;
-use sqlx::{MySql, MySqlPool, Transaction};
+use sqlx::{MySql, Pool};
 
-use crate::auth::{steam, Jwt};
+use crate::auth::Jwt;
+use crate::{Error, Result};
 
-mod error;
-pub use error::{Error, Result};
-
-pub mod jwt;
-
-/// The API's global state.
-#[derive(Debug)]
+/// The main application state.
+///
+/// A `'static` reference to this is passed around the application.
 pub struct State {
 	/// The API configuration.
 	pub config: crate::Config,
 
-	/// Database connection pool.
-	pub database: MySqlPool,
+	/// Connection pool to the backing database.
+	pub database: Pool<MySql>,
 
-	/// HTTP client for making requests to external services such as Steam.
+	/// HTTP client for making requests to external APIs.
 	pub http_client: reqwest::Client,
 
-	/// JWT secrets.
-	pub jwt: jwt::State,
+	/// Header data to use when signing JWTs.
+	jwt_header: jsonwebtoken::Header,
 
-	/// A cached version of query parameters used for Steam authentication.
-	steam_login_form: steam::LoginForm,
+	/// Secret key to use when signing JWTs.
+	jwt_encoding_key: jsonwebtoken::EncodingKey,
+
+	/// Secret key to use when validating JWTs.
+	jwt_decoding_key: jsonwebtoken::DecodingKey,
+
+	/// Extra validation steps when validating JWTs.
+	jwt_validation: jsonwebtoken::Validation,
 }
 
 impl State {
-	/// Creates a new [State] instance with the given `config`.
-	pub async fn new(config: crate::Config) -> Result<Self> {
-		let connection_pool = MySqlPoolOptions::new()
-			.connect(config.database.url.as_str())
-			.await?;
-
-		let http_client = reqwest::Client::new();
-		let steam_login_form = steam::LoginForm::new(config.public_url.clone());
-		let jwt = jwt::State::new(&config.jwt.secret)?;
-
-		Ok(Self { config, database: connection_pool, http_client, steam_login_form, jwt })
-	}
-
-	/// Begins a new SQL transaction.
+	/// Creates a new [`State`] object and leaks it on the heap.
 	///
-	/// If the transaction object returned by this function is dropped without calling
-	/// [`Transaction::commit()`], it will be rolled back automatically.
-	pub async fn begin_transaction(&self) -> Result<Transaction<'static, MySql>> {
-		self.database.begin().await.map_err(Error::from)
+	/// **This function should only ever be called once; it leaks memory.**
+	pub async fn new(config: crate::Config) -> Result<&'static Self> {
+		let database = Pool::connect(config.database_url.as_str()).await?;
+		let http_client = reqwest::Client::new();
+		let jwt_header = jsonwebtoken::Header::default();
+		let jwt_encoding_key = jsonwebtoken::EncodingKey::from_base64_secret(&config.jwt_secret)?;
+		let jwt_decoding_key = jsonwebtoken::DecodingKey::from_base64_secret(&config.jwt_secret)?;
+		let jwt_validation = jsonwebtoken::Validation::default();
+
+		Ok(Box::leak(Box::new(Self {
+			config,
+			database,
+			http_client,
+			jwt_header,
+			jwt_encoding_key,
+			jwt_decoding_key,
+			jwt_validation,
+		})))
 	}
 
-	/// Returns query parameters to redirect a user to Steam with.
-	pub fn steam_login(&self) -> steam::LoginForm {
-		self.steam_login_form.clone()
+	/// Encodes the given `payload` in a JWT that will expire after a given amount of time.
+	pub fn encode_jwt(&self, payload: &impl Serialize, expires_after: Duration) -> Result<String> {
+		jsonwebtoken::encode(
+			&self.jwt_header,
+			&Jwt::new(payload, expires_after),
+			&self.jwt_encoding_key,
+		)
+		.map_err(|err| Error::from(err))
 	}
 
-	/// Encodes the given `payload` as a JWT using the API's secret.
-	pub fn encode_jwt<T>(&self, payload: &Jwt<T>) -> Result<String>
-	where
-		T: Serialize,
-	{
-		self.jwt.encode(payload).map_err(Error::JwtEncode)
-	}
-
-	/// Decodes the given `jwt` into the desired payload type `T`.
-	pub fn decode_jwt<T>(&self, jwt: &str) -> Result<T>
+	/// Decodes the given `jwt` into some type `T`.
+	pub fn decode_jwt<T>(&self, jwt: &str) -> Result<Jwt<T>>
 	where
 		T: DeserializeOwned,
 	{
-		self.jwt.decode(jwt).map_err(Error::JwtDecode)
+		jsonwebtoken::decode(jwt, &self.jwt_decoding_key, &self.jwt_validation)
+			.map(|jwt| jwt.claims)
+			.map_err(|err| Error::from(err))
+	}
+}
+
+impl Debug for State {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("State").finish()
 	}
 }

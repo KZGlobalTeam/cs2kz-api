@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT ip_address FROM Players WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ip_address",
+        "type_info": {
+          "type": "String",
+          "flags": "NOT_NULL | UNSIGNED | BINARY | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 60
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fa751eb1b64a5abf12dcb5fc02b3849c11a1a2e79f558acb44dad7489cc0016e"
+}

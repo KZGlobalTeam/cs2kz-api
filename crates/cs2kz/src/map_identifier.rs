@@ -1,73 +1,100 @@
-use std::borrow::Cow;
-use std::convert::Infallible;
-use std::str::FromStr;
+//! Utility type for identifying maps.
 
-use derive_more::Display;
+use std::fmt::{self, Display};
 
-#[derive(Debug, Display, Clone, PartialEq, Eq, Hash)]
+/// Maps are either identified by their ID, which is unique, or their name.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(untagged))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-pub enum MapIdentifier<'a> {
+pub enum MapIdentifier {
+	/// A map's ID.
 	ID(u16),
-	Name(Cow<'a, str>),
+
+	/// A map's name.
+	Name(String),
 }
 
-impl From<u16> for MapIdentifier<'_> {
-	#[inline]
+impl Display for MapIdentifier {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		match self {
+			Self::ID(id) => write!(f, "{id}"),
+			Self::Name(name) => write!(f, "{name}"),
+		}
+	}
+}
+
+impl From<u16> for MapIdentifier {
 	fn from(value: u16) -> Self {
 		Self::ID(value)
 	}
 }
 
-impl<'a> From<&'a str> for MapIdentifier<'a> {
-	fn from(value: &'a str) -> Self {
-		Self::Name(value.into())
+impl From<&str> for MapIdentifier {
+	fn from(value: &str) -> Self {
+		value
+			.parse::<u16>()
+			.map(Self::ID)
+			.unwrap_or_else(|_| Self::Name(value.to_owned()))
 	}
 }
 
-impl From<String> for MapIdentifier<'_> {
+impl From<String> for MapIdentifier {
 	fn from(value: String) -> Self {
-		Self::Name(value.into())
-	}
-}
-
-impl<'a> From<Cow<'a, str>> for MapIdentifier<'a> {
-	fn from(value: Cow<'a, str>) -> Self {
-		Self::Name(value)
-	}
-}
-
-impl FromStr for MapIdentifier<'_> {
-	type Err = Infallible;
-
-	fn from_str(value: &str) -> Result<Self, Self::Err> {
-		Ok(match value.parse::<u16>() {
-			Ok(id) => Self::ID(id),
-
-			// This is kind of unfortunate.
-			Err(_) => Self::Name(Cow::Owned(value.to_owned())),
-		})
+		value
+			.parse::<u16>()
+			.map(Self::ID)
+			.unwrap_or(Self::Name(value))
 	}
 }
 
 #[cfg(feature = "serde")]
 mod serde_impls {
-	use serde::{Deserialize, Deserializer};
+	mod de {
+		use serde::{Deserialize, Deserializer};
 
-	use super::MapIdentifier;
-	use crate::serde::IntOrStr;
+		use crate::MapIdentifier;
 
-	impl<'de> Deserialize<'de> for MapIdentifier<'_> {
-		#[rustfmt::skip]
-		fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-			Ok(match <IntOrStr<u16> as Deserialize<'de>>::deserialize(deserializer)? {
-				IntOrStr::Int(value) => value.into(),
-				IntOrStr::Str(value) => value.parse().unwrap_or_else(|_| value.into()),
-			})
+		impl<'de> Deserialize<'de> for MapIdentifier {
+			fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+			where
+				D: Deserializer<'de>,
+			{
+				#[derive(Deserialize)]
+				#[serde(untagged)]
+				enum Helper {
+					U16(u16),
+					String(String),
+				}
+
+				Helper::deserialize(deserializer).map(|value| match value {
+					Helper::U16(id) => Self::ID(id),
+					Helper::String(id_or_name) => id_or_name
+						.parse::<u16>()
+						.map(Self::ID)
+						.unwrap_or(Self::Name(id_or_name)),
+				})
+			}
 		}
 	}
 }
 
 #[cfg(feature = "utoipa")]
-crate::utoipa::into_params!(MapIdentifier<'_> as "map": "A map's ID or Name");
+mod utoipa_impls {
+	use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};
+	use utoipa::{IntoParams, ToSchema};
+
+	use crate::MapIdentifier;
+
+	impl IntoParams for MapIdentifier {
+		fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter> {
+			vec![
+				ParameterBuilder::new()
+					.name("map")
+					.parameter_in(parameter_in_provider().unwrap_or_default())
+					.schema(Some(Self::schema().1))
+					.build(),
+			]
+		}
+	}
+}

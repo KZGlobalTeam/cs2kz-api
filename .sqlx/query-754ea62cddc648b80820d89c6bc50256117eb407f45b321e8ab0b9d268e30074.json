@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t  COUNT(course_id) count\n\t\tFROM\n\t\t  CourseMappers\n\t\tWHERE\n\t\t  course_id = ?\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "count",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "char_set": 63,
+          "max_size": 21
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "754ea62cddc648b80820d89c6bc50256117eb407f45b321e8ab0b9d268e30074"
+}

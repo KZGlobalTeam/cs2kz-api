@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tINSERT INTO\n\t\t  PluginVersions (semver, git_revision)\n\t\tVALUES\n\t\t  (?, ?)\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "e0a3f21c63dd7373b583ff2ad7a974373a158acec1f9d391463339601b46359f"
+}

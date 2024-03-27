@@ -1,15 +1,18 @@
-/// Base query for `SELECT`ing players from the database.
-pub static GET_FULL_PLAYER: &str = r#"
+//! SQL queries that are used in multiple places.
+
+/// SQL query for fetching players.
+pub static SELECT: &str = r#"
 	SELECT
-	  p.steam_id,
+	  p.id,
 	  p.name,
+	  p.ip_address,
 	  (
 	    SELECT
 	      COUNT(b.id)
 	    FROM
 	      Bans b
 	    WHERE
-	      b.player_id = p.steam_id
+	      b.player_id = p.id
 	      AND b.expires_on > NOW()
 	  ) is_banned
 	FROM

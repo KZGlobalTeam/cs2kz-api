@@ -1,9 +1,0 @@
-CREATE TABLE IF NOT EXISTS AuditLogs (
-  `id` INT8 NOT NULL AUTO_INCREMENT,
-  `level` VARCHAR(5) NOT NULL,
-  `source` VARCHAR(255),
-  `message` VARCHAR(255),
-  `fields` JSON,
-  `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-);

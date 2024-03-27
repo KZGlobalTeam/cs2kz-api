@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE\n  Players\nSET\n  role_flags = (role_flags | (1 << 8))\nWHERE\n  id = 76561198282622073",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "3309de48e4bca5a1849fba012b114f8eefe2dc7b4c6e517014e6506bcec909e5"
+}
