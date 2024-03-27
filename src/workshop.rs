@@ -51,11 +51,14 @@ impl WorkshopMap {
 
 	/// Download the workshop map with the given `workshop_id` to disk.
 	pub async fn download(workshop_id: u32, config: &crate::Config) -> Result<Self> {
-		// We return the same error for a bunch of different failure cases.
-		//
-		// Each one is logged so we can tell what happened, but we don't need to include
-		// more information in the response for the user.
-		let error = || Error::bug("cannot download workshop assets");
+		/// We return the same error for a bunch of different failure cases.
+		///
+		/// Each one is logged so we can tell what happened, but we don't need to include
+		/// more information in the response for the user.
+		#[track_caller]
+		fn error() -> Error {
+			Error::bug("cannot download workshop assets")
+		}
 
 		let artifacts_path = config.workshop_artifacts_path.as_deref().ok_or_else(|| {
 			error!(target: "audit_log", "missing workshop asset directory");
