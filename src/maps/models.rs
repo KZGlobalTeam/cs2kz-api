@@ -191,7 +191,7 @@ pub struct NewMap {
 	pub workshop_id: u32,
 
 	/// The map's description.
-	#[serde(deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
+	#[serde(default, deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
 	pub description: Option<String>,
 
 	/// The map's initial global status.
@@ -235,11 +235,11 @@ impl NewMap {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewCourse {
 	/// The course's name.
-	#[serde(deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
+	#[serde(default, deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
 	pub name: Option<String>,
 
 	/// The course's description.
-	#[serde(deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
+	#[serde(default, deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
 	pub description: Option<String>,
 
 	/// List of players who have contributed to the creation of this course.
@@ -315,7 +315,7 @@ pub struct NewFilter {
 	pub ranked_status: RankedStatus,
 
 	/// Extra notes about this filter.
-	#[serde(deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
+	#[serde(default, deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
 	pub notes: Option<String>,
 }
 
@@ -331,7 +331,7 @@ pub struct CreatedMap {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct MapUpdate {
 	/// A new description.
-	#[serde(deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
+	#[serde(default, deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
 	pub description: Option<String>,
 
 	/// A new workshop ID.
@@ -347,37 +347,37 @@ pub struct MapUpdate {
 	pub check_steam: bool,
 
 	/// Players to be added as mappers of this map.
-	#[serde(deserialize_with = "crate::serde::vec::deserialize_empty_as_none")]
+	#[serde(default, deserialize_with = "crate::serde::vec::deserialize_empty_as_none")]
 	pub added_mappers: Option<Vec<SteamID>>,
 
 	/// Players to be removed as mappers of this map.
-	#[serde(deserialize_with = "crate::serde::vec::deserialize_empty_as_none")]
+	#[serde(default, deserialize_with = "crate::serde::vec::deserialize_empty_as_none")]
 	pub removed_mappers: Option<Vec<SteamID>>,
 
 	/// Updates to courses on this map.
 	///
 	/// course ID -> update payload
-	#[serde(deserialize_with = "crate::serde::btree_map::deserialize_empty_as_none")]
+	#[serde(default, deserialize_with = "crate::serde::btree_map::deserialize_empty_as_none")]
 	pub course_updates: Option<BTreeMap<NonZeroU32, CourseUpdate>>,
 }
 
 /// Request body for updating courses.
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Default, Deserialize, ToSchema)]
 pub struct CourseUpdate {
 	/// A new name.
-	#[serde(deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
+	#[serde(default, deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
 	pub name: Option<String>,
 
 	/// A new description.
-	#[serde(deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
+	#[serde(default, deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
 	pub description: Option<String>,
 
 	/// Players to be added as mappers of this map.
-	#[serde(deserialize_with = "crate::serde::vec::deserialize_empty_as_none")]
+	#[serde(default, deserialize_with = "crate::serde::vec::deserialize_empty_as_none")]
 	pub added_mappers: Option<Vec<SteamID>>,
 
 	/// Players to be removed as mappers of this map.
-	#[serde(deserialize_with = "crate::serde::vec::deserialize_empty_as_none")]
+	#[serde(default, deserialize_with = "crate::serde::vec::deserialize_empty_as_none")]
 	pub removed_mappers: Option<Vec<SteamID>>,
 }
 
