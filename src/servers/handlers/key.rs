@@ -82,9 +82,20 @@ pub async fn put_perma(
 	Path(server_id): Path<NonZeroU16>,
 ) -> Result<Created<Json<RefreshKey>>> {
 	let refresh_key = Uuid::new_v4();
-	let query_result = sqlx::query!("UPDATE Servers SET refresh_key = ?", refresh_key)
-		.execute(&state.database)
-		.await?;
+	let query_result = sqlx::query! {
+		r#"
+		UPDATE
+		  Servers
+		SET
+		  refresh_key = ?
+		WHERE
+		  id = ?
+		"#,
+		refresh_key,
+		server_id.get()
+	}
+	.execute(&state.database)
+	.await?;
 
 	if query_result.rows_affected() == 0 {
 		return Err(Error::unknown("server ID"));
