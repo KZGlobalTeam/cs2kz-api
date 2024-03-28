@@ -6,9 +6,11 @@ unstable_features = true
 
 hard_tabs = true
 
+max_width = 100
 fn_call_width = 69
 single_line_let_else_max_width = 0
 struct_lit_width = 69
+attr_fn_like_width = 90
 
 group_imports = "StdExternalCrate"
 imports_granularity = "Module"
