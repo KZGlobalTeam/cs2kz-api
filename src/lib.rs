@@ -27,6 +27,7 @@
 use axum::routing::{get, IntoMakeService};
 use axum::serve::Serve;
 use axum::Router;
+use eyre::Context;
 use futures::Future;
 use tokio::net::TcpListener;
 use tracing::info;
@@ -212,34 +213,36 @@ pub struct API;
 
 impl API {
 	/// Run the API.
-	pub async fn run(config: Config) -> Result<()> {
+	pub async fn run(config: Config) -> eyre::Result<()> {
 		Self::server(config)
-			.await?
 			.await
-			.map_err(|err| Error::http_server(err))
+			.context("build http server")?
+			.await
+			.context("run http server")
 	}
 
 	/// Run the API, until the given `until` future completes.
-	pub async fn run_until<Until>(config: Config, until: Until) -> Result<()>
+	pub async fn run_until<Until>(config: Config, until: Until) -> eyre::Result<()>
 	where
 		Until: Future<Output = ()> + Send + 'static,
 	{
 		Self::server(config)
-			.await?
+			.await
+			.context("build http server")?
 			.with_graceful_shutdown(until)
 			.await
-			.map_err(|err| Error::http_server(err))
+			.context("run http server")
 	}
 
 	/// Creates a hyper server that will serve the API.
-	async fn server(config: Config) -> Result<Serve<IntoMakeService<Router>, Router>> {
+	async fn server(config: Config) -> eyre::Result<Serve<IntoMakeService<Router>, Router>> {
 		info!(target: "audit_log", ?config, "API starting up");
 
 		let tcp_listener = TcpListener::bind(config.socket_addr())
 			.await
-			.map_err(|err| Error::tcp(err))?;
+			.context("bind tcp socket")?;
 
-		let state = State::new(config).await?;
+		let state = State::new(config).await.context("initialize state")?;
 		let swagger_ui =
 			SwaggerUi::new("/docs/swagger-ui").url("/docs/openapi.json", Self::openapi());
 
@@ -259,7 +262,7 @@ impl API {
 			.merge(swagger_ui)
 			.into_make_service();
 
-		let address = tcp_listener.local_addr().map_err(|err| Error::tcp(err))?;
+		let address = tcp_listener.local_addr().context("get tcp addr")?;
 
 		info! {
 			target: "audit_log",

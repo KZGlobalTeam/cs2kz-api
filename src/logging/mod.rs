@@ -1,7 +1,6 @@
 //! Everything related to logging.
 
-use std::io;
-
+use eyre::{Context, Result};
 use tracing::info;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::layer::SubscriberExt;
@@ -11,8 +10,8 @@ mod stderr;
 mod files;
 
 /// Initializes the global tracing subscriber.
-pub fn init() -> io::Result<WorkerGuard> {
-	let (files_layer, guard, log_dir) = files::layer()?;
+pub fn init() -> Result<WorkerGuard> {
+	let (files_layer, guard, log_dir) = files::layer().context("files layer")?;
 	let registry = tracing_subscriber::registry()
 		.with(stderr::layer())
 		.with(files_layer);

@@ -7,7 +7,6 @@
 
 use std::error::Error as StdError;
 use std::fmt::Display;
-use std::io;
 use std::panic::Location;
 
 use axum::extract::rejection::PathRejection;
@@ -68,18 +67,6 @@ impl Error {
 	pub fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
 		self.source = Some(Box::new(source));
 		self
-	}
-
-	/// An error caused by a TCP socket.
-	#[track_caller]
-	pub fn tcp(error: io::Error) -> Self {
-		Self::bug("failed to listen on tcp socket").with_source(error)
-	}
-
-	/// An error caused by axum / hyper's server implementation.
-	#[track_caller]
-	pub fn http_server(error: io::Error) -> Self {
-		Self::bug("failed to start http server").with_source(error)
 	}
 
 	/// An unexpected error.

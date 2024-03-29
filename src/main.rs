@@ -1,29 +1,31 @@
 //! The entrypoint for the API.
 
-use std::error::Error;
-
 use cs2kz_api::API;
+use eyre::{Context, Result};
 use sqlx::{Connection, MySqlConnection};
 
 mod logging;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<()> {
 	if dotenvy::dotenv().is_err() {
 		eprintln!("WARNING: no `.env` file found");
 	}
 
-	let _guard = logging::init()?;
-	let config = cs2kz_api::Config::new()?;
-	let mut connection = MySqlConnection::connect(config.database_url.as_str()).await?;
+	let _guard = logging::init().context("initialize loggign")?;
+	let config = cs2kz_api::Config::new().context("load config")?;
+	let mut connection = MySqlConnection::connect(config.database_url.as_str())
+		.await
+		.context("connect to database")?;
 
 	sqlx::migrate!("./database/migrations")
 		.run(&mut connection)
-		.await?;
+		.await
+		.context("run migrations")?;
 
 	drop(connection);
 
-	API::run(config).await?;
+	API::run(config).await.context("run API")?;
 
 	Ok(())
 }

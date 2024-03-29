@@ -2,8 +2,8 @@ use std::path::PathBuf;
 use std::{fs, process};
 
 use clap::Parser;
-use color_eyre::Result;
 use cs2kz_api::API;
+use eyre::{Context, Result};
 use similar::TextDiff;
 
 #[derive(Parser)]
@@ -17,8 +17,6 @@ struct Args {
 }
 
 fn main() -> Result<()> {
-	color_eyre::install()?;
-
 	let args = Args::parse();
 	let spec = API::spec();
 
@@ -27,7 +25,7 @@ fn main() -> Result<()> {
 		return Ok(());
 	};
 
-	let file = fs::read_to_string(path)?;
+	let file = fs::read_to_string(&path).with_context(|| format!("read {path:?}"))?;
 	let diff = TextDiff::from_lines(&file, &spec);
 	let mut has_diff = false;
 
