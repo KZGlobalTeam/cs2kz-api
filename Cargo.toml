@@ -88,9 +88,6 @@ version = "0.3"
 default-features = false
 features = ["std", "fmt", "ansi", "json", "env-filter"]
 
-[dependencies.tracing-bunyan-formatter]
-version = "0.3.9"
-
 [dependencies.tracing-appender]
 version = "0.2"
 
