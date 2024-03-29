@@ -12,6 +12,7 @@ use crate::auth::{self, Jwt, RoleFlags};
 use crate::players::models::CourseSession;
 use crate::players::{queries, FullPlayer, PlayerUpdate};
 use crate::responses::{self, NoContent};
+use crate::sqlx::SqlErrorExt;
 use crate::{AppState, Error, Result};
 
 #[tracing::instrument(level = "debug", skip(state))]
@@ -99,11 +100,11 @@ pub async fn patch(
 	.execute(transaction.as_mut())
 	.await?;
 
-	trace!(target: "audit_log", %steam_id, "updated player");
-
 	if query_result.rows_affected() == 0 {
 		return Err(Error::unknown("SteamID"));
 	}
+
+	trace!(target: "audit_log", %steam_id, "updated player");
 
 	let session_id = sqlx::query! {
 		r#"
@@ -146,7 +147,14 @@ pub async fn patch(
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(crate::sqlx::last_insert_id::<NonZeroU64>)??;
+	.map(crate::sqlx::last_insert_id::<NonZeroU64>)
+	.map_err(|err| {
+		if err.is_fk_violation_of("player_id") {
+			Error::unknown("player").with_source(err)
+		} else {
+			Error::from(err)
+		}
+	})??;
 
 	trace!(target: "audit_log", %steam_id, session.id = %session_id, "created game session");
 
@@ -213,7 +221,16 @@ async fn insert_course_session(
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(crate::sqlx::last_insert_id::<NonZeroU64>)??;
+	.map(crate::sqlx::last_insert_id::<NonZeroU64>)
+	.map_err(|err| {
+		if err.is_fk_violation_of("player_id") {
+			Error::unknown("player").with_source(err)
+		} else if err.is_fk_violation_of("course_id") {
+			Error::unknown("course").with_source(err)
+		} else {
+			Error::from(err)
+		}
+	})??;
 
 	trace! {
 		target: "audit_log",

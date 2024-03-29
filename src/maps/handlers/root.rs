@@ -17,7 +17,7 @@ use crate::maps::models::{NewCourse, NewFilter};
 use crate::maps::{queries, CreatedMap, FullMap, NewMap};
 use crate::parameters::Limit;
 use crate::responses::Created;
-use crate::sqlx::FilteredQuery;
+use crate::sqlx::{FilteredQuery, SqlErrorExt};
 use crate::workshop::WorkshopMap;
 use crate::{auth, responses, AppState, Error, Result};
 
@@ -222,7 +222,17 @@ pub(super) async fn create_mappers(
 		query.push_bind(map_id.get()).push_bind(steam_id);
 	});
 
-	query.build().execute(transaction.as_mut()).await?;
+	query
+		.build()
+		.execute(transaction.as_mut())
+		.await
+		.map_err(|err| {
+			if err.is_fk_violation_of("player_id") {
+				Error::unknown("mapper").with_source(err)
+			} else {
+				Error::from(err)
+			}
+		})?;
 
 	info!(target: "audit_log", %map_id, ?mappers, "inserted mappers");
 
@@ -289,7 +299,17 @@ pub(super) async fn insert_course_mappers(
 		query.push_bind(course_id.get()).push_bind(steam_id);
 	});
 
-	query.build().execute(transaction.as_mut()).await?;
+	query
+		.build()
+		.execute(transaction.as_mut())
+		.await
+		.map_err(|err| {
+			if err.is_fk_violation_of("player_id") {
+				Error::unknown("mapper").with_source(err)
+			} else {
+				Error::from(err)
+			}
+		})?;
 
 	info!(target: "audit_log", %course_id, ?mappers, "inserted course mappers");
 

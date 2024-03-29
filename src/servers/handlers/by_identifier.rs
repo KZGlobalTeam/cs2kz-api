@@ -6,6 +6,7 @@ use axum::extract::Path;
 use axum::Json;
 use cs2kz::ServerIdentifier;
 use sqlx::QueryBuilder;
+use tracing::info;
 
 use crate::auth::RoleFlags;
 use crate::responses::NoContent;
@@ -92,7 +93,13 @@ pub async fn patch(
 
 	query.push(" WHERE id = ").push_bind(server_id.get());
 
-	query.build().execute(&state.database).await?;
+	let query_result = query.build().execute(&state.database).await?;
+
+	if query_result.rows_affected() == 0 {
+		return Err(Error::unknown("server ID"));
+	}
+
+	info!(target: "audit_log", %server_id, "updated server");
 
 	Ok(NoContent)
 }

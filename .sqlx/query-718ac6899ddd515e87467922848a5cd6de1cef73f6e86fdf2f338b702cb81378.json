@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t  semver\n\t\tFROM\n\t\t  PluginVersions\n\t\tORDER BY\n\t\t  created_on DESC\n\t\tLIMIT\n\t\t  1\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "semver",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | UNIQUE_KEY | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 56
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "718ac6899ddd515e87467922848a5cd6de1cef73f6e86fdf2f338b702cb81378"
+}

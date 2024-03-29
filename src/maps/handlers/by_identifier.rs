@@ -171,7 +171,7 @@ async fn update_name_and_checksum(
 		.checksum()
 		.await?;
 
-	sqlx::query! {
+	let query_result = sqlx::query! {
 		r#"
 		UPDATE
 		  Maps
@@ -187,6 +187,10 @@ async fn update_name_and_checksum(
 	}
 	.execute(transaction.as_mut())
 	.await?;
+
+	if query_result.rows_affected() == 0 {
+		return Err(Error::unknown("map ID"));
+	}
 
 	info!(target: "audit_log", %map_id, "updated workshop details");
 

@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use axum::extract::Path;
 use axum::Json;
+use tracing::info;
 use uuid::Uuid;
 
 use crate::auth::{Jwt, RoleFlags};
@@ -101,6 +102,8 @@ pub async fn put_perma(
 		return Err(Error::unknown("server ID"));
 	}
 
+	info!(target: "audit_log", %server_id, %refresh_key, "generated new API key for server");
+
 	Ok(Created(Json(RefreshKey { refresh_key })))
 }
 
@@ -140,6 +143,8 @@ pub async fn delete_perma(
 	if query_result.rows_affected() == 0 {
 		return Err(Error::unknown("server ID"));
 	}
+
+	info!(target: "audit_log", %server_id, "deleted API key for server");
 
 	Ok(NoContent)
 }

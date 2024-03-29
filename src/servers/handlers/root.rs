@@ -14,7 +14,7 @@ use crate::auth::RoleFlags;
 use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
 use crate::servers::{queries, CreatedServer, NewServer, Server};
-use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt};
+use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, AppState, Error, Result};
 
 /// Query parameters for `GET /servers`.
@@ -144,7 +144,14 @@ pub async fn post(
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(crate::sqlx::last_insert_id)??;
+	.map(crate::sqlx::last_insert_id)
+	.map_err(|err| {
+		if err.is_fk_violation_of("owner_id") {
+			Error::unknown("owner").with_source(err)
+		} else {
+			Error::from(err)
+		}
+	})??;
 
 	transaction.commit().await?;
 

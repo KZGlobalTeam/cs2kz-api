@@ -5,6 +5,7 @@ use std::num::NonZeroU64;
 use axum::extract::Path;
 use axum::Json;
 use sqlx::QueryBuilder;
+use tracing::info;
 
 use crate::auth::RoleFlags;
 use crate::bans::{queries, Ban, BanUpdate, CreatedUnban, NewUnban};
@@ -83,6 +84,8 @@ pub async fn patch(
 		return Err(Error::unknown("ban ID"));
 	}
 
+	info!(target: "audit_log", %ban_id, "updated ban");
+
 	Ok(NoContent)
 }
 
@@ -127,6 +130,8 @@ pub async fn delete(
 		return Err(Error::unknown("ban ID"));
 	}
 
+	info!(target: "audit_log", %ban_id, "reverted ban");
+
 	let unban_id = sqlx::query! {
 		r#"
 		INSERT INTO
@@ -141,6 +146,8 @@ pub async fn delete(
 	.execute(transaction.as_mut())
 	.await
 	.map(crate::sqlx::last_insert_id)??;
+
+	info!(target: "audit_log", %ban_id, %unban_id, "created unban");
 
 	transaction.commit().await?;
 

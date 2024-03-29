@@ -9,7 +9,7 @@ use utoipa::IntoParams;
 use crate::parameters::{Limit, Offset};
 use crate::plugin::{CreatedPluginVersion, NewPluginVersion, PluginVersion};
 use crate::responses::Created;
-use crate::sqlx::QueryBuilderExt;
+use crate::sqlx::{QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, AppState, Error, Result};
 
 /// Query parameters for `GET /plugin`.
@@ -68,6 +68,7 @@ pub async fn get(
     responses::Created<CreatedPluginVersion>,
     responses::BadRequest,
     responses::Unauthorized,
+    responses::Conflict,
     responses::UnprocessableEntity,
     responses::InternalServerError,
   ),
@@ -77,6 +78,28 @@ pub async fn post(
 	key: auth::Key,
 	Json(NewPluginVersion { semver, git_revision }): Json<NewPluginVersion>,
 ) -> Result<Created<Json<CreatedPluginVersion>>> {
+	let latest_version = sqlx::query! {
+		r#"
+		SELECT
+		  semver
+		FROM
+		  PluginVersions
+		ORDER BY
+		  created_on DESC
+		LIMIT
+		  1
+		"#
+	}
+	.fetch_optional(&state.database)
+	.await?
+	.map(|row| row.semver.parse::<semver::Version>())
+	.transpose()
+	.map_err(|err| Error::bug("invalid semver in database").with_source(err))?;
+
+	if let Some(version) = latest_version.filter(|version| version >= &semver) {
+		return Err(Error::invalid_semver(version));
+	}
+
 	let plugin_version_id = sqlx::query! {
 		r#"
 		INSERT INTO
@@ -89,7 +112,14 @@ pub async fn post(
 	}
 	.execute(&state.database)
 	.await
-	.map(crate::sqlx::last_insert_id)??;
+	.map(crate::sqlx::last_insert_id)
+	.map_err(|err| {
+		if err.is_duplicate_entry() {
+			Error::invalid_plugin_rev()
+		} else {
+			Error::from(err)
+		}
+	})??;
 
 	Ok(Created(Json(CreatedPluginVersion { plugin_version_id })))
 }

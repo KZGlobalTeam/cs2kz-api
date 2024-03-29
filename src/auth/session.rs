@@ -39,6 +39,7 @@ use tracing::trace;
 use uuid::Uuid;
 
 use super::{RoleFlags, User};
+use crate::sqlx::SqlErrorExt;
 use crate::{Error, Result, State};
 
 /// The primary abstraction over login sessions.
@@ -113,7 +114,14 @@ impl Session {
 		}
 		.execute(transaction.as_mut())
 		.await
-		.map(crate::sqlx::last_insert_id::<NonZeroU64>)??;
+		.map(crate::sqlx::last_insert_id::<NonZeroU64>)
+		.map_err(|err| {
+			if err.is_fk_violation_of("player_id") {
+				Error::unknown("player").with_source(err)
+			} else {
+				Error::from(err)
+			}
+		})??;
 
 		trace!(user.id = %steam_id, session.id = %session_id, "created session");
 

@@ -12,7 +12,7 @@ use crate::auth::Jwt;
 use crate::jumpstats::{queries, CreatedJumpstat, Jumpstat, NewJumpstat};
 use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
-use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt};
+use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, AppState, Error, Result};
 
 /// Query parameters for `GET /jumpstats`.
@@ -241,7 +241,14 @@ pub async fn post(
 	}
 	.execute(&state.database)
 	.await
-	.map(crate::sqlx::last_insert_id)??;
+	.map(crate::sqlx::last_insert_id)
+	.map_err(|err| {
+		if err.is_fk_violation_of("player_id") {
+			Error::unknown("player").with_source(err)
+		} else {
+			Error::from(err)
+		}
+	})??;
 
 	trace!(%jumpstat_id, "inserted jumpstat");
 

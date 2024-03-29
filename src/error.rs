@@ -107,6 +107,21 @@ impl Error {
 		Self::new(StatusCode::BAD_REQUEST).with_message("map/course cannot have 0 mappers")
 	}
 
+	/// When submitting new plugin versions, the submitted version cannot be <= the current
+	/// latest version.
+	#[track_caller]
+	pub fn invalid_semver(current_latest: semver::Version) -> Self {
+		Self::new(StatusCode::CONFLICT).with_message(format_args!(
+			"invalid plugin version; current latest version is {current_latest}"
+		))
+	}
+
+	/// When submitting new plugin versions, the submitted git revision must be unique.
+	#[track_caller]
+	pub fn invalid_plugin_rev() -> Self {
+		Self::new(StatusCode::CONFLICT).with_message("this git revision is already in use")
+	}
+
 	/// A CS2 server tried to request an access key (JWT) but their supplied refresh key was
 	/// invalid.
 	#[track_caller]
