@@ -1,5 +1,6 @@
 //! Handlers for the `/maps/{map}` route.
 
+use std::collections::HashSet;
 use std::num::{NonZeroU16, NonZeroU32};
 
 use axum::extract::Path;
@@ -250,9 +251,27 @@ where
 	C: IntoIterator<Item = (NonZeroU32, CourseUpdate)> + Send,
 	C::IntoIter: Send,
 {
-	let mut course_ids = Vec::new();
+	let mut valid_course_ids =
+		sqlx::query!("SELECT id FROM Courses WHERE map_id = ?", map_id.get())
+			.fetch_all(transaction.as_mut())
+			.await?
+			.into_iter()
+			.map(|row| row.id)
+			.collect::<HashSet<_>>();
 
-	for (course_id, CourseUpdate { name, description, added_mappers, removed_mappers }) in courses {
+	let courses = courses.into_iter().map(|(id, update)| {
+		if valid_course_ids.remove(&id.get()) {
+			(id, Ok(update))
+		} else {
+			(id, Err(Error::course_does_not_belong_to_map(id, map_id)))
+		}
+	});
+
+	let mut updated_course_ids = Vec::new();
+
+	for (course_id, update) in courses {
+		let CourseUpdate { name, description, added_mappers, removed_mappers } = update?;
+
 		let is_empty_update = name.is_none()
 			&& description.is_none()
 			&& added_mappers.is_none()
@@ -285,12 +304,12 @@ where
 			delete_course_mappers(course_id, &removed_mappers, transaction).await?;
 		}
 
-		course_ids.push(course_id);
+		updated_course_ids.push(course_id);
 	}
 
-	course_ids.sort_unstable();
+	updated_course_ids.sort_unstable();
 
-	info!(target: "audit_log", %map_id, ?course_ids, "updated courses");
+	info!(target: "audit_log", %map_id, ?updated_course_ids, "updated courses");
 
 	Ok(())
 }

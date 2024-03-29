@@ -7,6 +7,7 @@
 
 use std::error::Error as StdError;
 use std::fmt::Display;
+use std::num::{NonZeroU16, NonZeroU32};
 use std::panic::Location;
 
 use axum::extract::rejection::PathRejection;
@@ -105,6 +106,15 @@ impl Error {
 	#[track_caller]
 	pub fn must_have_mappers() -> Self {
 		Self::new(StatusCode::BAD_REQUEST).with_message("map/course cannot have 0 mappers")
+	}
+
+	/// When PATCHing maps, the user shouldn't be allowed to remove all mappers from a map /
+	/// course.
+	#[track_caller]
+	pub fn course_does_not_belong_to_map(course_id: NonZeroU32, map_id: NonZeroU16) -> Self {
+		Self::new(StatusCode::CONFLICT).with_message(format_args!(
+			"course with ID `{course_id}` does not belong to map `{map_id}`"
+		))
 	}
 
 	/// When submitting new plugin versions, the submitted version cannot be <= the current
