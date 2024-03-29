@@ -11,7 +11,7 @@ publish = false
 
 [workspace]
 resolver = "2"
-members = ["crates/spec-generator", "crates/macros"]
+members = ["crates/spec-generator", "crates/macros", "crates/points"]
 
 [features]
 production = []
@@ -19,6 +19,25 @@ console = ["dep:console-subscriber", "tokio/tracing"]
 
 [workspace.dependencies.eyre]
 version = "0.6"
+
+[workspace.dependencies.clap]
+version = "4.5"
+features = ["derive"]
+
+[workspace.dependencies.serde]
+version = "1.0"
+features = ["derive"]
+
+[workspace.dependencies.serde_json]
+version = "1.0"
+
+[workspace.dependencies.dotenvy]
+version = "0.15"
+
+[workspace.dependencies.chrono]
+version = "0.4"
+default-features = false
+features = ["std", "serde"]
 
 [dependencies.cs2kz]
 path = "./crates/cs2kz"
@@ -102,14 +121,13 @@ version = "0.2"
 optional = true
 
 [dependencies.dotenvy]
-version = "0.15"
+workspace = true
 
 [dependencies.serde]
-version = "1.0"
-features = ["derive"]
+workspace = true
 
 [dependencies.serde_json]
-version = "1.0"
+workspace = true
 
 [dependencies.serde_urlencoded]
 version = "0.7"
@@ -136,9 +154,7 @@ version = "1.0"
 features = ["serde"]
 
 [dependencies.chrono]
-version = "0.4"
-default-features = false
-features = ["std", "serde"]
+workspace = true
 
 [dependencies.time]
 version = "0.3"

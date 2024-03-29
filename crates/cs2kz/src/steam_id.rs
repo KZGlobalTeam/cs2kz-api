@@ -387,6 +387,8 @@ mod serde_impls {
 	}
 
 	mod de {
+		use std::borrow::Cow;
+
 		use serde::de::{Error, Unexpected as U};
 		use serde::{Deserialize, Deserializer};
 
@@ -455,10 +457,10 @@ mod serde_impls {
 				enum Helper<'a> {
 					U32(u32),
 					U64(u64),
-					Str(&'a str),
+					Str(Cow<'a, str>),
 				}
 
-				match <Helper<'de>>::deserialize(deserializer)? {
+				match <Helper>::deserialize(deserializer)? {
 					Helper::U32(value) => Self::try_from(value),
 					Helper::U64(value) => Self::try_from(value),
 					Helper::Str(value) => value.parse::<Self>(),

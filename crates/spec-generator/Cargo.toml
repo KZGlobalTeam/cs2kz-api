@@ -16,8 +16,7 @@ path = "../../"
 workspace = true
 
 [dependencies.clap]
-version = "4.5"
-features = ["derive"]
+workspace = true
 
 [dependencies.similar]
 version = "2.4"
