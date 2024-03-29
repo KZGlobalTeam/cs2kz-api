@@ -1,6 +1,7 @@
 //! Handlers for the `/auth` routes.
 
 use axum::extract::Query;
+use axum::http::StatusCode;
 use axum::response::Redirect;
 use axum_extra::extract::CookieJar;
 use serde::Deserialize;
@@ -41,9 +42,6 @@ pub async fn login(
 /// Query parameters for logging out.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct LogoutParams {
-	/// Where the user wants to be redirected to after the logout process is done.
-	redirect_to: Url,
-
 	/// Whether *all* previous sessions should be invalidated.
 	#[serde(default)]
 	invalidate_all_sessions: bool,
@@ -55,6 +53,7 @@ pub struct LogoutParams {
   path = "/auth/logout",
   tag = "Auth",
   security(("Browser Session" = [])),
+  params(LogoutParams),
   responses(//
     responses::SeeOther,
     responses::BadRequest,
@@ -65,15 +64,15 @@ pub struct LogoutParams {
 pub async fn logout(
 	state: AppState,
 	mut session: Session,
-	Query(LogoutParams { redirect_to, invalidate_all_sessions }): Query<LogoutParams>,
-) -> Result<(Session, Redirect)> {
+	Query(LogoutParams { invalidate_all_sessions }): Query<LogoutParams>,
+) -> Result<(Session, StatusCode)> {
 	session
 		.invalidate(invalidate_all_sessions, &state.database)
 		.await?;
 
 	trace!(steam_id = %session.user().steam_id(), "user logged out");
 
-	Ok((session, Redirect::to(redirect_to.as_str())))
+	Ok((session, StatusCode::OK))
 }
 
 #[tracing::instrument(level = "debug", skip(state))]

@@ -2851,6 +2851,17 @@
           "Auth"
         ],
         "operationId": "logout",
+        "parameters": [
+          {
+            "name": "invalidate_all_sessions",
+            "in": "query",
+            "description": "Whether *all* previous sessions should be invalidated.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "303": {
             "description": ""

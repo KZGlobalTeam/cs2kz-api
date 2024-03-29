@@ -1,5 +1,6 @@
 //! Everything related to authentication.
 
+use axum::http::Method;
 use axum::routing::get;
 use axum::Router;
 
@@ -25,10 +26,15 @@ pub mod handlers;
 
 /// Returns a router with routes for `/auth`.
 pub fn router(state: &'static State) -> Router {
+	let logout = Router::new()
+		.route("/logout", get(handlers::logout))
+		.route_layer(cors::dashboard([Method::GET]))
+		.with_state(state);
+
 	Router::new()
 		.route("/login", get(handlers::login))
-		.route("/logout", get(handlers::logout))
 		.route("/callback", get(handlers::callback))
 		.route_layer(cors::permissive())
 		.with_state(state)
+		.merge(logout)
 }
