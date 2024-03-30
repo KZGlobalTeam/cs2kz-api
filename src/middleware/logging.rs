@@ -5,7 +5,7 @@ use std::time::Duration;
 use axum::extract::Request;
 use axum::response::Response;
 use tower_http::classify::ServerErrorsFailureClass;
-use tracing::{error, Level, Span};
+use tracing::{error, warn, Level, Span};
 use uuid::Uuid;
 
 /// A tower layer that will log HTTP requests & responses.
@@ -47,10 +47,10 @@ pub(crate) fn on_response(response: &Response, latency: Duration, span: &Span) {
 pub(crate) fn on_failure(failure: ServerErrorsFailureClass, _latency: Duration, _span: &Span) {
 	match failure {
 		ServerErrorsFailureClass::Error(message) => {
-			error!(target: "audit_log", %message, "encountered runtime error");
+			warn!(target: "audit_log", %message, "encountered runtime error");
 		}
 		ServerErrorsFailureClass::StatusCode(code) if code.is_server_error() => {
-			error!(target: "audit_log", code = format_args!("{code}"), "encountered runtime error");
+			error!(target: "audit_log", %code, "encountered runtime error");
 		}
 		ServerErrorsFailureClass::StatusCode(_) => {}
 	}

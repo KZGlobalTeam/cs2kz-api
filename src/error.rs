@@ -58,6 +58,15 @@ impl Error {
 		Self { status, message: None, location: Location::caller(), source: None }
 	}
 
+	/// Convenience function for logging out an error while creating it.
+	fn with_log<F>(self, f: F) -> Self
+	where
+		F: FnOnce(&'static Location<'static>),
+	{
+		f(self.location);
+		self
+	}
+
 	/// Set the message of the error.
 	pub fn with_message(mut self, message: impl Display) -> Self {
 		self.message = Some(message.to_string());
@@ -73,8 +82,9 @@ impl Error {
 	/// An unexpected error.
 	#[track_caller]
 	pub fn bug(message: impl Display) -> Self {
-		error!(target: "audit_log", %message, "unexpected runtime error");
-		Self::new(StatusCode::INTERNAL_SERVER_ERROR).with_message(message)
+		Self::new(StatusCode::INTERNAL_SERVER_ERROR)
+			.with_log(|location| error!(target: "audit_log", %location, %message))
+			.with_message(message)
 	}
 
 	/// `204 No Content` status code.
@@ -205,7 +215,9 @@ impl Error {
 
 impl IntoResponse for Error {
 	fn into_response(self) -> Response {
-		debug!(location = %self.location, "runtime error occurred");
+		let Self { status, message, location, .. } = &self;
+
+		debug!(%location, %status, ?message, "error occurred in request handler");
 
 		let mut json = json!({ "message": self.to_string() });
 
@@ -230,10 +242,11 @@ impl From<sqlx::Error> for Error {
 			E::Configuration(_) | E::Tls(_) | E::AnyDriverError(_) | E::Migrate(_) => {
 				unreachable!("these do not happen after initial setup ({error})");
 			}
-			error => {
-				error!(target: "audit_log", %error, "database error");
-				Self::bug("database error").with_source(error)
-			}
+			error => Self::bug("database error")
+				.with_log(|location| {
+					error!(target: "audit_log", %error, %location, "database error");
+				})
+				.with_source(error),
 		}
 	}
 }
@@ -241,8 +254,11 @@ impl From<sqlx::Error> for Error {
 impl From<jsonwebtoken::errors::Error> for Error {
 	#[track_caller]
 	fn from(error: jsonwebtoken::errors::Error) -> Self {
-		error!(target: "audit_log", %error, "failed to (de)serialize jwt");
-		Self::new(StatusCode::INTERNAL_SERVER_ERROR).with_source(error)
+		Self::new(StatusCode::INTERNAL_SERVER_ERROR)
+			.with_log(|location| {
+				error!(target: "audit_log", %error, %location, "failed to (de)serialize jwt");
+			})
+			.with_source(error)
 	}
 }
 
