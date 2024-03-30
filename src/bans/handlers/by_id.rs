@@ -112,6 +112,25 @@ pub async fn delete(
 ) -> Result<Created<Json<CreatedUnban>>> {
 	let mut transaction = state.database.begin().await?;
 
+	let unban_id = sqlx::query! {
+		r#"
+		SELECT
+		  id
+		FROM
+		  Unbans
+		WHERE
+		  ban_id = ?
+		"#,
+		ban_id.get(),
+	}
+	.fetch_optional(transaction.as_mut())
+	.await?
+	.map(|row| row.id);
+
+	if unban_id.is_some() {
+		return Err(Error::already_exists("unban"));
+	}
+
 	let query_result = sqlx::query! {
 		r#"
 		UPDATE
