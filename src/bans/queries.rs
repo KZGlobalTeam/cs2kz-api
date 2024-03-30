@@ -17,7 +17,7 @@ pub static SELECT: &str = r#"
 	  ub.reason unban_reason,
 	  a2.name unban_admin_name,
 	  a2.id unban_admin_id,
-	  ub.created_on ub_created_on
+	  ub.created_on unban_created_on
 	FROM
 	  Bans b
 	  JOIN Players p ON p.id = b.player_id

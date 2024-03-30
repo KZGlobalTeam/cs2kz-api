@@ -144,9 +144,9 @@ pub async fn post(
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
 	Json(NewBan { player_id, player_ip, reason }): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
-	let (server, admin_id) = match (server, session) {
-		(Some(server), None) => (Some((server.id(), server.plugin_version_id())), None),
-		(None, Some(session)) => (None, Some(session.user().steam_id())),
+	let (server, admin) = match (server, session) {
+		(Some(server), None) => (Some(server.into_payload()), None),
+		(None, Some(session)) => (None, Some(session.user())),
 		(None, None) | (Some(_), Some(_)) => {
 			return Err(Error::unauthorized());
 		}
@@ -180,12 +180,13 @@ pub async fn post(
 	let player_ip = match player_ip {
 		Some(ip) => ip.to_string(),
 		None => sqlx::query!("SELECT ip_address FROM Players WHERE id = ?", player_id)
-			.fetch_one(&state.database)
-			.await
-			.map(|row| row.ip_address)?,
+			.fetch_optional(&state.database)
+			.await?
+			.map(|row| row.ip_address)
+			.ok_or_else(|| Error::unknown("player"))?,
 	};
 
-	let plugin_version_id = match server.map(|(_, id)| id.get()) {
+	let plugin_version_id = match server.map(|server| server.plugin_version_id().get()) {
 		Some(id) => id,
 		None => sqlx::query! {
 			r#"
@@ -204,6 +205,8 @@ pub async fn post(
 		.map(|row| row.id)?,
 	};
 
+	let expires_on = OffsetDateTime::now_utc() + reason.duration(previous_offenses);
+
 	let ban_id = sqlx::query! {
 		r#"
 		INSERT INTO
@@ -221,11 +224,11 @@ pub async fn post(
 		"#,
 		player_id,
 		player_ip,
-		server.map(|(id, _)| id.get()),
+		server.map(|server| server.id().get()),
 		reason,
-		admin_id,
+		admin.map(|admin| admin.steam_id()),
 		plugin_version_id,
-		OffsetDateTime::now_utc() + reason.duration(previous_offenses),
+		expires_on,
 	}
 	.execute(&state.database)
 	.await

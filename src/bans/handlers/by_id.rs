@@ -4,7 +4,7 @@ use std::num::NonZeroU64;
 
 use axum::extract::Path;
 use axum::Json;
-use sqlx::QueryBuilder;
+use sqlx::{MySqlExecutor, QueryBuilder};
 use tracing::info;
 
 use crate::auth::RoleFlags;
@@ -66,6 +66,10 @@ pub async fn patch(
 		return Ok(NoContent);
 	}
 
+	if let Some(ban_id) = is_already_unbanned(ban_id, &state.database).await? {
+		return Err(Error::ban_already_reverted(ban_id));
+	}
+
 	let mut query = UpdateQuery::new("UPDATE Bans");
 
 	if let Some(reason) = reason {
@@ -112,23 +116,8 @@ pub async fn delete(
 ) -> Result<Created<Json<CreatedUnban>>> {
 	let mut transaction = state.database.begin().await?;
 
-	let unban_id = sqlx::query! {
-		r#"
-		SELECT
-		  id
-		FROM
-		  Unbans
-		WHERE
-		  ban_id = ?
-		"#,
-		ban_id.get(),
-	}
-	.fetch_optional(transaction.as_mut())
-	.await?
-	.map(|row| row.id);
-
-	if unban_id.is_some() {
-		return Err(Error::already_exists("unban"));
+	if let Some(ban_id) = is_already_unbanned(ban_id, transaction.as_mut()).await? {
+		return Err(Error::ban_already_reverted(ban_id));
 	}
 
 	let query_result = sqlx::query! {
@@ -171,4 +160,27 @@ pub async fn delete(
 	transaction.commit().await?;
 
 	Ok(Created(Json(CreatedUnban { unban_id })))
+}
+
+/// Checks if there is an unban associated with the given `ban_id` and returns the corresponding
+/// `ban_id`.
+async fn is_already_unbanned(
+	ban_id: NonZeroU64,
+	executor: impl MySqlExecutor<'_>,
+) -> Result<Option<NonZeroU64>> {
+	sqlx::query! {
+		r#"
+		SELECT
+		  id
+		FROM
+		  Unbans
+		WHERE
+		  ban_id = ?
+		"#,
+		ban_id.get(),
+	}
+	.fetch_optional(executor)
+	.await?
+	.map(|row| NonZeroU64::new(row.id).ok_or_else(|| Error::bug("unban ID was 0")))
+	.transpose()
 }

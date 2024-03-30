@@ -7,7 +7,7 @@
 
 use std::error::Error as StdError;
 use std::fmt::Display;
-use std::num::{NonZeroU16, NonZeroU32};
+use std::num::{NonZeroU16, NonZeroU32, NonZeroU64};
 use std::panic::Location;
 
 use axum::extract::rejection::PathRejection;
@@ -130,6 +130,14 @@ impl Error {
 	#[track_caller]
 	pub fn invalid_plugin_rev() -> Self {
 		Self::new(StatusCode::CONFLICT).with_message("this git revision is already in use")
+	}
+
+	/// When updating or deleting a ban, the ban might have already expired / reverted
+	/// previously.
+	#[track_caller]
+	pub fn ban_already_reverted(ban_id: NonZeroU64) -> Self {
+		Self::new(StatusCode::CONFLICT)
+			.with_message(format_args!("ban `{ban_id}` has already been reverted"))
 	}
 
 	/// A CS2 server tried to request an access key (JWT) but their supplied refresh key was

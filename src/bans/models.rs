@@ -56,8 +56,8 @@ impl FromRow<'_, MySqlRow> for Ban {
 			server: ServerInfo::from_row(row).ok(),
 			reason: row.try_get("reason")?,
 			admin: row
-				.try_get(concat!("admin", "_name"))
-				.and_then(|name| Ok((name, row.try_get(concat!("admin", "_id"))?)))
+				.try_get("admin_name")
+				.and_then(|name| Ok((name, row.try_get("admin_id")?)))
 				.map(|(name, steam_id)| Player { name, steam_id })
 				.ok(),
 			created_on: row.try_get("created_on")?,
@@ -159,8 +159,8 @@ impl FromRow<'_, MySqlRow> for Unban {
 			id: crate::sqlx::non_zero!("unban_id" as NonZeroU64, row)?,
 			reason: row.try_get("unban_reason")?,
 			admin: row
-				.try_get(concat!("unban_admin", "_name"))
-				.and_then(|name| Ok((name, row.try_get(concat!("unban_admin", "_id"))?)))
+				.try_get("unban_admin_name")
+				.and_then(|name| Ok((name, row.try_get("unban_admin_id")?)))
 				.map(|(name, steam_id)| Player { name, steam_id })
 				.ok(),
 			created_on: row.try_get("unban_created_on")?,

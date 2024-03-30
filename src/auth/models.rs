@@ -19,7 +19,7 @@ use super::RoleFlags;
 use crate::{Error, Result, State};
 
 /// An authenticated server.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 pub struct Server {
 	/// The server's ID.
 	#[schema(value_type = u16)]
