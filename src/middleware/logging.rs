@@ -5,7 +5,7 @@ use std::time::Duration;
 use axum::extract::Request;
 use axum::response::Response;
 use tower_http::classify::ServerErrorsFailureClass;
-use tracing::{error, warn, Level, Span};
+use tracing::{debug, error, warn, Level, Span};
 use uuid::Uuid;
 
 /// A tower layer that will log HTTP requests & responses.
@@ -25,12 +25,12 @@ pub(crate) fn make_span_with(request: &Request) -> Span {
 	tracing::span! {
 		Level::TRACE,
 		"request",
-		id = %Uuid::new_v4(),
-		method = %request.method(),
-		path = %request.uri(),
-		version = ?request.version(),
+		request.id = %Uuid::new_v4(),
+		request.method = %request.method(),
+		request.path = %request.uri(),
+		request.version = ?request.version(),
 		request.headers = ?request.headers(),
-		status = tracing::field::Empty,
+		response.status = tracing::field::Empty,
 		response.headers = tracing::field::Empty,
 		latency = tracing::field::Empty,
 	}
@@ -46,11 +46,14 @@ pub(crate) fn on_response(response: &Response, latency: Duration, span: &Span) {
 #[doc(hidden)]
 pub(crate) fn on_failure(failure: ServerErrorsFailureClass, _latency: Duration, _span: &Span) {
 	match failure {
-		ServerErrorsFailureClass::Error(message) => {
-			warn!(target: "audit_log", %message, "encountered runtime error");
+		ServerErrorsFailureClass::Error(error) => {
+			warn!(target: "audit_log", %error, "request handler failed");
 		}
 		ServerErrorsFailureClass::StatusCode(code) if code.is_server_error() => {
-			error!(target: "audit_log", %code, "encountered runtime error");
+			error!(target: "audit_log", %code, "request handler failed");
+		}
+		ServerErrorsFailureClass::StatusCode(code) if code.is_client_error() => {
+			debug!(target: "audit_log", %code, "request handler failed");
 		}
 		ServerErrorsFailureClass::StatusCode(_) => {}
 	}
