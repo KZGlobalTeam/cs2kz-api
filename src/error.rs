@@ -33,10 +33,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 ///
 /// Every fallible function returns it.
 #[derive(Debug, Error)]
-#[error("{}", match message.as_deref() {
-	None => "something unexpected happened! please report this",
-	Some(message) => message,
-})]
+#[error("{}", message.as_deref().unwrap_or("something unexpected happened! please report this"))]
 pub struct Error {
 	/// The HTTP status code to use in the response.
 	status: StatusCode,
