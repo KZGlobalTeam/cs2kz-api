@@ -253,7 +253,7 @@ impl FetchID for PlayerIdentifier {
 			.fetch_optional(executor)
 			.await?
 			.map(|row| row.steam_id)
-			.ok_or(Error::no_content()),
+			.ok_or_else(|| Error::no_content()),
 		}
 	}
 }
@@ -278,7 +278,7 @@ impl FetchID for MapIdentifier {
 			.fetch_optional(executor)
 			.await?
 			.map(|row| row.id)
-			.ok_or(Error::no_content()),
+			.ok_or_else(|| Error::no_content()),
 		}
 	}
 }
@@ -303,7 +303,7 @@ impl FetchID for ServerIdentifier {
 			.fetch_optional(executor)
 			.await?
 			.map(|row| row.id)
-			.ok_or(Error::no_content()),
+			.ok_or_else(|| Error::no_content()),
 		}
 	}
 }

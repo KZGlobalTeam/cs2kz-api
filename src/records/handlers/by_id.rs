@@ -31,7 +31,7 @@ pub async fn get(state: AppState, Path(record_id): Path<NonZeroU64>) -> Result<J
 		.build_query_as::<Record>()
 		.fetch_optional(&state.database)
 		.await?
-		.ok_or(Error::no_content())?;
+		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(record))
 }

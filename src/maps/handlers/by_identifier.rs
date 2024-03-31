@@ -54,7 +54,7 @@ pub async fn get(state: AppState, Path(map): Path<MapIdentifier>) -> Result<Json
 		.await?
 		.into_iter()
 		.reduce(FullMap::reduce)
-		.ok_or(Error::no_content())?;
+		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(map))
 }

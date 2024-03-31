@@ -31,7 +31,7 @@ pub async fn get(state: AppState, Path(jumpstat_id): Path<NonZeroU64>) -> Result
 		.build_query_as::<Jumpstat>()
 		.fetch_optional(&state.database)
 		.await?
-		.ok_or(Error::no_content())?;
+		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(jumpstat))
 }

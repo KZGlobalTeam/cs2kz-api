@@ -39,7 +39,7 @@ pub async fn get(state: AppState, Path(steam_id): Path<SteamID>) -> Result<Json<
 	.fetch_optional(&state.database)
 	.await?
 	.map(|row| Admin { name: row.name, steam_id: row.id, roles: row.role_flags })
-	.ok_or(Error::no_content())?;
+	.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(admin))
 }

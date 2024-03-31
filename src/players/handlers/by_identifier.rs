@@ -50,7 +50,7 @@ pub async fn get(
 		.build_query_as::<FullPlayer>()
 		.fetch_optional(&state.database)
 		.await?
-		.ok_or(Error::no_content())?;
+		.ok_or_else(|| Error::no_content())?;
 
 	if session.is_none() {
 		player.ip_address = None;

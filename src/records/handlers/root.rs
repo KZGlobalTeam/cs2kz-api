@@ -168,7 +168,7 @@ pub async fn post(
 	.fetch_optional(&state.database)
 	.await?
 	.map(|row| row.id)
-	.ok_or(Error::unknown("course ID"))?;
+	.ok_or_else(|| Error::unknown("course ID"))?;
 
 	let record_id = sqlx::query! {
 		r#"

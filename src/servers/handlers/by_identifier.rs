@@ -44,7 +44,7 @@ pub async fn get(state: AppState, Path(server): Path<ServerIdentifier>) -> Resul
 		.build_query_as::<Server>()
 		.fetch_optional(&state.database)
 		.await?
-		.ok_or(Error::no_content())?;
+		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(server))
 }

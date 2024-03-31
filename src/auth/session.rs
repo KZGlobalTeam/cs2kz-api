@@ -112,7 +112,7 @@ impl Session {
 		let token = Uuid::new_v4();
 		let expires_on = OffsetDateTime::now_utc() + Self::EXPIRES_AFTER;
 		let mut transaction = database.begin().await?;
-		let session_id = sqlx::query! {
+		let id = sqlx::query! {
 			r#"
 			INSERT INTO
 			  LoginSessions (player_id, token, expires_on)
@@ -150,7 +150,7 @@ impl Session {
 		.fetch_optional(transaction.as_mut())
 		.await?
 		.map(|row| User::new(steam_id, row.role_flags))
-		.ok_or(Error::unknown("SteamID"))?;
+		.ok_or_else(|| Error::unknown("SteamID"))?;
 
 		transaction.commit().await?;
 
@@ -162,7 +162,7 @@ impl Session {
 			.expires(expires_on)
 			.build();
 
-		Ok(Self { id: session_id, user, cookie, _auth: PhantomData })
+		Ok(Self { id, user, cookie, _auth: PhantomData })
 	}
 
 	/// Invalidates this session.
@@ -239,7 +239,7 @@ where
 			.flat_map(|value| value.split(';'))
 			.flat_map(|value| Cookie::parse_encoded(value.trim().to_owned()))
 			.find_map(find_cookie)
-			.ok_or(Error::missing_session_token())?;
+			.ok_or_else(|| Error::missing_session_token())?;
 
 		let mut transaction = state.database.begin().await?;
 
@@ -262,7 +262,7 @@ where
 		}
 		.fetch_optional(transaction.as_mut())
 		.await?
-		.ok_or(Error::invalid_session_token())?;
+		.ok_or_else(|| Error::invalid_session_token())?;
 
 		trace!(%session.id, "authenticated session");
 
@@ -292,14 +292,11 @@ where
 
 		Auth::authorize(&user, transaction.as_mut(), parts).await?;
 
+		let id = NonZeroU64::new(session.id).expect("PKs are never 0");
+
 		transaction.commit().await?;
 
-		Ok(Self {
-			id: NonZeroU64::new(session.id).expect("PKs are never 0"),
-			user,
-			cookie,
-			_auth: PhantomData,
-		})
+		Ok(Self { id, user, cookie, _auth: PhantomData })
 	}
 }
 

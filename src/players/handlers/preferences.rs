@@ -40,7 +40,7 @@ pub async fn get(state: AppState, Path(player): Path<PlayerIdentifier>) -> Resul
 		.build_query_scalar::<SqlJson<JsonValue>>()
 		.fetch_optional(&state.database)
 		.await?
-		.ok_or(Error::no_content())?;
+		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(preferences))
 }

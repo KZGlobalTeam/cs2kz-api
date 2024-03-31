@@ -52,7 +52,7 @@ pub async fn generate_temp(
 		))
 	})
 	.map(|(server_id, plugin_version_id)| auth::Server::new(server_id, plugin_version_id))
-	.ok_or(Error::invalid_refresh_key())?;
+	.ok_or_else(|| Error::invalid_refresh_key())?;
 
 	let access_key = state
 		.encode_jwt(&server, Duration::from_secs(60 * 15))
