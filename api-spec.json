@@ -3695,7 +3695,7 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "Players to be added as mappers of this map.",
+            "description": "Players to be added as mappers of this course.",
             "nullable": true
           },
           "removed_mappers": {
@@ -3703,7 +3703,23 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "Players to be removed as mappers of this map.",
+            "description": "Players to be removed as mappers of this course.",
+            "nullable": true
+          },
+          "filter_updates": {
+            "type": "object",
+            "description": "Updates to any filters of this course.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/FilterUpdate"
+            },
+            "example": {
+              "1": {
+                "name": "foobar"
+              },
+              "2": {
+                "description": "cool course!"
+              }
+            },
             "nullable": true
           }
         }
@@ -3852,6 +3868,33 @@
           "notes": {
             "type": "string",
             "description": "Extra notes about this filter.",
+            "nullable": true
+          }
+        }
+      },
+      "FilterUpdate": {
+        "type": "object",
+        "description": "Request body for updating course filters.",
+        "properties": {
+          "tier": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Tier"
+              }
+            ],
+            "nullable": true
+          },
+          "ranked_status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RankedStatus"
+              }
+            ],
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "description": "New notes.",
             "nullable": true
           }
         }
@@ -4223,6 +4266,14 @@
             "description": "Updates to courses on this map.\n\ncourse ID -> update payload",
             "additionalProperties": {
               "$ref": "#/components/schemas/CourseUpdate"
+            },
+            "example": {
+              "1": {
+                "name": "foobar"
+              },
+              "2": {
+                "description": "cool course!"
+              }
             },
             "nullable": true
           }

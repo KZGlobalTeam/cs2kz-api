@@ -12,7 +12,7 @@ use tracing::info;
 use super::root::create_mappers;
 use crate::auth::RoleFlags;
 use crate::maps::handlers::root::insert_course_mappers;
-use crate::maps::models::CourseUpdate;
+use crate::maps::models::{CourseUpdate, FilterUpdate};
 use crate::maps::{queries, FullMap, MapUpdate};
 use crate::responses::NoContent;
 use crate::sqlx::UpdateQuery;
@@ -251,13 +251,22 @@ where
 	C: IntoIterator<Item = (NonZeroU32, CourseUpdate)> + Send,
 	C::IntoIter: Send,
 {
-	let mut valid_course_ids =
-		sqlx::query!("SELECT id FROM Courses WHERE map_id = ?", map_id.get())
-			.fetch_all(transaction.as_mut())
-			.await?
-			.into_iter()
-			.map(|row| row.id)
-			.collect::<HashSet<_>>();
+	let mut valid_course_ids = sqlx::query! {
+		r#"
+		SELECT
+		  id
+		FROM
+		  Courses
+		WHERE
+		  map_id = ?
+		"#,
+		map_id.get(),
+	}
+	.fetch_all(transaction.as_mut())
+	.await?
+	.into_iter()
+	.map(|row| row.id)
+	.collect::<HashSet<_>>();
 
 	let courses = courses.into_iter().map(|(id, update)| {
 		if valid_course_ids.remove(&id.get()) {
@@ -270,48 +279,68 @@ where
 	let mut updated_course_ids = Vec::new();
 
 	for (course_id, update) in courses {
-		let CourseUpdate { name, description, added_mappers, removed_mappers } = update?;
-
-		let is_empty_update = name.is_none()
-			&& description.is_none()
-			&& added_mappers.is_none()
-			&& removed_mappers.is_none();
-
-		if is_empty_update {
-			continue;
+		if let Some(course_id) = update_course(map_id, course_id, update?, transaction).await? {
+			updated_course_ids.push(course_id);
 		}
-
-		if name.is_some() || description.is_some() {
-			let mut query = UpdateQuery::new("UPDATE Courses");
-
-			if let Some(name) = name {
-				query.set("name", name);
-			}
-
-			if let Some(description) = description {
-				query.set("description", description);
-			}
-
-			query.push(" WHERE id = ").push_bind(course_id.get());
-			query.build().execute(transaction.as_mut()).await?;
-		}
-
-		if let Some(added_mappers) = added_mappers {
-			insert_course_mappers(course_id, &added_mappers, transaction).await?;
-		}
-
-		if let Some(removed_mappers) = removed_mappers {
-			delete_course_mappers(course_id, &removed_mappers, transaction).await?;
-		}
-
-		updated_course_ids.push(course_id);
 	}
 
 	updated_course_ids.sort_unstable();
 
+	info! {
+		target: "audit_log",
+
+		"updated courses",
+	};
+
 	info!(target: "audit_log", %map_id, ?updated_course_ids, "updated courses");
 
 	Ok(())
+}
+
+/// Updates an individual course.
+async fn update_course(
+	map_id: NonZeroU16,
+	course_id: NonZeroU32,
+	CourseUpdate { name, description, added_mappers, removed_mappers, filter_updates }: CourseUpdate,
+	transaction: &mut Transaction<'_, MySql>,
+) -> Result<Option<NonZeroU32>> {
+	if name.is_none()
+		&& description.is_none()
+		&& added_mappers.is_none()
+		&& removed_mappers.is_none()
+		&& filter_updates.is_none()
+	{
+		return Ok(None);
+	}
+
+	if name.is_some() || description.is_some() {
+		let mut query = UpdateQuery::new("UPDATE Courses");
+
+		if let Some(name) = name {
+			query.set("name", name);
+		}
+
+		if let Some(description) = description {
+			query.set("description", description);
+		}
+
+		query.push(" WHERE id = ").push_bind(course_id.get());
+		query.build().execute(transaction.as_mut()).await?;
+	}
+
+	if let Some(added_mappers) = added_mappers {
+		insert_course_mappers(course_id, &added_mappers, transaction).await?;
+	}
+
+	if let Some(removed_mappers) = removed_mappers {
+		delete_course_mappers(course_id, &removed_mappers, transaction).await?;
+	}
+
+	if let Some(filter_updates) = filter_updates {
+		update_filters(map_id, course_id, filter_updates, transaction).await?;
+	}
+
+	Ok(Some(course_id))
 }
 
 /// Deletes course mappers from the database.
@@ -355,4 +384,91 @@ async fn delete_course_mappers(
 	}
 
 	Ok(())
+}
+
+/// Applies updates to filters for a given course.
+async fn update_filters<F>(
+	map_id: NonZeroU16,
+	course_id: NonZeroU32,
+	filters: F,
+	transaction: &mut Transaction<'_, MySql>,
+) -> Result<()>
+where
+	F: IntoIterator<Item = (NonZeroU32, FilterUpdate)> + Send,
+	F::IntoIter: Send,
+{
+	let mut valid_filter_ids = sqlx::query! {
+		r#"
+		SELECT
+		  id
+		FROM
+		  CourseFilters
+		WHERE
+		  course_id = ?
+		"#,
+		course_id.get(),
+	}
+	.fetch_all(transaction.as_mut())
+	.await?
+	.into_iter()
+	.map(|row| row.id)
+	.collect::<HashSet<_>>();
+
+	let filters = filters.into_iter().map(|(id, update)| {
+		if valid_filter_ids.remove(&id.get()) {
+			(id, Ok(update))
+		} else {
+			(id, Err(Error::filter_does_not_belong_to_course(id, course_id)))
+		}
+	});
+
+	let mut updated_filter_ids = Vec::new();
+
+	for (filter_id, update) in filters {
+		if let Some(filter_id) = update_filter(filter_id, update?, transaction).await? {
+			updated_filter_ids.push(filter_id);
+		}
+	}
+
+	updated_filter_ids.sort_unstable();
+
+	info! {
+		target: "audit_log",
+		%map_id,
+		course.id = %course_id,
+		course.updated_filters = ?updated_filter_ids,
+		"updated filters",
+	};
+
+	Ok(())
+}
+
+/// Updates information about a course filter.
+async fn update_filter(
+	filter_id: NonZeroU32,
+	FilterUpdate { tier, ranked_status, notes }: FilterUpdate,
+	transaction: &mut Transaction<'_, MySql>,
+) -> Result<Option<NonZeroU32>> {
+	if tier.is_none() && ranked_status.is_none() && notes.is_none() {
+		return Ok(None);
+	}
+
+	let mut query = UpdateQuery::new("UPDATE CourseFilters");
+
+	if let Some(tier) = tier {
+		query.set("tier", tier);
+	}
+
+	if let Some(ranked_status) = ranked_status {
+		query.set("ranked_status", ranked_status);
+	}
+
+	if let Some(notes) = notes {
+		query.set("notes", notes);
+	}
+
+	query.push(" WHERE id = ").push_bind(filter_id.get());
+	query.build().execute(transaction.as_mut()).await?;
+
+	Ok(Some(filter_id))
 }

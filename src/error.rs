@@ -127,6 +127,15 @@ impl Error {
 		))
 	}
 
+	/// When PATCHing maps, the user shouldn't be allowed to update filters that do not belong
+	/// to courses on the map.
+	#[track_caller]
+	pub fn filter_does_not_belong_to_course(filter_id: NonZeroU32, course_id: NonZeroU32) -> Self {
+		Self::new(StatusCode::CONFLICT).with_message(format_args!(
+			"filter with ID `{filter_id}` does not belong to course `{course_id}`"
+		))
+	}
+
 	/// When submitting new plugin versions, the submitted version cannot be <= the current
 	/// latest version.
 	#[track_caller]

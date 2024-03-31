@@ -167,6 +167,7 @@ mod plugin;
       maps::models::CreatedMap,
       maps::models::MapUpdate,
       maps::models::CourseUpdate,
+      maps::models::FilterUpdate,
       maps::models::MapInfo,
       maps::models::CourseInfo,
 

@@ -358,6 +358,14 @@ pub struct MapUpdate {
 	///
 	/// course ID -> update payload
 	#[serde(default, deserialize_with = "crate::serde::btree_map::deserialize_empty_as_none")]
+	#[schema(example = json!({
+	  "1": {
+	    "name": "foobar"
+	  },
+	  "2": {
+	    "description": "cool course!"
+	  }
+	}))]
 	pub course_updates: Option<BTreeMap<NonZeroU32, CourseUpdate>>,
 }
 
@@ -372,13 +380,39 @@ pub struct CourseUpdate {
 	#[serde(default, deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
 	pub description: Option<String>,
 
-	/// Players to be added as mappers of this map.
+	/// Players to be added as mappers of this course.
 	#[serde(default, deserialize_with = "crate::serde::vec::deserialize_empty_as_none")]
 	pub added_mappers: Option<Vec<SteamID>>,
 
-	/// Players to be removed as mappers of this map.
+	/// Players to be removed as mappers of this course.
 	#[serde(default, deserialize_with = "crate::serde::vec::deserialize_empty_as_none")]
 	pub removed_mappers: Option<Vec<SteamID>>,
+
+	/// Updates to any filters of this course.
+	#[serde(default, deserialize_with = "crate::serde::btree_map::deserialize_empty_as_none")]
+	#[schema(example = json!({
+	  "1": {
+	    "name": "foobar"
+	  },
+	  "2": {
+	    "description": "cool course!"
+	  }
+	}))]
+	pub filter_updates: Option<BTreeMap<NonZeroU32, FilterUpdate>>,
+}
+
+/// Request body for updating course filters.
+#[derive(Debug, Default, Deserialize, ToSchema)]
+pub struct FilterUpdate {
+	/// A new tier.
+	pub tier: Option<Tier>,
+
+	/// A new ranked status.
+	pub ranked_status: Option<RankedStatus>,
+
+	/// New notes.
+	#[serde(default, deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
+	pub notes: Option<String>,
 }
 
 /// Information about a map.
