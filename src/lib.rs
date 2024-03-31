@@ -29,8 +29,9 @@ use axum::serve::Serve;
 use axum::Router;
 use eyre::Context;
 use futures::Future;
+use itertools::Itertools;
 use tokio::net::TcpListener;
-use tracing::info;
+use tracing::{debug, info};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -244,8 +245,21 @@ impl API {
 			.context("bind tcp socket")?;
 
 		let state = State::new(config).await.context("initialize state")?;
-		let swagger_ui =
-			SwaggerUi::new("/docs/swagger-ui").url("/docs/openapi.json", Self::openapi());
+		let openapi = Self::openapi();
+		let routes = openapi.paths.paths.iter().map(|(path, handler)| {
+			let methods = handler
+				.operations
+				.keys()
+				.map(|method| format!("{method:?}").to_uppercase())
+				.collect_vec()
+				.join(", ");
+
+			format!("{path} [{methods}]")
+		});
+
+		for route in routes {
+			debug!("registering route: {route}");
+		}
 
 		let api_service = Router::new()
 			.route("/", get(|| async { "(͡ ͡° ͜ つ ͡͡°)" }))
@@ -260,7 +274,7 @@ impl API {
 			.nest("/admins", admins::router(state))
 			.nest("/plugin", plugin::router(state))
 			.layer(middleware::logging::layer!())
-			.merge(swagger_ui)
+			.merge(SwaggerUi::new("/docs/swagger-ui").url("/docs/openapi.json", openapi))
 			.into_make_service();
 
 		let address = tcp_listener.local_addr().context("get tcp addr")?;
