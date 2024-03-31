@@ -107,14 +107,13 @@ impl<'q> FilteredQuery<'q> {
 
 	/// Similar to [`FilteredQuery::filter()`], but instead of comparing a column with a value,
 	/// an `IS NULL` / `IS NOT NULL` check is done instead.
-	pub fn filter_is_null(&mut self, column: &str, is_null: bool) -> &mut Self {
+	pub fn filter_is_null(&mut self, column: &str, is_null: IsNull) -> &mut Self {
 		self.query
 			.push(self.filter.sql())
 			.push(column)
-			.push(if is_null {
-				" IS NULL "
-			} else {
-				" IS NOT NULL "
+			.push(match is_null {
+				IsNull::Yes => " IS NULL ",
+				IsNull::No => " IS NOT NULL ",
 			});
 
 		self.filter = Filter::And;

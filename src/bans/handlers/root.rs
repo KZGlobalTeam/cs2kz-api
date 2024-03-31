@@ -5,6 +5,7 @@ use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{PlayerIdentifier, ServerIdentifier};
 use serde::Deserialize;
+use sqlx::encode::IsNull;
 use time::OffsetDateTime;
 use utoipa::IntoParams;
 
@@ -98,7 +99,7 @@ pub async fn get(
 	}
 
 	if let Some(unbanned) = unbanned {
-		query.filter_is_null(" ub.id ", !unbanned);
+		query.filter_is_null(" ub.id ", if unbanned { IsNull::No } else { IsNull::Yes });
 	}
 
 	if let Some(created_after) = created_after {
