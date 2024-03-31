@@ -62,6 +62,7 @@ mod sqlx;
 mod workshop;
 mod security;
 mod serde;
+mod time;
 
 mod players;
 mod maps;
@@ -152,6 +153,8 @@ mod plugin;
 
       parameters::Offset,
       parameters::Limit,
+
+      time::Seconds,
 
       responses::Object,
 

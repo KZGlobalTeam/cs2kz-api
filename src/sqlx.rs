@@ -3,14 +3,11 @@
 use std::error::Error as StdError;
 use std::future::Future;
 use std::num::NonZeroU64;
-use std::result::Result as StdResult;
-use std::time::Duration;
 
 use cs2kz::{MapIdentifier, PlayerIdentifier, ServerIdentifier, SteamID};
-use derive_more::{Deref, DerefMut, From, Into};
-use sqlx::database::{HasArguments, HasValueRef};
+use derive_more::{Deref, DerefMut, Into};
 use sqlx::encode::IsNull;
-use sqlx::error::{BoxDynError, ErrorKind};
+use sqlx::error::ErrorKind;
 use sqlx::mysql::MySqlQueryResult;
 use sqlx::{MySql, MySqlExecutor, QueryBuilder};
 use thiserror::Error;
@@ -326,25 +323,3 @@ macro_rules! non_zero {
 }
 
 pub(crate) use non_zero;
-
-/// Wrapper around [`std::time::Duration`], which takes care of encoding / decoding as seconds.
-#[derive(Debug, From, Into)]
-pub struct Seconds(Duration);
-
-impl sqlx::Type<MySql> for Seconds {
-	fn type_info() -> <MySql as sqlx::Database>::TypeInfo {
-		f64::type_info()
-	}
-}
-
-impl<'q> sqlx::Encode<'q, MySql> for Seconds {
-	fn encode_by_ref(&self, buf: &mut <MySql as HasArguments<'q>>::ArgumentBuffer) -> IsNull {
-		self.0.as_secs_f64().encode_by_ref(buf)
-	}
-}
-
-impl<'q> sqlx::Decode<'q, MySql> for Seconds {
-	fn decode(value: <MySql as HasValueRef<'q>>::ValueRef) -> StdResult<Self, BoxDynError> {
-		f64::decode(value).map(Duration::from_secs_f64).map(Self)
-	}
-}

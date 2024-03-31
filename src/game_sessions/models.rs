@@ -4,7 +4,6 @@
 //! a player disconnects or when the map changes.
 
 use std::num::NonZeroU64;
-use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -15,7 +14,7 @@ use utoipa::ToSchema;
 use crate::players::Player;
 use crate::records::BhopStats;
 use crate::servers::ServerInfo;
-use crate::sqlx::Seconds;
+use crate::time::Seconds;
 
 /// An in-game session.
 ///
@@ -53,26 +52,21 @@ pub struct GameSession {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct TimeSpent {
 	/// How much time did the player spend actively playing?
-	#[serde(with = "crate::serde::duration::as_secs")]
-	pub active: Duration,
+	pub active: Seconds,
 
 	/// How much time did the player spend in spectator mode?
-	#[serde(with = "crate::serde::duration::as_secs")]
-	pub spectating: Duration,
+	pub spectating: Seconds,
 
 	/// How much time did the player spend doing nothing?
-	#[serde(with = "crate::serde::duration::as_secs")]
-	pub afk: Duration,
+	pub afk: Seconds,
 }
 
 impl FromRow<'_, MySqlRow> for TimeSpent {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
-		let decode = |name: &str| row.try_get::<Seconds, _>(name).map(Into::into);
-
 		Ok(Self {
-			active: decode("time_active")?,
-			spectating: decode("time_spectating")?,
-			afk: decode("time_afk")?,
+			active: row.try_get("time_active")?,
+			spectating: row.try_get("time_spectating")?,
+			afk: row.try_get("time_afk")?,
 		})
 	}
 }

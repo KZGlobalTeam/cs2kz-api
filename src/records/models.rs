@@ -1,7 +1,6 @@
 //! Types used for describing records ("runs") and related concepts.
 
 use std::num::{NonZeroU32, NonZeroU64};
-use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use cs2kz::{Mode, SteamID, Style};
@@ -13,7 +12,7 @@ use utoipa::ToSchema;
 use crate::maps::{CourseInfo, MapInfo};
 use crate::players::Player;
 use crate::servers::ServerInfo;
-use crate::sqlx::Seconds;
+use crate::time::Seconds;
 
 /// A record (or "run").
 #[derive(Debug, Serialize, ToSchema)]
@@ -32,7 +31,7 @@ pub struct Record {
 	pub teleports: u16,
 
 	/// The time it took to complete this run.
-	pub time: Duration,
+	pub time: Seconds,
 
 	/// The player who performed this run.
 	pub player: Player,
@@ -60,7 +59,7 @@ impl FromRow<'_, MySqlRow> for Record {
 			mode: row.try_get("mode")?,
 			style: row.try_get("style")?,
 			teleports: row.try_get("teleports")?,
-			time: row.try_get::<Seconds, _>("time").map(Into::into)?,
+			time: row.try_get("time")?,
 			player: Player::from_row(row)?,
 			map: MapInfo::from_row(row)?,
 			course: CourseInfo::from_row(row)?,
@@ -134,7 +133,7 @@ pub struct NewRecord {
 	pub teleports: u16,
 
 	/// The time it took to complete this run.
-	pub time: Duration,
+	pub time: Seconds,
 
 	/// Bhop statistics about this run.
 	pub bhop_stats: BhopStats,

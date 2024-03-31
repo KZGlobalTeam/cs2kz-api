@@ -288,9 +288,9 @@ mod tests {
 			ip_address: Ipv4Addr::new(0, 0, 0, 0),
 			session: Session {
 				time_spent: TimeSpent {
-					active: Duration::from_secs(6942),
-					spectating: Duration::from_secs(1337),
-					afk: Duration::from_secs(0),
+					active: Duration::from_secs(6942).into(),
+					spectating: Duration::from_secs(1337).into(),
+					afk: Duration::from_secs(0).into(),
 				},
 				bhop_stats: BhopStats {
 					perfs: 6237,

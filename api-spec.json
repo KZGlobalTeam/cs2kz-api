@@ -1404,8 +1404,7 @@
                       "description": "The average strafe width."
                     },
                     "airtime": {
-                      "type": "string",
-                      "description": "How much time the player spent in the air."
+                      "$ref": "#/components/schemas/Seconds"
                     },
                     "created_on": {
                       "type": "string",
@@ -1622,8 +1621,7 @@
                       "description": "The average strafe width."
                     },
                     "airtime": {
-                      "type": "string",
-                      "description": "How much time the player spent in the air."
+                      "$ref": "#/components/schemas/Seconds"
                     },
                     "created_on": {
                       "type": "string",
@@ -1845,8 +1843,7 @@
                       "minimum": 0
                     },
                     "time": {
-                      "type": "string",
-                      "description": "The time it took to complete this run."
+                      "$ref": "#/components/schemas/Seconds"
                     },
                     "player": {
                       "$ref": "#/components/schemas/Player"
@@ -2094,8 +2091,7 @@
                       "minimum": 0
                     },
                     "time": {
-                      "type": "string",
-                      "description": "The time it took to complete this run."
+                      "$ref": "#/components/schemas/Seconds"
                     },
                     "player": {
                       "$ref": "#/components/schemas/Player"
@@ -2194,8 +2190,7 @@
                       "minimum": 0
                     },
                     "time": {
-                      "type": "string",
-                      "description": "The time it took to complete this run."
+                      "$ref": "#/components/schemas/Seconds"
                     },
                     "player": {
                       "$ref": "#/components/schemas/Player"
@@ -4167,8 +4162,7 @@
             "description": "The average strafe width."
           },
           "airtime": {
-            "type": "string",
-            "description": "How much time the player spent in the air."
+            "$ref": "#/components/schemas/Seconds"
           },
           "created_on": {
             "type": "string",
@@ -4487,8 +4481,7 @@
             "description": "The average strafe width."
           },
           "airtime": {
-            "type": "string",
-            "description": "How much time the player spent in the air."
+            "$ref": "#/components/schemas/Seconds"
           }
         }
       },
@@ -4607,8 +4600,7 @@
             "minimum": 0
           },
           "time": {
-            "type": "string",
-            "description": "The time it took to complete this run."
+            "$ref": "#/components/schemas/Seconds"
           },
           "bhop_stats": {
             "$ref": "#/components/schemas/BhopStats"
@@ -4805,8 +4797,7 @@
             "minimum": 0
           },
           "time": {
-            "type": "string",
-            "description": "The time it took to complete this run."
+            "$ref": "#/components/schemas/Seconds"
           },
           "player": {
             "$ref": "#/components/schemas/Player"
@@ -4862,6 +4853,11 @@
             "description": "The CS2KZ version the server is currently running."
           }
         }
+      },
+      "Seconds": {
+        "type": "number",
+        "format": "double",
+        "description": "Wrapper around [`std::time::Duration`], which takes care of encoding / decoding as seconds."
       },
       "Server": {
         "type": "object",
@@ -5074,16 +5070,13 @@
         ],
         "properties": {
           "active": {
-            "type": "string",
-            "description": "How much time did the player spend actively playing?"
+            "$ref": "#/components/schemas/Seconds"
           },
           "spectating": {
-            "type": "string",
-            "description": "How much time did the player spend in spectator mode?"
+            "$ref": "#/components/schemas/Seconds"
           },
           "afk": {
-            "type": "string",
-            "description": "How much time did the player spend doing nothing?"
+            "$ref": "#/components/schemas/Seconds"
           }
         }
       },

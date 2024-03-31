@@ -3,7 +3,6 @@
 use std::collections::{BTreeMap, HashSet};
 use std::net::Ipv4Addr;
 use std::num::NonZeroU32;
-use std::time::Duration;
 
 use cs2kz::{Mode, SteamID};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -13,6 +12,7 @@ use utoipa::ToSchema;
 
 use crate::game_sessions::models::TimeSpent;
 use crate::records::BhopStats;
+use crate::time::Seconds;
 
 /// A KZ player.
 #[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
@@ -152,8 +152,7 @@ pub struct CourseSession {
 	pub mode: Mode,
 
 	/// How much time the player spent on this course with a running timer.
-	#[serde(with = "crate::serde::duration::as_secs")]
-	pub playtime: Duration,
+	pub playtime: Seconds,
 
 	/// How many times the player left the start zone.
 	pub started_runs: u16,

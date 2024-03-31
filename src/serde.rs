@@ -86,32 +86,3 @@ pub mod btree_map {
 		Ok(Some(map))
 	}
 }
-
-/// [`serde`] helpers for [`Duration`].
-///
-/// [`Duration`]: std::time::Duration
-pub mod duration {
-	/// (De)serialization of [`Duration`]s in seconds.
-	///
-	/// [`Duration`]: std::time::Duration
-	#[allow(clippy::missing_docs_in_private_items)]
-	pub mod as_secs {
-		use std::time::Duration;
-
-		use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-		pub fn serialize<S>(duration: &Duration, serializer: S) -> Result<S::Ok, S::Error>
-		where
-			S: Serializer,
-		{
-			duration.as_secs_f64().serialize(serializer)
-		}
-
-		pub fn deserialize<'de, D>(deserializer: D) -> Result<Duration, D::Error>
-		where
-			D: Deserializer<'de>,
-		{
-			f64::deserialize(deserializer).map(Duration::from_secs_f64)
-		}
-	}
-}

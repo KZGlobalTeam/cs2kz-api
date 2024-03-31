@@ -1,7 +1,6 @@
 //! Types used for describing jumpstats.
 
 use std::num::NonZeroU64;
-use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use cs2kz::{JumpType, Mode, SteamID, Style};
@@ -12,7 +11,7 @@ use utoipa::ToSchema;
 
 use crate::players::Player;
 use crate::servers::ServerInfo;
-use crate::sqlx::Seconds;
+use crate::time::Seconds;
 
 /// A jumpstat.
 #[derive(Debug, Serialize, ToSchema)]
@@ -76,7 +75,7 @@ pub struct Jumpstat {
 	pub average_width: f32,
 
 	/// How much time the player spent in the air.
-	pub airtime: Duration,
+	pub airtime: Seconds,
 
 	/// When this jump was submitted.
 	pub created_on: DateTime<Utc>,
@@ -103,7 +102,7 @@ impl FromRow<'_, MySqlRow> for Jumpstat {
 			airpath: row.try_get("airpath")?,
 			deviation: row.try_get("deviation")?,
 			average_width: row.try_get("average_width")?,
-			airtime: row.try_get::<Seconds, _>("airtime").map(Into::into)?,
+			airtime: row.try_get("airtime")?,
 			created_on: row.try_get("created_on")?,
 		})
 	}
@@ -164,7 +163,7 @@ pub struct NewJumpstat {
 	pub average_width: f32,
 
 	/// How much time the player spent in the air.
-	pub airtime: Duration,
+	pub airtime: Seconds,
 }
 
 /// A newly created jumpstat.
