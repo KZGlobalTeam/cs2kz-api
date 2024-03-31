@@ -7,6 +7,7 @@ use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::PlayerIdentifier;
 use serde::Deserialize;
+use tracing::debug;
 use utoipa::IntoParams;
 use uuid::Uuid;
 
@@ -154,6 +155,8 @@ pub async fn post(
 	})??;
 
 	transaction.commit().await?;
+
+	debug!(id = %server_id, %refresh_key, session.user = ?session.user(), "created new server");
 
 	Ok(Created(Json(CreatedServer { server_id, refresh_key })))
 }

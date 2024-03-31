@@ -79,6 +79,15 @@ pub enum BanReason {
 }
 
 impl BanReason {
+	/// A string format compatible with the API.
+	#[inline]
+	pub const fn as_str(&self) -> &'static str {
+		match self {
+			BanReason::AutoStrafe => "auto_strafe",
+			BanReason::AutoBhop => "auto_bhop",
+		}
+	}
+
 	/// Calculates the ban duration for this particular reason and the amount of previous bans.
 	pub const fn duration(&self, previous_offenses: u8) -> Duration {
 		match (self, previous_offenses) {
@@ -120,11 +129,7 @@ impl<'q> sqlx::Encode<'q, MySql> for BanReason {
 		&self,
 		buf: &mut <MySql as database::HasArguments<'q>>::ArgumentBuffer,
 	) -> sqlx::encode::IsNull {
-		match self {
-			BanReason::AutoStrafe => "auto_strafe",
-			BanReason::AutoBhop => "auto_bhop",
-		}
-		.encode_by_ref(buf)
+		self.as_str().encode_by_ref(buf)
 	}
 }
 

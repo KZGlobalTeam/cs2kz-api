@@ -7,6 +7,7 @@ use cs2kz::{PlayerIdentifier, ServerIdentifier};
 use serde::Deserialize;
 use sqlx::encode::IsNull;
 use time::OffsetDateTime;
+use tracing::warn;
 use utoipa::IntoParams;
 
 use crate::auth::{Jwt, RoleFlags};
@@ -148,7 +149,17 @@ pub async fn post(
 	let (server, admin) = match (server, session) {
 		(Some(server), None) => (Some(server.into_payload()), None),
 		(None, Some(session)) => (None, Some(session.user())),
-		(None, None) | (Some(_), Some(_)) => {
+		(None, None) => {
+			return Err(Error::unauthorized());
+		}
+		(Some(server), Some(session)) => {
+			warn! {
+				target: "audit_log",
+				?server,
+				?session,
+				"request authenticated both as server and session",
+			};
+
 			return Err(Error::unauthorized());
 		}
 	};

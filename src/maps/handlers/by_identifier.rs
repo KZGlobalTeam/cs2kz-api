@@ -7,7 +7,7 @@ use axum::extract::Path;
 use axum::Json;
 use cs2kz::{GlobalStatus, MapIdentifier, SteamID};
 use sqlx::{MySql, QueryBuilder, Transaction};
-use tracing::info;
+use tracing::{debug, info};
 
 use super::root::create_mappers;
 use crate::auth::RoleFlags;
@@ -112,6 +112,8 @@ pub async fn patch(
 
 	transaction.commit().await?;
 
+	info!(%map_id, "updated map");
+
 	Ok(NoContent)
 }
 
@@ -149,7 +151,7 @@ async fn update_details(
 		return Err(Error::unknown("map ID"));
 	}
 
-	info!(target: "audit_log", %map_id, "updated map details");
+	debug!(target: "audit_log", %map_id, "updated map details");
 
 	Ok(())
 }
@@ -193,7 +195,7 @@ async fn update_name_and_checksum(
 		return Err(Error::unknown("map ID"));
 	}
 
-	info!(target: "audit_log", %map_id, "updated workshop details");
+	debug!(target: "audit_log", %map_id, "updated workshop details");
 
 	Ok(())
 }
@@ -217,8 +219,6 @@ async fn delete_mappers(
 	query.push(")");
 	query.build().execute(transaction.as_mut()).await?;
 
-	info!(target: "audit_log", %map_id, ?mappers, "removed mappers");
-
 	let remaining_mappers = sqlx::query! {
 		r#"
 		SELECT
@@ -237,6 +237,8 @@ async fn delete_mappers(
 	if remaining_mappers == 0 {
 		return Err(Error::must_have_mappers());
 	}
+
+	debug!(target: "audit_log", %map_id, ?mappers, "deleted mappers");
 
 	Ok(())
 }
@@ -286,13 +288,7 @@ where
 
 	updated_course_ids.sort_unstable();
 
-	info! {
-		target: "audit_log",
-
-		"updated courses",
-	};
-
-	info!(target: "audit_log", %map_id, ?updated_course_ids, "updated courses");
+	debug!(target: "audit_log", %map_id, ?updated_course_ids, "updated courses");
 
 	Ok(())
 }
@@ -362,8 +358,6 @@ async fn delete_course_mappers(
 	query.push(")");
 	query.build().execute(transaction.as_mut()).await?;
 
-	info!(target: "audit_log", %course_id, ?mappers, "deleted course mappers");
-
 	let remaining_mappers = sqlx::query! {
 		r#"
 		SELECT
@@ -382,6 +376,8 @@ async fn delete_course_mappers(
 	if remaining_mappers == 0 {
 		return Err(Error::must_have_mappers());
 	}
+
+	debug!(target: "audit_log", %course_id, ?mappers, "deleted course mappers");
 
 	Ok(())
 }
@@ -432,7 +428,7 @@ where
 
 	updated_filter_ids.sort_unstable();
 
-	info! {
+	debug! {
 		target: "audit_log",
 		%map_id,
 		course.id = %course_id,

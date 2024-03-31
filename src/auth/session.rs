@@ -35,7 +35,7 @@ use cs2kz::SteamID;
 use derive_more::{Debug, Into};
 use sqlx::{MySqlConnection, MySqlExecutor, MySqlPool};
 use time::{Duration, OffsetDateTime};
-use tracing::trace;
+use tracing::{debug, trace};
 use uuid::Uuid;
 
 use super::{RoleFlags, User};
@@ -134,8 +134,6 @@ impl Session {
 			}
 		})??;
 
-		trace!(user.id = %steam_id, session.id = %session_id, "created session");
-
 		let user = sqlx::query! {
 			r#"
 			SELECT
@@ -153,6 +151,8 @@ impl Session {
 		.ok_or_else(|| Error::unknown("SteamID"))?;
 
 		transaction.commit().await?;
+
+		debug!(session.id = %id, user.id = %steam_id, "created session");
 
 		let cookie = Cookie::build((Self::COOKIE_NAME, token.to_string()))
 			.domain(&config.domain)
@@ -192,13 +192,15 @@ impl Session {
 		.execute(database)
 		.await?;
 
-		if all {
-			trace!(user.id = %self.user.steam_id(), "invalidated all sessions for user");
-		} else {
-			trace!(session.id = %self.id, user.id = %self.user.steam_id(), "invalidated session for user");
-		}
-
 		self.cookie.set_expires(OffsetDateTime::now_utc());
+
+		let steam_id = self.user.steam_id();
+
+		if all {
+			debug!(user.id = %steam_id, "invalidated all sessions for user");
+		} else {
+			debug!(session.id = %self.id, user.id = %steam_id, "invalidated session for user");
+		}
 
 		Ok(())
 	}
@@ -216,15 +218,25 @@ where
 		state: &&'static State,
 	) -> Result<Self> {
 		if let Some(session) = parts.extensions.remove::<Self>() {
+			trace!(%session.id, "extracting cached session");
 			return Ok(session);
 		}
 
 		let find_cookie = |cookie: Cookie<'static>| {
-			if cookie.name() != Self::COOKIE_NAME {
+			let name = cookie.name();
+			let value = cookie.value();
+
+			if name != Self::COOKIE_NAME {
 				return None;
 			}
 
-			let Ok(token) = cookie.value().parse::<Uuid>() else {
+			let Ok(token) = value.parse::<Uuid>() else {
+				debug! {
+					cookie.name = %name,
+					cookie.value = %value,
+					"found cookie but failed to pase value",
+				};
+
 				return None;
 			};
 

@@ -99,7 +99,7 @@ pub async fn patch(
 		return Err(Error::unknown("server ID"));
 	}
 
-	info!(target: "audit_log", %server_id, "updated server");
+	info!(target: "audit_log", %server_id, session.user = ?session.user(), "updated server");
 
 	Ok(NoContent)
 }

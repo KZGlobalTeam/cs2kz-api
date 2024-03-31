@@ -6,6 +6,7 @@ use cs2kz::{PlayerIdentifier, SteamID};
 use serde_json::Value as JsonValue;
 use sqlx::types::Json as SqlJson;
 use sqlx::QueryBuilder;
+use tracing::debug;
 
 use crate::auth::{self, Jwt};
 use crate::responses::{self, NoContent};
@@ -76,7 +77,7 @@ pub async fn put(
 		WHERE
 		  id = ?
 		"#,
-		SqlJson(preferences),
+		SqlJson(&preferences),
 		steam_id,
 	}
 	.execute(&state.database)
@@ -85,6 +86,8 @@ pub async fn put(
 	if query_result.rows_affected() == 0 {
 		return Err(Error::unknown("SteamID"));
 	}
+
+	debug!(%steam_id, ?preferences, "updated player preferences");
 
 	Ok(NoContent)
 }

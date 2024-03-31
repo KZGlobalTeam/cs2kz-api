@@ -4,6 +4,7 @@ use axum::extract::Query;
 use axum::Json;
 use serde::Deserialize;
 use sqlx::QueryBuilder;
+use tracing::debug;
 use utoipa::IntoParams;
 
 use crate::parameters::{Limit, Offset};
@@ -120,6 +121,8 @@ pub async fn post(
 			Error::from(err)
 		}
 	})??;
+
+	debug!(id = %plugin_version_id, %semver, %git_revision, "created new plugin version");
 
 	Ok(Created(Json(CreatedPluginVersion { plugin_version_id })))
 }

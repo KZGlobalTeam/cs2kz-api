@@ -22,7 +22,8 @@ pub struct Jumpstat {
 	pub id: NonZeroU64,
 
 	/// The jump type.
-	pub r#type: JumpType,
+	#[serde(rename = "type")]
+	pub jump_type: JumpType,
 
 	/// The mode this jump was performed in.
 	pub mode: Mode,
@@ -85,7 +86,7 @@ impl FromRow<'_, MySqlRow> for Jumpstat {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
 			id: crate::sqlx::non_zero!("id" as NonZeroU64, row)?,
-			r#type: row.try_get("type")?,
+			jump_type: row.try_get("type")?,
 			mode: row.try_get("mode")?,
 			style: row.try_get("style")?,
 			player: Player::from_row(row)?,
@@ -112,7 +113,8 @@ impl FromRow<'_, MySqlRow> for Jumpstat {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewJumpstat {
 	/// The jump type.
-	pub r#type: JumpType,
+	#[serde(rename = "type")]
+	pub jump_type: JumpType,
 
 	/// The mode this jump was performed in.
 	pub mode: Mode,

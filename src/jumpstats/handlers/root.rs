@@ -19,7 +19,8 @@ use crate::{auth, responses, AppState, Error, Result};
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetParams {
 	/// Filter by jump type.
-	r#type: Option<JumpType>,
+	#[serde(rename = "type")]
+	jump_type: Option<JumpType>,
 
 	/// Filter by mode.
 	mode: Option<Mode>,
@@ -67,7 +68,7 @@ pub struct GetParams {
 pub async fn get(
 	state: AppState,
 	Query(GetParams {
-		r#type,
+		jump_type,
 		mode,
 		style,
 		minimum_distance,
@@ -81,8 +82,8 @@ pub async fn get(
 ) -> Result<Json<Vec<Jumpstat>>> {
 	let mut query = FilteredQuery::new(queries::SELECT);
 
-	if let Some(r#type) = r#type {
-		query.filter(" j.type = ", r#type);
+	if let Some(jump_type) = jump_type {
+		query.filter(" j.type = ", jump_type);
 	}
 
 	if let Some(mode) = mode {
@@ -151,7 +152,7 @@ pub async fn post(
 	state: AppState,
 	server: Jwt<auth::Server>,
 	Json(NewJumpstat {
-		r#type,
+		jump_type,
 		mode,
 		style,
 		player_id,
@@ -219,7 +220,7 @@ pub async fn post(
 		    ?
 		  )
 		"#,
-		r#type,
+		jump_type,
 		mode,
 		style,
 		strafes,
@@ -250,7 +251,7 @@ pub async fn post(
 		}
 	})??;
 
-	trace!(%jumpstat_id, "inserted jumpstat");
+	trace!(%jumpstat_id, "created jumpstat");
 
 	Ok(Created(Json(CreatedJumpstat { jumpstat_id })))
 }

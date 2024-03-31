@@ -155,9 +155,9 @@ pub async fn delete(
 	.await
 	.map(crate::sqlx::last_insert_id)??;
 
-	info!(target: "audit_log", %ban_id, %unban_id, "created unban");
-
 	transaction.commit().await?;
+
+	info!(target: "audit_log", %ban_id, %unban_id, "created unban");
 
 	Ok(Created(Json(CreatedUnban { unban_id })))
 }

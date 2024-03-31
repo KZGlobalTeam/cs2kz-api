@@ -12,7 +12,7 @@ use cs2kz::SteamID;
 use derive_more::Debug;
 use reqwest::{header, Response};
 use serde::{Deserialize, Deserializer, Serialize};
-use tracing::{error, trace};
+use tracing::{debug, error};
 use url::Url;
 use utoipa::{IntoParams, ToSchema};
 
@@ -199,7 +199,7 @@ impl SteamLoginResponse {
 		self.mode = String::from("check_authentication");
 
 		let payload = serde_urlencoded::to_string(&self).map_err(|err| {
-			trace!("invalid steam login payload");
+			debug!(%err, "invalid steam login payload");
 			Error::unauthorized().with_source(err)
 		})?;
 
@@ -218,13 +218,13 @@ impl SteamLoginResponse {
 			.rfind(|&line| line == "is_valid:true")
 			.is_none()
 		{
-			trace!("steam login invalid");
+			debug!(%response, "steam login invalid");
 			return Err(Error::unauthorized());
 		}
 
 		let steam_id = self.steam_id();
 
-		trace!(%steam_id, redirect_to = %self.redirect_to, "user logged in");
+		debug!(%steam_id, redirect_to = %self.redirect_to, "user logged in");
 
 		Ok(steam_id)
 	}
@@ -241,12 +241,12 @@ impl FromRequestParts<&'static State> for SteamLoginResponse {
 		let Query(mut login) = Query::<Self>::from_request_parts(parts, state)
 			.await
 			.map_err(|err| {
-				trace!(%err, "missing steam login payload");
+				debug!(%err, "missing steam login payload");
 				Error::unauthorized().with_source(err)
 			})?;
 
 		let steam_id = login.verify(&state.http_client).await.map_err(|err| {
-			trace!("login request did not come from steam");
+			debug!(%err, "login request did not come from steam");
 			Error::unauthorized().with_source(err)
 		})?;
 

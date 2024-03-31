@@ -5,7 +5,7 @@ use axum::http::StatusCode;
 use axum::response::Redirect;
 use axum_extra::extract::CookieJar;
 use serde::Deserialize;
-use tracing::trace;
+use tracing::debug;
 use url::Url;
 use utoipa::IntoParams;
 
@@ -70,7 +70,7 @@ pub async fn logout(
 		.invalidate(invalidate_all_sessions, &state.database)
 		.await?;
 
-	trace!(steam_id = %session.user().steam_id(), "user logged out");
+	debug!(steam_id = %session.user().steam_id(), "user logged out");
 
 	Ok((session, StatusCode::OK))
 }
