@@ -65,20 +65,20 @@ impl Error {
 	}
 
 	/// Set the message of the error.
-	pub fn with_message(mut self, message: impl Display) -> Self {
+	pub(crate) fn with_message(mut self, message: impl Display) -> Self {
 		self.message = Some(message.to_string());
 		self
 	}
 
 	/// Set the source of the error.
-	pub fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
+	pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
 		self.source = Some(Box::new(source));
 		self
 	}
 
 	/// An unexpected error.
 	#[track_caller]
-	pub fn internal_server_error(message: impl Display) -> Self {
+	pub(crate) fn internal_server_error(message: impl Display) -> Self {
 		Self::new(StatusCode::INTERNAL_SERVER_ERROR)
 			.with_loc(|location| error!(target: "audit_log", %location, %message))
 			.with_message(message)
@@ -86,39 +86,39 @@ impl Error {
 
 	/// `204 No Content` status code.
 	#[track_caller]
-	pub fn no_content() -> Self {
+	pub(crate) fn no_content() -> Self {
 		Self::new(StatusCode::NO_CONTENT)
 	}
 
 	/// `401 Unauthorized` status code.
 	#[track_caller]
-	pub fn unauthorized() -> Self {
+	pub(crate) fn unauthorized() -> Self {
 		Self::new(StatusCode::UNAUTHORIZED)
 	}
 
 	/// Some user input (e.g. an ID) is unknown / invalid.
 	#[track_caller]
-	pub fn unknown(what: impl Display) -> Self {
+	pub(crate) fn unknown(what: impl Display) -> Self {
 		Self::new(StatusCode::BAD_REQUEST).with_message(format_args!("unknown {what}"))
 	}
 
 	/// Some user input in a POST / PUT request already exists in the database.
 	#[track_caller]
-	pub fn already_exists(what: impl Display) -> Self {
+	pub(crate) fn already_exists(what: impl Display) -> Self {
 		Self::new(StatusCode::CONFLICT).with_message(format_args!("{what} already exists"))
 	}
 
 	/// When PATCHing maps, the user shouldn't be allowed to remove all mappers from a map /
 	/// course.
 	#[track_caller]
-	pub fn must_have_mappers() -> Self {
+	pub(crate) fn must_have_mappers() -> Self {
 		Self::new(StatusCode::BAD_REQUEST).with_message("map/course cannot have 0 mappers")
 	}
 
-	/// When PATCHing maps, the user shouldn't be allowed to remove all mappers from a map /
-	/// course.
+	/// When PATCHing maps, the user shouldn't be allowed to update courses that do not belong
+	/// to the map.
 	#[track_caller]
-	pub fn course_does_not_belong_to_map(course_id: NonZeroU32, map_id: NonZeroU16) -> Self {
+	pub(crate) fn course_does_not_belong_to_map(course_id: NonZeroU32, map_id: NonZeroU16) -> Self {
 		Self::new(StatusCode::CONFLICT).with_message(format_args!(
 			"course with ID `{course_id}` does not belong to map `{map_id}`"
 		))
@@ -127,7 +127,10 @@ impl Error {
 	/// When PATCHing maps, the user shouldn't be allowed to update filters that do not belong
 	/// to courses on the map.
 	#[track_caller]
-	pub fn filter_does_not_belong_to_course(filter_id: NonZeroU32, course_id: NonZeroU32) -> Self {
+	pub(crate) fn filter_does_not_belong_to_course(
+		filter_id: NonZeroU32,
+		course_id: NonZeroU32,
+	) -> Self {
 		Self::new(StatusCode::CONFLICT).with_message(format_args!(
 			"filter with ID `{filter_id}` does not belong to course `{course_id}`"
 		))
@@ -136,7 +139,7 @@ impl Error {
 	/// When submitting new plugin versions, the submitted version cannot be <= the current
 	/// latest version.
 	#[track_caller]
-	pub fn invalid_semver(current_latest: semver::Version) -> Self {
+	pub(crate) fn invalid_semver(current_latest: semver::Version) -> Self {
 		Self::new(StatusCode::CONFLICT).with_message(format_args!(
 			"invalid plugin version; current latest version is {current_latest}"
 		))
@@ -144,14 +147,14 @@ impl Error {
 
 	/// When submitting new plugin versions, the submitted git revision must be unique.
 	#[track_caller]
-	pub fn invalid_plugin_rev() -> Self {
+	pub(crate) fn invalid_plugin_rev() -> Self {
 		Self::new(StatusCode::CONFLICT).with_message("this git revision is already in use")
 	}
 
 	/// When updating or deleting a ban, the ban might have already expired / reverted
 	/// previously.
 	#[track_caller]
-	pub fn ban_already_reverted(ban_id: NonZeroU64) -> Self {
+	pub(crate) fn ban_already_reverted(ban_id: NonZeroU64) -> Self {
 		Self::new(StatusCode::CONFLICT)
 			.with_message(format_args!("ban `{ban_id}` has already been reverted"))
 	}
@@ -159,32 +162,32 @@ impl Error {
 	/// A CS2 server tried to request an access key (JWT) but their supplied refresh key was
 	/// invalid.
 	#[track_caller]
-	pub fn invalid_refresh_key() -> Self {
+	pub(crate) fn invalid_refresh_key() -> Self {
 		Self::new(StatusCode::UNAUTHORIZED).with_message("refresh key is invalid")
 	}
 
 	/// A CS2 server made an authenticated request but their access key was expired.
 	#[track_caller]
-	pub fn expired_access_key() -> Self {
+	pub(crate) fn expired_access_key() -> Self {
 		Self::new(StatusCode::UNAUTHORIZED).with_message("access key is expired")
 	}
 
 	/// A user tried to make an authenticated request but was missing their session token.
 	#[track_caller]
-	pub fn missing_session_token() -> Self {
+	pub(crate) fn missing_session_token() -> Self {
 		Self::new(StatusCode::UNAUTHORIZED).with_message("missing session token")
 	}
 
 	/// A user tried to make an authenticated request but their session token was invalid or
 	/// expired.
 	#[track_caller]
-	pub fn invalid_session_token() -> Self {
+	pub(crate) fn invalid_session_token() -> Self {
 		Self::new(StatusCode::UNAUTHORIZED).with_message("invalid session token")
 	}
 
 	/// A user tried to make an authenticated request but didn't have the required roles.
 	#[track_caller]
-	pub fn missing_roles(roles: RoleFlags) -> Self {
+	pub(crate) fn missing_roles(roles: RoleFlags) -> Self {
 		Self::new(StatusCode::UNAUTHORIZED).with_message(format_args!(
 			"you are missing the required roles to perform this action ({roles})"
 		))
@@ -193,14 +196,14 @@ impl Error {
 	/// A user tried to make an authenticated request but weren't the owner of the server they
 	/// tried to PATCH.
 	#[track_caller]
-	pub fn must_be_server_owner() -> Self {
+	pub(crate) fn must_be_server_owner() -> Self {
 		Self::new(StatusCode::UNAUTHORIZED)
 			.with_message("you must be the server's owner or an admin to perform this action")
 	}
 
 	/// An opaque API key was not a valid UUID.
 	#[track_caller]
-	pub fn key_must_be_uuid(error: uuid::Error) -> Self {
+	pub(crate) fn key_must_be_uuid(error: uuid::Error) -> Self {
 		Self::new(StatusCode::BAD_REQUEST)
 			.with_message("key must be a valid UUID")
 			.with_source(error)
@@ -208,13 +211,13 @@ impl Error {
 
 	/// An opaque API key was invalid.
 	#[track_caller]
-	pub fn key_invalid() -> Self {
+	pub(crate) fn key_invalid() -> Self {
 		Self::new(StatusCode::UNAUTHORIZED).with_message("key is invalid")
 	}
 
 	/// An opaque API key was expired.
 	#[track_caller]
-	pub fn key_expired() -> Self {
+	pub(crate) fn key_expired() -> Self {
 		Self::new(StatusCode::UNAUTHORIZED).with_message("key has expired")
 	}
 }
