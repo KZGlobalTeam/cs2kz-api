@@ -365,7 +365,7 @@ impl FromRequestParts<&'static State> for SteamUser {
 		])
 		.map_err(|err| {
 			error!(target: "audit_log", %err, "failed to parse url");
-			Error::bug("failed to parse url").with_source(err)
+			Error::internal_server_error("failed to parse url").with_source(err)
 		})?;
 
 		state

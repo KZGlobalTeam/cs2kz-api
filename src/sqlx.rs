@@ -25,9 +25,9 @@ where
 	<ID as TryFrom<NonZeroU64>>::Error: StdError + Send + Sync + 'static,
 {
 	NonZeroU64::new(query_result.last_insert_id())
-		.ok_or_else(|| Error::bug("PKs cannot be 0"))
+		.ok_or_else(|| Error::internal_server_error("PKs cannot be 0"))
 		.map(ID::try_from)?
-		.map_err(|err| Error::bug("invalid PK type").with_source(err))
+		.map_err(|err| Error::internal_server_error("invalid PK type").with_source(err))
 }
 
 /// Extension trait for [`sqlx::QueryBuilder`].

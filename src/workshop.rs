@@ -57,7 +57,7 @@ impl WorkshopMap {
 		/// more information in the response for the user.
 		#[track_caller]
 		fn error() -> Error {
-			Error::bug("cannot download workshop assets")
+			Error::internal_server_error("cannot download workshop assets")
 		}
 
 		let artifacts_path = config.workshop_artifacts_path.as_deref().ok_or_else(|| {
@@ -118,7 +118,8 @@ impl WorkshopMap {
 
 		self.file.read_to_end(&mut buf).await.map_err(|err| {
 			error!(target: "audit_log", %err, "failed to read map file");
-			Error::bug("failed to calculate checksum for workshop map").with_source(err)
+			Error::internal_server_error("failed to calculate checksum for workshop map")
+				.with_source(err)
 		})?;
 
 		Ok(crc32fast::hash(&buf))

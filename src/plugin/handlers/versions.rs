@@ -94,7 +94,7 @@ pub async fn post(
 	.await?
 	.map(|row| row.semver.parse::<semver::Version>())
 	.transpose()
-	.map_err(|err| Error::bug("invalid semver in database").with_source(err))?;
+	.map_err(|err| Error::internal_server_error("invalid semver in database").with_source(err))?;
 
 	if let Some(version) = latest_version.filter(|version| version >= &semver) {
 		return Err(Error::invalid_semver(version));

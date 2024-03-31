@@ -181,6 +181,8 @@ async fn is_already_unbanned(
 	}
 	.fetch_optional(executor)
 	.await?
-	.map(|row| NonZeroU64::new(row.id).ok_or_else(|| Error::bug("unban ID was 0")))
+	.map(|row| {
+		NonZeroU64::new(row.id).ok_or_else(|| Error::internal_server_error("unban ID was 0"))
+	})
 	.transpose()
 }

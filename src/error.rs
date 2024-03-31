@@ -81,7 +81,7 @@ impl Error {
 
 	/// An unexpected error.
 	#[track_caller]
-	pub fn bug(message: impl Display) -> Self {
+	pub fn internal_server_error(message: impl Display) -> Self {
 		Self::new(StatusCode::INTERNAL_SERVER_ERROR)
 			.with_log(|location| error!(target: "audit_log", %location, %message))
 			.with_message(message)
