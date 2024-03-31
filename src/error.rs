@@ -56,7 +56,7 @@ impl Error {
 	}
 
 	/// Convenience function for logging out an error while creating it.
-	fn with_log<F>(self, f: F) -> Self
+	fn with_loc<F>(self, f: F) -> Self
 	where
 		F: FnOnce(&'static Location<'static>),
 	{
@@ -80,7 +80,7 @@ impl Error {
 	#[track_caller]
 	pub fn internal_server_error(message: impl Display) -> Self {
 		Self::new(StatusCode::INTERNAL_SERVER_ERROR)
-			.with_log(|location| error!(target: "audit_log", %location, %message))
+			.with_loc(|location| error!(target: "audit_log", %location, %message))
 			.with_message(message)
 	}
 
@@ -248,8 +248,8 @@ impl From<sqlx::Error> for Error {
 			E::Configuration(_) | E::Tls(_) | E::AnyDriverError(_) | E::Migrate(_) => {
 				unreachable!("these do not happen after initial setup ({error})");
 			}
-			error => Self::bug("database error")
-				.with_log(|location| {
+			error => Self::internal_server_error("database error")
+				.with_loc(|location| {
 					error!(target: "audit_log", %error, %location, "database error");
 				})
 				.with_source(error),
@@ -261,7 +261,7 @@ impl From<jsonwebtoken::errors::Error> for Error {
 	#[track_caller]
 	fn from(error: jsonwebtoken::errors::Error) -> Self {
 		Self::new(StatusCode::INTERNAL_SERVER_ERROR)
-			.with_log(|location| {
+			.with_loc(|location| {
 				error!(target: "audit_log", %error, %location, "failed to (de)serialize jwt");
 			})
 			.with_source(error)
