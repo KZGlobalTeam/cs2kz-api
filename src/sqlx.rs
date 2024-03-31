@@ -21,12 +21,12 @@ use crate::{Error, Result};
 /// Extracts the `LAST_INSERT_ID()` from a query and parses it into some `ID`.
 pub fn last_insert_id<ID>(query_result: MySqlQueryResult) -> Result<ID>
 where
-	ID: TryFrom<NonZeroU64>,
-	<ID as TryFrom<NonZeroU64>>::Error: StdError + Send + Sync + 'static,
+	NonZeroU64: TryInto<ID>,
+	<NonZeroU64 as TryInto<ID>>::Error: StdError + Send + Sync + 'static,
 {
 	NonZeroU64::new(query_result.last_insert_id())
 		.ok_or_else(|| Error::internal_server_error("PKs cannot be 0"))
-		.map(ID::try_from)?
+		.map(TryInto::try_into)?
 		.map_err(|err| Error::internal_server_error("invalid PK type").with_source(err))
 }
 
