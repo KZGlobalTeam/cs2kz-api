@@ -1,12 +1,13 @@
 //! This module contains useful helper types for query parameters.
 
+use derive_more::Display;
 use serde::{Deserialize, Deserializer};
 use utoipa::openapi::schema::Schema;
 use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
 use utoipa::ToSchema;
 
 /// An offset used for pagination.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Display, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Offset(pub i64);
 
 impl<'de> Deserialize<'de> for Offset {
@@ -42,7 +43,7 @@ impl<'s> ToSchema<'s> for Offset {
 ///
 /// This will defaultu to `DEFAULT` (which is 100 by default), and max out at `MAX` (which is 1000
 /// by default). These values can be overriden as necessary.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Display, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Limit<const MAX: u64 = 1000, const DEFAULT: u64 = 100>(pub u64);
 
 impl<const MAX: u64, const DEFAULT: u64> Default for Limit<MAX, DEFAULT> {

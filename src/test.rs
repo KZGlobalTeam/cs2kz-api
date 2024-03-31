@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::fmt::Display;
 use std::num::NonZeroU16;
 use std::time::Duration;

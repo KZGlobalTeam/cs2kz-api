@@ -5,6 +5,7 @@ use std::num::NonZeroU16;
 
 use chrono::{DateTime, Utc};
 use cs2kz::SteamID;
+use derive_more::Debug;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use sqlx::mysql::MySqlRow;
@@ -70,6 +71,7 @@ pub struct NewServer {
 	pub ip_address: SocketAddrV4,
 
 	/// The SteamID of the player who owns this server.
+	#[debug("{owned_by}")]
 	pub owned_by: SteamID,
 }
 

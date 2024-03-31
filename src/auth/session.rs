@@ -22,7 +22,6 @@
 //!
 //! [`cookie`]: Session::cookie
 
-use std::fmt::{self, Debug};
 use std::future::Future;
 use std::marker::PhantomData;
 use std::num::{NonZeroU16, NonZeroU64};
@@ -33,6 +32,7 @@ use axum::http::{header, request};
 use axum::response::{IntoResponseParts, ResponseParts};
 use axum_extra::extract::cookie::Cookie;
 use cs2kz::SteamID;
+use derive_more::{Debug, Into};
 use sqlx::{MySqlConnection, MySqlExecutor, MySqlPool};
 use time::{Duration, OffsetDateTime};
 use tracing::trace;
@@ -48,17 +48,23 @@ use crate::{Error, Result, State};
 ///
 /// [module level documentation]: crate::auth::session
 #[must_use]
+#[derive(Debug, Into)]
 pub struct Session<Auth = ()> {
 	/// The session ID.
+	#[debug("{id}")]
 	id: NonZeroU64,
 
 	/// The user who logged in.
+	#[debug("{}", user.steam_id())]
 	user: User,
 
 	/// The cookie that was extracted / will be sent back to the user.
+	#[debug(skip)]
+	#[into]
 	cookie: Cookie<'static>,
 
 	/// Marker so we can be generic over something that implements [`AuthorizeSession`].
+	#[debug(skip)]
 	_auth: PhantomData<Auth>,
 }
 
@@ -81,6 +87,11 @@ impl<Auth> Session<Auth> {
 
 	/// Timespan after which a session will expire.
 	const EXPIRES_AFTER: Duration = Duration::WEEK;
+
+	/// This session's ID.
+	pub const fn id(&self) -> NonZeroU64 {
+		self.id
+	}
 
 	/// The user associated with this session.
 	pub const fn user(&self) -> User {
@@ -190,21 +201,6 @@ impl Session {
 		self.cookie.set_expires(OffsetDateTime::now_utc());
 
 		Ok(())
-	}
-}
-
-impl<Auth> Debug for Session<Auth> {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_struct("Session")
-			.field("id", &self.id)
-			.field("user", &format_args!("{}", self.user.steam_id()))
-			.finish()
-	}
-}
-
-impl<Auth> From<Session<Auth>> for Cookie<'static> {
-	fn from(session: Session<Auth>) -> Self {
-		session.cookie
 	}
 }
 

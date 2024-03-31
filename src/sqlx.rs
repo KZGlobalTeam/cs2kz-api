@@ -3,11 +3,11 @@
 use std::error::Error as StdError;
 use std::future::Future;
 use std::num::NonZeroU64;
-use std::ops::{Deref, DerefMut};
 use std::result::Result as StdResult;
 use std::time::Duration;
 
 use cs2kz::{MapIdentifier, PlayerIdentifier, ServerIdentifier, SteamID};
+use derive_more::{Deref, DerefMut, From, Into};
 use sqlx::database::{HasArguments, HasValueRef};
 use sqlx::encode::IsNull;
 use sqlx::error::{BoxDynError, ErrorKind};
@@ -49,8 +49,11 @@ impl QueryBuilderExt for QueryBuilder<'_, MySql> {
 ///
 /// This can be used transparently like a [`QueryBuilder`], but also has extra methods.
 /// See [`FilteredQuery::filter()`] for more details.
+#[derive(Deref, DerefMut)]
 pub struct FilteredQuery<'q> {
 	/// The underlying query builder.
+	#[deref]
+	#[deref_mut]
 	query: QueryBuilder<'q, MySql>,
 
 	/// The current state of the filter.
@@ -121,26 +124,15 @@ impl<'q> FilteredQuery<'q> {
 	}
 }
 
-impl<'q> Deref for FilteredQuery<'q> {
-	type Target = QueryBuilder<'q, MySql>;
-
-	fn deref(&self) -> &Self::Target {
-		&self.query
-	}
-}
-
-impl DerefMut for FilteredQuery<'_> {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.query
-	}
-}
-
 /// Query builder for building `UPDATE` queries.
 ///
 /// This can be used transparently like a [`QueryBuilder`], but also has extra methods.
 /// See [`UpdateQuery::set()`] for more details.
+#[derive(Deref, DerefMut)]
 pub struct UpdateQuery<'q> {
 	/// The underlying query builder.
+	#[deref]
+	#[deref_mut]
 	query: QueryBuilder<'q, MySql>,
 
 	/// The current delimiter state.
@@ -194,20 +186,6 @@ impl<'q> UpdateQuery<'q> {
 
 		self.delimiter = UpdateDelimiter::Comma;
 		self
-	}
-}
-
-impl<'q> Deref for UpdateQuery<'q> {
-	type Target = QueryBuilder<'q, MySql>;
-
-	fn deref(&self) -> &Self::Target {
-		&self.query
-	}
-}
-
-impl DerefMut for UpdateQuery<'_> {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.query
 	}
 }
 
@@ -350,14 +328,8 @@ macro_rules! non_zero {
 pub(crate) use non_zero;
 
 /// Wrapper around [`std::time::Duration`], which takes care of encoding / decoding as seconds.
-#[derive(Debug)]
+#[derive(Debug, From, Into)]
 pub struct Seconds(Duration);
-
-impl From<Seconds> for Duration {
-	fn from(value: Seconds) -> Self {
-		value.0
-	}
-}
 
 impl sqlx::Type<MySql> for Seconds {
 	fn type_info() -> <MySql as sqlx::Database>::TypeInfo {

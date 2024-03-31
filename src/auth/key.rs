@@ -6,13 +6,16 @@ use axum::http::request;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::Authorization;
 use axum_extra::TypedHeader;
+use derive_more::{Debug, Display};
 use tracing::info;
 use uuid::Uuid;
 
 use crate::{Error, Result, State};
 
 /// An opaque API key.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[derive(Debug, Display, Clone, Copy, PartialEq, Eq, sqlx::Type)]
+#[debug("*****")]
+#[display("{_0}")]
 #[sqlx(transparent)]
 pub struct Key(Uuid);
 

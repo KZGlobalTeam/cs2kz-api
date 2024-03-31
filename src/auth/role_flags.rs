@@ -8,7 +8,6 @@
 //! by serde, as well as be inserted into the database.
 
 use std::fmt::{self, Display};
-use std::ops::BitOr;
 use std::str::FromStr;
 
 use serde::ser::SerializeSeq;
@@ -61,7 +60,7 @@ impl From<u32> for RoleFlags {
 		[Self::BANS, Self::SERVERS, Self::MAPS, Self::ADMIN]
 			.into_iter()
 			.filter(|&flag| Self(flags).contains(flag))
-			.fold(Self::NONE, Self::bitor)
+			.fold(Self::NONE, |acc, curr| Self(acc.0 | curr.0))
 	}
 }
 
@@ -81,14 +80,6 @@ impl FromStr for RoleFlags {
 			"admin" => Ok(Self::ADMIN),
 			value => Err(UnknownRole(value.to_owned())),
 		}
-	}
-}
-
-impl BitOr for RoleFlags {
-	type Output = Self;
-
-	fn bitor(self, rhs: Self) -> Self::Output {
-		Self(self.0 | rhs.0)
 	}
 }
 
@@ -125,7 +116,7 @@ impl<'de> Deserialize<'de> for RoleFlags {
 			Helper::Words(words) => words
 				.into_iter()
 				.flat_map(|word| word.parse::<Self>())
-				.fold(Self::NONE, Self::bitor),
+				.fold(Self::NONE, |acc, curr| Self(acc.0 | curr.0)),
 		})
 	}
 }

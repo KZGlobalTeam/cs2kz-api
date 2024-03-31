@@ -2,9 +2,9 @@
 //!
 //! This is initialized once on startup, and then passed around the application by axum.
 
-use std::fmt::{self, Debug};
 use std::time::Duration;
 
+use derive_more::Debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::{MySql, Pool};
@@ -15,26 +15,33 @@ use crate::{Error, Result};
 /// The main application state.
 ///
 /// A `'static` reference to this is passed around the application.
+#[derive(Debug)]
 pub struct State {
 	/// The API configuration.
 	pub config: crate::Config,
 
 	/// Connection pool to the backing database.
+	#[debug(skip)]
 	pub database: Pool<MySql>,
 
 	/// HTTP client for making requests to external APIs.
+	#[debug(skip)]
 	pub http_client: reqwest::Client,
 
 	/// Header data to use when signing JWTs.
+	#[debug(skip)]
 	jwt_header: jsonwebtoken::Header,
 
 	/// Secret key to use when signing JWTs.
+	#[debug(skip)]
 	jwt_encoding_key: jsonwebtoken::EncodingKey,
 
 	/// Secret key to use when validating JWTs.
+	#[debug(skip)]
 	jwt_decoding_key: jsonwebtoken::DecodingKey,
 
 	/// Extra validation steps when validating JWTs.
+	#[debug(skip)]
 	jwt_validation: jsonwebtoken::Validation,
 }
 
@@ -79,11 +86,5 @@ impl State {
 		jsonwebtoken::decode(jwt, &self.jwt_decoding_key, &self.jwt_validation)
 			.map(|jwt| jwt.claims)
 			.map_err(|err| Error::from(err))
-	}
-}
-
-impl Debug for State {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_struct("State").finish()
 	}
 }

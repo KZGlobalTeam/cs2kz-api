@@ -6,8 +6,6 @@
 //! [JWTs]: https://jwt.io/introduction/
 //! [extractor]: axum::extract
 
-use std::fmt::{self, Debug};
-use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 
 use axum::async_trait;
@@ -16,6 +14,8 @@ use axum::http::request;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::Authorization;
 use axum_extra::TypedHeader;
+use chrono::{DateTime, Utc};
+use derive_more::{Debug, Deref, DerefMut};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use tracing::trace;
@@ -26,13 +26,17 @@ use utoipa::ToSchema;
 use crate::{Error, Result, State};
 
 /// Helper struct for encoding / decoding JWTs.
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Deref, DerefMut, Serialize, Deserialize)]
 pub struct Jwt<T> {
 	/// The payload.
 	#[serde(flatten)]
+	#[deref]
+	#[deref_mut]
+	#[debug("{payload:?}")]
 	payload: T,
 
 	/// The expiration date.
+	#[debug("{}", self.expires_on())]
 	exp: u64,
 }
 
@@ -45,6 +49,13 @@ impl<T> Jwt<T> {
 		}
 	}
 
+	/// Returns the expiration date for this JWT.
+	pub fn expires_on(&self) -> DateTime<Utc> {
+		let secs = i64::try_from(self.exp).expect("invalid expiration date");
+
+		DateTime::from_timestamp(secs, 0).expect("invalid expiration date")
+	}
+
 	/// Checks whether this JWT has already expired.
 	pub fn has_expired(&self) -> bool {
 		self.exp < jsonwebtoken::get_current_timestamp()
@@ -53,29 +64,6 @@ impl<T> Jwt<T> {
 	/// Returns the wrapped payload.
 	pub fn into_payload(self) -> T {
 		self.payload
-	}
-}
-
-impl<T> Deref for Jwt<T> {
-	type Target = T;
-
-	fn deref(&self) -> &Self::Target {
-		&self.payload
-	}
-}
-
-impl<T> DerefMut for Jwt<T> {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.payload
-	}
-}
-
-impl<T> Debug for Jwt<T>
-where
-	T: Debug,
-{
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		Debug::fmt(&self.payload, f)
 	}
 }
 

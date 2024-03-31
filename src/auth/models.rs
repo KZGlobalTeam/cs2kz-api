@@ -9,6 +9,7 @@ use axum::http::request;
 use axum::response::Redirect;
 use axum_extra::extract::cookie::Cookie;
 use cs2kz::SteamID;
+use derive_more::Debug;
 use reqwest::{header, Response};
 use serde::{Deserialize, Deserializer, Serialize};
 use tracing::{error, trace};
@@ -54,6 +55,7 @@ pub struct User {
 	steam_id: SteamID,
 
 	/// The user's roles as a bitfield.
+	#[debug("{role_flags:?} ({role_flags})")]
 	role_flags: RoleFlags,
 }
 
