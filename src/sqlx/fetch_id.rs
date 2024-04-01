@@ -1,7 +1,8 @@
 //! Utility trait for fetching IDs of various things from the database.
 
+use std::future::Future;
+
 use cs2kz::{MapIdentifier, PlayerIdentifier, ServerIdentifier, SteamID};
-use futures::Future;
 use sqlx::MySqlExecutor;
 
 use crate::{Error, Result};

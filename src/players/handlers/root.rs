@@ -2,6 +2,7 @@
 
 use axum::extract::Query;
 use axum::Json;
+use futures::TryStreamExt;
 use serde::Deserialize;
 use sqlx::QueryBuilder;
 use tracing::info;
@@ -49,19 +50,20 @@ pub async fn get(
 
 	query.push_limits(limit, offset);
 
-	let mut players = query
+	let players = query
 		.build_query_as::<FullPlayer>()
-		.fetch_all(connection.as_mut())
+		.fetch(connection.as_mut())
+		.map_ok(|player| FullPlayer {
+			// Only include IP address information if the requesting user has
+			// permission to view them.
+			ip_address: session.as_ref().and(player.ip_address),
+			..player
+		})
+		.try_collect::<Vec<_>>()
 		.await?;
 
 	if players.is_empty() {
 		return Err(Error::no_content());
-	}
-
-	if session.is_none() {
-		for player in &mut players {
-			player.ip_address = None;
-		}
 	}
 
 	Ok(Json(players))

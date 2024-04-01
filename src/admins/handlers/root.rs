@@ -3,7 +3,7 @@
 use axum::Json;
 use axum_extra::extract::Query;
 use cs2kz::SteamID;
-use itertools::Itertools;
+use futures::TryStreamExt;
 use serde::Deserialize;
 use utoipa::IntoParams;
 
@@ -66,11 +66,10 @@ pub async fn get(
 		limit.0,
 		offset.0,
 	}
-	.fetch_all(connection.as_mut())
-	.await?
-	.into_iter()
-	.map(|row| Admin { name: row.name, steam_id: row.id, roles: row.role_flags })
-	.collect_vec();
+	.fetch(connection.as_mut())
+	.map_ok(|row| Admin { name: row.name, steam_id: row.id, roles: row.role_flags })
+	.try_collect::<Vec<_>>()
+	.await?;
 
 	if admins.is_empty() {
 		return Err(Error::no_content());

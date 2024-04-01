@@ -24,11 +24,12 @@
 	clippy::unimplemented
 )]
 
+use std::future::Future;
+
 use axum::routing::{get, IntoMakeService};
 use axum::serve::Serve;
 use axum::Router;
 use eyre::Context;
-use futures::Future;
 use itertools::Itertools;
 use tokio::net::TcpListener;
 use tracing::{debug, info};

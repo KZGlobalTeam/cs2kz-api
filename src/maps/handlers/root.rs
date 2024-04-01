@@ -276,9 +276,9 @@ async fn create_courses(
 	.fetch_all(transaction.as_mut())
 	.await?
 	.into_iter()
-	.map(|row| NonZeroU32::try_from(row.id))
-	.map(|conversion| {
-		conversion.map_err(|err| Error::internal_server_error("PKs cannot be 0").with_source(err))
+	.map(|row| {
+		NonZeroU32::try_from(row.id)
+			.map_err(|err| Error::internal_server_error("PKs cannot be 0").with_source(err))
 	});
 
 	for (course_id, course) in iter::zip(course_ids, courses) {
