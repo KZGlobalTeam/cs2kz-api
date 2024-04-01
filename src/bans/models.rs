@@ -15,6 +15,7 @@ use utoipa::ToSchema;
 
 use crate::players::Player;
 use crate::servers::ServerInfo;
+use crate::sqlx::query;
 
 /// A player ban.
 #[derive(Debug, Serialize, ToSchema)]
@@ -51,7 +52,7 @@ pub struct Ban {
 impl FromRow<'_, MySqlRow> for Ban {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: crate::sqlx::non_zero!("id" as NonZeroU64, row)?,
+			id: query::non_zero!("id" as NonZeroU64, row)?,
 			player: Player::from_row(row)?,
 			server: ServerInfo::from_row(row).ok(),
 			reason: row.try_get("reason")?,
@@ -161,7 +162,7 @@ pub struct Unban {
 impl FromRow<'_, MySqlRow> for Unban {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: crate::sqlx::non_zero!("unban_id" as NonZeroU64, row)?,
+			id: query::non_zero!("unban_id" as NonZeroU64, row)?,
 			reason: row.try_get("unban_reason")?,
 			admin: row
 				.try_get("unban_admin_name")

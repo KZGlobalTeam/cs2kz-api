@@ -8,7 +8,7 @@ use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{GlobalStatus, SteamID};
 use serde::Deserialize;
-use sqlx::{MySql, Pool, QueryBuilder, Transaction};
+use sqlx::{MySql, QueryBuilder};
 use tracing::{info, warn};
 use utoipa::IntoParams;
 
@@ -17,7 +17,8 @@ use crate::maps::models::{NewCourse, NewFilter};
 use crate::maps::{queries, CreatedMap, FullMap, NewMap};
 use crate::parameters::Limit;
 use crate::responses::Created;
-use crate::sqlx::{FilteredQuery, SqlErrorExt};
+use crate::sqlx::extract::{Connection, Transaction};
+use crate::sqlx::{query, FilteredQuery, SqlErrorExt};
 use crate::workshop::WorkshopMap;
 use crate::{auth, responses, Error, Result};
 
@@ -44,7 +45,7 @@ pub struct GetParams {
 	limit: Limit,
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/maps",
@@ -57,7 +58,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	Query(GetParams {
 		name,
 		workshop_id,
@@ -93,7 +94,7 @@ pub async fn get(
 
 	let maps = query
 		.build_query_as::<FullMap>()
-		.fetch_all(&database)
+		.fetch_all(connection.as_mut())
 		.await
 		.map(|maps| FullMap::flatten(maps, limit.into()))?;
 
@@ -104,7 +105,7 @@ pub async fn get(
 	Ok(Json(maps))
 }
 
-#[tracing::instrument(level = "debug", skip(config, database, http_client))]
+#[tracing::instrument(level = "debug", skip(config, http_client, transaction))]
 #[utoipa::path(
   put,
   path = "/maps",
@@ -121,12 +122,11 @@ pub async fn get(
 )]
 pub async fn put(
 	State(config): State<&'static crate::Config>,
-	State(database): State<Pool<MySql>>,
 	State(http_client): State<reqwest::Client>,
+	Transaction(mut transaction): Transaction,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.as_u32() }>>,
 	Json(NewMap { workshop_id, description, global_status, mappers, courses }): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {
-	let mut transaction = database.begin().await?;
 	let name = WorkshopMap::fetch_name(workshop_id, &http_client).await?;
 	let checksum = WorkshopMap::download(workshop_id, config)
 		.await?
@@ -158,7 +158,7 @@ async fn create_map(
 	global_status: GlobalStatus,
 	workshop_id: u32,
 	checksum: u32,
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<NonZeroU16> {
 	let deglobal_old_result = sqlx::query! {
 		r#"
@@ -205,7 +205,7 @@ async fn create_map(
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(crate::sqlx::last_insert_id)??;
+	.map(query::last_insert_id)??;
 
 	info!(target: "audit_log", id = %map_id, %name, "created new map");
 
@@ -216,7 +216,7 @@ async fn create_map(
 pub(super) async fn create_mappers(
 	map_id: NonZeroU16,
 	mappers: &[SteamID],
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	let mut query = QueryBuilder::new("INSERT INTO Mappers (map_id, player_id)");
 
@@ -245,7 +245,7 @@ pub(super) async fn create_mappers(
 async fn create_courses(
 	map_id: NonZeroU16,
 	courses: &[NewCourse],
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	let mut query = QueryBuilder::new("INSERT INTO Courses (name, description, map_id)");
 
@@ -295,7 +295,7 @@ async fn create_courses(
 pub(super) async fn insert_course_mappers(
 	course_id: NonZeroU32,
 	mappers: &[SteamID],
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	let mut query = QueryBuilder::new("INSERT INTO CourseMappers (course_id, player_id)");
 
@@ -324,7 +324,7 @@ pub(super) async fn insert_course_mappers(
 async fn insert_course_filters(
 	course_id: NonZeroU32,
 	filters: &[NewFilter; 4],
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	let mut query = QueryBuilder::new(
 		r#"

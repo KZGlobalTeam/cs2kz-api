@@ -1,11 +1,10 @@
 //! Handlers for the `/jumpstats` route.
 
-use axum::extract::{Query, State};
+use axum::extract::Query;
 use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{JumpType, Mode, PlayerIdentifier, ServerIdentifier, Style};
 use serde::Deserialize;
-use sqlx::{MySql, Pool};
 use tracing::trace;
 use utoipa::IntoParams;
 
@@ -13,7 +12,8 @@ use crate::auth::Jwt;
 use crate::jumpstats::{queries, CreatedJumpstat, Jumpstat, NewJumpstat};
 use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
-use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
+use crate::sqlx::extract::{Connection, Transaction};
+use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result};
 
 /// Query parameters for `GET /jumpstats`.
@@ -53,7 +53,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/jumpstats",
@@ -67,7 +67,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	Query(GetParams {
 		jump_type,
 		mode,
@@ -100,13 +100,13 @@ pub async fn get(
 	}
 
 	if let Some(player) = player {
-		let steam_id = player.fetch_id(&database).await?;
+		let steam_id = player.fetch_id(connection.as_mut()).await?;
 
 		query.filter(" j.player_id = ", steam_id);
 	}
 
 	if let Some(server) = server {
-		let server_id = server.fetch_id(&database).await?;
+		let server_id = server.fetch_id(connection.as_mut()).await?;
 
 		query.filter(" j.server_id = ", server_id);
 	}
@@ -123,7 +123,7 @@ pub async fn get(
 
 	let jumpstats = query
 		.build_query_as::<Jumpstat>()
-		.fetch_all(&database)
+		.fetch_all(connection.as_mut())
 		.await?;
 
 	if jumpstats.is_empty() {
@@ -133,7 +133,7 @@ pub async fn get(
 	Ok(Json(jumpstats))
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(transaction))]
 #[utoipa::path(
   post,
   path = "/jumpstats",
@@ -150,7 +150,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	State(database): State<Pool<MySql>>,
+	Transaction(mut transaction): Transaction,
 	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Json(NewJumpstat {
 		jump_type,
@@ -241,9 +241,9 @@ pub async fn post(
 		server.id().get(),
 		server.plugin_version_id().get(),
 	}
-	.execute(&database)
+	.execute(transaction.as_mut())
 	.await
-	.map(crate::sqlx::last_insert_id)
+	.map(query::last_insert_id)
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
 			Error::unknown("player").with_source(err)
@@ -251,6 +251,8 @@ pub async fn post(
 			Error::from(err)
 		}
 	})??;
+
+	transaction.commit().await?;
 
 	trace!(%jumpstat_id, "created jumpstat");
 

@@ -1,21 +1,21 @@
 //! Handlers for the `/bans` route.
 
-use axum::extract::{Query, State};
+use axum::extract::Query;
 use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{PlayerIdentifier, ServerIdentifier};
 use serde::Deserialize;
 use sqlx::encode::IsNull;
-use sqlx::{MySql, Pool};
 use time::OffsetDateTime;
-use tracing::warn;
+use tracing::{trace, warn};
 use utoipa::IntoParams;
 
 use crate::auth::{Jwt, RoleFlags};
 use crate::bans::{queries, Ban, BanReason, CreatedBan, NewBan};
 use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
-use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
+use crate::sqlx::extract::{Connection, Transaction};
+use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result};
 
 /// Query parameters for `GET /bans`.
@@ -54,7 +54,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/bans",
@@ -68,7 +68,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	Query(GetParams {
 		player,
 		server,
@@ -85,13 +85,13 @@ pub async fn get(
 	let mut query = FilteredQuery::new(queries::SELECT);
 
 	if let Some(player) = player {
-		let steam_id = player.fetch_id(&database).await?;
+		let steam_id = player.fetch_id(connection.as_mut()).await?;
 
 		query.filter(" b.player_id = ", steam_id);
 	}
 
 	if let Some(server) = server {
-		let server_id = server.fetch_id(&database).await?;
+		let server_id = server.fetch_id(connection.as_mut()).await?;
 
 		query.filter(" b.server_id = ", server_id);
 	}
@@ -114,7 +114,10 @@ pub async fn get(
 
 	query.push_limits(limit, offset);
 
-	let bans = query.build_query_as::<Ban>().fetch_all(&database).await?;
+	let bans = query
+		.build_query_as::<Ban>()
+		.fetch_all(connection.as_mut())
+		.await?;
 
 	if bans.is_empty() {
 		return Err(Error::no_content());
@@ -123,7 +126,7 @@ pub async fn get(
 	Ok(Json(bans))
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(transaction))]
 #[utoipa::path(
   post,
   path = "/bans",
@@ -139,7 +142,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	State(database): State<Pool<MySql>>,
+	Transaction(mut transaction): Transaction,
 	server: Option<Jwt<auth::Server>>,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
 	Json(NewBan { player_id, player_ip, reason }): Json<NewBan>,
@@ -178,7 +181,7 @@ pub async fn post(
 		"#,
 		player_id,
 	}
-	.fetch_optional(&database)
+	.fetch_optional(transaction.as_mut())
 	.await?
 	.map(|row| (row.already_banned, row.previous_bans))
 	.ok_or_else(|| Error::unknown("SteamID"))?;
@@ -190,7 +193,7 @@ pub async fn post(
 	let player_ip = match player_ip {
 		Some(ip) => ip.to_string(),
 		None => sqlx::query!("SELECT ip_address FROM Players WHERE id = ?", player_id)
-			.fetch_optional(&database)
+			.fetch_optional(transaction.as_mut())
 			.await?
 			.map(|row| row.ip_address)
 			.ok_or_else(|| Error::unknown("player"))?,
@@ -210,7 +213,7 @@ pub async fn post(
 			  1
 			"#,
 		}
-		.fetch_one(&database)
+		.fetch_one(transaction.as_mut())
 		.await
 		.map(|row| row.id)?,
 	};
@@ -240,9 +243,9 @@ pub async fn post(
 		plugin_version_id,
 		expires_on,
 	}
-	.execute(&database)
+	.execute(transaction.as_mut())
 	.await
-	.map(crate::sqlx::last_insert_id)
+	.map(query::last_insert_id)
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
 			Error::unknown("player").with_source(err)
@@ -252,6 +255,10 @@ pub async fn post(
 			Error::from(err)
 		}
 	})??;
+
+	transaction.commit().await?;
+
+	trace!(%ban_id, %player_id, ?reason, ?server, ?admin, "created ban");
 
 	Ok(Created(Json(CreatedBan { ban_id })))
 }

@@ -13,6 +13,7 @@ use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
 use crate::players::Player;
+use crate::sqlx::query;
 
 /// A KZ map.
 ///
@@ -100,7 +101,7 @@ impl FullMap {
 impl FromRow<'_, MySqlRow> for FullMap {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: crate::sqlx::non_zero!("id" as NonZeroU16, row)?,
+			id: query::non_zero!("id" as NonZeroU16, row)?,
 			name: row.try_get("name")?,
 			description: row.try_get("description")?,
 			global_status: row.try_get("global_status")?,
@@ -141,7 +142,7 @@ pub struct Course {
 impl FromRow<'_, MySqlRow> for Course {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: crate::sqlx::non_zero!("course_id" as NonZeroU32, row)?,
+			id: query::non_zero!("course_id" as NonZeroU32, row)?,
 			name: row.try_get("course_name")?,
 			description: row.try_get("course_description")?,
 			mappers: vec![Player {
@@ -149,7 +150,7 @@ impl FromRow<'_, MySqlRow> for Course {
 				steam_id: row.try_get("course_mapper_id")?,
 			}],
 			filters: vec![Filter {
-				id: crate::sqlx::non_zero!("filter_id" as NonZeroU32, row)?,
+				id: query::non_zero!("filter_id" as NonZeroU32, row)?,
 				mode: row.try_get("filter_mode")?,
 				teleports: row.try_get("filter_teleports")?,
 				tier: row.try_get("filter_tier")?,

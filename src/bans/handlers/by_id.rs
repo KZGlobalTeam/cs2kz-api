@@ -2,18 +2,19 @@
 
 use std::num::NonZeroU64;
 
-use axum::extract::{Path, State};
+use axum::extract::Path;
 use axum::Json;
-use sqlx::{MySql, MySqlExecutor, Pool, QueryBuilder};
+use sqlx::{MySqlExecutor, QueryBuilder};
 use tracing::info;
 
 use crate::auth::RoleFlags;
 use crate::bans::{queries, Ban, BanUpdate, CreatedUnban, NewUnban};
 use crate::responses::{Created, NoContent};
-use crate::sqlx::UpdateQuery;
+use crate::sqlx::extract::{Connection, Transaction};
+use crate::sqlx::{query, UpdateQuery};
 use crate::{auth, responses, Error, Result};
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/bans/{ban_id}",
@@ -27,7 +28,7 @@ use crate::{auth, responses, Error, Result};
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	Path(ban_id): Path<NonZeroU64>,
 ) -> Result<Json<Ban>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
@@ -36,14 +37,14 @@ pub async fn get(
 
 	let ban = query
 		.build_query_as::<Ban>()
-		.fetch_optional(&database)
+		.fetch_optional(connection.as_mut())
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(ban))
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(transaction))]
 #[utoipa::path(
   patch,
   path = "/bans/{ban_id}",
@@ -60,7 +61,7 @@ pub async fn get(
   ),
 )]
 pub async fn patch(
-	State(database): State<Pool<MySql>>,
+	Transaction(mut transaction): Transaction,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>,
 	Path(ban_id): Path<NonZeroU64>,
 	Json(BanUpdate { reason, expires_on }): Json<BanUpdate>,
@@ -69,7 +70,7 @@ pub async fn patch(
 		return Ok(NoContent);
 	}
 
-	if let Some(ban_id) = is_already_unbanned(ban_id, &database).await? {
+	if let Some(ban_id) = is_already_unbanned(ban_id, transaction.as_mut()).await? {
 		return Err(Error::ban_already_reverted(ban_id));
 	}
 
@@ -85,18 +86,20 @@ pub async fn patch(
 
 	query.push(" WHERE id = ").push_bind(ban_id.get());
 
-	let query_result = query.build().execute(&database).await?;
+	let query_result = query.build().execute(transaction.as_mut()).await?;
 
 	if query_result.rows_affected() == 0 {
 		return Err(Error::unknown("ban ID"));
 	}
+
+	transaction.commit().await?;
 
 	info!(target: "audit_log", %ban_id, "updated ban");
 
 	Ok(NoContent)
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(transaction))]
 #[utoipa::path(
   delete,
   path = "/bans/{ban_id}",
@@ -112,13 +115,11 @@ pub async fn patch(
   ),
 )]
 pub async fn delete(
-	State(database): State<Pool<MySql>>,
+	Transaction(mut transaction): Transaction,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>,
 	Path(ban_id): Path<NonZeroU64>,
 	Json(NewUnban { reason }): Json<NewUnban>,
 ) -> Result<Created<Json<CreatedUnban>>> {
-	let mut transaction = database.begin().await?;
-
 	if let Some(ban_id) = is_already_unbanned(ban_id, transaction.as_mut()).await? {
 		return Err(Error::ban_already_reverted(ban_id));
 	}
@@ -156,7 +157,7 @@ pub async fn delete(
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(crate::sqlx::last_insert_id)??;
+	.map(query::last_insert_id)??;
 
 	transaction.commit().await?;
 

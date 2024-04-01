@@ -11,6 +11,7 @@ use utoipa::ToSchema;
 
 use crate::players::Player;
 use crate::servers::ServerInfo;
+use crate::sqlx::query;
 use crate::time::Seconds;
 
 /// A jumpstat.
@@ -84,7 +85,7 @@ pub struct Jumpstat {
 impl FromRow<'_, MySqlRow> for Jumpstat {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: crate::sqlx::non_zero!("id" as NonZeroU64, row)?,
+			id: query::non_zero!("id" as NonZeroU64, row)?,
 			jump_type: row.try_get("type")?,
 			mode: row.try_get("mode")?,
 			style: row.try_get("style")?,

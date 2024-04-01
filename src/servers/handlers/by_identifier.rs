@@ -2,19 +2,20 @@
 
 use std::num::NonZeroU16;
 
-use axum::extract::{Path, State};
+use axum::extract::Path;
 use axum::Json;
 use cs2kz::ServerIdentifier;
-use sqlx::{MySql, Pool, QueryBuilder};
+use sqlx::QueryBuilder;
 use tracing::info;
 
 use crate::auth::RoleFlags;
 use crate::responses::NoContent;
 use crate::servers::{queries, Server, ServerUpdate};
+use crate::sqlx::extract::{Connection, Transaction};
 use crate::sqlx::UpdateQuery;
 use crate::{auth, responses, Error, Result};
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/servers/{server}",
@@ -27,7 +28,7 @@ use crate::{auth, responses, Error, Result};
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	Path(server): Path<ServerIdentifier>,
 ) -> Result<Json<Server>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
@@ -45,14 +46,14 @@ pub async fn get(
 
 	let server = query
 		.build_query_as::<Server>()
-		.fetch_optional(&database)
+		.fetch_optional(connection.as_mut())
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(server))
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(transaction))]
 #[utoipa::path(
   patch,
   path = "/servers/{server}",
@@ -67,7 +68,7 @@ pub async fn get(
   ),
 )]
 pub async fn patch(
-	State(database): State<Pool<MySql>>,
+	Transaction(mut transaction): Transaction,
 	session: auth::Session<
 		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::IsServerOwner>,
 	>,
@@ -96,11 +97,13 @@ pub async fn patch(
 
 	query.push(" WHERE id = ").push_bind(server_id.get());
 
-	let query_result = query.build().execute(&database).await?;
+	let query_result = query.build().execute(transaction.as_mut()).await?;
 
 	if query_result.rows_affected() == 0 {
 		return Err(Error::unknown("server ID"));
 	}
+
+	transaction.commit().await?;
 
 	info!(target: "audit_log", %server_id, session.user = ?session.user(), "updated server");
 

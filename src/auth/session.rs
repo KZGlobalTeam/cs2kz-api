@@ -33,13 +33,13 @@ use axum::response::{IntoResponseParts, ResponseParts};
 use axum_extra::extract::cookie::Cookie;
 use cs2kz::SteamID;
 use derive_more::{Debug, Into};
-use sqlx::{MySql, MySqlConnection, MySqlExecutor, MySqlPool, Pool};
+use sqlx::{MySql, MySqlConnection, MySqlExecutor, Pool};
 use time::{Duration, OffsetDateTime};
 use tracing::{debug, trace};
 use uuid::Uuid;
 
 use super::{RoleFlags, User};
-use crate::sqlx::SqlErrorExt;
+use crate::sqlx::{query, SqlErrorExt};
 use crate::{Error, Result};
 
 /// The primary abstraction over login sessions.
@@ -106,12 +106,11 @@ impl Session {
 	/// the user their session token via a cookie.
 	pub async fn create(
 		steam_id: SteamID,
-		database: &MySqlPool,
 		config: &'static crate::Config,
+		mut transaction: sqlx::Transaction<'_, MySql>,
 	) -> Result<Self> {
 		let token = Uuid::new_v4();
 		let expires_on = OffsetDateTime::now_utc() + Self::EXPIRES_AFTER;
-		let mut transaction = database.begin().await?;
 		let id = sqlx::query! {
 			r#"
 			INSERT INTO
@@ -125,7 +124,7 @@ impl Session {
 		}
 		.execute(transaction.as_mut())
 		.await
-		.map(crate::sqlx::last_insert_id::<NonZeroU64>)
+		.map(query::last_insert_id::<NonZeroU64>)
 		.map_err(|err| {
 			if err.is_fk_violation_of("player_id") {
 				Error::unknown("player").with_source(err)

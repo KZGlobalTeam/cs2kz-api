@@ -6,7 +6,7 @@ use std::num::{NonZeroU16, NonZeroU32};
 use axum::extract::{Path, State};
 use axum::Json;
 use cs2kz::{GlobalStatus, MapIdentifier, SteamID};
-use sqlx::{MySql, Pool, QueryBuilder, Transaction};
+use sqlx::{MySql, QueryBuilder};
 use tracing::{debug, info};
 
 use super::root::create_mappers;
@@ -15,11 +15,12 @@ use crate::maps::handlers::root::insert_course_mappers;
 use crate::maps::models::{CourseUpdate, FilterUpdate};
 use crate::maps::{queries, FullMap, MapUpdate};
 use crate::responses::NoContent;
+use crate::sqlx::extract::{Connection, Transaction};
 use crate::sqlx::UpdateQuery;
 use crate::workshop::WorkshopMap;
 use crate::{auth, responses, Error, Result};
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/maps/{map}",
@@ -33,7 +34,7 @@ use crate::{auth, responses, Error, Result};
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	Path(map): Path<MapIdentifier>,
 ) -> Result<Json<FullMap>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
@@ -53,7 +54,7 @@ pub async fn get(
 
 	let map = query
 		.build_query_as::<FullMap>()
-		.fetch_all(&database)
+		.fetch_all(connection.as_mut())
 		.await?
 		.into_iter()
 		.reduce(FullMap::reduce)
@@ -62,7 +63,7 @@ pub async fn get(
 	Ok(Json(map))
 }
 
-#[tracing::instrument(level = "debug", skip(config, database, http_client))]
+#[tracing::instrument(level = "debug", skip(config, http_client, transaction))]
 #[utoipa::path(
   patch,
   path = "/maps/{map_id}",
@@ -80,8 +81,8 @@ pub async fn get(
 )]
 pub async fn patch(
 	State(config): State<&'static crate::Config>,
-	State(database): State<Pool<MySql>>,
 	State(http_client): State<reqwest::Client>,
+	Transaction(mut transaction): Transaction,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.as_u32() }>>,
 	Path(map_id): Path<NonZeroU16>,
 	Json(MapUpdate {
@@ -94,8 +95,6 @@ pub async fn patch(
 		course_updates,
 	}): Json<MapUpdate>,
 ) -> Result<NoContent> {
-	let mut transaction = database.begin().await?;
-
 	update_details(map_id, description, workshop_id, global_status, &mut transaction).await?;
 
 	if check_steam || workshop_id.is_some() {
@@ -127,7 +126,7 @@ async fn update_details(
 	description: Option<String>,
 	workshop_id: Option<u32>,
 	global_status: Option<GlobalStatus>,
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	if description.is_none() && workshop_id.is_none() && global_status.is_none() {
 		return Ok(());
@@ -165,7 +164,7 @@ async fn update_name_and_checksum(
 	map_id: NonZeroU16,
 	config: &crate::Config,
 	http_client: &reqwest::Client,
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	let workshop_id = sqlx::query!("SELECT workshop_id FROM Maps where id = ?", map_id.get())
 		.fetch_one(transaction.as_mut())
@@ -208,7 +207,7 @@ async fn update_name_and_checksum(
 async fn delete_mappers(
 	map_id: NonZeroU16,
 	mappers: &[SteamID],
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	let mut query = QueryBuilder::new("DELETE FROM Mappers WHERE map_id = ");
 
@@ -251,7 +250,7 @@ async fn delete_mappers(
 async fn update_courses<C>(
 	map_id: NonZeroU16,
 	courses: C,
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()>
 where
 	C: IntoIterator<Item = (NonZeroU32, CourseUpdate)> + Send,
@@ -302,7 +301,7 @@ async fn update_course(
 	map_id: NonZeroU16,
 	course_id: NonZeroU32,
 	CourseUpdate { name, description, added_mappers, removed_mappers, filter_updates }: CourseUpdate,
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<Option<NonZeroU32>> {
 	if name.is_none()
 		&& description.is_none()
@@ -347,7 +346,7 @@ async fn update_course(
 async fn delete_course_mappers(
 	course_id: NonZeroU32,
 	mappers: &[SteamID],
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	let mut query = QueryBuilder::new("DELETE FROM CourseMappers WHERE course_id = ");
 
@@ -391,7 +390,7 @@ async fn update_filters<F>(
 	map_id: NonZeroU16,
 	course_id: NonZeroU32,
 	filters: F,
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()>
 where
 	F: IntoIterator<Item = (NonZeroU32, FilterUpdate)> + Send,
@@ -447,7 +446,7 @@ where
 async fn update_filter(
 	filter_id: NonZeroU32,
 	FilterUpdate { tier, ranked_status, notes }: FilterUpdate,
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<Option<NonZeroU32>> {
 	if tier.is_none() && ranked_status.is_none() && notes.is_none() {
 		return Ok(None);

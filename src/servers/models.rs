@@ -14,6 +14,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::players::Player;
+use crate::sqlx::query;
 
 /// An approved CS2 server.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -39,7 +40,7 @@ pub struct Server {
 impl FromRow<'_, MySqlRow> for Server {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: crate::sqlx::non_zero!("id" as NonZeroU16, row)?,
+			id: query::non_zero!("id" as NonZeroU16, row)?,
 			name: row.try_get("name")?,
 			ip_address: {
 				let ip = row

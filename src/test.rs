@@ -5,7 +5,7 @@ use std::time::Duration;
 use cs2kz::SteamID;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
-use sqlx::MySqlPool;
+use sqlx::{MySql, Pool};
 use tokio::sync::oneshot;
 use url::Url;
 use uuid::Uuid;
@@ -63,7 +63,7 @@ pub(crate) struct Context {
 	pub http_client: reqwest::Client,
 
 	/// A database connection.
-	pub database: MySqlPool,
+	pub database: Pool<MySql>,
 
 	/// A shutdown signal to have the API shutdown cleanly.
 	pub shutdown: oneshot::Sender<()>,
@@ -86,7 +86,7 @@ impl Context {
 		test_id: Uuid,
 		config: crate::Config,
 		http_client: reqwest::Client,
-		database: MySqlPool,
+		database: Pool<MySql>,
 		shutdown: oneshot::Sender<()>,
 	) -> eyre::Result<Self> {
 		let config = Box::leak(Box::new(config));
@@ -125,7 +125,7 @@ impl Context {
 	}
 
 	pub async fn auth_session(&self, steam_id: SteamID) -> crate::Result<auth::Session> {
-		auth::Session::create(steam_id, &self.database, self.config).await
+		auth::Session::create(steam_id, self.config, self.database.begin().await?).await
 	}
 
 	pub fn encode_jwt(

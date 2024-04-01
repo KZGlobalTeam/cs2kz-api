@@ -1,16 +1,17 @@
 //! Handlers for the `/plugin` route.
 
-use axum::extract::{Query, State};
+use axum::extract::Query;
 use axum::Json;
 use serde::Deserialize;
-use sqlx::{MySql, Pool, QueryBuilder};
+use sqlx::QueryBuilder;
 use tracing::debug;
 use utoipa::IntoParams;
 
 use crate::parameters::{Limit, Offset};
 use crate::plugin::{CreatedPluginVersion, NewPluginVersion, PluginVersion};
 use crate::responses::Created;
-use crate::sqlx::{QueryBuilderExt, SqlErrorExt};
+use crate::sqlx::extract::{Connection, Transaction};
+use crate::sqlx::{query, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result};
 
 /// Query parameters for `GET /plugin`.
@@ -25,7 +26,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/plugin/versions",
@@ -39,7 +40,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	Query(GetParams { limit, offset }): Query<GetParams>,
 ) -> Result<Json<Vec<PluginVersion>>> {
 	let mut query = QueryBuilder::new("SELECT * FROM PluginVersions");
@@ -48,7 +49,7 @@ pub async fn get(
 
 	let plugin_versions = query
 		.build_query_as::<PluginVersion>()
-		.fetch_all(&database)
+		.fetch_all(connection.as_mut())
 		.await?;
 
 	if plugin_versions.is_empty() {
@@ -58,7 +59,7 @@ pub async fn get(
 	Ok(Json(plugin_versions))
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(transaction))]
 #[utoipa::path(
   post,
   path = "/plugin/versions",
@@ -75,7 +76,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	State(database): State<Pool<MySql>>,
+	Transaction(mut transaction): Transaction,
 	auth::Key(key): auth::Key,
 	Json(NewPluginVersion { semver, git_revision }): Json<NewPluginVersion>,
 ) -> Result<Created<Json<CreatedPluginVersion>>> {
@@ -91,7 +92,7 @@ pub async fn post(
 		  1
 		"#
 	}
-	.fetch_optional(&database)
+	.fetch_optional(transaction.as_mut())
 	.await?
 	.map(|row| row.semver.parse::<semver::Version>())
 	.transpose()
@@ -111,9 +112,9 @@ pub async fn post(
 		semver.to_string(),
 		git_revision,
 	}
-	.execute(&database)
+	.execute(transaction.as_mut())
 	.await
-	.map(crate::sqlx::last_insert_id)
+	.map(query::last_insert_id)
 	.map_err(|err| {
 		if err.is_duplicate_entry() {
 			Error::invalid_plugin_rev()
@@ -121,6 +122,8 @@ pub async fn post(
 			Error::from(err)
 		}
 	})??;
+
+	transaction.commit().await?;
 
 	debug!(id = %plugin_version_id, %semver, %git_revision, "created new plugin version");
 

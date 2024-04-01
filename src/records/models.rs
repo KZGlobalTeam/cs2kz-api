@@ -12,6 +12,7 @@ use utoipa::ToSchema;
 use crate::maps::{CourseInfo, MapInfo};
 use crate::players::Player;
 use crate::servers::ServerInfo;
+use crate::sqlx::query;
 use crate::time::Seconds;
 
 /// A record (or "run").
@@ -55,7 +56,7 @@ pub struct Record {
 impl FromRow<'_, MySqlRow> for Record {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: crate::sqlx::non_zero!("id" as NonZeroU64, row)?,
+			id: query::non_zero!("id" as NonZeroU64, row)?,
 			mode: row.try_get("mode")?,
 			style: row.try_get("style")?,
 			teleports: row.try_get("teleports")?,

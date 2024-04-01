@@ -2,14 +2,14 @@
 
 use std::num::NonZeroU64;
 
-use axum::extract::{Path, State};
+use axum::extract::Path;
 use axum::Json;
-use sqlx::{MySql, Pool};
 
 use crate::game_sessions::GameSession;
+use crate::sqlx::extract::Connection;
 use crate::{responses, Error, Result};
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/sessions/{session_id}",
@@ -23,7 +23,7 @@ use crate::{responses, Error, Result};
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	Path(session_id): Path<NonZeroU64>,
 ) -> Result<Json<GameSession>> {
 	let session = sqlx::query_as(
@@ -57,7 +57,7 @@ pub async fn get(
 		"#,
 	)
 	.bind(session_id.get())
-	.fetch_optional(&database)
+	.fetch_optional(connection.as_mut())
 	.await?
 	.ok_or_else(|| Error::no_content())?;
 

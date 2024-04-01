@@ -2,20 +2,21 @@
 
 use std::num::{NonZeroU16, NonZeroU32, NonZeroU64};
 
-use axum::extract::{Path, State};
+use axum::extract::Path;
 use axum::Json;
 use cs2kz::{PlayerIdentifier, SteamID};
-use sqlx::{MySql, Pool, QueryBuilder, Transaction};
+use sqlx::{MySql, QueryBuilder};
 use tracing::trace;
 
 use crate::auth::{self, Jwt, RoleFlags};
 use crate::players::models::CourseSession;
 use crate::players::{queries, FullPlayer, PlayerUpdate};
 use crate::responses::{self, NoContent};
-use crate::sqlx::SqlErrorExt;
+use crate::sqlx::extract::{Connection, Transaction};
+use crate::sqlx::{query, SqlErrorExt};
 use crate::{Error, Result};
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/players/{player}",
@@ -29,7 +30,7 @@ use crate::{Error, Result};
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
 	Path(player): Path<PlayerIdentifier>,
 ) -> Result<Json<FullPlayer>> {
@@ -48,7 +49,7 @@ pub async fn get(
 
 	let mut player = query
 		.build_query_as::<FullPlayer>()
-		.fetch_optional(&database)
+		.fetch_optional(connection.as_mut())
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 
@@ -59,7 +60,7 @@ pub async fn get(
 	Ok(Json(player))
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(transaction))]
 #[utoipa::path(
   patch,
   path = "/players/{steam_id}",
@@ -76,13 +77,11 @@ pub async fn get(
   ),
 )]
 pub async fn patch(
-	State(database): State<Pool<MySql>>,
-	server: Jwt<auth::Server>,
+	Transaction(mut transaction): Transaction,
+	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Path(steam_id): Path<SteamID>,
 	Json(PlayerUpdate { name, ip_address, session }): Json<PlayerUpdate>,
 ) -> Result<NoContent> {
-	let mut transaction = database.begin().await?;
-
 	let query_result = sqlx::query! {
 		r#"
 		UPDATE
@@ -147,7 +146,7 @@ pub async fn patch(
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(crate::sqlx::last_insert_id::<NonZeroU64>)
+	.map(query::last_insert_id::<NonZeroU64>)
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
 			Error::unknown("player").with_source(err)
@@ -174,7 +173,7 @@ async fn insert_course_session(
 	server_id: NonZeroU16,
 	course_id: NonZeroU32,
 	CourseSession { mode, playtime, started_runs, finished_runs, bhop_stats }: CourseSession,
-	transaction: &mut Transaction<'_, MySql>,
+	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	let session_id = sqlx::query! {
 		r#"
@@ -221,7 +220,7 @@ async fn insert_course_session(
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(crate::sqlx::last_insert_id::<NonZeroU64>)
+	.map(query::last_insert_id::<NonZeroU64>)
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
 			Error::unknown("player").with_source(err)

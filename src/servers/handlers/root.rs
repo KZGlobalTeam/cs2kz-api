@@ -2,12 +2,11 @@
 
 use std::net::Ipv4Addr;
 
-use axum::extract::{Query, State};
+use axum::extract::Query;
 use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::PlayerIdentifier;
 use serde::Deserialize;
-use sqlx::{MySql, Pool};
 use tracing::debug;
 use utoipa::IntoParams;
 use uuid::Uuid;
@@ -16,7 +15,8 @@ use crate::auth::RoleFlags;
 use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
 use crate::servers::{queries, CreatedServer, NewServer, Server};
-use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
+use crate::sqlx::extract::{Connection, Transaction};
+use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result};
 
 /// Query parameters for `GET /servers`.
@@ -46,7 +46,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/servers",
@@ -60,7 +60,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	Query(GetParams {
 		name,
 		ip_address,
@@ -82,7 +82,7 @@ pub async fn get(
 	}
 
 	if let Some(player) = owned_by {
-		let steam_id = player.fetch_id(&database).await?;
+		let steam_id = player.fetch_id(connection.as_mut()).await?;
 
 		query.filter(" s.owner_id = ", steam_id);
 	}
@@ -99,7 +99,7 @@ pub async fn get(
 
 	let servers = query
 		.build_query_as::<Server>()
-		.fetch_all(&database)
+		.fetch_all(connection.as_mut())
 		.await?;
 
 	if servers.is_empty() {
@@ -109,7 +109,7 @@ pub async fn get(
 	Ok(Json(servers))
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(transaction))]
 #[utoipa::path(
   post,
   path = "/servers",
@@ -125,11 +125,10 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	State(database): State<Pool<MySql>>,
+	Transaction(mut transaction): Transaction,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>>,
 	Json(NewServer { name, ip_address, owned_by }): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
-	let mut transaction = database.begin().await?;
 	let refresh_key = Uuid::new_v4();
 	let server_id = sqlx::query! {
 		r#"
@@ -146,7 +145,7 @@ pub async fn post(
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(crate::sqlx::last_insert_id)
+	.map(query::last_insert_id)
 	.map_err(|err| {
 		if err.is_fk_violation_of("owner_id") {
 			Error::unknown("owner").with_source(err)

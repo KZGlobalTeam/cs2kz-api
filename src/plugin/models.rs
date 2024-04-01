@@ -9,6 +9,8 @@ use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
+use crate::sqlx::query;
+
 /// A CS2KZ plugin version.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct PluginVersion {
@@ -30,7 +32,7 @@ pub struct PluginVersion {
 impl FromRow<'_, MySqlRow> for PluginVersion {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: crate::sqlx::non_zero!("id" as NonZeroU16, row)?,
+			id: query::non_zero!("id" as NonZeroU16, row)?,
 			semver: row
 				.try_get::<&str, _>("semver")?
 				.parse::<Version>()

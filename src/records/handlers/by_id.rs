@@ -2,14 +2,15 @@
 
 use std::num::NonZeroU64;
 
-use axum::extract::{Path, State};
+use axum::extract::Path;
 use axum::Json;
-use sqlx::{MySql, Pool, QueryBuilder};
+use sqlx::QueryBuilder;
 
 use crate::records::{queries, Record};
+use crate::sqlx::extract::Connection;
 use crate::{responses, Error, Result};
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/records/{record_id}",
@@ -23,7 +24,7 @@ use crate::{responses, Error, Result};
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	Path(record_id): Path<NonZeroU64>,
 ) -> Result<Json<Record>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
@@ -32,7 +33,7 @@ pub async fn get(
 
 	let record = query
 		.build_query_as::<Record>()
-		.fetch_optional(&database)
+		.fetch_optional(connection.as_mut())
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 

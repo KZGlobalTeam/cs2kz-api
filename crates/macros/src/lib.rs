@@ -117,7 +117,7 @@ fn expand(TestArgs { queries }: TestArgs, test_function: ItemFn) -> syn::Result<
 			::sqlx::MySql::drop_database(&database_url).await?;
 			::sqlx::MySql::create_database(&database_url).await?;
 
-			let database = ::sqlx::MySqlPool::connect(&database_url).await?;
+			let database = ::sqlx::Pool::<::sqlx::MySql>::connect(&database_url).await?;
 
 			::tracing::debug!("running migrations... ({test_id})");
 			::sqlx::migrate!("./database/migrations")

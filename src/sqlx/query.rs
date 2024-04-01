@@ -1,15 +1,12 @@
-//! Helpers and extension traits for [`sqlx`].
+//! Utilities for SQL queries.
 
 use std::error::Error as StdError;
-use std::future::Future;
 use std::num::NonZeroU64;
 
-use cs2kz::{MapIdentifier, PlayerIdentifier, ServerIdentifier, SteamID};
-use derive_more::{Deref, DerefMut, Into};
+use derive_more::{Deref, DerefMut};
 use sqlx::encode::IsNull;
-use sqlx::error::ErrorKind;
 use sqlx::mysql::MySqlQueryResult;
-use sqlx::{MySql, MySqlExecutor, QueryBuilder};
+use sqlx::{MySql, QueryBuilder};
 use thiserror::Error;
 
 use crate::parameters::{Limit, Offset};
@@ -186,125 +183,6 @@ impl<'q> UpdateQuery<'q> {
 	}
 }
 
-/// Extension trait for dealing with SQL errors.
-pub trait SqlErrorExt {
-	/// Checks if the error is of a given [`ErrorKind`].
-	fn is(&self, kind: ErrorKind) -> bool;
-
-	/// Checks if this is a "duplicate entry" error.
-	fn is_duplicate_entry(&self) -> bool;
-
-	/// Checks if this is a foreign key violation of a specific key.
-	fn is_fk_violation_of(&self, fk: &str) -> bool;
-}
-
-impl SqlErrorExt for sqlx::Error {
-	fn is(&self, kind: ErrorKind) -> bool {
-		self.as_database_error()
-			.is_some_and(|err| err.kind() == kind)
-	}
-
-	fn is_duplicate_entry(&self) -> bool {
-		self.as_database_error()
-			.is_some_and(|err| matches!(err.code().as_deref(), Some("23000")))
-	}
-
-	fn is_fk_violation_of(&self, fk: &str) -> bool {
-		self.as_database_error()
-			.map(|err| err.is_foreign_key_violation() && err.message().contains(fk))
-			.unwrap_or_default()
-	}
-}
-
-/// Helper trait for querying IDs from the database.
-///
-/// This is mainly intended for the `*Identifier` types from the [`cs2kz`] crate.
-pub trait FetchID {
-	/// The ID that should be fetched.
-	type ID;
-
-	/// Fetches an ID from the database if necessary.
-	fn fetch_id<'c>(
-		&self,
-		executor: impl MySqlExecutor<'c>,
-	) -> impl Future<Output = Result<Self::ID>> + Send;
-}
-
-impl FetchID for PlayerIdentifier {
-	type ID = SteamID;
-
-	async fn fetch_id<'c>(&self, executor: impl MySqlExecutor<'c>) -> Result<SteamID> {
-		match self {
-			Self::SteamID(steam_id) => Ok(*steam_id),
-			Self::Name(name) => sqlx::query! {
-				r#"
-				SELECT
-				  id `steam_id: SteamID`
-				FROM
-				  Players
-				WHERE
-				  name LIKE ?
-				"#,
-				format!("%{name}%"),
-			}
-			.fetch_optional(executor)
-			.await?
-			.map(|row| row.steam_id)
-			.ok_or_else(|| Error::no_content()),
-		}
-	}
-}
-
-impl FetchID for MapIdentifier {
-	type ID = u16;
-
-	async fn fetch_id<'c>(&self, executor: impl MySqlExecutor<'c>) -> Result<u16> {
-		match self {
-			Self::ID(id) => Ok(*id),
-			Self::Name(name) => sqlx::query! {
-				r#"
-				SELECT
-				  id
-				FROM
-				  Maps
-				WHERE
-				  name LIKE ?
-				"#,
-				format!("%{name}%"),
-			}
-			.fetch_optional(executor)
-			.await?
-			.map(|row| row.id)
-			.ok_or_else(|| Error::no_content()),
-		}
-	}
-}
-
-impl FetchID for ServerIdentifier {
-	type ID = u16;
-
-	async fn fetch_id<'c>(&self, executor: impl MySqlExecutor<'c>) -> Result<u16> {
-		match self {
-			Self::ID(id) => Ok(*id),
-			Self::Name(name) => sqlx::query! {
-				r#"
-				SELECT
-				  id
-				FROM
-				  Servers
-				WHERE
-				  name LIKE ?
-				"#,
-				format!("%{name}%"),
-			}
-			.fetch_optional(executor)
-			.await?
-			.map(|row| row.id)
-			.ok_or_else(|| Error::no_content()),
-		}
-	}
-}
-
 #[derive(Debug, Error)]
 #[error("non-zero integer was zero")]
 #[allow(clippy::missing_docs_in_private_items)]
@@ -317,7 +195,7 @@ macro_rules! non_zero {
 			.map(<$ty>::new)?
 			.ok_or_else(|| sqlx::Error::ColumnDecode {
 				index: String::from($col),
-				source: Box::new($crate::sqlx::NonZeroIntWasZero),
+				source: Box::new($crate::sqlx::query::NonZeroIntWasZero),
 			})
 	};
 }

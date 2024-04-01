@@ -1,16 +1,17 @@
 //! Handlers for the `/admins/{steam_id}` route.
 
-use axum::extract::{Path, State};
+use axum::extract::Path;
 use axum::Json;
 use cs2kz::SteamID;
-use sqlx::{MySql, Pool};
+use tracing::trace;
 
 use crate::admins::{Admin, AdminUpdate};
 use crate::auth::{self, RoleFlags};
 use crate::responses::NoContent;
+use crate::sqlx::extract::{Connection, Transaction};
 use crate::{responses, Error, Result};
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/admins/{steam_id}",
@@ -24,7 +25,7 @@ use crate::{responses, Error, Result};
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	Path(steam_id): Path<SteamID>,
 ) -> Result<Json<Admin>> {
 	let admin = sqlx::query! {
@@ -40,7 +41,7 @@ pub async fn get(
 		"#,
 		steam_id,
 	}
-	.fetch_optional(&database)
+	.fetch_optional(connection.as_mut())
 	.await?
 	.map(|row| Admin { name: row.name, steam_id: row.id, roles: row.role_flags })
 	.ok_or_else(|| Error::no_content())?;
@@ -48,7 +49,7 @@ pub async fn get(
 	Ok(Json(admin))
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(transaction))]
 #[utoipa::path(
   put,
   path = "/admins/{steam_id}",
@@ -65,7 +66,7 @@ pub async fn get(
   ),
 )]
 pub async fn put(
-	State(database): State<Pool<MySql>>,
+	Transaction(mut transaction): Transaction,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::ADMIN.as_u32() }>>,
 	Path(steam_id): Path<SteamID>,
 	Json(AdminUpdate { roles }): Json<AdminUpdate>,
@@ -82,12 +83,16 @@ pub async fn put(
 		roles,
 		steam_id,
 	}
-	.execute(&database)
+	.execute(transaction.as_mut())
 	.await?;
 
 	if query_result.rows_affected() == 0 {
 		return Err(Error::unknown("SteamID"));
 	}
+
+	transaction.commit().await?;
+
+	trace!(%steam_id, ?roles, "updated admin");
 
 	Ok(NoContent)
 }

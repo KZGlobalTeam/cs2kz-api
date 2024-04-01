@@ -1,18 +1,19 @@
 //! Handlers for the `/players/{player}/preferences` route.
 
-use axum::extract::{Path, State};
+use axum::extract::Path;
 use axum::Json;
 use cs2kz::{PlayerIdentifier, SteamID};
 use serde_json::Value as JsonValue;
 use sqlx::types::Json as SqlJson;
-use sqlx::{MySql, Pool, QueryBuilder};
+use sqlx::QueryBuilder;
 use tracing::debug;
 
 use crate::auth::{self, Jwt};
 use crate::responses::{self, NoContent};
+use crate::sqlx::extract::{Connection, Transaction};
 use crate::{Error, Result};
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(connection))]
 #[utoipa::path(
   get,
   path = "/players/{player}/preferences",
@@ -26,7 +27,7 @@ use crate::{Error, Result};
   ),
 )]
 pub async fn get(
-	State(database): State<Pool<MySql>>,
+	Connection(mut connection): Connection,
 	Path(player): Path<PlayerIdentifier>,
 ) -> Result<Json<JsonValue>> {
 	let mut query = QueryBuilder::new("SELECT preferences FROM Players WHERE");
@@ -42,14 +43,14 @@ pub async fn get(
 
 	let SqlJson(preferences) = query
 		.build_query_scalar::<SqlJson<JsonValue>>()
-		.fetch_optional(&database)
+		.fetch_optional(connection.as_mut())
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(preferences))
 }
 
-#[tracing::instrument(level = "debug", skip(database))]
+#[tracing::instrument(level = "debug", skip(transaction))]
 #[utoipa::path(
   put,
   path = "/players/{steam_id}/preferences",
@@ -66,7 +67,7 @@ pub async fn get(
   ),
 )]
 pub async fn put(
-	State(database): State<Pool<MySql>>,
+	Transaction(mut transaction): Transaction,
 	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Path(steam_id): Path<SteamID>,
 	Json(preferences): Json<JsonValue>,
@@ -83,12 +84,14 @@ pub async fn put(
 		SqlJson(&preferences),
 		steam_id,
 	}
-	.execute(&database)
+	.execute(transaction.as_mut())
 	.await?;
 
 	if query_result.rows_affected() == 0 {
 		return Err(Error::unknown("SteamID"));
 	}
+
+	transaction.commit().await?;
 
 	debug!(%steam_id, ?preferences, "updated player preferences");
 
