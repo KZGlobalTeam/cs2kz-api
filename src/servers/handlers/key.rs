@@ -3,17 +3,19 @@
 use std::num::NonZeroU16;
 use std::time::Duration;
 
-use axum::extract::Path;
+use axum::extract::{Path, State};
 use axum::Json;
+use sqlx::{MySql, Pool};
 use tracing::info;
 use uuid::Uuid;
 
 use crate::auth::{Jwt, RoleFlags};
 use crate::responses::{self, Created, NoContent};
 use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse};
-use crate::{auth, AppState, Error, Result};
+use crate::state::JwtState;
+use crate::{auth, Error, Result};
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database, jwt_state))]
 #[utoipa::path(
   post,
   path = "/servers/key",
@@ -27,7 +29,8 @@ use crate::{auth, AppState, Error, Result};
   ),
 )]
 pub async fn generate_temp(
-	state: AppState,
+	State(database): State<Pool<MySql>>,
+	State(jwt_state): State<&'static JwtState>,
 	Json(RefreshKeyRequest { refresh_key, plugin_version }): Json<RefreshKeyRequest>,
 ) -> Result<Created<Json<RefreshKeyResponse>>> {
 	let server = sqlx::query! {
@@ -43,7 +46,7 @@ pub async fn generate_temp(
 		plugin_version.to_string(),
 		refresh_key,
 	}
-	.fetch_optional(&state.database)
+	.fetch_optional(&database)
 	.await?
 	.and_then(|row| {
 		Some((
@@ -54,14 +57,14 @@ pub async fn generate_temp(
 	.map(|(server_id, plugin_version_id)| auth::Server::new(server_id, plugin_version_id))
 	.ok_or_else(|| Error::invalid_refresh_key())?;
 
-	let access_key = state
+	let access_key = jwt_state
 		.encode_jwt(&server, Duration::from_secs(60 * 15))
 		.map(|access_key| RefreshKeyResponse { access_key })?;
 
 	Ok(Created(Json(access_key)))
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   put,
   path = "/servers/{server_id}/key",
@@ -76,7 +79,7 @@ pub async fn generate_temp(
   ),
 )]
 pub async fn put_perma(
-	state: AppState,
+	State(database): State<Pool<MySql>>,
 	session: auth::Session<
 		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::IsServerOwner>,
 	>,
@@ -95,7 +98,7 @@ pub async fn put_perma(
 		refresh_key,
 		server_id.get()
 	}
-	.execute(&state.database)
+	.execute(&database)
 	.await?;
 
 	if query_result.rows_affected() == 0 {
@@ -107,7 +110,7 @@ pub async fn put_perma(
 	Ok(Created(Json(RefreshKey { refresh_key })))
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   delete,
   path = "/servers/{server_id}/key",
@@ -122,7 +125,7 @@ pub async fn put_perma(
   ),
 )]
 pub async fn delete_perma(
-	state: AppState,
+	State(database): State<Pool<MySql>>,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>>,
 	Path(server_id): Path<NonZeroU16>,
 ) -> Result<NoContent> {
@@ -137,7 +140,7 @@ pub async fn delete_perma(
 		"#,
 		server_id.get(),
 	}
-	.execute(&state.database)
+	.execute(&database)
 	.await?;
 
 	if query_result.rows_affected() == 0 {

@@ -1,10 +1,11 @@
 //! Handlers for the `/jumpstats` route.
 
-use axum::extract::Query;
+use axum::extract::{Query, State};
 use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{JumpType, Mode, PlayerIdentifier, ServerIdentifier, Style};
 use serde::Deserialize;
+use sqlx::{MySql, Pool};
 use tracing::trace;
 use utoipa::IntoParams;
 
@@ -13,7 +14,7 @@ use crate::jumpstats::{queries, CreatedJumpstat, Jumpstat, NewJumpstat};
 use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
 use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, responses, AppState, Error, Result};
+use crate::{auth, responses, Error, Result};
 
 /// Query parameters for `GET /jumpstats`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -52,7 +53,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   get,
   path = "/jumpstats",
@@ -66,7 +67,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: AppState,
+	State(database): State<Pool<MySql>>,
 	Query(GetParams {
 		jump_type,
 		mode,
@@ -99,13 +100,13 @@ pub async fn get(
 	}
 
 	if let Some(player) = player {
-		let steam_id = player.fetch_id(&state.database).await?;
+		let steam_id = player.fetch_id(&database).await?;
 
 		query.filter(" j.player_id = ", steam_id);
 	}
 
 	if let Some(server) = server {
-		let server_id = server.fetch_id(&state.database).await?;
+		let server_id = server.fetch_id(&database).await?;
 
 		query.filter(" j.server_id = ", server_id);
 	}
@@ -122,7 +123,7 @@ pub async fn get(
 
 	let jumpstats = query
 		.build_query_as::<Jumpstat>()
-		.fetch_all(&state.database)
+		.fetch_all(&database)
 		.await?;
 
 	if jumpstats.is_empty() {
@@ -132,7 +133,7 @@ pub async fn get(
 	Ok(Json(jumpstats))
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   post,
   path = "/jumpstats",
@@ -149,8 +150,8 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: AppState,
-	server: Jwt<auth::Server>,
+	State(database): State<Pool<MySql>>,
+	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Json(NewJumpstat {
 		jump_type,
 		mode,
@@ -240,7 +241,7 @@ pub async fn post(
 		server.id().get(),
 		server.plugin_version_id().get(),
 	}
-	.execute(&state.database)
+	.execute(&database)
 	.await
 	.map(crate::sqlx::last_insert_id)
 	.map_err(|err| {

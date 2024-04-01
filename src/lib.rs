@@ -46,9 +46,6 @@ pub use config::Config;
 mod state;
 pub use state::State;
 
-/// Convenience alias for extracting [`State`] in handlers.
-pub type AppState = axum::extract::State<&'static State>;
-
 #[cfg(test)]
 mod test;
 

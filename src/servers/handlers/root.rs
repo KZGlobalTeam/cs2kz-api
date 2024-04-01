@@ -2,11 +2,12 @@
 
 use std::net::Ipv4Addr;
 
-use axum::extract::Query;
+use axum::extract::{Query, State};
 use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::PlayerIdentifier;
 use serde::Deserialize;
+use sqlx::{MySql, Pool};
 use tracing::debug;
 use utoipa::IntoParams;
 use uuid::Uuid;
@@ -16,7 +17,7 @@ use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
 use crate::servers::{queries, CreatedServer, NewServer, Server};
 use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, responses, AppState, Error, Result};
+use crate::{auth, responses, Error, Result};
 
 /// Query parameters for `GET /servers`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -45,7 +46,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   get,
   path = "/servers",
@@ -59,7 +60,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: AppState,
+	State(database): State<Pool<MySql>>,
 	Query(GetParams {
 		name,
 		ip_address,
@@ -81,7 +82,7 @@ pub async fn get(
 	}
 
 	if let Some(player) = owned_by {
-		let steam_id = player.fetch_id(&state.database).await?;
+		let steam_id = player.fetch_id(&database).await?;
 
 		query.filter(" s.owner_id = ", steam_id);
 	}
@@ -98,7 +99,7 @@ pub async fn get(
 
 	let servers = query
 		.build_query_as::<Server>()
-		.fetch_all(&state.database)
+		.fetch_all(&database)
 		.await?;
 
 	if servers.is_empty() {
@@ -108,7 +109,7 @@ pub async fn get(
 	Ok(Json(servers))
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   post,
   path = "/servers",
@@ -124,11 +125,11 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: AppState,
+	State(database): State<Pool<MySql>>,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>>,
 	Json(NewServer { name, ip_address, owned_by }): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
-	let mut transaction = state.database.begin().await?;
+	let mut transaction = database.begin().await?;
 	let refresh_key = Uuid::new_v4();
 	let server_id = sqlx::query! {
 		r#"

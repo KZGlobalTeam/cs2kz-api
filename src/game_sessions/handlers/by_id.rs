@@ -2,13 +2,14 @@
 
 use std::num::NonZeroU64;
 
-use axum::extract::Path;
+use axum::extract::{Path, State};
 use axum::Json;
+use sqlx::{MySql, Pool};
 
 use crate::game_sessions::GameSession;
-use crate::{responses, AppState, Error, Result};
+use crate::{responses, Error, Result};
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   get,
   path = "/sessions/{session_id}",
@@ -21,7 +22,10 @@ use crate::{responses, AppState, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(state: AppState, Path(session_id): Path<NonZeroU64>) -> Result<Json<GameSession>> {
+pub async fn get(
+	State(database): State<Pool<MySql>>,
+	Path(session_id): Path<NonZeroU64>,
+) -> Result<Json<GameSession>> {
 	let session = sqlx::query_as(
 		r#"
 		SELECT
@@ -53,7 +57,7 @@ pub async fn get(state: AppState, Path(session_id): Path<NonZeroU64>) -> Result<
 		"#,
 	)
 	.bind(session_id.get())
-	.fetch_optional(&state.database)
+	.fetch_optional(&database)
 	.await?
 	.ok_or_else(|| Error::no_content())?;
 

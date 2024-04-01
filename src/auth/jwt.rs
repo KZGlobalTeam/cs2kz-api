@@ -9,7 +9,7 @@
 use std::time::Duration;
 
 use axum::async_trait;
-use axum::extract::FromRequestParts;
+use axum::extract::{FromRef, FromRequestParts};
 use axum::http::request;
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::Authorization;
@@ -23,7 +23,8 @@ use utoipa::openapi::schema::Schema;
 use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
 use utoipa::ToSchema;
 
-use crate::{Error, Result, State};
+use crate::state::JwtState;
+use crate::{Error, Result};
 
 /// Helper struct for encoding / decoding JWTs.
 #[derive(Debug, Deref, DerefMut, Serialize, Deserialize)]
@@ -33,7 +34,7 @@ pub struct Jwt<T> {
 	#[deref]
 	#[deref_mut]
 	#[debug("{payload:?}")]
-	payload: T,
+	pub payload: T,
 
 	/// The expiration date.
 	#[debug("{}", self.expires_on())]
@@ -68,17 +69,17 @@ impl<T> Jwt<T> {
 }
 
 #[async_trait]
-impl<T> FromRequestParts<&'static State> for Jwt<T>
+impl<S, T> FromRequestParts<S> for Jwt<T>
 where
+	S: Send + Sync,
 	T: DeserializeOwned,
+	&'static JwtState: FromRef<S>,
 {
 	type Rejection = Error;
 
-	async fn from_request_parts(
-		parts: &mut request::Parts,
-		state: &&'static State,
-	) -> Result<Self> {
+	async fn from_request_parts(parts: &mut request::Parts, state: &S) -> Result<Self> {
 		let header = TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state).await?;
+		let state = <&'static JwtState>::from_ref(state);
 		let jwt = state.decode_jwt::<T>(header.token())?;
 
 		if jwt.has_expired() {

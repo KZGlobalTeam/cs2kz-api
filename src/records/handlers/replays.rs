@@ -5,9 +5,9 @@ use std::num::NonZeroU64;
 use axum::extract::Path;
 use axum::http::StatusCode;
 
-use crate::{responses, AppState};
+use crate::responses;
 
-#[tracing::instrument(level = "debug", skip(_state))]
+#[tracing::instrument(level = "debug")]
 #[utoipa::path(
   get,
   path = "/records/{record_id}/replay",
@@ -20,6 +20,6 @@ use crate::{responses, AppState};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(_state: AppState, Path(_record_id): Path<NonZeroU64>) -> StatusCode {
+pub async fn get(Path(_record_id): Path<NonZeroU64>) -> StatusCode {
 	StatusCode::SERVICE_UNAVAILABLE
 }

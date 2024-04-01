@@ -2,14 +2,14 @@
 
 use std::num::NonZeroU64;
 
-use axum::extract::Path;
+use axum::extract::{Path, State};
 use axum::Json;
-use sqlx::QueryBuilder;
+use sqlx::{MySql, Pool, QueryBuilder};
 
 use crate::jumpstats::{queries, Jumpstat};
-use crate::{responses, AppState, Error, Result};
+use crate::{responses, Error, Result};
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   get,
   path = "/jumpstats/{jumpstat_id}",
@@ -22,14 +22,17 @@ use crate::{responses, AppState, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(state: AppState, Path(jumpstat_id): Path<NonZeroU64>) -> Result<Json<Jumpstat>> {
+pub async fn get(
+	State(database): State<Pool<MySql>>,
+	Path(jumpstat_id): Path<NonZeroU64>,
+) -> Result<Json<Jumpstat>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
 	query.push(" WHERE j.id = ").push_bind(jumpstat_id.get());
 
 	let jumpstat = query
 		.build_query_as::<Jumpstat>()
-		.fetch_optional(&state.database)
+		.fetch_optional(&database)
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 

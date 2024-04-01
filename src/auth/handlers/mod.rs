@@ -1,17 +1,18 @@
 //! Handlers for the `/auth` routes.
 
-use axum::extract::Query;
+use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::Redirect;
 use axum_extra::extract::CookieJar;
 use serde::Deserialize;
+use sqlx::{MySql, Pool};
 use tracing::debug;
 use url::Url;
 use utoipa::IntoParams;
 
 use super::{Session, SteamLoginResponse, SteamUser};
 use crate::auth::SteamLoginForm;
-use crate::{responses, AppState, Result};
+use crate::{responses, Result};
 
 /// Query parameters for logging in with Steam.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -20,7 +21,7 @@ pub struct LoginParams {
 	redirect_to: Url,
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(config))]
 #[utoipa::path(
   get,
   path = "/auth/login",
@@ -33,10 +34,10 @@ pub struct LoginParams {
   ),
 )]
 pub async fn login(
-	state: AppState,
+	State(config): State<&'static crate::Config>,
 	Query(LoginParams { redirect_to }): Query<LoginParams>,
 ) -> Redirect {
-	SteamLoginForm::new(state.config.public_url.clone()).redirect_to(&redirect_to)
+	SteamLoginForm::new(config.public_url.clone()).redirect_to(&redirect_to)
 }
 
 /// Query parameters for logging out.
@@ -47,7 +48,7 @@ pub struct LogoutParams {
 	invalidate_all_sessions: bool,
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   get,
   path = "/auth/logout",
@@ -62,12 +63,12 @@ pub struct LogoutParams {
   ),
 )]
 pub async fn logout(
-	state: AppState,
+	State(database): State<Pool<MySql>>,
 	mut session: Session,
 	Query(LogoutParams { invalidate_all_sessions }): Query<LogoutParams>,
 ) -> Result<(Session, StatusCode)> {
 	session
-		.invalidate(invalidate_all_sessions, &state.database)
+		.invalidate(invalidate_all_sessions, &database)
 		.await?;
 
 	debug!(steam_id = %session.user().steam_id(), "user logged out");
@@ -75,7 +76,7 @@ pub async fn logout(
 	Ok((session, StatusCode::OK))
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(config, database))]
 #[utoipa::path(
   get,
   path = "/auth/callback",
@@ -89,13 +90,14 @@ pub async fn logout(
   ),
 )]
 pub async fn callback(
-	state: AppState,
+	State(config): State<&'static crate::Config>,
+	State(database): State<Pool<MySql>>,
 	cookies: CookieJar,
 	login: SteamLoginResponse,
 	user: SteamUser,
 ) -> Result<(CookieJar, Redirect)> {
-	let user_cookie = user.to_cookie(&state.config);
-	let session = Session::create(user.steam_id, &state.database, &state.config).await?;
+	let user_cookie = user.to_cookie(config);
+	let session = Session::create(user.steam_id, &database, config).await?;
 	let cookies = cookies.add(user_cookie).add(session);
 	let redirect = Redirect::to(login.redirect_to.as_str());
 

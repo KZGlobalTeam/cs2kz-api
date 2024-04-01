@@ -1,18 +1,18 @@
 //! Handlers for the `/players/{player}/preferences` route.
 
-use axum::extract::Path;
+use axum::extract::{Path, State};
 use axum::Json;
 use cs2kz::{PlayerIdentifier, SteamID};
 use serde_json::Value as JsonValue;
 use sqlx::types::Json as SqlJson;
-use sqlx::QueryBuilder;
+use sqlx::{MySql, Pool, QueryBuilder};
 use tracing::debug;
 
 use crate::auth::{self, Jwt};
 use crate::responses::{self, NoContent};
-use crate::{AppState, Error, Result};
+use crate::{Error, Result};
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   get,
   path = "/players/{player}/preferences",
@@ -25,7 +25,10 @@ use crate::{AppState, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(state: AppState, Path(player): Path<PlayerIdentifier>) -> Result<Json<JsonValue>> {
+pub async fn get(
+	State(database): State<Pool<MySql>>,
+	Path(player): Path<PlayerIdentifier>,
+) -> Result<Json<JsonValue>> {
 	let mut query = QueryBuilder::new("SELECT preferences FROM Players WHERE");
 
 	match player {
@@ -39,14 +42,14 @@ pub async fn get(state: AppState, Path(player): Path<PlayerIdentifier>) -> Resul
 
 	let SqlJson(preferences) = query
 		.build_query_scalar::<SqlJson<JsonValue>>()
-		.fetch_optional(&state.database)
+		.fetch_optional(&database)
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(preferences))
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   put,
   path = "/players/{steam_id}/preferences",
@@ -63,8 +66,8 @@ pub async fn get(state: AppState, Path(player): Path<PlayerIdentifier>) -> Resul
   ),
 )]
 pub async fn put(
-	state: AppState,
-	server: Jwt<auth::Server>,
+	State(database): State<Pool<MySql>>,
+	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Path(steam_id): Path<SteamID>,
 	Json(preferences): Json<JsonValue>,
 ) -> Result<NoContent> {
@@ -80,7 +83,7 @@ pub async fn put(
 		SqlJson(&preferences),
 		steam_id,
 	}
-	.execute(&state.database)
+	.execute(&database)
 	.await?;
 
 	if query_result.rows_affected() == 0 {

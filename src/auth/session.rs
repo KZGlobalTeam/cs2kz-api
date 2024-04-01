@@ -27,20 +27,20 @@ use std::marker::PhantomData;
 use std::num::{NonZeroU16, NonZeroU64};
 
 use axum::async_trait;
-use axum::extract::{FromRequestParts, Path};
+use axum::extract::{FromRef, FromRequestParts, Path};
 use axum::http::{header, request};
 use axum::response::{IntoResponseParts, ResponseParts};
 use axum_extra::extract::cookie::Cookie;
 use cs2kz::SteamID;
 use derive_more::{Debug, Into};
-use sqlx::{MySqlConnection, MySqlExecutor, MySqlPool};
+use sqlx::{MySql, MySqlConnection, MySqlExecutor, MySqlPool, Pool};
 use time::{Duration, OffsetDateTime};
 use tracing::{debug, trace};
 use uuid::Uuid;
 
 use super::{RoleFlags, User};
 use crate::sqlx::SqlErrorExt;
-use crate::{Error, Result, State};
+use crate::{Error, Result};
 
 /// The primary abstraction over login sessions.
 ///
@@ -207,16 +207,15 @@ impl Session {
 }
 
 #[async_trait]
-impl<Auth> FromRequestParts<&'static State> for Session<Auth>
+impl<S, Auth> FromRequestParts<S> for Session<Auth>
 where
+	S: Send + Sync,
 	Auth: AuthorizeSession,
+	Pool<MySql>: FromRef<S>,
 {
 	type Rejection = Error;
 
-	async fn from_request_parts(
-		parts: &mut request::Parts,
-		state: &&'static State,
-	) -> Result<Self> {
+	async fn from_request_parts(parts: &mut request::Parts, state: &S) -> Result<Self> {
 		if let Some(session) = parts.extensions.remove::<Self>() {
 			trace!(%session.id, "extracting cached session");
 			return Ok(session);
@@ -253,7 +252,7 @@ where
 			.find_map(find_cookie)
 			.ok_or_else(|| Error::missing_session_token())?;
 
-		let mut transaction = state.database.begin().await?;
+		let mut transaction = Pool::from_ref(state).begin().await?;
 
 		let session = sqlx::query! {
 			r#"

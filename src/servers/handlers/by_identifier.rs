@@ -2,19 +2,19 @@
 
 use std::num::NonZeroU16;
 
-use axum::extract::Path;
+use axum::extract::{Path, State};
 use axum::Json;
 use cs2kz::ServerIdentifier;
-use sqlx::QueryBuilder;
+use sqlx::{MySql, Pool, QueryBuilder};
 use tracing::info;
 
 use crate::auth::RoleFlags;
 use crate::responses::NoContent;
 use crate::servers::{queries, Server, ServerUpdate};
 use crate::sqlx::UpdateQuery;
-use crate::{auth, responses, AppState, Error, Result};
+use crate::{auth, responses, Error, Result};
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   get,
   path = "/servers/{server}",
@@ -26,7 +26,10 @@ use crate::{auth, responses, AppState, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(state: AppState, Path(server): Path<ServerIdentifier>) -> Result<Json<Server>> {
+pub async fn get(
+	State(database): State<Pool<MySql>>,
+	Path(server): Path<ServerIdentifier>,
+) -> Result<Json<Server>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
 	query.push(" WHERE ");
@@ -42,14 +45,14 @@ pub async fn get(state: AppState, Path(server): Path<ServerIdentifier>) -> Resul
 
 	let server = query
 		.build_query_as::<Server>()
-		.fetch_optional(&state.database)
+		.fetch_optional(&database)
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(server))
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   patch,
   path = "/servers/{server}",
@@ -64,7 +67,7 @@ pub async fn get(state: AppState, Path(server): Path<ServerIdentifier>) -> Resul
   ),
 )]
 pub async fn patch(
-	state: AppState,
+	State(database): State<Pool<MySql>>,
 	session: auth::Session<
 		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::IsServerOwner>,
 	>,
@@ -93,7 +96,7 @@ pub async fn patch(
 
 	query.push(" WHERE id = ").push_bind(server_id.get());
 
-	let query_result = query.build().execute(&state.database).await?;
+	let query_result = query.build().execute(&database).await?;
 
 	if query_result.rows_affected() == 0 {
 		return Err(Error::unknown("server ID"));

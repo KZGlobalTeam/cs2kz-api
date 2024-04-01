@@ -1,10 +1,11 @@
 //! Handlers for the `/records` route.
 
-use axum::extract::Query;
+use axum::extract::{Query, State};
 use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{Mode, PlayerIdentifier, ServerIdentifier, Style};
 use serde::Deserialize;
+use sqlx::{MySql, Pool};
 use tracing::trace;
 use utoipa::IntoParams;
 
@@ -13,7 +14,7 @@ use crate::parameters::{Limit, Offset};
 use crate::records::{queries, CreatedRecord, NewRecord, Record};
 use crate::responses::Created;
 use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, responses, AppState, Error, Result};
+use crate::{auth, responses, Error, Result};
 
 /// Query parameters for `GET /records`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -48,7 +49,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   get,
   path = "/records",
@@ -62,7 +63,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: AppState,
+	State(database): State<Pool<MySql>>,
 	Query(GetParams {
 		mode,
 		style,
@@ -96,13 +97,13 @@ pub async fn get(
 	}
 
 	if let Some(player) = player {
-		let steam_id = player.fetch_id(&state.database).await?;
+		let steam_id = player.fetch_id(&database).await?;
 
 		query.filter(" r.player_id = ", steam_id);
 	}
 
 	if let Some(server) = server {
-		let server_id = server.fetch_id(&state.database).await?;
+		let server_id = server.fetch_id(&database).await?;
 
 		query.filter(" r.server_id = ", server_id);
 	}
@@ -119,7 +120,7 @@ pub async fn get(
 
 	let records = query
 		.build_query_as::<Record>()
-		.fetch_all(&state.database)
+		.fetch_all(&database)
 		.await?;
 
 	if records.is_empty() {
@@ -129,7 +130,7 @@ pub async fn get(
 	Ok(Json(records))
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   post,
   path = "/records",
@@ -144,8 +145,8 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: AppState,
-	server: Jwt<auth::Server>,
+	State(database): State<Pool<MySql>>,
+	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Json(NewRecord { player_id, mode, style, course_id, teleports, time, bhop_stats }): Json<
 		NewRecord,
 	>,
@@ -165,7 +166,7 @@ pub async fn post(
 		mode,
 		teleports > 0,
 	}
-	.fetch_optional(&state.database)
+	.fetch_optional(&database)
 	.await?
 	.map(|row| row.id)
 	.ok_or_else(|| Error::unknown("course ID"))?;
@@ -214,7 +215,7 @@ pub async fn post(
 		bhop_stats.tick8,
 		server.plugin_version_id().get(),
 	}
-	.execute(&state.database)
+	.execute(&database)
 	.await
 	.map(crate::sqlx::last_insert_id)
 	.map_err(|err| {

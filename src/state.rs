@@ -4,6 +4,7 @@
 
 use std::time::Duration;
 
+use axum::extract::FromRef;
 use derive_more::Debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -28,21 +29,9 @@ pub struct State {
 	#[debug(skip)]
 	pub http_client: reqwest::Client,
 
-	/// Header data to use when signing JWTs.
+	/// JWT related state.
 	#[debug(skip)]
-	jwt_header: jsonwebtoken::Header,
-
-	/// Secret key to use when signing JWTs.
-	#[debug(skip)]
-	jwt_encoding_key: jsonwebtoken::EncodingKey,
-
-	/// Secret key to use when validating JWTs.
-	#[debug(skip)]
-	jwt_decoding_key: jsonwebtoken::DecodingKey,
-
-	/// Extra validation steps when validating JWTs.
-	#[debug(skip)]
-	jwt_validation: jsonwebtoken::Validation,
+	jwt_state: JwtState,
 }
 
 impl State {
@@ -52,20 +41,42 @@ impl State {
 	pub async fn new(config: crate::Config) -> Result<&'static Self> {
 		let database = Pool::connect(config.database_url.as_str()).await?;
 		let http_client = reqwest::Client::new();
-		let jwt_header = jsonwebtoken::Header::default();
-		let jwt_encoding_key = jsonwebtoken::EncodingKey::from_base64_secret(&config.jwt_secret)?;
-		let jwt_decoding_key = jsonwebtoken::DecodingKey::from_base64_secret(&config.jwt_secret)?;
-		let jwt_validation = jsonwebtoken::Validation::default();
+		let jwt_state = JwtState::new(&config)?;
 
 		Ok(Box::leak(Box::new(Self {
 			config,
 			database,
 			http_client,
-			jwt_header,
-			jwt_encoding_key,
-			jwt_decoding_key,
-			jwt_validation,
+			jwt_state,
 		})))
+	}
+}
+
+/// JWT related state such as the secret key and algorithm information.
+#[allow(missing_debug_implementations)]
+pub struct JwtState {
+	/// Header data to use when signing JWTs.
+	jwt_header: jsonwebtoken::Header,
+
+	/// Secret key to use when signing JWTs.
+	jwt_encoding_key: jsonwebtoken::EncodingKey,
+
+	/// Secret key to use when validating JWTs.
+	jwt_decoding_key: jsonwebtoken::DecodingKey,
+
+	/// Extra validation steps when validating JWTs.
+	jwt_validation: jsonwebtoken::Validation,
+}
+
+impl JwtState {
+	/// Creates a new [`JwtState`].
+	pub fn new(config: &crate::Config) -> Result<Self> {
+		let jwt_header = jsonwebtoken::Header::default();
+		let jwt_encoding_key = jsonwebtoken::EncodingKey::from_base64_secret(&config.jwt_secret)?;
+		let jwt_decoding_key = jsonwebtoken::DecodingKey::from_base64_secret(&config.jwt_secret)?;
+		let jwt_validation = jsonwebtoken::Validation::default();
+
+		Ok(Self { jwt_header, jwt_encoding_key, jwt_decoding_key, jwt_validation })
 	}
 
 	/// Encodes the given `payload` in a JWT that will expire after a given amount of time.
@@ -86,5 +97,29 @@ impl State {
 		jsonwebtoken::decode(jwt, &self.jwt_decoding_key, &self.jwt_validation)
 			.map(|jwt| jwt.claims)
 			.map_err(|err| Error::from(err))
+	}
+}
+
+impl FromRef<&'static State> for &'static crate::Config {
+	fn from_ref(state: &&'static State) -> Self {
+		&state.config
+	}
+}
+
+impl FromRef<&'static State> for Pool<MySql> {
+	fn from_ref(state: &&'static State) -> Self {
+		state.database.clone()
+	}
+}
+
+impl FromRef<&'static State> for reqwest::Client {
+	fn from_ref(state: &&'static State) -> Self {
+		state.http_client.clone()
+	}
+}
+
+impl FromRef<&'static State> for &'static JwtState {
+	fn from_ref(state: &&'static State) -> Self {
+		&state.jwt_state
 	}
 }

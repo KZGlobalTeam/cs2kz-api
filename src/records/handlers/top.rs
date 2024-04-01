@@ -5,9 +5,9 @@ use axum::http::StatusCode;
 
 use super::root::GetParams;
 use crate::records::Record;
-use crate::{responses, AppState};
+use crate::responses;
 
-#[tracing::instrument(level = "debug", skip(_state))]
+#[tracing::instrument(level = "debug")]
 #[utoipa::path(
   get,
   path = "/records/top",
@@ -20,6 +20,6 @@ use crate::{responses, AppState};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(_state: AppState, Query(_params): Query<GetParams>) -> StatusCode {
+pub async fn get(Query(_params): Query<GetParams>) -> StatusCode {
 	StatusCode::SERVICE_UNAVAILABLE
 }

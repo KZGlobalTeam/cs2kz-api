@@ -1,9 +1,9 @@
 //! Handlers for the `/players` route.
 
-use axum::extract::Query;
+use axum::extract::{Query, State};
 use axum::Json;
 use serde::Deserialize;
-use sqlx::QueryBuilder;
+use sqlx::{MySql, Pool, QueryBuilder};
 use tracing::info;
 use utoipa::IntoParams;
 
@@ -12,7 +12,7 @@ use crate::parameters::{Limit, Offset};
 use crate::players::{queries, FullPlayer, NewPlayer};
 use crate::responses::{self, Created};
 use crate::sqlx::{QueryBuilderExt, SqlErrorExt};
-use crate::{AppState, Error, Result};
+use crate::{Error, Result};
 
 /// Query parameters for `GET /players`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -26,7 +26,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   get,
   path = "/players",
@@ -40,7 +40,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: AppState,
+	State(database): State<Pool<MySql>>,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
 	Query(GetParams { limit, offset }): Query<GetParams>,
 ) -> Result<Json<Vec<FullPlayer>>> {
@@ -50,7 +50,7 @@ pub async fn get(
 
 	let mut players = query
 		.build_query_as::<FullPlayer>()
-		.fetch_all(&state.database)
+		.fetch_all(&database)
 		.await?;
 
 	if players.is_empty() {
@@ -66,7 +66,7 @@ pub async fn get(
 	Ok(Json(players))
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   post,
   path = "/players",
@@ -82,7 +82,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: AppState,
+	State(database): State<Pool<MySql>>,
 	server: Jwt<auth::Server>,
 	Json(NewPlayer { name, steam_id, ip_address }): Json<NewPlayer>,
 ) -> Result<Created> {
@@ -97,7 +97,7 @@ pub async fn post(
 		name,
 		ip_address.to_string(),
 	}
-	.execute(&state.database)
+	.execute(&database)
 	.await
 	.map_err(|err| {
 		if err.is_duplicate_entry() {

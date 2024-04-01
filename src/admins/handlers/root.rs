@@ -1,16 +1,18 @@
 //! Handlers for the `/admins` route.
 
+use axum::extract::State;
 use axum::Json;
 use axum_extra::extract::Query;
 use cs2kz::SteamID;
 use itertools::Itertools;
 use serde::Deserialize;
+use sqlx::{MySql, Pool};
 use utoipa::IntoParams;
 
 use crate::admins::Admin;
 use crate::auth::RoleFlags;
 use crate::parameters::{Limit, Offset};
-use crate::{responses, AppState, Error, Result};
+use crate::{responses, Error, Result};
 
 /// Query parameters for `GET /admins`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -29,7 +31,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(level = "debug", skip(database))]
 #[utoipa::path(
   get,
   path = "/admins",
@@ -43,7 +45,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: AppState,
+	State(database): State<Pool<MySql>>,
 	Query(GetParams { roles, limit, offset }): Query<GetParams>,
 ) -> Result<Json<Vec<Admin>>> {
 	let admins = sqlx::query! {
@@ -65,7 +67,7 @@ pub async fn get(
 		limit.0,
 		offset.0,
 	}
-	.fetch_all(&state.database)
+	.fetch_all(&database)
 	.await?
 	.into_iter()
 	.map(|row| Admin { name: row.name, steam_id: row.id, roles: row.role_flags })
