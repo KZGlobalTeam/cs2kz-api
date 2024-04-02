@@ -1,6 +1,7 @@
 services:
   cs2kz-database:
     image: mariadb:11.0
+    command: --max-connections 256
     restart: no
     environment:
       MARIADB_USER: kz

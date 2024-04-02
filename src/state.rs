@@ -8,6 +8,7 @@ use axum::extract::FromRef;
 use derive_more::Debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use sqlx::pool::PoolOptions;
 use sqlx::{MySql, Pool};
 
 use crate::auth::Jwt;
@@ -35,11 +36,22 @@ pub struct State {
 }
 
 impl State {
+	/// The minimum amount of open database connections to keep in the connection pool.
+	const MIN_DB_CONNECTIONS: u32 = if cfg!(production) { 200 } else { 20 };
+
+	/// The maximum amount of open database connections to keep in the connection pool.
+	const MAX_DB_CONNECTIONS: u32 = if cfg!(production) { 256 } else { 50 };
+
 	/// Creates a new [`State`] object and leaks it on the heap.
 	///
 	/// **This function should only ever be called once; it leaks memory.**
 	pub async fn new(config: crate::Config) -> Result<&'static Self> {
-		let database = Pool::connect(config.database_url.as_str()).await?;
+		let database = PoolOptions::new()
+			.min_connections(Self::MIN_DB_CONNECTIONS)
+			.max_connections(Self::MAX_DB_CONNECTIONS)
+			.connect(config.database_url.as_str())
+			.await?;
+
 		let http_client = reqwest::Client::new();
 		let jwt_state = JwtState::new(&config)?;
 
