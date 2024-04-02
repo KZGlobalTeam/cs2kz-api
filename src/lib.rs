@@ -252,22 +252,31 @@ impl API {
 			.await
 			.context("bind tcp socket")?;
 
-		let state = State::new(config).await.context("initialize state")?;
+		// NOTE: We intentionally **leak memory here**.
+		//       The application is not going to do anything after axum shuts down, so
+		//       there is no point in cleanup.
+		let state: &'static State = State::new(config)
+			.await
+			.map(Box::new)
+			.map(Box::leak)
+			.context("initialize state")?;
+
 		let openapi = Self::openapi();
-		let routes = openapi.paths.paths.iter().map(|(path, handler)| {
-			let methods = handler
-				.operations
-				.keys()
-				.map(|method| format!("{method:?}").to_uppercase())
-				.collect_vec()
-				.join(", ");
 
-			format!("{path} [{methods}]")
-		});
+		openapi
+			.paths
+			.paths
+			.iter()
+			.map(|(path, handler)| {
+				let methods = handler
+					.operations
+					.keys()
+					.map(|method| format!("{method:?}").to_uppercase())
+					.join(", ");
 
-		for route in routes {
-			debug!("registering route: {route}");
-		}
+				format!("{path} [{methods}]")
+			})
+			.for_each(|route| debug!("registering route: {route}"));
 
 		let api_service = Router::new()
 			.route("/", get(|| async { "(͡ ͡° ͜ つ ͡͡°)" }))

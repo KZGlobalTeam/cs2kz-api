@@ -42,10 +42,8 @@ impl State {
 	/// The maximum amount of open database connections to keep in the connection pool.
 	const MAX_DB_CONNECTIONS: u32 = if cfg!(production) { 256 } else { 50 };
 
-	/// Creates a new [`State`] object and leaks it on the heap.
-	///
-	/// **This function should only ever be called once; it leaks memory.**
-	pub async fn new(config: crate::Config) -> Result<&'static Self> {
+	/// Creates a new [`State`] object.
+	pub async fn new(config: crate::Config) -> Result<Self> {
 		let database = PoolOptions::new()
 			.min_connections(Self::MIN_DB_CONNECTIONS)
 			.max_connections(Self::MAX_DB_CONNECTIONS)
@@ -55,12 +53,7 @@ impl State {
 		let http_client = reqwest::Client::new();
 		let jwt_state = JwtState::new(&config)?;
 
-		Ok(Box::leak(Box::new(Self {
-			config,
-			database,
-			http_client,
-			jwt_state,
-		})))
+		Ok(Self { config, database, http_client, jwt_state })
 	}
 }
 
