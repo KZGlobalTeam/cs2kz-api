@@ -32,6 +32,7 @@ use axum::Router;
 use eyre::Context;
 use itertools::Itertools;
 use tokio::net::TcpListener;
+use tokio::signal;
 use tracing::{debug, info};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -220,6 +221,7 @@ impl API {
 		Self::server(config)
 			.await
 			.context("build http server")?
+			.with_graceful_shutdown(sigint())
 			.await
 			.context("run http server")
 	}
@@ -232,7 +234,12 @@ impl API {
 		Self::server(config)
 			.await
 			.context("build http server")?
-			.with_graceful_shutdown(until)
+			.with_graceful_shutdown(async move {
+				tokio::select! {
+					() = until => {}
+					() = sigint() => {}
+				}
+			})
 			.await
 			.context("run http server")
 	}
@@ -293,5 +300,13 @@ impl API {
 	/// Generates a JSON version of the OpenAPI spec.
 	pub fn spec() -> String {
 		Self::openapi().to_pretty_json().expect("spec is valid")
+	}
+}
+
+/// Waits for and handles potential errors from SIGINT (ctrl+c) from the OS.
+async fn sigint() {
+	match signal::ctrl_c().await {
+		Ok(()) => tracing::warn!(target: "audit_log", "received SIGINT; shutting down..."),
+		Err(err) => tracing::error!(target: "audit_log", "failed to receive SIGINT: {err}"),
 	}
 }
