@@ -86,3 +86,25 @@ pub mod btree_map {
 		Ok(Some(map))
 	}
 }
+
+/// [`serde`] helpers for [`semver::Version`].
+///
+/// [`semver::Version`]: ::semver::Version
+pub mod semver {
+	use semver::Version;
+	use serde::{de, Deserialize, Deserializer};
+
+	/// Deserializes plugin version names submitted by GitHub actions.
+	pub fn deserialize_plugin_version<'de, D>(deserializer: D) -> Result<Version, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		let mut version = <&'de str>::deserialize(deserializer)?;
+
+		if version.starts_with('v') {
+			version = &version[1..];
+		}
+
+		version.parse::<Version>().map_err(de::Error::custom)
+	}
+}

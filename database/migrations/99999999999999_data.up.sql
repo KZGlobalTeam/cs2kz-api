@@ -1,11 +1,12 @@
 BEGIN;
 
 INSERT INTO
-  `PluginVersions` (`semver`, `git_revision`)
+  `PluginVersions` (`semver`, `git_revision`, `created_on`)
 VALUES
   (
-    "0.0.0",
-    "caffc305d3e03b9a21457e16303a9dedf8ef87ed"
+    "0.0.1",
+    "c7521668a25a207abad2cc2cca2e955c29827645",
+    "2023-11-07 09:51"
   );
 
 INSERT INTO

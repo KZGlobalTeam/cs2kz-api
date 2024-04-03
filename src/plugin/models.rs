@@ -50,6 +50,7 @@ impl FromRow<'_, MySqlRow> for PluginVersion {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewPluginVersion {
 	/// The semver representation.
+	#[serde(deserialize_with = "crate::serde::semver::deserialize_plugin_version")]
 	#[schema(value_type = String)]
 	pub semver: Version,
 
