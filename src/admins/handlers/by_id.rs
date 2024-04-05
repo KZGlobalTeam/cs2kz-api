@@ -66,8 +66,8 @@ pub async fn get(
   ),
 )]
 pub async fn put(
-	Transaction(mut transaction): Transaction,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::ADMIN.as_u32() }>>,
+	Transaction(mut transaction): Transaction,
 	Path(steam_id): Path<SteamID>,
 	Json(AdminUpdate { roles }): Json<AdminUpdate>,
 ) -> Result<NoContent> {

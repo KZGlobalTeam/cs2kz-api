@@ -68,10 +68,10 @@ pub async fn get(
   ),
 )]
 pub async fn patch(
-	Transaction(mut transaction): Transaction,
 	session: auth::Session<
 		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::IsServerOwner>,
 	>,
+	Transaction(mut transaction): Transaction,
 	Path(server_id): Path<NonZeroU16>,
 	Json(ServerUpdate { name, ip_address, owned_by }): Json<ServerUpdate>,
 ) -> Result<NoContent> {

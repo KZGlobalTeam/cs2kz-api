@@ -121,10 +121,10 @@ pub async fn get(
   ),
 )]
 pub async fn put(
+	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.as_u32() }>>,
 	State(config): State<&'static crate::Config>,
 	State(http_client): State<reqwest::Client>,
 	Transaction(mut transaction): Transaction,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.as_u32() }>>,
 	Json(NewMap { workshop_id, description, global_status, mappers, courses }): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {
 	let name = WorkshopMap::fetch_name(workshop_id, &http_client).await?;

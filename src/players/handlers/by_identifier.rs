@@ -30,8 +30,8 @@ use crate::{Error, Result};
   ),
 )]
 pub async fn get(
-	Connection(mut connection): Connection,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
+	Connection(mut connection): Connection,
 	Path(player): Path<PlayerIdentifier>,
 ) -> Result<Json<FullPlayer>> {
 	let mut query = QueryBuilder::new(queries::SELECT);

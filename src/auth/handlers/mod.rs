@@ -63,8 +63,8 @@ pub struct LogoutParams {
   ),
 )]
 pub async fn logout(
-	Connection(mut connection): Connection,
 	mut session: Session,
+	Connection(mut connection): Connection,
 	Query(LogoutParams { invalidate_all_sessions }): Query<LogoutParams>,
 ) -> Result<(Session, StatusCode)> {
 	session

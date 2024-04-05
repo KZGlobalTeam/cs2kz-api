@@ -125,8 +125,8 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	Transaction(mut transaction): Transaction,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>>,
+	Transaction(mut transaction): Transaction,
 	Json(NewServer { name, ip_address, owned_by }): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
 	let refresh_key = Uuid::new_v4();

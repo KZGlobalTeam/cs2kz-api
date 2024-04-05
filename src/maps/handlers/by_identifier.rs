@@ -80,10 +80,10 @@ pub async fn get(
   ),
 )]
 pub async fn patch(
+	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.as_u32() }>>,
 	State(config): State<&'static crate::Config>,
 	State(http_client): State<reqwest::Client>,
 	Transaction(mut transaction): Transaction,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.as_u32() }>>,
 	Path(map_id): Path<NonZeroU16>,
 	Json(MapUpdate {
 		description,

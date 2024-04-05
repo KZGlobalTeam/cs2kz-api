@@ -42,8 +42,8 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	Connection(mut connection): Connection,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
+	Connection(mut connection): Connection,
 	Query(GetParams { limit, offset }): Query<GetParams>,
 ) -> Result<Json<Vec<FullPlayer>>> {
 	let mut query = QueryBuilder::new(queries::SELECT);

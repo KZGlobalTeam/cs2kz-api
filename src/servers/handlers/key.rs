@@ -81,10 +81,10 @@ pub async fn generate_temp(
   ),
 )]
 pub async fn put_perma(
-	Transaction(mut transaction): Transaction,
 	session: auth::Session<
 		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::IsServerOwner>,
 	>,
+	Transaction(mut transaction): Transaction,
 	Path(server_id): Path<NonZeroU16>,
 ) -> Result<Created<Json<RefreshKey>>> {
 	let refresh_key = Uuid::new_v4();
@@ -129,8 +129,8 @@ pub async fn put_perma(
   ),
 )]
 pub async fn delete_perma(
-	Transaction(mut transaction): Transaction,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>>,
+	Transaction(mut transaction): Transaction,
 	Path(server_id): Path<NonZeroU16>,
 ) -> Result<NoContent> {
 	let query_result = sqlx::query! {

@@ -142,9 +142,9 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	Transaction(mut transaction): Transaction,
 	server: Option<Jwt<auth::Server>>,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
+	Transaction(mut transaction): Transaction,
 	Json(NewBan { player_id, player_ip, reason }): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
 	let (server, admin) = match (server, session) {

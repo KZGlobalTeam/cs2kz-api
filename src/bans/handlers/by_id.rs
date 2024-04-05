@@ -61,8 +61,8 @@ pub async fn get(
   ),
 )]
 pub async fn patch(
-	Transaction(mut transaction): Transaction,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>,
+	Transaction(mut transaction): Transaction,
 	Path(ban_id): Path<NonZeroU64>,
 	Json(BanUpdate { reason, expires_on }): Json<BanUpdate>,
 ) -> Result<NoContent> {
@@ -115,8 +115,8 @@ pub async fn patch(
   ),
 )]
 pub async fn delete(
-	Transaction(mut transaction): Transaction,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>,
+	Transaction(mut transaction): Transaction,
 	Path(ban_id): Path<NonZeroU64>,
 	Json(NewUnban { reason }): Json<NewUnban>,
 ) -> Result<Created<Json<CreatedUnban>>> {
