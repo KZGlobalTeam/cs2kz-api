@@ -74,7 +74,7 @@ pub async fn patch(
 		return Err(Error::ban_already_reverted(ban_id));
 	}
 
-	let mut query = UpdateQuery::new("UPDATE Bans");
+	let mut query = UpdateQuery::new("Bans");
 
 	if let Some(reason) = reason {
 		query.set(" reason ", reason);

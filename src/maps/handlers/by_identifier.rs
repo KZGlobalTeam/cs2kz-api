@@ -132,7 +132,7 @@ async fn update_details(
 		return Ok(());
 	}
 
-	let mut query = UpdateQuery::new("UPDATE Maps");
+	let mut query = UpdateQuery::new("Maps");
 
 	if let Some(description) = description {
 		query.set("description", description);
@@ -313,7 +313,7 @@ async fn update_course(
 	}
 
 	if name.is_some() || description.is_some() {
-		let mut query = UpdateQuery::new("UPDATE Courses");
+		let mut query = UpdateQuery::new("Courses");
 
 		if let Some(name) = name {
 			query.set("name", name);
@@ -452,7 +452,7 @@ async fn update_filter(
 		return Ok(None);
 	}
 
-	let mut query = UpdateQuery::new("UPDATE CourseFilters");
+	let mut query = UpdateQuery::new("CourseFilters");
 
 	if let Some(tier) = tier {
 		query.set("tier", tier);

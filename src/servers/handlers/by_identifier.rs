@@ -79,7 +79,7 @@ pub async fn patch(
 		return Ok(NoContent);
 	}
 
-	let mut query = UpdateQuery::new("UPDATE Servers");
+	let mut query = UpdateQuery::new("Servers");
 
 	if let Some(name) = name {
 		query.set("name", name);

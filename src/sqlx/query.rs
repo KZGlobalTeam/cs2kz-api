@@ -155,14 +155,14 @@ impl UpdateDelimiter {
 }
 
 impl<'q> UpdateQuery<'q> {
-	/// Creates a new [`UpdateQuery`] from a base `query`.
+	/// Creates a new [`UpdateQuery`] for updating the given `table`.
 	///
-	/// This is a wrapper over [`QueryBuilder::new()`].
-	pub fn new(query: impl Into<String>) -> Self {
-		Self {
-			query: QueryBuilder::new(query),
-			delimiter: UpdateDelimiter::default(),
-		}
+	/// This is a wrapper over [`QueryBuilder::new()`] with a base query of `UPDATE {table}`.
+	pub fn new(table: impl AsRef<str>) -> Self {
+		let mut query = QueryBuilder::new("UPDATE ");
+		query.push(table.as_ref()).push(' ');
+
+		Self { query, delimiter: UpdateDelimiter::default() }
 	}
 
 	/// Set a specific `column` to some `value`.
