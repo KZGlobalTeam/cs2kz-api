@@ -4,12 +4,17 @@
 pub static SELECT: &str = r#"
 	SELECT
 	  r.id,
-	  f.mode_id MODE,
+	  f.mode_id mode,
 	  r.style_id style,
 	  r.teleports,
 	  r.time,
 	  p.name player_name,
 	  p.id player_id,
+	  m.id map_id,
+	  m.name map_name,
+	  c.id course_id,
+	  c.name course_name,
+	  f.tier course_tier,
 	  s.name server_name,
 	  s.id server_id,
 	  r.perfs,
@@ -27,5 +32,7 @@ pub static SELECT: &str = r#"
 	  Records r
 	  JOIN CourseFilters f ON f.id = r.filter_id
 	  JOIN Players p ON p.id = r.player_id
+	  JOIN Courses c ON c.id = f.course_id
+	  JOIN Maps m ON m.id = c.map_id
 	  JOIN Servers s ON s.id = r.server_id
 "#;

@@ -439,6 +439,7 @@ pub struct CourseInfo {
 
 	/// The course's name.
 	#[sqlx(rename = "course_name")]
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub name: Option<String>,
 
 	/// The course filter's tier.
