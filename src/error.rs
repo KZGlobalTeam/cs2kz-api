@@ -172,17 +172,17 @@ impl Error {
 		Self::new(StatusCode::UNAUTHORIZED).with_message("access key is expired")
 	}
 
-	/// A user tried to make an authenticated request but was missing their session token.
+	/// A user tried to make an authenticated request but was missing their session ID.
 	#[track_caller]
-	pub(crate) fn missing_session_token() -> Self {
-		Self::new(StatusCode::UNAUTHORIZED).with_message("missing session token")
+	pub(crate) fn missing_session_id() -> Self {
+		Self::new(StatusCode::UNAUTHORIZED).with_message("missing session ID")
 	}
 
-	/// A user tried to make an authenticated request but their session token was invalid or
+	/// A user tried to make an authenticated request but their session ID was invalid or
 	/// expired.
 	#[track_caller]
-	pub(crate) fn invalid_session_token() -> Self {
-		Self::new(StatusCode::UNAUTHORIZED).with_message("invalid session token")
+	pub(crate) fn invalid_session_id() -> Self {
+		Self::new(StatusCode::UNAUTHORIZED).with_message("invalid session ID")
 	}
 
 	/// A user tried to make an authenticated request but didn't have the required roles.

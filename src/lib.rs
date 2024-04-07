@@ -1,6 +1,6 @@
 //! The CS2KZ API
 
-#![allow(clippy::redundant_closure)]
+#![allow(clippy::redundant_closure, clippy::new_without_default)]
 #![warn(
 	clippy::absolute_paths,
 	clippy::as_underscore,

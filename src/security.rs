@@ -19,7 +19,7 @@ impl Modify for Security {
 		let cs_server_jwt = SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer));
 		let api_key = SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer));
 		let sessions = SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(
-			auth::Session::<()>::COOKIE_NAME,
+			auth::Session::<auth::None>::COOKIE_NAME,
 		)));
 
 		components.add_security_schemes_from_iter([

@@ -82,7 +82,7 @@ pub async fn generate_temp(
 )]
 pub async fn put_perma(
 	session: auth::Session<
-		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::IsServerOwner>,
+		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::ServerOwner>,
 	>,
 	Transaction(mut transaction): Transaction,
 	Path(server_id): Path<NonZeroU16>,

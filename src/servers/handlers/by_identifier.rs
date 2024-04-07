@@ -69,7 +69,7 @@ pub async fn get(
 )]
 pub async fn patch(
 	session: auth::Session<
-		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::IsServerOwner>,
+		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::ServerOwner>,
 	>,
 	Transaction(mut transaction): Transaction,
 	Path(server_id): Path<NonZeroU16>,

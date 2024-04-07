@@ -16,8 +16,11 @@ pub use role_flags::RoleFlags;
 mod key;
 pub use key::Key;
 
-mod session;
-pub use session::{Either, HasRoles, IsServerOwner, Session};
+pub mod session;
+pub use session::Session;
+
+mod authorization;
+pub use authorization::{AuthorizeSession, Either, HasRoles, None, ServerOwner};
 
 pub mod models;
 pub use models::{Server, SteamLoginForm, SteamLoginResponse, SteamUser, User};

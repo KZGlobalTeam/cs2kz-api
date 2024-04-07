@@ -11,7 +11,7 @@ use utoipa::IntoParams;
 
 use super::{Session, SteamLoginResponse, SteamUser};
 use crate::auth::SteamLoginForm;
-use crate::sqlx::extract::{Connection, Transaction};
+use crate::sqlx::extract::Transaction;
 use crate::{responses, Result};
 
 /// Query parameters for logging in with Steam.
@@ -48,7 +48,7 @@ pub struct LogoutParams {
 	invalidate_all_sessions: bool,
 }
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(transaction))]
 #[utoipa::path(
   get,
   path = "/auth/logout",
@@ -64,12 +64,14 @@ pub struct LogoutParams {
 )]
 pub async fn logout(
 	mut session: Session,
-	Connection(mut connection): Connection,
+	Transaction(mut transaction): Transaction,
 	Query(LogoutParams { invalidate_all_sessions }): Query<LogoutParams>,
 ) -> Result<(Session, StatusCode)> {
 	session
-		.invalidate(invalidate_all_sessions, connection.as_mut())
+		.invalidate(invalidate_all_sessions, &mut transaction)
 		.await?;
+
+	transaction.commit().await?;
 
 	debug!(steam_id = %session.user().steam_id(), "user logged out");
 

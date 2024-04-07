@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tINSERT INTO\n\t\t\t  LoginSessions (id, player_id, expires_on)\n\t\t\tVALUES\n\t\t\t  (?, ?, ?)\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "a8fe0ad53bac023f6f0701025e5fab36d191c0e7449faa861d52d636a14bca84"
+}

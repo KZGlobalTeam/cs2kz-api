@@ -268,12 +268,10 @@ CREATE TABLE IF NOT EXISTS `CourseSessions` (
 );
 
 CREATE TABLE IF NOT EXISTS `LoginSessions` (
-  `id` INT8 UNSIGNED NOT NULL AUTO_INCREMENT,
+  `id` UUID NOT NULL,
   `player_id` INT8 UNSIGNED NOT NULL,
-  `token` UUID NOT NULL,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `expires_on` TIMESTAMP NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY (`player_id`) REFERENCES `Players` (`id`),
-  UNIQUE (`token`)
+  FOREIGN KEY (`player_id`) REFERENCES `Players` (`id`)
 );
