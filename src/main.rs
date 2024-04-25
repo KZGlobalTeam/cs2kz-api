@@ -12,7 +12,7 @@ async fn main() -> Result<()> {
 		eprintln!("WARNING: no `.env` file found");
 	}
 
-	let _guard = logging::init().context("initialize loggign")?;
+	let _guard = logging::init().context("initialize logging")?;
 	let config = cs2kz_api::Config::new().context("load config")?;
 	let mut connection = MySqlConnection::connect(config.database_url.as_str())
 		.await
