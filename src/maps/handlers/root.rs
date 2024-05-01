@@ -2,7 +2,7 @@
 
 use std::iter;
 
-use axum::extract::{Query, State};
+use axum::extract::Query;
 use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{GlobalStatus, SteamID};
@@ -16,10 +16,9 @@ use crate::maps::models::{NewCourse, NewFilter};
 use crate::maps::{queries, CreatedMap, FullMap, NewMap};
 use crate::parameters::Limit;
 use crate::responses::Created;
-use crate::sqlx::extract::{Connection, Transaction};
 use crate::sqlx::{FilteredQuery, SqlErrorExt};
 use crate::workshop::WorkshopMap;
-use crate::{auth, responses, Error, Result};
+use crate::{auth, responses, Error, Result, State};
 
 /// Query parameters for `GET /maps`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -44,7 +43,7 @@ pub struct GetParams {
 	limit: Limit,
 }
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/maps",
@@ -57,7 +56,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	Connection(mut connection): Connection,
+	state: &'static State,
 	Query(GetParams {
 		name,
 		workshop_id,
@@ -93,7 +92,7 @@ pub async fn get(
 
 	let maps = query
 		.build_query_as::<FullMap>()
-		.fetch_all(connection.as_mut())
+		.fetch_all(&state.database)
 		.await
 		.map(|maps| FullMap::flatten(maps, limit.into()))?;
 
@@ -104,7 +103,7 @@ pub async fn get(
 	Ok(Json(maps))
 }
 
-#[tracing::instrument(level = "debug", skip(config, http_client, transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   put,
   path = "/maps",
@@ -120,17 +119,17 @@ pub async fn get(
   ),
 )]
 pub async fn put(
+	state: &'static State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.as_u32() }>>,
-	State(config): State<&'static crate::Config>,
-	State(http_client): State<reqwest::Client>,
-	Transaction(mut transaction): Transaction,
 	Json(NewMap { workshop_id, description, global_status, mappers, courses }): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {
-	let name = WorkshopMap::fetch_name(workshop_id, &http_client).await?;
-	let checksum = WorkshopMap::download(workshop_id, config)
+	let name = WorkshopMap::fetch_name(workshop_id, &state.http_client).await?;
+	let checksum = WorkshopMap::download(workshop_id, &state.config)
 		.await?
 		.checksum()
 		.await?;
+
+	let mut transaction = state.transaction().await?;
 
 	let map_id = create_map(
 		name,

@@ -10,8 +10,7 @@ use utoipa::IntoParams;
 use crate::admins::Admin;
 use crate::auth::RoleFlags;
 use crate::parameters::{Limit, Offset};
-use crate::sqlx::extract::Connection;
-use crate::{responses, Error, Result};
+use crate::{responses, Error, Result, State};
 
 /// Query parameters for `GET /admins`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -30,7 +29,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/admins",
@@ -44,7 +43,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	Connection(mut connection): Connection,
+	state: &'static State,
 	Query(GetParams { roles, limit, offset }): Query<GetParams>,
 ) -> Result<Json<Vec<Admin>>> {
 	let admins = sqlx::query! {
@@ -66,7 +65,7 @@ pub async fn get(
 		limit.0,
 		offset.0,
 	}
-	.fetch(connection.as_mut())
+	.fetch(&state.database)
 	.map_ok(|row| Admin { name: row.name, steam_id: row.id, roles: row.role_flags })
 	.try_collect::<Vec<_>>()
 	.await?;

@@ -12,9 +12,8 @@ use crate::auth::Jwt;
 use crate::parameters::{Limit, Offset};
 use crate::records::{queries, CreatedRecord, NewRecord, Record};
 use crate::responses::Created;
-use crate::sqlx::extract::{Connection, Transaction};
 use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, responses, Error, Result};
+use crate::{auth, responses, Error, Result, State};
 
 /// Query parameters for `GET /records`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -49,7 +48,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/records",
@@ -63,7 +62,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	Connection(mut connection): Connection,
+	state: &'static State,
 	Query(GetParams {
 		mode,
 		style,
@@ -97,13 +96,13 @@ pub async fn get(
 	}
 
 	if let Some(player) = player {
-		let steam_id = player.fetch_id(connection.as_mut()).await?;
+		let steam_id = player.fetch_id(&state.database).await?;
 
 		query.filter(" r.player_id = ", steam_id);
 	}
 
 	if let Some(server) = server {
-		let server_id = server.fetch_id(connection.as_mut()).await?;
+		let server_id = server.fetch_id(&state.database).await?;
 
 		query.filter(" r.server_id = ", server_id);
 	}
@@ -113,14 +112,14 @@ pub async fn get(
 	}
 
 	if let Some(created_before) = created_before {
-		query.filter(" r.created_on > ", created_before);
+		query.filter(" r.created_on < ", created_before);
 	}
 
 	query.push_limits(limit, offset);
 
 	let records = query
 		.build_query_as::<Record>()
-		.fetch_all(connection.as_mut())
+		.fetch_all(&state.database)
 		.await?;
 
 	if records.is_empty() {
@@ -130,7 +129,7 @@ pub async fn get(
 	Ok(Json(records))
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,
   path = "/records",
@@ -145,12 +144,14 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	Transaction(mut transaction): Transaction,
+	state: &'static State,
 	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Json(NewRecord { player_id, mode, style, course_id, teleports, time, bhop_stats }): Json<
 		NewRecord,
 	>,
 ) -> Result<Created<Json<CreatedRecord>>> {
+	let mut transaction = state.transaction().await?;
+
 	let filter_id = sqlx::query! {
 		r#"
 		SELECT

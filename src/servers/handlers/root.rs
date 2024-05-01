@@ -15,9 +15,8 @@ use crate::auth::RoleFlags;
 use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
 use crate::servers::{queries, CreatedServer, NewServer, Server};
-use crate::sqlx::extract::{Connection, Transaction};
 use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, responses, Error, Result};
+use crate::{auth, responses, Error, Result, State};
 
 /// Query parameters for `GET /servers`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -46,7 +45,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/servers",
@@ -60,7 +59,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	Connection(mut connection): Connection,
+	state: &'static State,
 	Query(GetParams {
 		name,
 		ip_address,
@@ -82,7 +81,7 @@ pub async fn get(
 	}
 
 	if let Some(player) = owned_by {
-		let steam_id = player.fetch_id(connection.as_mut()).await?;
+		let steam_id = player.fetch_id(&state.database).await?;
 
 		query.filter(" s.owner_id = ", steam_id);
 	}
@@ -92,14 +91,14 @@ pub async fn get(
 	}
 
 	if let Some(created_before) = created_before {
-		query.filter(" s.created_on > ", created_before);
+		query.filter(" s.created_on < ", created_before);
 	}
 
 	query.push_limits(limit, offset);
 
 	let servers = query
 		.build_query_as::<Server>()
-		.fetch_all(connection.as_mut())
+		.fetch_all(&state.database)
 		.await?;
 
 	if servers.is_empty() {
@@ -109,7 +108,7 @@ pub async fn get(
 	Ok(Json(servers))
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,
   path = "/servers",
@@ -125,10 +124,11 @@ pub async fn get(
   ),
 )]
 pub async fn post(
+	state: &'static State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>>,
-	Transaction(mut transaction): Transaction,
 	Json(NewServer { name, ip_address, owned_by }): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
+	let mut transaction = state.transaction().await?;
 	let refresh_key = Uuid::new_v4();
 	let server_id = sqlx::query! {
 		r#"

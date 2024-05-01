@@ -4,10 +4,9 @@ use axum::extract::Path;
 use axum::Json;
 
 use crate::game_sessions::GameSession;
-use crate::sqlx::extract::Connection;
-use crate::{responses, Error, Result};
+use crate::{responses, Error, Result, State};
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/sessions/{session_id}",
@@ -20,10 +19,7 @@ use crate::{responses, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(
-	Connection(mut connection): Connection,
-	Path(session_id): Path<u64>,
-) -> Result<Json<GameSession>> {
+pub async fn get(state: &'static State, Path(session_id): Path<u64>) -> Result<Json<GameSession>> {
 	let session = sqlx::query_as(
 		r#"
 		SELECT
@@ -55,7 +51,7 @@ pub async fn get(
 		"#,
 	)
 	.bind(session_id)
-	.fetch_optional(connection.as_mut())
+	.fetch_optional(&state.database)
 	.await?
 	.ok_or_else(|| Error::no_content())?;
 

@@ -3,7 +3,7 @@
 use std::result::Result as StdResult;
 
 use axum::async_trait;
-use axum::extract::{FromRef, FromRequestParts, Query};
+use axum::extract::{FromRequestParts, Query};
 use axum::http::request;
 use axum::response::Redirect;
 use axum_extra::extract::cookie::Cookie;
@@ -16,7 +16,7 @@ use url::Url;
 use utoipa::{IntoParams, ToSchema};
 
 use super::RoleFlags;
-use crate::{Error, Result};
+use crate::{Error, Result, State};
 
 /// An authenticated server.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
@@ -228,23 +228,21 @@ impl SteamLoginResponse {
 }
 
 #[async_trait]
-impl<S> FromRequestParts<S> for SteamLoginResponse
-where
-	S: Send + Sync,
-	reqwest::Client: FromRef<S>,
-{
+impl FromRequestParts<&'static State> for SteamLoginResponse {
 	type Rejection = Error;
 
-	async fn from_request_parts(parts: &mut request::Parts, state: &S) -> Result<Self> {
-		let Query(mut login) = Query::<Self>::from_request_parts(parts, state)
+	async fn from_request_parts(
+		parts: &mut request::Parts,
+		state: &&'static State,
+	) -> Result<Self> {
+		let Query(mut login) = Query::<Self>::from_request_parts(parts, &())
 			.await
 			.map_err(|err| {
 				debug!(%err, "missing steam login payload");
 				Error::unauthorized().with_source(err)
 			})?;
 
-		let http_client = reqwest::Client::from_ref(state);
-		let steam_id = login.verify(&http_client).await.map_err(|err| {
+		let steam_id = login.verify(&state.http_client).await.map_err(|err| {
 			debug!(%err, "login request did not come from steam");
 			Error::unauthorized().with_source(err)
 		})?;
@@ -347,24 +345,21 @@ impl<'de> Deserialize<'de> for SteamUser {
 }
 
 #[async_trait]
-impl<S> FromRequestParts<S> for SteamUser
-where
-	S: Send + Sync,
-	&'static crate::Config: FromRef<S>,
-	reqwest::Client: FromRef<S>,
-{
+impl FromRequestParts<&'static State> for SteamUser {
 	type Rejection = Error;
 
-	async fn from_request_parts(parts: &mut request::Parts, state: &S) -> Result<Self> {
+	async fn from_request_parts(
+		parts: &mut request::Parts,
+		state: &&'static State,
+	) -> Result<Self> {
 		let steam_id = parts
 			.extensions
 			.get::<SteamID>()
 			.copied()
 			.expect("`SteamLoginResponse` extractor should have inserted this");
 
-		let config = <&'static crate::Config>::from_ref(state);
 		let url = Url::parse_with_params(Self::API_URL, [
-			("key", config.steam_api_key.clone()),
+			("key", state.config.steam_api_key.clone()),
 			("steamids", steam_id.as_u64().to_string()),
 		])
 		.map_err(|err| {
@@ -372,7 +367,8 @@ where
 			Error::internal_server_error("failed to parse url").with_source(err)
 		})?;
 
-		reqwest::Client::from_ref(state)
+		state
+			.http_client
 			.get(url)
 			.send()
 			.await?

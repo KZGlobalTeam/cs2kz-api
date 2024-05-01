@@ -10,9 +10,8 @@ use utoipa::IntoParams;
 use crate::parameters::{Limit, Offset};
 use crate::plugin::{CreatedPluginVersion, NewPluginVersion, PluginVersion};
 use crate::responses::Created;
-use crate::sqlx::extract::{Connection, Transaction};
 use crate::sqlx::{QueryBuilderExt, SqlErrorExt};
-use crate::{auth, responses, Error, Result};
+use crate::{auth, responses, Error, Result, State};
 
 /// Query parameters for `GET /plugin`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -26,7 +25,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/plugin/versions",
@@ -40,7 +39,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	Connection(mut connection): Connection,
+	state: &'static State,
 	Query(GetParams { limit, offset }): Query<GetParams>,
 ) -> Result<Json<Vec<PluginVersion>>> {
 	let mut query = QueryBuilder::new("SELECT * FROM PluginVersions");
@@ -49,7 +48,7 @@ pub async fn get(
 
 	let plugin_versions = query
 		.build_query_as::<PluginVersion>()
-		.fetch_all(connection.as_mut())
+		.fetch_all(&state.database)
 		.await?;
 
 	if plugin_versions.is_empty() {
@@ -59,7 +58,7 @@ pub async fn get(
 	Ok(Json(plugin_versions))
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,
   path = "/plugin/versions",
@@ -76,10 +75,12 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	Transaction(mut transaction): Transaction,
+	state: &'static State,
 	auth::Key(key): auth::Key,
 	Json(NewPluginVersion { semver, git_revision }): Json<NewPluginVersion>,
 ) -> Result<Created<Json<CreatedPluginVersion>>> {
+	let mut transaction = state.transaction().await?;
+
 	let latest_version = sqlx::query! {
 		r#"
 		SELECT

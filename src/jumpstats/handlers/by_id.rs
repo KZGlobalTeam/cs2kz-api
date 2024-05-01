@@ -5,10 +5,9 @@ use axum::Json;
 use sqlx::QueryBuilder;
 
 use crate::jumpstats::{queries, Jumpstat};
-use crate::sqlx::extract::Connection;
-use crate::{responses, Error, Result};
+use crate::{responses, Error, Result, State};
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/jumpstats/{jumpstat_id}",
@@ -21,17 +20,14 @@ use crate::{responses, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(
-	Connection(mut connection): Connection,
-	Path(jumpstat_id): Path<u64>,
-) -> Result<Json<Jumpstat>> {
+pub async fn get(state: &'static State, Path(jumpstat_id): Path<u64>) -> Result<Json<Jumpstat>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
 	query.push(" WHERE j.id = ").push_bind(jumpstat_id);
 
 	let jumpstat = query
 		.build_query_as::<Jumpstat>()
-		.fetch_optional(connection.as_mut())
+		.fetch_optional(&state.database)
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 

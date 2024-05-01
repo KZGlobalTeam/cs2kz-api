@@ -1,6 +1,6 @@
 //! Handlers for the `/auth` routes.
 
-use axum::extract::{Query, State};
+use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::response::Redirect;
 use axum_extra::extract::CookieJar;
@@ -11,8 +11,7 @@ use utoipa::IntoParams;
 
 use super::{Session, SteamLoginResponse, SteamUser};
 use crate::auth::SteamLoginForm;
-use crate::sqlx::extract::Transaction;
-use crate::{responses, Result};
+use crate::{responses, Result, State};
 
 /// Query parameters for logging in with Steam.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -21,7 +20,7 @@ pub struct LoginParams {
 	redirect_to: Url,
 }
 
-#[tracing::instrument(level = "debug", skip(config))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/auth/login",
@@ -34,10 +33,10 @@ pub struct LoginParams {
   ),
 )]
 pub async fn login(
-	State(config): State<&'static crate::Config>,
+	state: &'static State,
 	Query(LoginParams { redirect_to }): Query<LoginParams>,
 ) -> Redirect {
-	SteamLoginForm::new(config.public_url.clone()).redirect_to(&redirect_to)
+	SteamLoginForm::new(state.config.public_url.clone()).redirect_to(&redirect_to)
 }
 
 /// Query parameters for logging out.
@@ -48,7 +47,7 @@ pub struct LogoutParams {
 	invalidate_all_sessions: bool,
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/auth/logout",
@@ -63,10 +62,12 @@ pub struct LogoutParams {
   ),
 )]
 pub async fn logout(
+	state: &'static State,
 	mut session: Session,
-	Transaction(mut transaction): Transaction,
 	Query(LogoutParams { invalidate_all_sessions }): Query<LogoutParams>,
 ) -> Result<(Session, StatusCode)> {
+	let mut transaction = state.transaction().await?;
+
 	session
 		.invalidate(invalidate_all_sessions, &mut transaction)
 		.await?;
@@ -78,7 +79,7 @@ pub async fn logout(
 	Ok((session, StatusCode::OK))
 }
 
-#[tracing::instrument(level = "debug", skip(config, transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/auth/callback",
@@ -92,15 +93,15 @@ pub async fn logout(
   ),
 )]
 pub async fn callback(
-	State(config): State<&'static crate::Config>,
-	Transaction(transaction): Transaction,
+	state: &'static State,
 	cookies: CookieJar,
 	login: SteamLoginResponse,
 	user: SteamUser,
 ) -> Result<(CookieJar, Redirect)> {
-	let user_cookie = user.to_cookie(config);
-	let session = Session::create(user.steam_id, config, transaction).await?;
-	let cookies = cookies.add(user_cookie).add(session);
+	let transaction = state.transaction().await?;
+	let session = Session::create(user.steam_id, &state.config, transaction).await?;
+	let user_cookie = user.to_cookie(&state.config);
+	let cookies = cookies.add(session).add(user_cookie);
 	let redirect = Redirect::to(login.redirect_to.as_str());
 
 	Ok((cookies, redirect))

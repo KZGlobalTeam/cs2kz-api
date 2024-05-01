@@ -8,10 +8,9 @@ use tracing::trace;
 use crate::admins::{Admin, AdminUpdate};
 use crate::auth::{self, RoleFlags};
 use crate::responses::NoContent;
-use crate::sqlx::extract::{Connection, Transaction};
-use crate::{responses, Error, Result};
+use crate::{responses, Error, Result, State};
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/admins/{steam_id}",
@@ -24,10 +23,7 @@ use crate::{responses, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(
-	Connection(mut connection): Connection,
-	Path(steam_id): Path<SteamID>,
-) -> Result<Json<Admin>> {
+pub async fn get(state: &'static State, Path(steam_id): Path<SteamID>) -> Result<Json<Admin>> {
 	let admin = sqlx::query! {
 		r#"
 		SELECT
@@ -41,7 +37,7 @@ pub async fn get(
 		"#,
 		steam_id,
 	}
-	.fetch_optional(connection.as_mut())
+	.fetch_optional(&state.database)
 	.await?
 	.map(|row| Admin { name: row.name, steam_id: row.id, roles: row.role_flags })
 	.ok_or_else(|| Error::no_content())?;
@@ -49,7 +45,7 @@ pub async fn get(
 	Ok(Json(admin))
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   put,
   path = "/admins/{steam_id}",
@@ -66,11 +62,13 @@ pub async fn get(
   ),
 )]
 pub async fn put(
+	state: &'static State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::ADMIN.as_u32() }>>,
-	Transaction(mut transaction): Transaction,
 	Path(steam_id): Path<SteamID>,
 	Json(AdminUpdate { roles }): Json<AdminUpdate>,
 ) -> Result<NoContent> {
+	let mut transaction = state.transaction().await?;
+
 	let query_result = sqlx::query! {
 		r#"
 		UPDATE

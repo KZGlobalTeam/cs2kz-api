@@ -12,9 +12,8 @@ use crate::auth::Jwt;
 use crate::jumpstats::{queries, CreatedJumpstat, Jumpstat, NewJumpstat};
 use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
-use crate::sqlx::extract::{Connection, Transaction};
 use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, responses, Error, Result};
+use crate::{auth, responses, Error, Result, State};
 
 /// Query parameters for `GET /jumpstats`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -53,7 +52,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/jumpstats",
@@ -67,7 +66,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	Connection(mut connection): Connection,
+	state: &'static State,
 	Query(GetParams {
 		jump_type,
 		mode,
@@ -100,13 +99,13 @@ pub async fn get(
 	}
 
 	if let Some(player) = player {
-		let steam_id = player.fetch_id(connection.as_mut()).await?;
+		let steam_id = player.fetch_id(&state.database).await?;
 
 		query.filter(" j.player_id = ", steam_id);
 	}
 
 	if let Some(server) = server {
-		let server_id = server.fetch_id(connection.as_mut()).await?;
+		let server_id = server.fetch_id(&state.database).await?;
 
 		query.filter(" j.server_id = ", server_id);
 	}
@@ -116,14 +115,14 @@ pub async fn get(
 	}
 
 	if let Some(created_before) = created_before {
-		query.filter(" j.created_on > ", created_before);
+		query.filter(" j.created_on < ", created_before);
 	}
 
 	query.push_limits(limit, offset);
 
 	let jumpstats = query
 		.build_query_as::<Jumpstat>()
-		.fetch_all(connection.as_mut())
+		.fetch_all(&state.database)
 		.await?;
 
 	if jumpstats.is_empty() {
@@ -133,7 +132,7 @@ pub async fn get(
 	Ok(Json(jumpstats))
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,
   path = "/jumpstats",
@@ -150,7 +149,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	Transaction(mut transaction): Transaction,
+	state: &'static State,
 	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Json(NewJumpstat {
 		jump_type,
@@ -172,6 +171,8 @@ pub async fn post(
 		airtime,
 	}): Json<NewJumpstat>,
 ) -> Result<Created<Json<CreatedJumpstat>>> {
+	let mut transaction = state.transaction().await?;
+
 	let jumpstat_id = sqlx::query! {
 		r#"
 		INSERT INTO

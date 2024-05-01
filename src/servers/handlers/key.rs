@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use axum::extract::{Path, State};
+use axum::extract::Path;
 use axum::Json;
 use tracing::info;
 use uuid::Uuid;
@@ -10,11 +10,9 @@ use uuid::Uuid;
 use crate::auth::{Jwt, RoleFlags};
 use crate::responses::{self, Created, NoContent};
 use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse};
-use crate::sqlx::extract::Transaction;
-use crate::state::JwtState;
-use crate::{auth, Error, Result};
+use crate::{auth, Error, Result, State};
 
-#[tracing::instrument(level = "debug", skip(jwt_state, transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,
   path = "/servers/key",
@@ -28,10 +26,11 @@ use crate::{auth, Error, Result};
   ),
 )]
 pub async fn generate_temp(
-	State(jwt_state): State<&'static JwtState>,
-	Transaction(mut transaction): Transaction,
+	state: &'static State,
 	Json(RefreshKeyRequest { refresh_key, plugin_version }): Json<RefreshKeyRequest>,
 ) -> Result<Created<Json<RefreshKeyResponse>>> {
+	let mut transaction = state.transaction().await?;
+
 	let server = sqlx::query! {
 		r#"
 		SELECT
@@ -51,7 +50,7 @@ pub async fn generate_temp(
 	.map(|(server_id, plugin_version_id)| auth::Server::new(server_id, plugin_version_id))
 	.ok_or_else(|| Error::invalid_refresh_key())?;
 
-	let access_key = jwt_state
+	let access_key = state
 		.encode_jwt(&server, Duration::from_secs(60 * 15))
 		.map(|access_key| RefreshKeyResponse { access_key })?;
 
@@ -60,7 +59,7 @@ pub async fn generate_temp(
 	Ok(Created(Json(access_key)))
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   put,
   path = "/servers/{server_id}/key",
@@ -75,12 +74,13 @@ pub async fn generate_temp(
   ),
 )]
 pub async fn put_perma(
+	state: &'static State,
 	session: auth::Session<
 		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::ServerOwner>,
 	>,
-	Transaction(mut transaction): Transaction,
 	Path(server_id): Path<u16>,
 ) -> Result<Created<Json<RefreshKey>>> {
+	let mut transaction = state.transaction().await?;
 	let refresh_key = Uuid::new_v4();
 	let query_result = sqlx::query! {
 		r#"
@@ -108,7 +108,7 @@ pub async fn put_perma(
 	Ok(Created(Json(RefreshKey { refresh_key })))
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   delete,
   path = "/servers/{server_id}/key",
@@ -123,10 +123,12 @@ pub async fn put_perma(
   ),
 )]
 pub async fn delete_perma(
+	state: &'static State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>>,
-	Transaction(mut transaction): Transaction,
 	Path(server_id): Path<u16>,
 ) -> Result<NoContent> {
+	let mut transaction = state.transaction().await?;
+
 	let query_result = sqlx::query! {
 		r#"
 		UPDATE

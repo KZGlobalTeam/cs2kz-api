@@ -8,11 +8,10 @@ use tracing::info;
 use crate::auth::RoleFlags;
 use crate::bans::{queries, Ban, BanUpdate, CreatedUnban, NewUnban};
 use crate::responses::{Created, NoContent};
-use crate::sqlx::extract::{Connection, Transaction};
 use crate::sqlx::UpdateQuery;
-use crate::{auth, responses, Error, Result};
+use crate::{auth, responses, Error, Result, State};
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/bans/{ban_id}",
@@ -25,24 +24,21 @@ use crate::{auth, responses, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(
-	Connection(mut connection): Connection,
-	Path(ban_id): Path<u64>,
-) -> Result<Json<Ban>> {
+pub async fn get(state: &'static State, Path(ban_id): Path<u64>) -> Result<Json<Ban>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
 	query.push(" WHERE b.id = ").push_bind(ban_id);
 
 	let ban = query
 		.build_query_as::<Ban>()
-		.fetch_optional(connection.as_mut())
+		.fetch_optional(&state.database)
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(ban))
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   patch,
   path = "/bans/{ban_id}",
@@ -59,14 +55,16 @@ pub async fn get(
   ),
 )]
 pub async fn patch(
+	state: &'static State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>,
-	Transaction(mut transaction): Transaction,
 	Path(ban_id): Path<u64>,
 	Json(BanUpdate { reason, expires_on }): Json<BanUpdate>,
 ) -> Result<NoContent> {
 	if reason.is_none() && expires_on.is_none() {
 		return Ok(NoContent);
 	}
+
+	let mut transaction = state.transaction().await?;
 
 	if let Some(ban_id) = is_already_unbanned(ban_id, transaction.as_mut()).await? {
 		return Err(Error::ban_already_reverted(ban_id));
@@ -97,7 +95,7 @@ pub async fn patch(
 	Ok(NoContent)
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   delete,
   path = "/bans/{ban_id}",
@@ -113,11 +111,13 @@ pub async fn patch(
   ),
 )]
 pub async fn delete(
+	state: &'static State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>,
-	Transaction(mut transaction): Transaction,
 	Path(ban_id): Path<u64>,
 	Json(NewUnban { reason }): Json<NewUnban>,
 ) -> Result<Created<Json<CreatedUnban>>> {
+	let mut transaction = state.transaction().await?;
+
 	if let Some(ban_id) = is_already_unbanned(ban_id, transaction.as_mut()).await? {
 		return Err(Error::ban_already_reverted(ban_id));
 	}

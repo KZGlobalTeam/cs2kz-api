@@ -10,10 +10,9 @@ use tracing::debug;
 
 use crate::auth::{self, Jwt};
 use crate::responses::{self, NoContent};
-use crate::sqlx::extract::{Connection, Transaction};
-use crate::{Error, Result};
+use crate::{Error, Result, State};
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/players/{player}/preferences",
@@ -27,7 +26,7 @@ use crate::{Error, Result};
   ),
 )]
 pub async fn get(
-	Connection(mut connection): Connection,
+	state: &'static State,
 	Path(player): Path<PlayerIdentifier>,
 ) -> Result<Json<JsonValue>> {
 	let mut query = QueryBuilder::new("SELECT preferences FROM Players WHERE");
@@ -43,14 +42,14 @@ pub async fn get(
 
 	let SqlJson(preferences) = query
 		.build_query_scalar::<SqlJson<JsonValue>>()
-		.fetch_optional(connection.as_mut())
+		.fetch_optional(&state.database)
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(preferences))
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   put,
   path = "/players/{steam_id}/preferences",
@@ -67,11 +66,13 @@ pub async fn get(
   ),
 )]
 pub async fn put(
-	Transaction(mut transaction): Transaction,
+	state: &'static State,
 	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Path(steam_id): Path<SteamID>,
 	Json(preferences): Json<JsonValue>,
 ) -> Result<NoContent> {
+	let mut transaction = state.transaction().await?;
+
 	let query_result = sqlx::query! {
 		r#"
 		UPDATE

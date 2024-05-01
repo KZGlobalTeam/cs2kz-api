@@ -2,7 +2,7 @@
 
 use std::collections::HashSet;
 
-use axum::extract::{Path, State};
+use axum::extract::Path;
 use axum::Json;
 use cs2kz::{GlobalStatus, MapIdentifier, SteamID};
 use sqlx::{MySql, QueryBuilder};
@@ -14,12 +14,11 @@ use crate::maps::handlers::root::insert_course_mappers;
 use crate::maps::models::{CourseUpdate, FilterUpdate};
 use crate::maps::{queries, FullMap, MapUpdate};
 use crate::responses::NoContent;
-use crate::sqlx::extract::{Connection, Transaction};
 use crate::sqlx::UpdateQuery;
 use crate::workshop::WorkshopMap;
-use crate::{auth, responses, Error, Result};
+use crate::{auth, responses, Error, Result, State};
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/maps/{map}",
@@ -32,10 +31,7 @@ use crate::{auth, responses, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(
-	Connection(mut connection): Connection,
-	Path(map): Path<MapIdentifier>,
-) -> Result<Json<FullMap>> {
+pub async fn get(state: &'static State, Path(map): Path<MapIdentifier>) -> Result<Json<FullMap>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
 	query.push(" WHERE ");
@@ -53,7 +49,7 @@ pub async fn get(
 
 	let map = query
 		.build_query_as::<FullMap>()
-		.fetch_all(connection.as_mut())
+		.fetch_all(&state.database)
 		.await?
 		.into_iter()
 		.reduce(FullMap::reduce)
@@ -62,7 +58,7 @@ pub async fn get(
 	Ok(Json(map))
 }
 
-#[tracing::instrument(level = "debug", skip(config, http_client, transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   patch,
   path = "/maps/{map_id}",
@@ -79,10 +75,8 @@ pub async fn get(
   ),
 )]
 pub async fn patch(
+	state: &'static State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.as_u32() }>>,
-	State(config): State<&'static crate::Config>,
-	State(http_client): State<reqwest::Client>,
-	Transaction(mut transaction): Transaction,
 	Path(map_id): Path<u16>,
 	Json(MapUpdate {
 		description,
@@ -94,10 +88,13 @@ pub async fn patch(
 		course_updates,
 	}): Json<MapUpdate>,
 ) -> Result<NoContent> {
+	let mut transaction = state.transaction().await?;
+
 	update_details(map_id, description, workshop_id, global_status, &mut transaction).await?;
 
 	if check_steam || workshop_id.is_some() {
-		update_name_and_checksum(map_id, config, &http_client, &mut transaction).await?;
+		update_name_and_checksum(map_id, &state.config, &state.http_client, &mut transaction)
+			.await?;
 	}
 
 	if let Some(added_mappers) = added_mappers {

@@ -2,14 +2,18 @@
 //!
 //! This is initialized once on startup, and then passed around the application by axum.
 
+use std::convert::Infallible;
+use std::result::Result as StdResult;
 use std::time::Duration;
 
-use axum::extract::FromRef;
+use axum::async_trait;
+use axum::extract::FromRequestParts;
+use axum::http::request;
 use derive_more::Debug;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::pool::PoolOptions;
-use sqlx::{MySql, Pool};
+use sqlx::{MySql, Pool, Transaction};
 
 use crate::auth::Jwt;
 use crate::{Error, Result};
@@ -55,11 +59,41 @@ impl State {
 
 		Ok(Self { config, database, http_client, jwt_state })
 	}
+
+	/// Begins a new database transaction.
+	pub async fn transaction(&self) -> Result<Transaction<'static, MySql>> {
+		self.database.begin().await.map_err(Error::from)
+	}
+
+	/// Encodes the given `payload` in a JWT that will expire after a given amount of time.
+	pub fn encode_jwt(&self, payload: &impl Serialize, expires_after: Duration) -> Result<String> {
+		self.jwt_state.encode(payload, expires_after)
+	}
+
+	/// Decodes the given `jwt` into some type `T`.
+	pub fn decode_jwt<T>(&self, jwt: &str) -> Result<Jwt<T>>
+	where
+		T: DeserializeOwned,
+	{
+		self.jwt_state.decode(jwt)
+	}
+}
+
+#[async_trait]
+impl FromRequestParts<&'static State> for &'static State {
+	type Rejection = Infallible;
+
+	async fn from_request_parts(
+		_parts: &mut request::Parts,
+		state: &&'static State,
+	) -> StdResult<Self, Self::Rejection> {
+		Ok(state)
+	}
 }
 
 /// JWT related state such as the secret key and algorithm information.
 #[allow(missing_debug_implementations)]
-pub struct JwtState {
+struct JwtState {
 	/// Header data to use when signing JWTs.
 	jwt_header: jsonwebtoken::Header,
 
@@ -75,7 +109,7 @@ pub struct JwtState {
 
 impl JwtState {
 	/// Creates a new [`JwtState`].
-	pub fn new(config: &crate::Config) -> Result<Self> {
+	fn new(config: &crate::Config) -> Result<Self> {
 		let jwt_header = jsonwebtoken::Header::default();
 		let jwt_encoding_key = jsonwebtoken::EncodingKey::from_base64_secret(&config.jwt_secret)?;
 		let jwt_decoding_key = jsonwebtoken::DecodingKey::from_base64_secret(&config.jwt_secret)?;
@@ -85,7 +119,7 @@ impl JwtState {
 	}
 
 	/// Encodes the given `payload` in a JWT that will expire after a given amount of time.
-	pub fn encode_jwt(&self, payload: &impl Serialize, expires_after: Duration) -> Result<String> {
+	fn encode(&self, payload: &impl Serialize, expires_after: Duration) -> Result<String> {
 		jsonwebtoken::encode(
 			&self.jwt_header,
 			&Jwt::new(payload, expires_after),
@@ -95,36 +129,12 @@ impl JwtState {
 	}
 
 	/// Decodes the given `jwt` into some type `T`.
-	pub fn decode_jwt<T>(&self, jwt: &str) -> Result<Jwt<T>>
+	fn decode<T>(&self, jwt: &str) -> Result<Jwt<T>>
 	where
 		T: DeserializeOwned,
 	{
 		jsonwebtoken::decode(jwt, &self.jwt_decoding_key, &self.jwt_validation)
 			.map(|jwt| jwt.claims)
 			.map_err(|err| Error::from(err))
-	}
-}
-
-impl FromRef<&'static State> for &'static crate::Config {
-	fn from_ref(state: &&'static State) -> Self {
-		&state.config
-	}
-}
-
-impl FromRef<&'static State> for Pool<MySql> {
-	fn from_ref(state: &&'static State) -> Self {
-		state.database.clone()
-	}
-}
-
-impl FromRef<&'static State> for reqwest::Client {
-	fn from_ref(state: &&'static State) -> Self {
-		state.http_client.clone()
-	}
-}
-
-impl FromRef<&'static State> for &'static JwtState {
-	fn from_ref(state: &&'static State) -> Self {
-		&state.jwt_state
 	}
 }

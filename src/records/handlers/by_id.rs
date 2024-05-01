@@ -5,10 +5,9 @@ use axum::Json;
 use sqlx::QueryBuilder;
 
 use crate::records::{queries, Record};
-use crate::sqlx::extract::Connection;
-use crate::{responses, Error, Result};
+use crate::{responses, Error, Result, State};
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/records/{record_id}",
@@ -21,17 +20,14 @@ use crate::{responses, Error, Result};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(
-	Connection(mut connection): Connection,
-	Path(record_id): Path<u64>,
-) -> Result<Json<Record>> {
+pub async fn get(state: &'static State, Path(record_id): Path<u64>) -> Result<Json<Record>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
 	query.push(" WHERE r.id = ").push_bind(record_id);
 
 	let record = query
 		.build_query_as::<Record>()
-		.fetch_optional(connection.as_mut())
+		.fetch_optional(&state.database)
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 

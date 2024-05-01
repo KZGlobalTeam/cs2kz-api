@@ -14,9 +14,8 @@ use crate::auth::{Jwt, RoleFlags};
 use crate::bans::{queries, Ban, BanReason, CreatedBan, NewBan};
 use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
-use crate::sqlx::extract::{Connection, Transaction};
 use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, responses, Error, Result};
+use crate::{auth, responses, Error, Result, State};
 
 /// Query parameters for `GET /bans`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -54,7 +53,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/bans",
@@ -68,7 +67,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	Connection(mut connection): Connection,
+	state: &'static State,
 	Query(GetParams {
 		player,
 		server,
@@ -85,13 +84,13 @@ pub async fn get(
 	let mut query = FilteredQuery::new(queries::SELECT);
 
 	if let Some(player) = player {
-		let steam_id = player.fetch_id(connection.as_mut()).await?;
+		let steam_id = player.fetch_id(&state.database).await?;
 
 		query.filter(" b.player_id = ", steam_id);
 	}
 
 	if let Some(server) = server {
-		let server_id = server.fetch_id(connection.as_mut()).await?;
+		let server_id = server.fetch_id(&state.database).await?;
 
 		query.filter(" b.server_id = ", server_id);
 	}
@@ -116,7 +115,7 @@ pub async fn get(
 
 	let bans = query
 		.build_query_as::<Ban>()
-		.fetch_all(connection.as_mut())
+		.fetch_all(&state.database)
 		.await?;
 
 	if bans.is_empty() {
@@ -126,7 +125,7 @@ pub async fn get(
 	Ok(Json(bans))
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,
   path = "/bans",
@@ -142,9 +141,9 @@ pub async fn get(
   ),
 )]
 pub async fn post(
+	state: &'static State,
 	server: Option<Jwt<auth::Server>>,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
-	Transaction(mut transaction): Transaction,
 	Json(NewBan { player_id, player_ip, reason }): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
 	let (server, admin) = match (server, session) {
@@ -164,6 +163,8 @@ pub async fn post(
 			return Err(Error::unauthorized());
 		}
 	};
+
+	let mut transaction = state.transaction().await?;
 
 	let (already_banned, previous_offenses) = sqlx::query! {
 		r#"

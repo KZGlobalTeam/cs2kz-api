@@ -9,11 +9,10 @@ use tracing::info;
 use crate::auth::RoleFlags;
 use crate::responses::NoContent;
 use crate::servers::{queries, Server, ServerUpdate};
-use crate::sqlx::extract::{Connection, Transaction};
 use crate::sqlx::UpdateQuery;
-use crate::{auth, responses, Error, Result};
+use crate::{auth, responses, Error, Result, State};
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/servers/{server}",
@@ -26,7 +25,7 @@ use crate::{auth, responses, Error, Result};
   ),
 )]
 pub async fn get(
-	Connection(mut connection): Connection,
+	state: &'static State,
 	Path(server): Path<ServerIdentifier>,
 ) -> Result<Json<Server>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
@@ -44,14 +43,14 @@ pub async fn get(
 
 	let server = query
 		.build_query_as::<Server>()
-		.fetch_optional(connection.as_mut())
+		.fetch_optional(&state.database)
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(server))
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   patch,
   path = "/servers/{server}",
@@ -66,10 +65,10 @@ pub async fn get(
   ),
 )]
 pub async fn patch(
+	state: &'static State,
 	session: auth::Session<
 		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::ServerOwner>,
 	>,
-	Transaction(mut transaction): Transaction,
 	Path(server_id): Path<u16>,
 	Json(ServerUpdate { name, ip_address, owned_by }): Json<ServerUpdate>,
 ) -> Result<NoContent> {
@@ -77,6 +76,7 @@ pub async fn patch(
 		return Ok(NoContent);
 	}
 
+	let mut transaction = state.transaction().await?;
 	let mut query = UpdateQuery::new("Servers");
 
 	if let Some(name) = name {

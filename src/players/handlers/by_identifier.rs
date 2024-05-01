@@ -10,11 +10,10 @@ use crate::auth::{self, Jwt, RoleFlags};
 use crate::players::models::CourseSession;
 use crate::players::{queries, FullPlayer, PlayerUpdate};
 use crate::responses::{self, NoContent};
-use crate::sqlx::extract::{Connection, Transaction};
 use crate::sqlx::SqlErrorExt;
-use crate::{Error, Result};
+use crate::{Error, Result, State};
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/players/{player}",
@@ -28,8 +27,8 @@ use crate::{Error, Result};
   ),
 )]
 pub async fn get(
+	state: &'static State,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
-	Connection(mut connection): Connection,
 	Path(player): Path<PlayerIdentifier>,
 ) -> Result<Json<FullPlayer>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
@@ -47,7 +46,7 @@ pub async fn get(
 
 	let mut player = query
 		.build_query_as::<FullPlayer>()
-		.fetch_optional(connection.as_mut())
+		.fetch_optional(&state.database)
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 
@@ -58,7 +57,7 @@ pub async fn get(
 	Ok(Json(player))
 }
 
-#[tracing::instrument(level = "debug", skip(transaction))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   patch,
   path = "/players/{steam_id}",
@@ -75,11 +74,13 @@ pub async fn get(
   ),
 )]
 pub async fn patch(
-	Transaction(mut transaction): Transaction,
+	state: &'static State,
 	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Path(steam_id): Path<SteamID>,
 	Json(PlayerUpdate { name, ip_address, session }): Json<PlayerUpdate>,
 ) -> Result<NoContent> {
+	let mut transaction = state.transaction().await?;
+
 	let query_result = sqlx::query! {
 		r#"
 		UPDATE

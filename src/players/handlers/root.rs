@@ -12,9 +12,8 @@ use crate::auth::{self, Jwt, RoleFlags};
 use crate::parameters::{Limit, Offset};
 use crate::players::{queries, FullPlayer, NewPlayer};
 use crate::responses::{self, Created};
-use crate::sqlx::extract::Connection;
 use crate::sqlx::{QueryBuilderExt, SqlErrorExt};
-use crate::{Error, Result};
+use crate::{Error, Result, State};
 
 /// Query parameters for `GET /players`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -28,7 +27,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
   path = "/players",
@@ -42,8 +41,8 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
+	state: &'static State,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
-	Connection(mut connection): Connection,
 	Query(GetParams { limit, offset }): Query<GetParams>,
 ) -> Result<Json<Vec<FullPlayer>>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
@@ -52,7 +51,7 @@ pub async fn get(
 
 	let players = query
 		.build_query_as::<FullPlayer>()
-		.fetch(connection.as_mut())
+		.fetch(&state.database)
 		.map_ok(|player| FullPlayer {
 			// Only include IP address information if the requesting user has
 			// permission to view them.
@@ -69,7 +68,7 @@ pub async fn get(
 	Ok(Json(players))
 }
 
-#[tracing::instrument(level = "debug", skip(connection))]
+#[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,
   path = "/players",
@@ -85,7 +84,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	Connection(mut connection): Connection,
+	state: &'static State,
 	server: Jwt<auth::Server>,
 	Json(NewPlayer { name, steam_id, ip_address }): Json<NewPlayer>,
 ) -> Result<Created> {
@@ -100,7 +99,7 @@ pub async fn post(
 		name,
 		ip_address.to_string(),
 	}
-	.execute(connection.as_mut())
+	.execute(&state.database)
 	.await
 	.map_err(|err| {
 		if err.is_duplicate_entry() {
