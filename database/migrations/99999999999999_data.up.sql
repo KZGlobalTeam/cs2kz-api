@@ -201,9 +201,9 @@ VALUES
   (1, 76561198260657129);
 
 INSERT INTO
-  `Courses` (`map_id`)
+  `Courses` (`name`, `map_id`)
 VALUES
-  (1);
+  ("not main", 1);
 
 INSERT INTO
   `CourseMappers` (`course_id`, `player_id`)

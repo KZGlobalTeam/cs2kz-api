@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS `Players` (
   `id` INT8 UNSIGNED NOT NULL,
   `name` VARCHAR(32) NOT NULL,
   `ip_address` INET4 NOT NULL,
-  `role_flags` INT4 UNSIGNED NOT NULL DEFAULT 0,
+  `role_flags` INT8 UNSIGNED NOT NULL DEFAULT 0,
   `preferences` JSON NOT NULL DEFAULT "{}",
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `last_seen_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -68,8 +68,8 @@ CREATE TABLE IF NOT EXISTS `Mappers` (
 );
 
 CREATE TABLE IF NOT EXISTS `Courses` (
-  `id` INT4 UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(32),
+  `id` INT2 UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(16) NOT NULL,
   `description` TEXT,
   `map_id` INT2 UNSIGNED NOT NULL,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS `Courses` (
 );
 
 CREATE TABLE IF NOT EXISTS `CourseMappers` (
-  `course_id` INT4 UNSIGNED NOT NULL,
+  `course_id` INT2 UNSIGNED NOT NULL,
   `player_id` INT8 UNSIGNED NOT NULL,
   PRIMARY KEY (`course_id`, `player_id`),
   FOREIGN KEY (`course_id`) REFERENCES `Courses` (`id`) ON DELETE CASCADE,
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS `CourseMappers` (
 
 CREATE TABLE IF NOT EXISTS `CourseFilters` (
   `id` INT4 UNSIGNED NOT NULL AUTO_INCREMENT,
-  `course_id` INT4 UNSIGNED NOT NULL,
+  `course_id` INT2 UNSIGNED NOT NULL,
   `mode_id` INT1 UNSIGNED NOT NULL,
   `teleports` BOOLEAN NOT NULL,
   `tier` INT1 UNSIGNED NOT NULL,
@@ -161,7 +161,7 @@ CREATE TABLE IF NOT EXISTS `Jumpstats` (
 CREATE TABLE IF NOT EXISTS `Records` (
   `id` INT8 UNSIGNED NOT NULL AUTO_INCREMENT,
   `filter_id` INT4 UNSIGNED NOT NULL,
-  `style_id` INT1 UNSIGNED NOT NULL,
+  `style_flags` INT4 UNSIGNED NOT NULL,
   `teleports` INT2 UNSIGNED NOT NULL,
   `time` FLOAT8 NOT NULL,
   `player_id` INT8 UNSIGNED NOT NULL,
@@ -181,7 +181,6 @@ CREATE TABLE IF NOT EXISTS `Records` (
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`filter_id`) REFERENCES `CourseFilters` (`id`),
-  FOREIGN KEY (`style_id`) REFERENCES `Styles` (`id`),
   FOREIGN KEY (`player_id`) REFERENCES `Players` (`id`),
   FOREIGN KEY (`server_id`) REFERENCES `Servers` (`id`),
   FOREIGN KEY (`plugin_version_id`) REFERENCES `PluginVersions` (`id`),
@@ -243,7 +242,7 @@ CREATE TABLE IF NOT EXISTS `GameSessions` (
 CREATE TABLE IF NOT EXISTS `CourseSessions` (
   `id` INT8 UNSIGNED NOT NULL AUTO_INCREMENT,
   `player_id` INT8 UNSIGNED NOT NULL,
-  `course_id` INT4 UNSIGNED NOT NULL,
+  `course_id` INT2 UNSIGNED NOT NULL,
   `mode_id` INT1 UNSIGNED NOT NULL,
   `server_id` INT2 UNSIGNED NOT NULL,
   `playtime` INT2 NOT NULL,
