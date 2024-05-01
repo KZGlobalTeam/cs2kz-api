@@ -10,7 +10,7 @@ use utoipa::IntoParams;
 
 use crate::auth::Jwt;
 use crate::parameters::{Limit, Offset};
-use crate::records::{queries, CreatedRecord, NewRecord, Record};
+use crate::records::{queries, CreatedRecord, NewRecord, Record, RecordID};
 use crate::responses::Created;
 use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result, State};
@@ -231,5 +231,5 @@ pub async fn post(
 
 	trace!(%record_id, "inserted record");
 
-	Ok(Created(Json(CreatedRecord { record_id })))
+	Ok(Created(Json(CreatedRecord { record_id: RecordID(record_id) })))
 }

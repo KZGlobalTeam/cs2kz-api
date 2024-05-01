@@ -20,6 +20,8 @@ use thiserror::Error;
 use tracing::{debug, error};
 
 use crate::auth::RoleFlags;
+use crate::bans::UnbanID;
+use crate::maps::{CourseID, FilterID, MapID};
 
 /// Convenient type alias to use for fallible functions.
 ///
@@ -124,7 +126,7 @@ impl Error {
 	/// When PATCHing maps, the user shouldn't be allowed to update courses that do not belong
 	/// to the map.
 	#[track_caller]
-	pub(crate) fn course_does_not_belong_to_map(course_id: u16, map_id: u16) -> Self {
+	pub(crate) fn course_does_not_belong_to_map(course_id: CourseID, map_id: MapID) -> Self {
 		Self::new(StatusCode::CONFLICT).with_message(format_args!(
 			"course with ID `{course_id}` does not belong to map `{map_id}`"
 		))
@@ -133,7 +135,10 @@ impl Error {
 	/// When PATCHing maps, the user shouldn't be allowed to update filters that do not belong
 	/// to courses on the map.
 	#[track_caller]
-	pub(crate) fn filter_does_not_belong_to_course(filter_id: u16, course_id: u16) -> Self {
+	pub(crate) fn filter_does_not_belong_to_course(
+		filter_id: FilterID,
+		course_id: CourseID,
+	) -> Self {
 		Self::new(StatusCode::CONFLICT).with_message(format_args!(
 			"filter with ID `{filter_id}` does not belong to course `{course_id}`"
 		))
@@ -157,9 +162,9 @@ impl Error {
 	/// When updating or deleting a ban, the ban might have already expired / reverted
 	/// previously.
 	#[track_caller]
-	pub(crate) fn ban_already_reverted(ban_id: u64) -> Self {
+	pub(crate) fn ban_already_reverted(unban_id: UnbanID) -> Self {
 		Self::new(StatusCode::CONFLICT)
-			.with_message(format_args!("ban `{ban_id}` has already been reverted"))
+			.with_message(format_args!("ban has already been reverted (unban `{unban_id}`)"))
 	}
 
 	/// A CS2 server tried to request an access key (JWT) but their supplied refresh key was

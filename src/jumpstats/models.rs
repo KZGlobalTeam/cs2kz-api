@@ -7,15 +7,18 @@ use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
+use crate::id::make_id;
 use crate::players::Player;
 use crate::servers::ServerInfo;
 use crate::time::Seconds;
+
+make_id!(JumpstatID as u64);
 
 /// A jumpstat.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Jumpstat {
 	/// The jumpstat's ID.
-	pub id: u64,
+	pub id: JumpstatID,
 
 	/// The jump type.
 	#[serde(rename = "type")]
@@ -167,5 +170,5 @@ pub struct NewJumpstat {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedJumpstat {
 	/// The jumpstat's ID.
-	pub jumpstat_id: u64,
+	pub jumpstat_id: JumpstatID,
 }

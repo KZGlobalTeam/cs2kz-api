@@ -6,7 +6,7 @@ use sqlx::{MySqlExecutor, QueryBuilder};
 use tracing::info;
 
 use crate::auth::RoleFlags;
-use crate::bans::{queries, Ban, BanUpdate, CreatedUnban, NewUnban};
+use crate::bans::{queries, Ban, BanID, BanUpdate, CreatedUnban, NewUnban, UnbanID};
 use crate::responses::{Created, NoContent};
 use crate::sqlx::UpdateQuery;
 use crate::{auth, responses, Error, Result, State};
@@ -57,7 +57,7 @@ pub async fn get(state: &'static State, Path(ban_id): Path<u64>) -> Result<Json<
 pub async fn patch(
 	state: &'static State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>,
-	Path(ban_id): Path<u64>,
+	Path(ban_id): Path<BanID>,
 	Json(BanUpdate { reason, expires_on }): Json<BanUpdate>,
 ) -> Result<NoContent> {
 	if reason.is_none() && expires_on.is_none() {
@@ -66,8 +66,8 @@ pub async fn patch(
 
 	let mut transaction = state.transaction().await?;
 
-	if let Some(ban_id) = is_already_unbanned(ban_id, transaction.as_mut()).await? {
-		return Err(Error::ban_already_reverted(ban_id));
+	if let Some(unban_id) = is_already_unbanned(ban_id, transaction.as_mut()).await? {
+		return Err(Error::ban_already_reverted(unban_id));
 	}
 
 	let mut query = UpdateQuery::new("Bans");
@@ -113,13 +113,13 @@ pub async fn patch(
 pub async fn delete(
 	state: &'static State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>,
-	Path(ban_id): Path<u64>,
+	Path(ban_id): Path<BanID>,
 	Json(NewUnban { reason }): Json<NewUnban>,
 ) -> Result<Created<Json<CreatedUnban>>> {
 	let mut transaction = state.transaction().await?;
 
-	if let Some(ban_id) = is_already_unbanned(ban_id, transaction.as_mut()).await? {
-		return Err(Error::ban_already_reverted(ban_id));
+	if let Some(unban_id) = is_already_unbanned(ban_id, transaction.as_mut()).await? {
+		return Err(Error::ban_already_reverted(unban_id));
 	}
 
 	let query_result = sqlx::query! {
@@ -161,12 +161,15 @@ pub async fn delete(
 
 	info!(target: "audit_log", %ban_id, %unban_id, "created unban");
 
-	Ok(Created(Json(CreatedUnban { unban_id })))
+	Ok(Created(Json(CreatedUnban { unban_id: UnbanID(unban_id) })))
 }
 
 /// Checks if there is an unban associated with the given `ban_id` and returns the corresponding
 /// `ban_id`.
-async fn is_already_unbanned(ban_id: u64, executor: impl MySqlExecutor<'_>) -> Result<Option<u64>> {
+async fn is_already_unbanned(
+	ban_id: BanID,
+	executor: impl MySqlExecutor<'_>,
+) -> Result<Option<UnbanID>> {
 	sqlx::query! {
 		r#"
 		SELECT
@@ -180,6 +183,6 @@ async fn is_already_unbanned(ban_id: u64, executor: impl MySqlExecutor<'_>) -> R
 	}
 	.fetch_optional(executor)
 	.await
-	.map(|row| row.map(|row| row.id))
+	.map(|row| row.map(|row| UnbanID(row.id)))
 	.map_err(Error::from)
 }

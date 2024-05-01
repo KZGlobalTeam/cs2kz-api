@@ -11,8 +11,9 @@ use tracing::{trace, warn};
 use utoipa::IntoParams;
 
 use crate::auth::{Jwt, RoleFlags};
-use crate::bans::{queries, Ban, BanReason, CreatedBan, NewBan};
+use crate::bans::{queries, Ban, BanID, BanReason, CreatedBan, NewBan};
 use crate::parameters::{Limit, Offset};
+use crate::plugin::PluginVersionID;
 use crate::responses::Created;
 use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result, State};
@@ -216,7 +217,7 @@ pub async fn post(
 		}
 		.fetch_one(transaction.as_mut())
 		.await
-		.map(|row| row.id)?,
+		.map(|row| PluginVersionID(row.id))?,
 	};
 
 	let expires_on = OffsetDateTime::now_utc() + reason.duration(previous_offenses);
@@ -261,5 +262,5 @@ pub async fn post(
 
 	trace!(%ban_id, %player_id, ?reason, ?server, ?admin, "created ban");
 
-	Ok(Created(Json(CreatedBan { ban_id })))
+	Ok(Created(Json(CreatedBan { ban_id: BanID(ban_id) })))
 }

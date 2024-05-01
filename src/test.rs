@@ -10,6 +10,8 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::auth::{self, Jwt};
+use crate::plugin::PluginVersionID;
+use crate::servers::ServerID;
 
 /// Wrapper over std's `assert!()` macro that uses [`eyre::ensure!()`] instead.
 macro_rules! assert {
@@ -118,7 +120,7 @@ impl Context {
 		&self,
 		expires_after: Duration,
 	) -> Result<String, jsonwebtoken::errors::Error> {
-		let server = auth::Server::new(1, 1);
+		let server = auth::Server::new(ServerID(1), PluginVersionID(1));
 
 		self.encode_jwt(&server, expires_after)
 	}

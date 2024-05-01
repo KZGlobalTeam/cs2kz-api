@@ -12,14 +12,18 @@ use thiserror::Error;
 use time::Duration;
 use utoipa::ToSchema;
 
+use crate::id::make_id;
 use crate::players::Player;
 use crate::servers::ServerInfo;
+
+make_id!(BanID as u64);
+make_id!(UnbanID as u64);
 
 /// A player ban.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Ban {
 	/// The ban's ID.
-	pub id: u64,
+	pub id: BanID,
 
 	/// The player affected by this ban.
 	pub player: Player,
@@ -143,7 +147,7 @@ impl<'q> sqlx::Decode<'q, MySql> for BanReason {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Unban {
 	/// The unban's ID.
-	pub id: u64,
+	pub id: UnbanID,
 
 	/// The reason for the unban.
 	pub reason: String,
@@ -187,7 +191,7 @@ pub struct NewBan {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedBan {
 	/// The ban's ID.
-	pub ban_id: u64,
+	pub ban_id: BanID,
 }
 
 /// Request body for updating bans.
@@ -215,5 +219,5 @@ pub struct NewUnban {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedUnban {
 	/// The unban's ID.
-	pub unban_id: u64,
+	pub unban_id: UnbanID,
 }

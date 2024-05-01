@@ -10,7 +10,10 @@ use crate::middleware::cors;
 use crate::{auth, State};
 
 pub mod models;
-pub use models::{CourseInfo, CreatedMap, FullMap, MapInfo, MapUpdate, NewMap};
+pub use models::{
+	CourseID, CourseInfo, CreatedMap, FilterID, FullMap, MapID, MapInfo, MapUpdate, NewMap,
+	WorkshopID,
+};
 
 mod queries;
 pub mod handlers;

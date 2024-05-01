@@ -7,7 +7,7 @@ use crate::middleware::cors;
 use crate::State;
 
 pub mod models;
-pub use models::{CreatedJumpstat, Jumpstat, NewJumpstat};
+pub use models::{CreatedJumpstat, Jumpstat, JumpstatID, NewJumpstat};
 
 mod queries;
 pub mod handlers;

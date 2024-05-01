@@ -11,7 +11,7 @@ use crate::{auth, State};
 
 pub mod models;
 pub use models::{
-	CreatedServer, NewServer, RefreshKey, RefreshKeyRequest, RefreshKeyResponse, Server,
+	CreatedServer, NewServer, RefreshKey, RefreshKeyRequest, RefreshKeyResponse, Server, ServerID,
 	ServerInfo, ServerUpdate,
 };
 

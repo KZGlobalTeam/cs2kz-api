@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\tSELECT\n\t\t\t  s.id,\n\t\t\t  s.refresh_key `refresh_key!: uuid::fmt::Hyphenated`,\n\t\t\t  v.id plugin_version_id,\n\t\t\t  v.semver\n\t\t\tFROM\n\t\t\t  Servers s\n\t\t\t  JOIN PluginVersions v\n\t\t\tWHERE\n\t\t\t  s.id = 1\n\t\t\tLIMIT\n\t\t\t  1\n\t\t\t",
+  "query": "\n\t\t\tSELECT\n\t\t\t  s.id `id: ServerID`,\n\t\t\t  s.refresh_key `refresh_key!: uuid::fmt::Hyphenated`,\n\t\t\t  v.id `plugin_version_id: PluginVersionID`,\n\t\t\t  v.semver\n\t\t\tFROM\n\t\t\t  Servers s\n\t\t\t  JOIN PluginVersions v\n\t\t\tWHERE\n\t\t\t  s.id = 1\n\t\t\tLIMIT\n\t\t\t  1\n\t\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id: ServerID",
         "type_info": {
           "type": "Short",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
@@ -25,7 +25,7 @@
       },
       {
         "ordinal": 2,
-        "name": "plugin_version_id",
+        "name": "plugin_version_id: PluginVersionID",
         "type_info": {
           "type": "Short",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
@@ -54,5 +54,5 @@
       false
     ]
   },
-  "hash": "57ff0591a2c049fd580e4b647d0f74c44a2f31fbef453ab5fa583144ff1b2770"
+  "hash": "9ad8444f1a8dade43f50d42d76be01076f67fc0b765c4d1d84cf10b892dca9b5"
 }

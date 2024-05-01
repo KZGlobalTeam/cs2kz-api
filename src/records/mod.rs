@@ -7,7 +7,7 @@ use crate::middleware::cors;
 use crate::State;
 
 pub mod models;
-pub use models::{BhopStats, CreatedRecord, NewRecord, Record};
+pub use models::{BhopStats, CreatedRecord, NewRecord, Record, RecordID};
 
 mod queries;
 pub mod handlers;

@@ -9,7 +9,7 @@ use tracing::trace;
 use utoipa::IntoParams;
 
 use crate::auth::Jwt;
-use crate::jumpstats::{queries, CreatedJumpstat, Jumpstat, NewJumpstat};
+use crate::jumpstats::{queries, CreatedJumpstat, Jumpstat, JumpstatID, NewJumpstat};
 use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
 use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
@@ -257,5 +257,7 @@ pub async fn post(
 
 	trace!(%jumpstat_id, "created jumpstat");
 
-	Ok(Created(Json(CreatedJumpstat { jumpstat_id })))
+	Ok(Created(Json(CreatedJumpstat {
+		jumpstat_id: JumpstatID(jumpstat_id),
+	})))
 }

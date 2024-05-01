@@ -9,10 +9,13 @@ use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
+use crate::id::make_id;
 use crate::players::Player;
 use crate::records::BhopStats;
 use crate::servers::ServerInfo;
 use crate::time::Seconds;
+
+make_id!(GameSessionID as u64);
 
 /// An in-game session.
 ///
@@ -22,7 +25,7 @@ use crate::time::Seconds;
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct GameSession {
 	/// The session's ID.
-	pub id: u64,
+	pub id: GameSessionID,
 
 	/// The player associated with the session.
 	#[sqlx(flatten)]

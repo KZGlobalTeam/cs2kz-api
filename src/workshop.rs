@@ -11,6 +11,7 @@ use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::process::Command;
 use tracing::error;
 
+use crate::maps::WorkshopID;
 use crate::{Error, Result};
 
 /// A Steam Workshop map that has been downloaded to disk.
@@ -26,7 +27,10 @@ impl WorkshopMap {
 		"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1";
 
 	/// Fetch the name of the workshop map with the given `workshop_id`.
-	pub async fn fetch_name(workshop_id: u32, http_client: &reqwest::Client) -> Result<String> {
+	pub async fn fetch_name(
+		workshop_id: WorkshopID,
+		http_client: &reqwest::Client,
+	) -> Result<String> {
 		let query_params =
 			serde_urlencoded::to_string(Params { workshop_id }).expect("this is valid");
 
@@ -50,7 +54,7 @@ impl WorkshopMap {
 	}
 
 	/// Download the workshop map with the given `workshop_id` to disk.
-	pub async fn download(workshop_id: u32, config: &crate::Config) -> Result<Self> {
+	pub async fn download(workshop_id: WorkshopID, config: &crate::Config) -> Result<Self> {
 		/// We return the same error for a bunch of different failure cases.
 		///
 		/// Each one is logged so we can tell what happened, but we don't need to include
@@ -129,7 +133,7 @@ impl WorkshopMap {
 /// Query parameters for fetching workshop map information.
 struct Params {
 	/// The ID of the workshop map.
-	workshop_id: u32,
+	workshop_id: WorkshopID,
 }
 
 impl Serialize for Params {

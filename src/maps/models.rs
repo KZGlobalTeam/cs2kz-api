@@ -11,7 +11,13 @@ use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
+use crate::id::make_id;
 use crate::players::Player;
+
+make_id!(MapID as u16);
+make_id!(CourseID as u16);
+make_id!(FilterID as u16);
+make_id!(WorkshopID as u32);
 
 /// A KZ map.
 ///
@@ -20,7 +26,7 @@ use crate::players::Player;
 #[derive(Debug, Serialize, ToSchema)]
 pub struct FullMap {
 	/// The map's ID.
-	pub id: u16,
+	pub id: MapID,
 
 	/// The map's name.
 	pub name: String,
@@ -33,7 +39,7 @@ pub struct FullMap {
 	pub global_status: GlobalStatus,
 
 	/// The map's workshop ID.
-	pub workshop_id: u32,
+	pub workshop_id: WorkshopID,
 
 	/// The map's checksum.
 	pub checksum: u32,
@@ -118,7 +124,7 @@ impl FromRow<'_, MySqlRow> for FullMap {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Course {
 	/// The course's ID.
-	pub id: u16,
+	pub id: CourseID,
 
 	/// The course's name.
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -161,7 +167,7 @@ impl FromRow<'_, MySqlRow> for Course {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Filter {
 	/// The filter's ID.
-	pub id: u32,
+	pub id: FilterID,
 
 	/// The mode this filter applies to.
 	pub mode: Mode,
@@ -184,7 +190,7 @@ pub struct Filter {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewMap {
 	/// The map's workshop ID.
-	pub workshop_id: u32,
+	pub workshop_id: WorkshopID,
 
 	/// The map's description.
 	#[serde(default, deserialize_with = "crate::serde::string::deserialize_empty_as_none")]
@@ -319,7 +325,7 @@ pub struct NewFilter {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedMap {
 	/// The map's ID.
-	pub map_id: u16,
+	pub map_id: MapID,
 }
 
 /// Request body for updating maps.
@@ -332,7 +338,7 @@ pub struct MapUpdate {
 	/// A new workshop ID.
 	///
 	/// Setting this parameter implies setting `check_steam=true` and has precedence over it.
-	pub workshop_id: Option<u32>,
+	pub workshop_id: Option<WorkshopID>,
 
 	/// A new global status.
 	pub global_status: Option<GlobalStatus>,
@@ -361,7 +367,7 @@ pub struct MapUpdate {
 	    "description": "cool course!"
 	  }
 	}))]
-	pub course_updates: Option<BTreeMap<u16, CourseUpdate>>,
+	pub course_updates: Option<BTreeMap<CourseID, CourseUpdate>>,
 }
 
 /// Request body for updating courses.
@@ -393,7 +399,7 @@ pub struct CourseUpdate {
 	    "description": "cool course!"
 	  }
 	}))]
-	pub filter_updates: Option<BTreeMap<u16, FilterUpdate>>,
+	pub filter_updates: Option<BTreeMap<FilterID, FilterUpdate>>,
 }
 
 /// Request body for updating course filters.
@@ -415,7 +421,7 @@ pub struct FilterUpdate {
 pub struct MapInfo {
 	/// The map's ID.
 	#[sqlx(rename = "map_id")]
-	pub id: u16,
+	pub id: MapID,
 
 	/// The map's name.
 	#[sqlx(rename = "map_name")]
@@ -427,7 +433,7 @@ pub struct MapInfo {
 pub struct CourseInfo {
 	/// The course's ID.
 	#[sqlx(rename = "course_id")]
-	pub id: u32,
+	pub id: CourseID,
 
 	/// The course's name.
 	#[sqlx(rename = "course_name")]

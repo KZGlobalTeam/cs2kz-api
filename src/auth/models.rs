@@ -16,31 +16,33 @@ use url::Url;
 use utoipa::{IntoParams, ToSchema};
 
 use super::RoleFlags;
+use crate::plugin::PluginVersionID;
+use crate::servers::ServerID;
 use crate::{Error, Result, State};
 
 /// An authenticated server.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 pub struct Server {
 	/// The server's ID.
-	id: u16,
+	id: ServerID,
 
 	/// The CS2KZ version ID the server is currently running on.
-	plugin_version_id: u16,
+	plugin_version_id: PluginVersionID,
 }
 
 impl Server {
 	/// Creates a new [`Server`].
-	pub const fn new(id: u16, plugin_version_id: u16) -> Self {
+	pub const fn new(id: ServerID, plugin_version_id: PluginVersionID) -> Self {
 		Self { id, plugin_version_id }
 	}
 
 	/// The server's ID.
-	pub const fn id(&self) -> u16 {
+	pub const fn id(&self) -> ServerID {
 		self.id
 	}
 
 	/// The CS2KZ version ID the server is currently running on.
-	pub const fn plugin_version_id(&self) -> u16 {
+	pub const fn plugin_version_id(&self) -> PluginVersionID {
 		self.plugin_version_id
 	}
 }

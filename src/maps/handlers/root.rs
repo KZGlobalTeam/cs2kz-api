@@ -13,7 +13,7 @@ use utoipa::IntoParams;
 
 use crate::auth::RoleFlags;
 use crate::maps::models::{NewCourse, NewFilter};
-use crate::maps::{queries, CreatedMap, FullMap, NewMap};
+use crate::maps::{queries, CourseID, CreatedMap, FullMap, MapID, NewMap, WorkshopID};
 use crate::parameters::Limit;
 use crate::responses::Created;
 use crate::sqlx::{FilteredQuery, SqlErrorExt};
@@ -154,10 +154,10 @@ async fn create_map(
 	name: String,
 	description: Option<String>,
 	global_status: GlobalStatus,
-	workshop_id: u32,
+	workshop_id: WorkshopID,
 	checksum: u32,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<u16> {
+) -> Result<MapID> {
 	let deglobal_old_result = sqlx::query! {
 		r#"
 		UPDATE
@@ -205,6 +205,7 @@ async fn create_map(
 	.await?
 	.last_insert_id()
 	.try_into()
+	.map(MapID)
 	.map_err(Error::invalid_id_column)?;
 
 	info!(target: "audit_log", id = %map_id, %name, "created new map");
@@ -214,7 +215,7 @@ async fn create_map(
 
 /// Inserts mappers into the database.
 pub(super) async fn create_mappers(
-	map_id: u16,
+	map_id: MapID,
 	mappers: &[SteamID],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
@@ -243,7 +244,7 @@ pub(super) async fn create_mappers(
 
 /// Inserts map courses into the database.
 async fn create_courses(
-	map_id: u16,
+	map_id: MapID,
 	courses: &[NewCourse],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
@@ -276,7 +277,7 @@ async fn create_courses(
 	.fetch_all(transaction.as_mut())
 	.await?
 	.into_iter()
-	.map(|row| row.id);
+	.map(|row| CourseID(row.id));
 
 	for (course_id, course) in iter::zip(course_ids, courses) {
 		insert_course_mappers(course_id, &course.mappers, transaction).await?;
@@ -288,7 +289,7 @@ async fn create_courses(
 
 /// Inserts mappers for a specific course into the database.
 pub(super) async fn insert_course_mappers(
-	course_id: u16,
+	course_id: CourseID,
 	mappers: &[SteamID],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
@@ -317,7 +318,7 @@ pub(super) async fn insert_course_mappers(
 
 /// Inserts course filters for a specific course into the database.
 async fn insert_course_filters(
-	course_id: u16,
+	course_id: CourseID,
 	filters: &[NewFilter; 4],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {

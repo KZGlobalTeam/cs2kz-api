@@ -10,7 +10,9 @@ use crate::middleware::cors;
 use crate::{auth, State};
 
 pub mod models;
-pub use models::{Ban, BanReason, BanUpdate, CreatedBan, CreatedUnban, NewBan, NewUnban};
+pub use models::{
+	Ban, BanID, BanReason, BanUpdate, CreatedBan, CreatedUnban, NewBan, NewUnban, UnbanID,
+};
 
 mod queries;
 pub mod handlers;

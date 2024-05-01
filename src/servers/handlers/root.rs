@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::auth::RoleFlags;
 use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
-use crate::servers::{queries, CreatedServer, NewServer, Server};
+use crate::servers::{queries, CreatedServer, NewServer, Server, ServerID};
 use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result, State};
 
@@ -154,6 +154,7 @@ pub async fn post(
 	})?
 	.last_insert_id()
 	.try_into()
+	.map(ServerID)
 	.map_err(Error::invalid_id_column)?;
 
 	transaction.commit().await?;

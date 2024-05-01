@@ -12,13 +12,16 @@ use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::id::make_id;
 use crate::players::Player;
+
+make_id!(ServerID as u16);
 
 /// An approved CS2 server.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Server {
 	/// The server's ID.
-	pub id: u16,
+	pub id: ServerID,
 
 	/// The server's name.
 	pub name: String,
@@ -77,7 +80,7 @@ pub struct NewServer {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreatedServer {
 	/// The server's ID.
-	pub server_id: u16,
+	pub server_id: ServerID,
 
 	/// The server's "permanent" refresh key.
 	pub refresh_key: Uuid,
@@ -126,7 +129,7 @@ pub struct RefreshKey {
 pub struct ServerInfo {
 	/// The server's ID.
 	#[sqlx(rename = "server_id")]
-	pub id: u16,
+	pub id: ServerID,
 
 	/// The server's name.
 	#[sqlx(rename = "server_name")]

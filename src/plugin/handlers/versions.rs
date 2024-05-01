@@ -8,7 +8,7 @@ use tracing::debug;
 use utoipa::IntoParams;
 
 use crate::parameters::{Limit, Offset};
-use crate::plugin::{CreatedPluginVersion, NewPluginVersion, PluginVersion};
+use crate::plugin::{CreatedPluginVersion, NewPluginVersion, PluginVersion, PluginVersionID};
 use crate::responses::Created;
 use crate::sqlx::{QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result, State};
@@ -124,6 +124,7 @@ pub async fn post(
 	})?
 	.last_insert_id()
 	.try_into()
+	.map(PluginVersionID)
 	.map_err(Error::invalid_id_column)?;
 
 	transaction.commit().await?;

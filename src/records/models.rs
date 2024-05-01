@@ -7,16 +7,19 @@ use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
-use crate::maps::{CourseInfo, MapInfo};
+use crate::id::make_id;
+use crate::maps::{CourseID, CourseInfo, MapInfo};
 use crate::players::Player;
 use crate::servers::ServerInfo;
 use crate::time::Seconds;
+
+make_id!(RecordID as u64);
 
 /// A record (or "run").
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Record {
 	/// The record's ID:
-	pub id: u64,
+	pub id: RecordID,
 
 	/// The mode this run was performed in.
 	pub mode: Mode,
@@ -123,7 +126,7 @@ pub struct NewRecord {
 	pub style: Style,
 
 	/// The ID of the course this run was performed on.
-	pub course_id: u16,
+	pub course_id: CourseID,
 
 	/// The amount of teleports used during this run.
 	pub teleports: u16,
@@ -139,5 +142,5 @@ pub struct NewRecord {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedRecord {
 	/// The record's ID.
-	pub record_id: u64,
+	pub record_id: RecordID,
 }

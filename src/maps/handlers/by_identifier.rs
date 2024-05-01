@@ -12,7 +12,7 @@ use super::root::create_mappers;
 use crate::auth::RoleFlags;
 use crate::maps::handlers::root::insert_course_mappers;
 use crate::maps::models::{CourseUpdate, FilterUpdate};
-use crate::maps::{queries, FullMap, MapUpdate};
+use crate::maps::{queries, CourseID, FilterID, FullMap, MapID, MapUpdate, WorkshopID};
 use crate::responses::NoContent;
 use crate::sqlx::UpdateQuery;
 use crate::workshop::WorkshopMap;
@@ -77,7 +77,7 @@ pub async fn get(state: &'static State, Path(map): Path<MapIdentifier>) -> Resul
 pub async fn patch(
 	state: &'static State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.as_u32() }>>,
-	Path(map_id): Path<u16>,
+	Path(map_id): Path<MapID>,
 	Json(MapUpdate {
 		description,
 		workshop_id,
@@ -118,9 +118,9 @@ pub async fn patch(
 
 /// Updates map details.
 async fn update_details(
-	map_id: u16,
+	map_id: MapID,
 	description: Option<String>,
-	workshop_id: Option<u32>,
+	workshop_id: Option<WorkshopID>,
 	global_status: Option<GlobalStatus>,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
@@ -157,15 +157,15 @@ async fn update_details(
 
 /// Updates a map's name and checksum by downloading its map file from Steam.
 async fn update_name_and_checksum(
-	map_id: u16,
+	map_id: MapID,
 	config: &crate::Config,
 	http_client: &reqwest::Client,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
-	let workshop_id = sqlx::query!("SELECT workshop_id FROM Maps where id = ?", map_id)
+	let workshop_id = sqlx::query_scalar!("SELECT workshop_id FROM Maps where id = ?", map_id)
 		.fetch_one(transaction.as_mut())
 		.await
-		.map(|row| row.workshop_id)?;
+		.map(WorkshopID)?;
 
 	let name = WorkshopMap::fetch_name(workshop_id, http_client).await?;
 	let checksum = WorkshopMap::download(workshop_id, config)
@@ -201,7 +201,7 @@ async fn update_name_and_checksum(
 
 /// Deletes mappers from the database.
 async fn delete_mappers(
-	map_id: u16,
+	map_id: MapID,
 	mappers: &[SteamID],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
@@ -244,12 +244,12 @@ async fn delete_mappers(
 
 /// Updates courses.
 async fn update_courses<C>(
-	map_id: u16,
+	map_id: MapID,
 	courses: C,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()>
 where
-	C: IntoIterator<Item = (u16, CourseUpdate)> + Send,
+	C: IntoIterator<Item = (CourseID, CourseUpdate)> + Send,
 	C::IntoIter: Send,
 {
 	let mut valid_course_ids = sqlx::query! {
@@ -294,11 +294,11 @@ where
 
 /// Updates an individual course.
 async fn update_course(
-	map_id: u16,
-	course_id: u16,
+	map_id: MapID,
+	course_id: CourseID,
 	CourseUpdate { name, description, added_mappers, removed_mappers, filter_updates }: CourseUpdate,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<Option<u16>> {
+) -> Result<Option<CourseID>> {
 	if name.is_none()
 		&& description.is_none()
 		&& added_mappers.is_none()
@@ -340,7 +340,7 @@ async fn update_course(
 
 /// Deletes course mappers from the database.
 async fn delete_course_mappers(
-	course_id: u16,
+	course_id: CourseID,
 	mappers: &[SteamID],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
@@ -383,13 +383,13 @@ async fn delete_course_mappers(
 
 /// Applies updates to filters for a given course.
 async fn update_filters<F>(
-	map_id: u16,
-	course_id: u16,
+	map_id: MapID,
+	course_id: CourseID,
 	filters: F,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()>
 where
-	F: IntoIterator<Item = (u16, FilterUpdate)> + Send,
+	F: IntoIterator<Item = (FilterID, FilterUpdate)> + Send,
 	F::IntoIter: Send,
 {
 	let mut valid_filter_ids = sqlx::query! {
@@ -440,10 +440,10 @@ where
 
 /// Updates information about a course filter.
 async fn update_filter(
-	filter_id: u16,
+	filter_id: FilterID,
 	FilterUpdate { tier, ranked_status, notes }: FilterUpdate,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<Option<u16>> {
+) -> Result<Option<FilterID>> {
 	if tier.is_none() && ranked_status.is_none() && notes.is_none() {
 		return Ok(None);
 	}

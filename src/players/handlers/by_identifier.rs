@@ -7,9 +7,11 @@ use sqlx::{MySql, QueryBuilder};
 use tracing::trace;
 
 use crate::auth::{self, Jwt, RoleFlags};
+use crate::maps::CourseID;
 use crate::players::models::CourseSession;
 use crate::players::{queries, FullPlayer, PlayerUpdate};
 use crate::responses::{self, NoContent};
+use crate::servers::ServerID;
 use crate::sqlx::SqlErrorExt;
 use crate::{Error, Result, State};
 
@@ -169,8 +171,8 @@ pub async fn patch(
 /// Inserts course sessions into the database.
 async fn insert_course_session(
 	steam_id: SteamID,
-	server_id: u16,
-	course_id: u16,
+	server_id: ServerID,
+	course_id: CourseID,
 	CourseSession { mode, playtime, started_runs, finished_runs, bhop_stats }: CourseSession,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {

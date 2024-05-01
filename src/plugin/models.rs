@@ -7,11 +7,15 @@ use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
+use crate::id::make_id;
+
+make_id!(PluginVersionID as u16);
+
 /// A CS2KZ plugin version.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct PluginVersion {
 	/// The version's ID.
-	pub id: u16,
+	pub id: PluginVersionID,
 
 	/// The semver representation.
 	#[schema(value_type = String)]
@@ -57,5 +61,5 @@ pub struct NewPluginVersion {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedPluginVersion {
 	/// The version's ID.
-	pub plugin_version_id: u16,
+	pub plugin_version_id: PluginVersionID,
 }

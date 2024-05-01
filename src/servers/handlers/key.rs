@@ -8,8 +8,9 @@ use tracing::info;
 use uuid::Uuid;
 
 use crate::auth::{Jwt, RoleFlags};
+use crate::plugin::PluginVersionID;
 use crate::responses::{self, Created, NoContent};
-use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse};
+use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse, ServerID};
 use crate::{auth, Error, Result, State};
 
 #[tracing::instrument(level = "debug", skip(state))]
@@ -34,8 +35,8 @@ pub async fn generate_temp(
 	let server = sqlx::query! {
 		r#"
 		SELECT
-		  s.id server_id,
-		  v.id plugin_version_id
+		  s.id `server_id: ServerID`,
+		  v.id `plugin_version_id: PluginVersionID`
 		FROM
 		  Servers s
 		  JOIN PluginVersions v ON v.semver = ?
@@ -162,16 +163,17 @@ mod tests {
 	use uuid::Uuid;
 
 	use crate::auth;
-	use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse};
+	use crate::plugin::PluginVersionID;
+	use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse, ServerID};
 
 	#[crate::test]
 	async fn generate_temp(ctx: &Context) {
 		let server = sqlx::query! {
 			r#"
 			SELECT
-			  s.id,
+			  s.id `id: ServerID`,
 			  s.refresh_key `refresh_key!: uuid::fmt::Hyphenated`,
-			  v.id plugin_version_id,
+			  v.id `plugin_version_id: PluginVersionID`,
 			  v.semver
 			FROM
 			  Servers s
