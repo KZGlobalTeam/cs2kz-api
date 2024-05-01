@@ -27,10 +27,10 @@
         "ordinal": 2,
         "name": "role_flags: RoleFlags",
         "type_info": {
-          "type": "Long",
+          "type": "LongLong",
           "flags": "NOT_NULL | UNSIGNED",
           "char_set": 63,
-          "max_size": 10
+          "max_size": 20
         }
       }
     ],

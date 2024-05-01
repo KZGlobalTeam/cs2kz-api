@@ -249,7 +249,7 @@ async fn update_courses<C>(
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()>
 where
-	C: IntoIterator<Item = (u32, CourseUpdate)> + Send,
+	C: IntoIterator<Item = (u16, CourseUpdate)> + Send,
 	C::IntoIter: Send,
 {
 	let mut valid_course_ids = sqlx::query! {
@@ -295,10 +295,10 @@ where
 /// Updates an individual course.
 async fn update_course(
 	map_id: u16,
-	course_id: u32,
+	course_id: u16,
 	CourseUpdate { name, description, added_mappers, removed_mappers, filter_updates }: CourseUpdate,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<Option<u32>> {
+) -> Result<Option<u16>> {
 	if name.is_none()
 		&& description.is_none()
 		&& added_mappers.is_none()
@@ -340,7 +340,7 @@ async fn update_course(
 
 /// Deletes course mappers from the database.
 async fn delete_course_mappers(
-	course_id: u32,
+	course_id: u16,
 	mappers: &[SteamID],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
@@ -384,12 +384,12 @@ async fn delete_course_mappers(
 /// Applies updates to filters for a given course.
 async fn update_filters<F>(
 	map_id: u16,
-	course_id: u32,
+	course_id: u16,
 	filters: F,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()>
 where
-	F: IntoIterator<Item = (u32, FilterUpdate)> + Send,
+	F: IntoIterator<Item = (u16, FilterUpdate)> + Send,
 	F::IntoIter: Send,
 {
 	let mut valid_filter_ids = sqlx::query! {
@@ -440,10 +440,10 @@ where
 
 /// Updates information about a course filter.
 async fn update_filter(
-	filter_id: u32,
+	filter_id: u16,
 	FilterUpdate { tier, ranked_status, notes }: FilterUpdate,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<Option<u32>> {
+) -> Result<Option<u16>> {
 	if tier.is_none() && ranked_status.is_none() && notes.is_none() {
 		return Ok(None);
 	}

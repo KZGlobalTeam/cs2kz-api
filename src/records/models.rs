@@ -123,7 +123,7 @@ pub struct NewRecord {
 	pub style: Style,
 
 	/// The ID of the course this run was performed on.
-	pub course_id: u32,
+	pub course_id: u16,
 
 	/// The amount of teleports used during this run.
 	pub teleports: u16,

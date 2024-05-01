@@ -118,7 +118,7 @@ impl FromRow<'_, MySqlRow> for FullMap {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Course {
 	/// The course's ID.
-	pub id: u32,
+	pub id: u16,
 
 	/// The course's name.
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -361,7 +361,7 @@ pub struct MapUpdate {
 	    "description": "cool course!"
 	  }
 	}))]
-	pub course_updates: Option<BTreeMap<u32, CourseUpdate>>,
+	pub course_updates: Option<BTreeMap<u16, CourseUpdate>>,
 }
 
 /// Request body for updating courses.
@@ -393,7 +393,7 @@ pub struct CourseUpdate {
 	    "description": "cool course!"
 	  }
 	}))]
-	pub filter_updates: Option<BTreeMap<u32, FilterUpdate>>,
+	pub filter_updates: Option<BTreeMap<u16, FilterUpdate>>,
 }
 
 /// Request body for updating course filters.

@@ -177,7 +177,7 @@ pub async fn post(
 		INSERT INTO
 		  Records (
 		    filter_id,
-		    style_id,
+		    style_flags,
 		    teleports,
 		    time,
 		    player_id,

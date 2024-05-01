@@ -170,7 +170,7 @@ pub async fn patch(
 async fn insert_course_session(
 	steam_id: SteamID,
 	server_id: u16,
-	course_id: u32,
+	course_id: u16,
 	CourseSession { mode, playtime, started_runs, finished_runs, bhop_stats }: CourseSession,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {

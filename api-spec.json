@@ -3639,7 +3639,7 @@
         "properties": {
           "id": {
             "type": "integer",
-            "format": "uint32",
+            "format": "uint16",
             "description": "The course's ID.",
             "minimum": 0
           },
@@ -4611,7 +4611,7 @@
           },
           "course_id": {
             "type": "integer",
-            "format": "uint32",
+            "format": "uint16",
             "description": "The ID of the course this run was performed on.",
             "minimum": 0
           },

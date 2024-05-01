@@ -288,7 +288,7 @@ async fn create_courses(
 
 /// Inserts mappers for a specific course into the database.
 pub(super) async fn insert_course_mappers(
-	course_id: u32,
+	course_id: u16,
 	mappers: &[SteamID],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
@@ -317,7 +317,7 @@ pub(super) async fn insert_course_mappers(
 
 /// Inserts course filters for a specific course into the database.
 async fn insert_course_filters(
-	course_id: u32,
+	course_id: u16,
 	filters: &[NewFilter; 4],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
