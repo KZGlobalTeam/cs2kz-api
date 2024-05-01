@@ -2,7 +2,6 @@
 
 use std::future::Future;
 use std::marker::PhantomData;
-use std::num::NonZeroU16;
 
 use axum::extract::{FromRequestParts, Path};
 use axum::http::request;
@@ -69,7 +68,7 @@ impl AuthorizeSession for ServerOwner {
 		request: &mut request::Parts,
 		database: &mut Transaction<'static, MySql>,
 	) -> Result<()> {
-		let Path(server_id) = Path::<NonZeroU16>::from_request_parts(request, &()).await?;
+		let Path(server_id) = Path::<u16>::from_request_parts(request, &()).await?;
 
 		let _query_result = sqlx::query! {
 			r#"
@@ -81,7 +80,7 @@ impl AuthorizeSession for ServerOwner {
 			  id = ?
 			  AND owner_id = ?
 			"#,
-			server_id.get(),
+			server_id,
 			user.steam_id(),
 		}
 		.fetch_optional(database.as_mut())

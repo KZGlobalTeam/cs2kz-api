@@ -2,7 +2,6 @@
 
 use std::collections::{BTreeMap, HashSet};
 use std::iter;
-use std::num::{NonZeroU16, NonZeroU32};
 
 use chrono::{DateTime, Utc};
 use cs2kz::{GlobalStatus, Mode, RankedStatus, SteamID, Tier};
@@ -13,7 +12,6 @@ use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
 use crate::players::Player;
-use crate::sqlx::query;
 
 /// A KZ map.
 ///
@@ -22,8 +20,7 @@ use crate::sqlx::query;
 #[derive(Debug, Serialize, ToSchema)]
 pub struct FullMap {
 	/// The map's ID.
-	#[schema(value_type = u16)]
-	pub id: NonZeroU16,
+	pub id: u16,
 
 	/// The map's name.
 	pub name: String,
@@ -101,7 +98,7 @@ impl FullMap {
 impl FromRow<'_, MySqlRow> for FullMap {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: query::non_zero!("id" as NonZeroU16, row)?,
+			id: row.try_get("id")?,
 			name: row.try_get("name")?,
 			description: row.try_get("description")?,
 			global_status: row.try_get("global_status")?,
@@ -121,8 +118,7 @@ impl FromRow<'_, MySqlRow> for FullMap {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Course {
 	/// The course's ID.
-	#[schema(value_type = u32)]
-	pub id: NonZeroU32,
+	pub id: u32,
 
 	/// The course's name.
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -142,7 +138,7 @@ pub struct Course {
 impl FromRow<'_, MySqlRow> for Course {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: query::non_zero!("course_id" as NonZeroU32, row)?,
+			id: row.try_get("course_id")?,
 			name: row.try_get("course_name")?,
 			description: row.try_get("course_description")?,
 			mappers: vec![Player {
@@ -150,7 +146,7 @@ impl FromRow<'_, MySqlRow> for Course {
 				steam_id: row.try_get("course_mapper_id")?,
 			}],
 			filters: vec![Filter {
-				id: query::non_zero!("filter_id" as NonZeroU32, row)?,
+				id: row.try_get("filter_id")?,
 				mode: row.try_get("filter_mode")?,
 				teleports: row.try_get("filter_teleports")?,
 				tier: row.try_get("filter_tier")?,
@@ -165,8 +161,7 @@ impl FromRow<'_, MySqlRow> for Course {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Filter {
 	/// The filter's ID.
-	#[schema(value_type = u32)]
-	pub id: NonZeroU32,
+	pub id: u32,
 
 	/// The mode this filter applies to.
 	pub mode: Mode,
@@ -324,8 +319,7 @@ pub struct NewFilter {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedMap {
 	/// The map's ID.
-	#[schema(value_type = u16)]
-	pub map_id: NonZeroU16,
+	pub map_id: u16,
 }
 
 /// Request body for updating maps.
@@ -367,7 +361,7 @@ pub struct MapUpdate {
 	    "description": "cool course!"
 	  }
 	}))]
-	pub course_updates: Option<BTreeMap<NonZeroU32, CourseUpdate>>,
+	pub course_updates: Option<BTreeMap<u32, CourseUpdate>>,
 }
 
 /// Request body for updating courses.
@@ -399,7 +393,7 @@ pub struct CourseUpdate {
 	    "description": "cool course!"
 	  }
 	}))]
-	pub filter_updates: Option<BTreeMap<NonZeroU32, FilterUpdate>>,
+	pub filter_updates: Option<BTreeMap<u32, FilterUpdate>>,
 }
 
 /// Request body for updating course filters.
@@ -420,9 +414,8 @@ pub struct FilterUpdate {
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct MapInfo {
 	/// The map's ID.
-	#[sqlx(rename = "map_id", try_from = "u16")]
-	#[schema(value_type = u16)]
-	pub id: NonZeroU16,
+	#[sqlx(rename = "map_id")]
+	pub id: u16,
 
 	/// The map's name.
 	#[sqlx(rename = "map_name")]
@@ -433,9 +426,8 @@ pub struct MapInfo {
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct CourseInfo {
 	/// The course's ID.
-	#[sqlx(rename = "course_id", try_from = "u32")]
-	#[schema(value_type = u32)]
-	pub id: NonZeroU32,
+	#[sqlx(rename = "course_id")]
+	pub id: u32,
 
 	/// The course's name.
 	#[sqlx(rename = "course_name")]

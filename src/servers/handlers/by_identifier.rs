@@ -1,7 +1,5 @@
 //! Handlers for the `/servers/{server}` route.
 
-use std::num::NonZeroU16;
-
 use axum::extract::Path;
 use axum::Json;
 use cs2kz::ServerIdentifier;
@@ -72,7 +70,7 @@ pub async fn patch(
 		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::ServerOwner>,
 	>,
 	Transaction(mut transaction): Transaction,
-	Path(server_id): Path<NonZeroU16>,
+	Path(server_id): Path<u16>,
 	Json(ServerUpdate { name, ip_address, owned_by }): Json<ServerUpdate>,
 ) -> Result<NoContent> {
 	if name.is_none() && ip_address.is_none() && owned_by.is_none() {
@@ -95,7 +93,7 @@ pub async fn patch(
 		query.set("owner_id", steam_id);
 	}
 
-	query.push(" WHERE id = ").push_bind(server_id.get());
+	query.push(" WHERE id = ").push_bind(server_id);
 
 	let query_result = query.build().execute(transaction.as_mut()).await?;
 

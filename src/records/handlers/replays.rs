@@ -1,7 +1,5 @@
 //! Handlers for the `/records/{record_id}/replay` route.
 
-use std::num::NonZeroU64;
-
 use axum::extract::Path;
 use axum::http::StatusCode;
 
@@ -20,6 +18,6 @@ use crate::responses;
     responses::InternalServerError,
   ),
 )]
-pub async fn get(Path(_record_id): Path<NonZeroU64>) -> StatusCode {
+pub async fn get(Path(_record_id): Path<u64>) -> StatusCode {
 	StatusCode::SERVICE_UNAVAILABLE
 }

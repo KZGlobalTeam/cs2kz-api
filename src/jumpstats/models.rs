@@ -1,7 +1,5 @@
 //! Types used for describing jumpstats.
 
-use std::num::NonZeroU64;
-
 use chrono::{DateTime, Utc};
 use cs2kz::{JumpType, Mode, SteamID, Style};
 use serde::{Deserialize, Serialize};
@@ -11,15 +9,13 @@ use utoipa::ToSchema;
 
 use crate::players::Player;
 use crate::servers::ServerInfo;
-use crate::sqlx::query;
 use crate::time::Seconds;
 
 /// A jumpstat.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Jumpstat {
 	/// The jumpstat's ID.
-	#[schema(value_type = u64)]
-	pub id: NonZeroU64,
+	pub id: u64,
 
 	/// The jump type.
 	#[serde(rename = "type")]
@@ -85,7 +81,7 @@ pub struct Jumpstat {
 impl FromRow<'_, MySqlRow> for Jumpstat {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: query::non_zero!("id" as NonZeroU64, row)?,
+			id: row.try_get("id")?,
 			jump_type: row.try_get("type")?,
 			mode: row.try_get("mode")?,
 			style: row.try_get("style")?,
@@ -171,6 +167,5 @@ pub struct NewJumpstat {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedJumpstat {
 	/// The jumpstat's ID.
-	#[schema(value_type = u64)]
-	pub jumpstat_id: NonZeroU64,
+	pub jumpstat_id: u64,
 }

@@ -1,7 +1,5 @@
 //! Handlers for the `/bans/{ban_id}` route.
 
-use std::num::NonZeroU64;
-
 use axum::extract::Path;
 use axum::Json;
 use sqlx::{MySqlExecutor, QueryBuilder};
@@ -11,7 +9,7 @@ use crate::auth::RoleFlags;
 use crate::bans::{queries, Ban, BanUpdate, CreatedUnban, NewUnban};
 use crate::responses::{Created, NoContent};
 use crate::sqlx::extract::{Connection, Transaction};
-use crate::sqlx::{query, UpdateQuery};
+use crate::sqlx::UpdateQuery;
 use crate::{auth, responses, Error, Result};
 
 #[tracing::instrument(level = "debug", skip(connection))]
@@ -29,11 +27,11 @@ use crate::{auth, responses, Error, Result};
 )]
 pub async fn get(
 	Connection(mut connection): Connection,
-	Path(ban_id): Path<NonZeroU64>,
+	Path(ban_id): Path<u64>,
 ) -> Result<Json<Ban>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
-	query.push(" WHERE b.id = ").push_bind(ban_id.get());
+	query.push(" WHERE b.id = ").push_bind(ban_id);
 
 	let ban = query
 		.build_query_as::<Ban>()
@@ -63,7 +61,7 @@ pub async fn get(
 pub async fn patch(
 	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>,
 	Transaction(mut transaction): Transaction,
-	Path(ban_id): Path<NonZeroU64>,
+	Path(ban_id): Path<u64>,
 	Json(BanUpdate { reason, expires_on }): Json<BanUpdate>,
 ) -> Result<NoContent> {
 	if reason.is_none() && expires_on.is_none() {
@@ -84,7 +82,7 @@ pub async fn patch(
 		query.set(" expires_on ", expires_on);
 	}
 
-	query.push(" WHERE id = ").push_bind(ban_id.get());
+	query.push(" WHERE id = ").push_bind(ban_id);
 
 	let query_result = query.build().execute(transaction.as_mut()).await?;
 
@@ -117,7 +115,7 @@ pub async fn patch(
 pub async fn delete(
 	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>,
 	Transaction(mut transaction): Transaction,
-	Path(ban_id): Path<NonZeroU64>,
+	Path(ban_id): Path<u64>,
 	Json(NewUnban { reason }): Json<NewUnban>,
 ) -> Result<Created<Json<CreatedUnban>>> {
 	if let Some(ban_id) = is_already_unbanned(ban_id, transaction.as_mut()).await? {
@@ -133,7 +131,7 @@ pub async fn delete(
 		WHERE
 		  id = ?
 		"#,
-		ban_id.get(),
+		ban_id,
 	}
 	.execute(transaction.as_mut())
 	.await?;
@@ -151,13 +149,13 @@ pub async fn delete(
 		VALUES
 		  (?, ?, ?)
 		"#,
-		ban_id.get(),
+		ban_id,
 		reason,
 		session.user().steam_id(),
 	}
 	.execute(transaction.as_mut())
-	.await
-	.map(query::last_insert_id)??;
+	.await?
+	.last_insert_id();
 
 	transaction.commit().await?;
 
@@ -168,10 +166,7 @@ pub async fn delete(
 
 /// Checks if there is an unban associated with the given `ban_id` and returns the corresponding
 /// `ban_id`.
-async fn is_already_unbanned(
-	ban_id: NonZeroU64,
-	executor: impl MySqlExecutor<'_>,
-) -> Result<Option<NonZeroU64>> {
+async fn is_already_unbanned(ban_id: u64, executor: impl MySqlExecutor<'_>) -> Result<Option<u64>> {
 	sqlx::query! {
 		r#"
 		SELECT
@@ -181,12 +176,10 @@ async fn is_already_unbanned(
 		WHERE
 		  ban_id = ?
 		"#,
-		ban_id.get(),
+		ban_id,
 	}
 	.fetch_optional(executor)
-	.await?
-	.map(|row| {
-		NonZeroU64::new(row.id).ok_or_else(|| Error::internal_server_error("unban ID was 0"))
-	})
-	.transpose()
+	.await
+	.map(|row| row.map(|row| row.id))
+	.map_err(Error::from)
 }

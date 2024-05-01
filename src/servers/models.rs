@@ -1,7 +1,6 @@
 //! Types used for describing CS2 servers.
 
 use std::net::{Ipv4Addr, SocketAddrV4};
-use std::num::NonZeroU16;
 
 use chrono::{DateTime, Utc};
 use cs2kz::SteamID;
@@ -14,14 +13,12 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::players::Player;
-use crate::sqlx::query;
 
 /// An approved CS2 server.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Server {
 	/// The server's ID.
-	#[schema(value_type = u16)]
-	pub id: NonZeroU16,
+	pub id: u16,
 
 	/// The server's name.
 	pub name: String,
@@ -40,7 +37,7 @@ pub struct Server {
 impl FromRow<'_, MySqlRow> for Server {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: query::non_zero!("id" as NonZeroU16, row)?,
+			id: row.try_get("id")?,
 			name: row.try_get("name")?,
 			ip_address: {
 				let ip = row
@@ -80,8 +77,7 @@ pub struct NewServer {
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreatedServer {
 	/// The server's ID.
-	#[schema(value_type = u16)]
-	pub server_id: NonZeroU16,
+	pub server_id: u16,
 
 	/// The server's "permanent" refresh key.
 	pub refresh_key: Uuid,
@@ -129,9 +125,8 @@ pub struct RefreshKey {
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct ServerInfo {
 	/// The server's ID.
-	#[sqlx(rename = "server_id", try_from = "u16")]
-	#[schema(value_type = u16)]
-	pub id: NonZeroU16,
+	#[sqlx(rename = "server_id")]
+	pub id: u16,
 
 	/// The server's name.
 	#[sqlx(rename = "server_name")]

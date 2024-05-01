@@ -2,7 +2,6 @@
 
 use std::collections::{BTreeMap, HashSet};
 use std::net::Ipv4Addr;
-use std::num::NonZeroU32;
 
 use cs2kz::{Mode, SteamID};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -106,20 +105,20 @@ pub struct Session {
 
 	/// More data grouped by course & mode.
 	#[serde(deserialize_with = "Session::deserialize_course_sessions")]
-	pub course_sessions: BTreeMap<NonZeroU32, CourseSession>,
+	pub course_sessions: BTreeMap<u32, CourseSession>,
 }
 
 impl Session {
 	/// Deserializes and validates submitted course sessions.
 	fn deserialize_course_sessions<'de, D>(
 		deserializer: D,
-	) -> Result<BTreeMap<NonZeroU32, CourseSession>, D::Error>
+	) -> Result<BTreeMap<u32, CourseSession>, D::Error>
 	where
 		D: Deserializer<'de>,
 	{
 		use serde::de;
 
-		let course_sessions = BTreeMap::<NonZeroU32, CourseSession>::deserialize(deserializer)?;
+		let course_sessions = BTreeMap::<u32, CourseSession>::deserialize(deserializer)?;
 
 		if let Some(course_id) = course_sessions
 			.iter()

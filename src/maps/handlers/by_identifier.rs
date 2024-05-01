@@ -1,7 +1,6 @@
 //! Handlers for the `/maps/{map}` route.
 
 use std::collections::HashSet;
-use std::num::{NonZeroU16, NonZeroU32};
 
 use axum::extract::{Path, State};
 use axum::Json;
@@ -84,7 +83,7 @@ pub async fn patch(
 	State(config): State<&'static crate::Config>,
 	State(http_client): State<reqwest::Client>,
 	Transaction(mut transaction): Transaction,
-	Path(map_id): Path<NonZeroU16>,
+	Path(map_id): Path<u16>,
 	Json(MapUpdate {
 		description,
 		workshop_id,
@@ -122,7 +121,7 @@ pub async fn patch(
 
 /// Updates map details.
 async fn update_details(
-	map_id: NonZeroU16,
+	map_id: u16,
 	description: Option<String>,
 	workshop_id: Option<u32>,
 	global_status: Option<GlobalStatus>,
@@ -146,7 +145,7 @@ async fn update_details(
 		query.set("global_status", global_status);
 	}
 
-	query.push(" WHERE id = ").push_bind(map_id.get());
+	query.push(" WHERE id = ").push_bind(map_id);
 
 	let query_result = query.build().execute(transaction.as_mut()).await?;
 
@@ -161,12 +160,12 @@ async fn update_details(
 
 /// Updates a map's name and checksum by downloading its map file from Steam.
 async fn update_name_and_checksum(
-	map_id: NonZeroU16,
+	map_id: u16,
 	config: &crate::Config,
 	http_client: &reqwest::Client,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
-	let workshop_id = sqlx::query!("SELECT workshop_id FROM Maps where id = ?", map_id.get())
+	let workshop_id = sqlx::query!("SELECT workshop_id FROM Maps where id = ?", map_id)
 		.fetch_one(transaction.as_mut())
 		.await
 		.map(|row| row.workshop_id)?;
@@ -189,7 +188,7 @@ async fn update_name_and_checksum(
 		"#,
 		name,
 		checksum,
-		map_id.get(),
+		map_id,
 	}
 	.execute(transaction.as_mut())
 	.await?;
@@ -205,13 +204,13 @@ async fn update_name_and_checksum(
 
 /// Deletes mappers from the database.
 async fn delete_mappers(
-	map_id: NonZeroU16,
+	map_id: u16,
 	mappers: &[SteamID],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	let mut query = QueryBuilder::new("DELETE FROM Mappers WHERE map_id = ");
 
-	query.push_bind(map_id.get()).push(" AND player_id IN (");
+	query.push_bind(map_id).push(" AND player_id IN (");
 
 	let mut separated = query.separated(", ");
 
@@ -231,7 +230,7 @@ async fn delete_mappers(
 		WHERE
 		  map_id = ?
 		"#,
-		map_id.get(),
+		map_id,
 	}
 	.fetch_one(transaction.as_mut())
 	.await
@@ -248,12 +247,12 @@ async fn delete_mappers(
 
 /// Updates courses.
 async fn update_courses<C>(
-	map_id: NonZeroU16,
+	map_id: u16,
 	courses: C,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()>
 where
-	C: IntoIterator<Item = (NonZeroU32, CourseUpdate)> + Send,
+	C: IntoIterator<Item = (u32, CourseUpdate)> + Send,
 	C::IntoIter: Send,
 {
 	let mut valid_course_ids = sqlx::query! {
@@ -265,7 +264,7 @@ where
 		WHERE
 		  map_id = ?
 		"#,
-		map_id.get(),
+		map_id,
 	}
 	.fetch_all(transaction.as_mut())
 	.await?
@@ -274,7 +273,7 @@ where
 	.collect::<HashSet<_>>();
 
 	let courses = courses.into_iter().map(|(id, update)| {
-		if valid_course_ids.remove(&id.get()) {
+		if valid_course_ids.remove(&id) {
 			(id, Ok(update))
 		} else {
 			(id, Err(Error::course_does_not_belong_to_map(id, map_id)))
@@ -298,11 +297,11 @@ where
 
 /// Updates an individual course.
 async fn update_course(
-	map_id: NonZeroU16,
-	course_id: NonZeroU32,
+	map_id: u16,
+	course_id: u32,
 	CourseUpdate { name, description, added_mappers, removed_mappers, filter_updates }: CourseUpdate,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<Option<NonZeroU32>> {
+) -> Result<Option<u32>> {
 	if name.is_none()
 		&& description.is_none()
 		&& added_mappers.is_none()
@@ -323,7 +322,7 @@ async fn update_course(
 			query.set("description", description);
 		}
 
-		query.push(" WHERE id = ").push_bind(course_id.get());
+		query.push(" WHERE id = ").push_bind(course_id);
 		query.build().execute(transaction.as_mut()).await?;
 	}
 
@@ -344,13 +343,13 @@ async fn update_course(
 
 /// Deletes course mappers from the database.
 async fn delete_course_mappers(
-	course_id: NonZeroU32,
+	course_id: u32,
 	mappers: &[SteamID],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	let mut query = QueryBuilder::new("DELETE FROM CourseMappers WHERE course_id = ");
 
-	query.push_bind(course_id.get()).push(" AND player_id IN (");
+	query.push_bind(course_id).push(" AND player_id IN (");
 
 	let mut separated = query.separated(", ");
 
@@ -370,7 +369,7 @@ async fn delete_course_mappers(
 		WHERE
 		  course_id = ?
 		"#,
-		course_id.get(),
+		course_id,
 	}
 	.fetch_one(transaction.as_mut())
 	.await
@@ -387,13 +386,13 @@ async fn delete_course_mappers(
 
 /// Applies updates to filters for a given course.
 async fn update_filters<F>(
-	map_id: NonZeroU16,
-	course_id: NonZeroU32,
+	map_id: u16,
+	course_id: u32,
 	filters: F,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()>
 where
-	F: IntoIterator<Item = (NonZeroU32, FilterUpdate)> + Send,
+	F: IntoIterator<Item = (u32, FilterUpdate)> + Send,
 	F::IntoIter: Send,
 {
 	let mut valid_filter_ids = sqlx::query! {
@@ -405,7 +404,7 @@ where
 		WHERE
 		  course_id = ?
 		"#,
-		course_id.get(),
+		course_id,
 	}
 	.fetch_all(transaction.as_mut())
 	.await?
@@ -414,7 +413,7 @@ where
 	.collect::<HashSet<_>>();
 
 	let filters = filters.into_iter().map(|(id, update)| {
-		if valid_filter_ids.remove(&id.get()) {
+		if valid_filter_ids.remove(&id) {
 			(id, Ok(update))
 		} else {
 			(id, Err(Error::filter_does_not_belong_to_course(id, course_id)))
@@ -444,10 +443,10 @@ where
 
 /// Updates information about a course filter.
 async fn update_filter(
-	filter_id: NonZeroU32,
+	filter_id: u32,
 	FilterUpdate { tier, ranked_status, notes }: FilterUpdate,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<Option<NonZeroU32>> {
+) -> Result<Option<u32>> {
 	if tier.is_none() && ranked_status.is_none() && notes.is_none() {
 		return Ok(None);
 	}
@@ -466,7 +465,7 @@ async fn update_filter(
 		query.set("notes", notes);
 	}
 
-	query.push(" WHERE id = ").push_bind(filter_id.get());
+	query.push(" WHERE id = ").push_bind(filter_id);
 	query.build().execute(transaction.as_mut()).await?;
 
 	Ok(Some(filter_id))

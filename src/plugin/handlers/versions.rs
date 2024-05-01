@@ -11,7 +11,7 @@ use crate::parameters::{Limit, Offset};
 use crate::plugin::{CreatedPluginVersion, NewPluginVersion, PluginVersion};
 use crate::responses::Created;
 use crate::sqlx::extract::{Connection, Transaction};
-use crate::sqlx::{query, QueryBuilderExt, SqlErrorExt};
+use crate::sqlx::{QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result};
 
 /// Query parameters for `GET /plugin`.
@@ -114,14 +114,16 @@ pub async fn post(
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(query::last_insert_id)
 	.map_err(|err| {
 		if err.is_duplicate_entry() {
 			Error::invalid_plugin_rev()
 		} else {
 			Error::from(err)
 		}
-	})??;
+	})?
+	.last_insert_id()
+	.try_into()
+	.map_err(Error::invalid_id_column)?;
 
 	transaction.commit().await?;
 

@@ -13,7 +13,7 @@ use crate::jumpstats::{queries, CreatedJumpstat, Jumpstat, NewJumpstat};
 use crate::parameters::{Limit, Offset};
 use crate::responses::Created;
 use crate::sqlx::extract::{Connection, Transaction};
-use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
+use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result};
 
 /// Query parameters for `GET /jumpstats`.
@@ -238,19 +238,19 @@ pub async fn post(
 		average_width,
 		airtime.as_secs_f64(),
 		player_id,
-		server.id().get(),
-		server.plugin_version_id().get(),
+		server.id(),
+		server.plugin_version_id(),
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(query::last_insert_id)
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
 			Error::unknown("player").with_source(err)
 		} else {
 			Error::from(err)
 		}
-	})??;
+	})?
+	.last_insert_id();
 
 	transaction.commit().await?;
 

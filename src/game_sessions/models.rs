@@ -3,8 +3,6 @@
 //! Game sessions are recorded while players are playing on global servers, and submitted whenever
 //! a player disconnects or when the map changes.
 
-use std::num::NonZeroU64;
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::mysql::MySqlRow;
@@ -24,9 +22,7 @@ use crate::time::Seconds;
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct GameSession {
 	/// The session's ID.
-	#[sqlx(try_from = "u64")]
-	#[schema(value_type = u64)]
-	pub id: NonZeroU64,
+	pub id: u64,
 
 	/// The player associated with the session.
 	#[sqlx(flatten)]

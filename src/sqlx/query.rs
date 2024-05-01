@@ -1,28 +1,10 @@
 //! Utilities for SQL queries.
 
-use std::error::Error as StdError;
-use std::num::NonZeroU64;
-
 use derive_more::{Deref, DerefMut};
 use sqlx::encode::IsNull;
-use sqlx::mysql::MySqlQueryResult;
 use sqlx::{MySql, QueryBuilder};
-use thiserror::Error;
 
 use crate::parameters::{Limit, Offset};
-use crate::{Error, Result};
-
-/// Extracts the `LAST_INSERT_ID()` from a query and parses it into some `ID`.
-pub fn last_insert_id<ID>(query_result: MySqlQueryResult) -> Result<ID>
-where
-	NonZeroU64: TryInto<ID>,
-	<NonZeroU64 as TryInto<ID>>::Error: StdError + Send + Sync + 'static,
-{
-	NonZeroU64::new(query_result.last_insert_id())
-		.ok_or_else(|| Error::internal_server_error("PKs cannot be 0"))
-		.map(TryInto::try_into)?
-		.map_err(|err| Error::internal_server_error("invalid PK type").with_source(err))
-}
 
 /// Extension trait for [`sqlx::QueryBuilder`].
 pub trait QueryBuilderExt {
@@ -182,22 +164,3 @@ impl<'q> UpdateQuery<'q> {
 		self
 	}
 }
-
-#[derive(Debug, Error)]
-#[error("non-zero integer was zero")]
-#[allow(clippy::missing_docs_in_private_items)]
-pub struct NonZeroIntWasZero;
-
-/// Helper macro for parsing the `NonZero*` types from the standard library out of query results.
-macro_rules! non_zero {
-	($col:literal as $ty:ty, $row:expr) => {
-		$row.try_get($col)
-			.map(<$ty>::new)?
-			.ok_or_else(|| sqlx::Error::ColumnDecode {
-				index: String::from($col),
-				source: Box::new($crate::sqlx::query::NonZeroIntWasZero),
-			})
-	};
-}
-
-pub(crate) use non_zero;

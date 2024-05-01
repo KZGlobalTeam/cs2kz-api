@@ -13,7 +13,7 @@ use crate::parameters::{Limit, Offset};
 use crate::records::{queries, CreatedRecord, NewRecord, Record};
 use crate::responses::Created;
 use crate::sqlx::extract::{Connection, Transaction};
-use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
+use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result};
 
 /// Query parameters for `GET /records`.
@@ -162,7 +162,7 @@ pub async fn post(
 		  AND mode_id = ?
 		  AND teleports = ?
 		"#,
-		course_id.get(),
+		course_id,
 		mode,
 		teleports > 0,
 	}
@@ -202,7 +202,7 @@ pub async fn post(
 		teleports,
 		time.as_secs_f64(),
 		player_id,
-		server.id().get(),
+		server.id(),
 		bhop_stats.perfs,
 		bhop_stats.tick0,
 		bhop_stats.tick1,
@@ -213,18 +213,18 @@ pub async fn post(
 		bhop_stats.tick6,
 		bhop_stats.tick7,
 		bhop_stats.tick8,
-		server.plugin_version_id().get(),
+		server.plugin_version_id(),
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(query::last_insert_id)
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
 			Error::unknown("player").with_source(err)
 		} else {
 			Error::from(err)
 		}
-	})??;
+	})?
+	.last_insert_id();
 
 	transaction.commit().await?;
 

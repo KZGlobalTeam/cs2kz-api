@@ -1,6 +1,5 @@
 //! Types related to authentication.
 
-use std::num::NonZeroU16;
 use std::result::Result as StdResult;
 
 use axum::async_trait;
@@ -23,27 +22,25 @@ use crate::{Error, Result};
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 pub struct Server {
 	/// The server's ID.
-	#[schema(value_type = u16)]
-	id: NonZeroU16,
+	id: u16,
 
 	/// The CS2KZ version ID the server is currently running on.
-	#[schema(value_type = u16)]
-	plugin_version_id: NonZeroU16,
+	plugin_version_id: u16,
 }
 
 impl Server {
 	/// Creates a new [`Server`].
-	pub const fn new(id: NonZeroU16, plugin_version_id: NonZeroU16) -> Self {
+	pub const fn new(id: u16, plugin_version_id: u16) -> Self {
 		Self { id, plugin_version_id }
 	}
 
 	/// The server's ID.
-	pub const fn id(&self) -> NonZeroU16 {
+	pub const fn id(&self) -> u16 {
 		self.id
 	}
 
 	/// The CS2KZ version ID the server is currently running on.
-	pub const fn plugin_version_id(&self) -> NonZeroU16 {
+	pub const fn plugin_version_id(&self) -> u16 {
 		self.plugin_version_id
 	}
 }

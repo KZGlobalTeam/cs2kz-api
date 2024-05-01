@@ -1,7 +1,5 @@
 //! Handlers for the `/players/{player}` route.
 
-use std::num::{NonZeroU16, NonZeroU32, NonZeroU64};
-
 use axum::extract::Path;
 use axum::Json;
 use cs2kz::{PlayerIdentifier, SteamID};
@@ -13,7 +11,7 @@ use crate::players::models::CourseSession;
 use crate::players::{queries, FullPlayer, PlayerUpdate};
 use crate::responses::{self, NoContent};
 use crate::sqlx::extract::{Connection, Transaction};
-use crate::sqlx::{query, SqlErrorExt};
+use crate::sqlx::SqlErrorExt;
 use crate::{Error, Result};
 
 #[tracing::instrument(level = "debug", skip(connection))]
@@ -129,7 +127,7 @@ pub async fn patch(
 		  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		"#,
 		steam_id,
-		server.id().get(),
+		server.id(),
 		session.time_spent.active.as_secs(),
 		session.time_spent.spectating.as_secs(),
 		session.time_spent.afk.as_secs(),
@@ -146,14 +144,14 @@ pub async fn patch(
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(query::last_insert_id::<NonZeroU64>)
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
 			Error::unknown("player").with_source(err)
 		} else {
 			Error::from(err)
 		}
-	})??;
+	})?
+	.last_insert_id();
 
 	trace!(target: "audit_log", %steam_id, session.id = %session_id, "created game session");
 
@@ -170,8 +168,8 @@ pub async fn patch(
 /// Inserts course sessions into the database.
 async fn insert_course_session(
 	steam_id: SteamID,
-	server_id: NonZeroU16,
-	course_id: NonZeroU32,
+	server_id: u16,
+	course_id: u32,
 	CourseSession { mode, playtime, started_runs, finished_runs, bhop_stats }: CourseSession,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
@@ -201,9 +199,9 @@ async fn insert_course_session(
 		  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		"#,
 		steam_id,
-		course_id.get(),
+		course_id,
 		mode,
-		server_id.get(),
+		server_id,
 		playtime.as_secs(),
 		started_runs,
 		finished_runs,
@@ -220,7 +218,6 @@ async fn insert_course_session(
 	}
 	.execute(transaction.as_mut())
 	.await
-	.map(query::last_insert_id::<NonZeroU64>)
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
 			Error::unknown("player").with_source(err)
@@ -229,7 +226,8 @@ async fn insert_course_session(
 		} else {
 			Error::from(err)
 		}
-	})??;
+	})?
+	.last_insert_id();
 
 	trace! {
 		target: "audit_log",

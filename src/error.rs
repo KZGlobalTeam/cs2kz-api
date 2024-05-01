@@ -7,7 +7,7 @@
 
 use std::error::Error as StdError;
 use std::fmt::Display;
-use std::num::{NonZeroU16, NonZeroU32, NonZeroU64};
+use std::num::TryFromIntError;
 use std::panic::Location;
 
 use axum::extract::rejection::PathRejection;
@@ -84,6 +84,12 @@ impl Error {
 			.with_message(message)
 	}
 
+	/// Converting a database ID column type failed.
+	#[track_caller]
+	pub(crate) fn invalid_id_column(error: TryFromIntError) -> Self {
+		Error::internal_server_error("invalid ID type").with_source(error)
+	}
+
 	/// `204 No Content` status code.
 	#[track_caller]
 	pub(crate) fn no_content() -> Self {
@@ -118,7 +124,7 @@ impl Error {
 	/// When PATCHing maps, the user shouldn't be allowed to update courses that do not belong
 	/// to the map.
 	#[track_caller]
-	pub(crate) fn course_does_not_belong_to_map(course_id: NonZeroU32, map_id: NonZeroU16) -> Self {
+	pub(crate) fn course_does_not_belong_to_map(course_id: u32, map_id: u16) -> Self {
 		Self::new(StatusCode::CONFLICT).with_message(format_args!(
 			"course with ID `{course_id}` does not belong to map `{map_id}`"
 		))
@@ -127,10 +133,7 @@ impl Error {
 	/// When PATCHing maps, the user shouldn't be allowed to update filters that do not belong
 	/// to courses on the map.
 	#[track_caller]
-	pub(crate) fn filter_does_not_belong_to_course(
-		filter_id: NonZeroU32,
-		course_id: NonZeroU32,
-	) -> Self {
+	pub(crate) fn filter_does_not_belong_to_course(filter_id: u32, course_id: u32) -> Self {
 		Self::new(StatusCode::CONFLICT).with_message(format_args!(
 			"filter with ID `{filter_id}` does not belong to course `{course_id}`"
 		))
@@ -154,7 +157,7 @@ impl Error {
 	/// When updating or deleting a ban, the ban might have already expired / reverted
 	/// previously.
 	#[track_caller]
-	pub(crate) fn ban_already_reverted(ban_id: NonZeroU64) -> Self {
+	pub(crate) fn ban_already_reverted(ban_id: u64) -> Self {
 		Self::new(StatusCode::CONFLICT)
 			.with_message(format_args!("ban `{ban_id}` has already been reverted"))
 	}

@@ -1,7 +1,6 @@
 //! Handlers for the `/maps` route.
 
 use std::iter;
-use std::num::{NonZeroU16, NonZeroU32};
 
 use axum::extract::{Query, State};
 use axum::Json;
@@ -18,7 +17,7 @@ use crate::maps::{queries, CreatedMap, FullMap, NewMap};
 use crate::parameters::Limit;
 use crate::responses::Created;
 use crate::sqlx::extract::{Connection, Transaction};
-use crate::sqlx::{query, FilteredQuery, SqlErrorExt};
+use crate::sqlx::{FilteredQuery, SqlErrorExt};
 use crate::workshop::WorkshopMap;
 use crate::{auth, responses, Error, Result};
 
@@ -159,7 +158,7 @@ async fn create_map(
 	workshop_id: u32,
 	checksum: u32,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<NonZeroU16> {
+) -> Result<u16> {
 	let deglobal_old_result = sqlx::query! {
 		r#"
 		UPDATE
@@ -204,8 +203,10 @@ async fn create_map(
 		checksum,
 	}
 	.execute(transaction.as_mut())
-	.await
-	.map(query::last_insert_id)??;
+	.await?
+	.last_insert_id()
+	.try_into()
+	.map_err(Error::invalid_id_column)?;
 
 	info!(target: "audit_log", id = %map_id, %name, "created new map");
 
@@ -214,14 +215,14 @@ async fn create_map(
 
 /// Inserts mappers into the database.
 pub(super) async fn create_mappers(
-	map_id: NonZeroU16,
+	map_id: u16,
 	mappers: &[SteamID],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	let mut query = QueryBuilder::new("INSERT INTO Mappers (map_id, player_id)");
 
 	query.push_values(mappers, |mut query, steam_id| {
-		query.push_bind(map_id.get()).push_bind(steam_id);
+		query.push_bind(map_id).push_bind(steam_id);
 	});
 
 	query
@@ -243,7 +244,7 @@ pub(super) async fn create_mappers(
 
 /// Inserts map courses into the database.
 async fn create_courses(
-	map_id: NonZeroU16,
+	map_id: u16,
 	courses: &[NewCourse],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
@@ -253,7 +254,7 @@ async fn create_courses(
 		query
 			.push_bind(course.name.as_deref())
 			.push_bind(course.description.as_deref())
-			.push_bind(map_id.get());
+			.push_bind(map_id);
 	});
 
 	query.build().execute(transaction.as_mut()).await?;
@@ -276,14 +277,9 @@ async fn create_courses(
 	.fetch_all(transaction.as_mut())
 	.await?
 	.into_iter()
-	.map(|row| {
-		NonZeroU32::try_from(row.id)
-			.map_err(|err| Error::internal_server_error("PKs cannot be 0").with_source(err))
-	});
+	.map(|row| row.id);
 
 	for (course_id, course) in iter::zip(course_ids, courses) {
-		let course_id = course_id?;
-
 		insert_course_mappers(course_id, &course.mappers, transaction).await?;
 		insert_course_filters(course_id, &course.filters, transaction).await?;
 	}
@@ -293,14 +289,14 @@ async fn create_courses(
 
 /// Inserts mappers for a specific course into the database.
 pub(super) async fn insert_course_mappers(
-	course_id: NonZeroU32,
+	course_id: u32,
 	mappers: &[SteamID],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
 	let mut query = QueryBuilder::new("INSERT INTO CourseMappers (course_id, player_id)");
 
 	query.push_values(mappers, |mut query, steam_id| {
-		query.push_bind(course_id.get()).push_bind(steam_id);
+		query.push_bind(course_id).push_bind(steam_id);
 	});
 
 	query
@@ -322,7 +318,7 @@ pub(super) async fn insert_course_mappers(
 
 /// Inserts course filters for a specific course into the database.
 async fn insert_course_filters(
-	course_id: NonZeroU32,
+	course_id: u32,
 	filters: &[NewFilter; 4],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
@@ -342,7 +338,7 @@ async fn insert_course_filters(
 
 	query.push_values(filters, |mut query, filter| {
 		query
-			.push_bind(course_id.get())
+			.push_bind(course_id)
 			.push_bind(filter.mode)
 			.push_bind(filter.teleports)
 			.push_bind(filter.tier)

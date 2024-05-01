@@ -1,7 +1,6 @@
 //! Types used for describing bans and related concepts.
 
 use std::net::Ipv4Addr;
-use std::num::NonZeroU64;
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
@@ -15,14 +14,12 @@ use utoipa::ToSchema;
 
 use crate::players::Player;
 use crate::servers::ServerInfo;
-use crate::sqlx::query;
 
 /// A player ban.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Ban {
 	/// The ban's ID.
-	#[schema(value_type = u64)]
-	pub id: NonZeroU64,
+	pub id: u64,
 
 	/// The player affected by this ban.
 	pub player: Player,
@@ -52,7 +49,7 @@ pub struct Ban {
 impl FromRow<'_, MySqlRow> for Ban {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: query::non_zero!("id" as NonZeroU64, row)?,
+			id: row.try_get("id")?,
 			player: Player::from_row(row)?,
 			server: ServerInfo::from_row(row).ok(),
 			reason: row.try_get("reason")?,
@@ -146,8 +143,7 @@ impl<'q> sqlx::Decode<'q, MySql> for BanReason {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Unban {
 	/// The unban's ID.
-	#[schema(value_type = u64)]
-	pub id: NonZeroU64,
+	pub id: u64,
 
 	/// The reason for the unban.
 	pub reason: String,
@@ -162,7 +158,7 @@ pub struct Unban {
 impl FromRow<'_, MySqlRow> for Unban {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: query::non_zero!("unban_id" as NonZeroU64, row)?,
+			id: row.try_get("unban_id")?,
 			reason: row.try_get("unban_reason")?,
 			admin: row
 				.try_get("unban_admin_name")
@@ -191,8 +187,7 @@ pub struct NewBan {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedBan {
 	/// The ban's ID.
-	#[schema(value_type = u64)]
-	pub ban_id: NonZeroU64,
+	pub ban_id: u64,
 }
 
 /// Request body for updating bans.
@@ -220,6 +215,5 @@ pub struct NewUnban {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedUnban {
 	/// The unban's ID.
-	#[schema(value_type = u64)]
-	pub unban_id: NonZeroU64,
+	pub unban_id: u64,
 }

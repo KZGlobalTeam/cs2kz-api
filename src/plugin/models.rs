@@ -1,7 +1,5 @@
 //! Types for representing CS2KZ plugin versions.
 
-use std::num::NonZeroU16;
-
 use chrono::{DateTime, Utc};
 use semver::Version;
 use serde::{Deserialize, Serialize};
@@ -9,14 +7,11 @@ use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
-use crate::sqlx::query;
-
 /// A CS2KZ plugin version.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct PluginVersion {
 	/// The version's ID.
-	#[schema(value_type = u16)]
-	pub id: NonZeroU16,
+	pub id: u16,
 
 	/// The semver representation.
 	#[schema(value_type = String)]
@@ -32,7 +27,7 @@ pub struct PluginVersion {
 impl FromRow<'_, MySqlRow> for PluginVersion {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: query::non_zero!("id" as NonZeroU16, row)?,
+			id: row.try_get("id")?,
 			semver: row
 				.try_get::<&str, _>("semver")?
 				.parse::<Version>()
@@ -62,6 +57,5 @@ pub struct NewPluginVersion {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedPluginVersion {
 	/// The version's ID.
-	#[schema(value_type = u16)]
-	pub plugin_version_id: NonZeroU16,
+	pub plugin_version_id: u16,
 }

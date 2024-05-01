@@ -1,7 +1,5 @@
 //! Handlers for the `/jumpstats/{jumpstat_id}` route.
 
-use std::num::NonZeroU64;
-
 use axum::extract::Path;
 use axum::Json;
 use sqlx::QueryBuilder;
@@ -25,11 +23,11 @@ use crate::{responses, Error, Result};
 )]
 pub async fn get(
 	Connection(mut connection): Connection,
-	Path(jumpstat_id): Path<NonZeroU64>,
+	Path(jumpstat_id): Path<u64>,
 ) -> Result<Json<Jumpstat>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
-	query.push(" WHERE j.id = ").push_bind(jumpstat_id.get());
+	query.push(" WHERE j.id = ").push_bind(jumpstat_id);
 
 	let jumpstat = query
 		.build_query_as::<Jumpstat>()

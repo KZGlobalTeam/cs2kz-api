@@ -1,6 +1,5 @@
 //! Handlers for the `/servers/key` route.
 
-use std::num::NonZeroU16;
 use std::time::Duration;
 
 use axum::extract::{Path, State};
@@ -48,12 +47,7 @@ pub async fn generate_temp(
 	}
 	.fetch_optional(transaction.as_mut())
 	.await?
-	.and_then(|row| {
-		Some((
-			NonZeroU16::new(row.server_id)?,
-			NonZeroU16::new(row.plugin_version_id)?,
-		))
-	})
+	.map(|row| (row.server_id, row.plugin_version_id))
 	.map(|(server_id, plugin_version_id)| auth::Server::new(server_id, plugin_version_id))
 	.ok_or_else(|| Error::invalid_refresh_key())?;
 
@@ -85,7 +79,7 @@ pub async fn put_perma(
 		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::ServerOwner>,
 	>,
 	Transaction(mut transaction): Transaction,
-	Path(server_id): Path<NonZeroU16>,
+	Path(server_id): Path<u16>,
 ) -> Result<Created<Json<RefreshKey>>> {
 	let refresh_key = Uuid::new_v4();
 	let query_result = sqlx::query! {
@@ -98,7 +92,7 @@ pub async fn put_perma(
 		  id = ?
 		"#,
 		refresh_key,
-		server_id.get()
+		server_id
 	}
 	.execute(transaction.as_mut())
 	.await?;
@@ -131,7 +125,7 @@ pub async fn put_perma(
 pub async fn delete_perma(
 	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>>,
 	Transaction(mut transaction): Transaction,
-	Path(server_id): Path<NonZeroU16>,
+	Path(server_id): Path<u16>,
 ) -> Result<NoContent> {
 	let query_result = sqlx::query! {
 		r#"
@@ -142,7 +136,7 @@ pub async fn delete_perma(
 		WHERE
 		  id = ?
 		"#,
-		server_id.get(),
+		server_id,
 	}
 	.execute(transaction.as_mut())
 	.await?;
@@ -206,8 +200,8 @@ mod tests {
 		let RefreshKeyResponse { access_key } = response.json().await?;
 		let server_info = ctx.decode_jwt::<auth::Server>(&access_key)?;
 
-		assert_eq!(server_info.id().get(), server.id);
-		assert_eq!(server_info.plugin_version_id().get(), server.plugin_version_id);
+		assert_eq!(server_info.id(), server.id);
+		assert_eq!(server_info.plugin_version_id(), server.plugin_version_id);
 	}
 
 	#[crate::test(fixtures = ["alphakeks-server-role"])]

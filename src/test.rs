@@ -1,5 +1,4 @@
 use std::fmt::Display;
-use std::num::NonZeroU16;
 use std::time::Duration;
 
 use cs2kz::SteamID;
@@ -119,7 +118,7 @@ impl Context {
 		&self,
 		expires_after: Duration,
 	) -> Result<String, jsonwebtoken::errors::Error> {
-		let server = auth::Server::new(NonZeroU16::new(1).unwrap(), NonZeroU16::new(1).unwrap());
+		let server = auth::Server::new(1, 1);
 
 		self.encode_jwt(&server, expires_after)
 	}

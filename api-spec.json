@@ -998,6 +998,18 @@
           "Servers"
         ],
         "operationId": "patch",
+        "parameters": [
+          {
+            "name": "server",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint16",
+              "minimum": 0
+            }
+          }
+        ],
         "requestBody": {
           "description": "",
           "content": {
@@ -2777,6 +2789,16 @@
             "name": "sesion_id",
             "in": "path",
             "description": "The session's ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "path",
             "required": true,
             "schema": {
               "type": "integer",

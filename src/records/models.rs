@@ -1,7 +1,5 @@
 //! Types used for describing records ("runs") and related concepts.
 
-use std::num::{NonZeroU32, NonZeroU64};
-
 use chrono::{DateTime, Utc};
 use cs2kz::{Mode, SteamID, Style};
 use serde::{Deserialize, Serialize};
@@ -12,15 +10,13 @@ use utoipa::ToSchema;
 use crate::maps::{CourseInfo, MapInfo};
 use crate::players::Player;
 use crate::servers::ServerInfo;
-use crate::sqlx::query;
 use crate::time::Seconds;
 
 /// A record (or "run").
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Record {
 	/// The record's ID:
-	#[schema(value_type = u64)]
-	pub id: NonZeroU64,
+	pub id: u64,
 
 	/// The mode this run was performed in.
 	pub mode: Mode,
@@ -56,7 +52,7 @@ pub struct Record {
 impl FromRow<'_, MySqlRow> for Record {
 	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
-			id: query::non_zero!("id" as NonZeroU64, row)?,
+			id: row.try_get("id")?,
 			mode: row.try_get("mode")?,
 			style: row.try_get("style")?,
 			teleports: row.try_get("teleports")?,
@@ -127,8 +123,7 @@ pub struct NewRecord {
 	pub style: Style,
 
 	/// The ID of the course this run was performed on.
-	#[schema(value_type = u32)]
-	pub course_id: NonZeroU32,
+	pub course_id: u32,
 
 	/// The amount of teleports used during this run.
 	pub teleports: u16,
@@ -144,6 +139,5 @@ pub struct NewRecord {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct CreatedRecord {
 	/// The record's ID.
-	#[schema(value_type = u64)]
-	pub record_id: NonZeroU64,
+	pub record_id: u64,
 }

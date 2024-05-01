@@ -1,7 +1,5 @@
 //! Handlers for the `/records/{record_id}` route.
 
-use std::num::NonZeroU64;
-
 use axum::extract::Path;
 use axum::Json;
 use sqlx::QueryBuilder;
@@ -25,11 +23,11 @@ use crate::{responses, Error, Result};
 )]
 pub async fn get(
 	Connection(mut connection): Connection,
-	Path(record_id): Path<NonZeroU64>,
+	Path(record_id): Path<u64>,
 ) -> Result<Json<Record>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
-	query.push(" WHERE r.id = ").push_bind(record_id.get());
+	query.push(" WHERE r.id = ").push_bind(record_id);
 
 	let record = query
 		.build_query_as::<Record>()

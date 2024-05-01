@@ -1,7 +1,5 @@
 //! Handlers for the `/sessions/{session_id}` routes.
 
-use std::num::NonZeroU64;
-
 use axum::extract::Path;
 use axum::Json;
 
@@ -24,7 +22,7 @@ use crate::{responses, Error, Result};
 )]
 pub async fn get(
 	Connection(mut connection): Connection,
-	Path(session_id): Path<NonZeroU64>,
+	Path(session_id): Path<u64>,
 ) -> Result<Json<GameSession>> {
 	let session = sqlx::query_as(
 		r#"
@@ -56,7 +54,7 @@ pub async fn get(
 		  s.id = ?
 		"#,
 	)
-	.bind(session_id.get())
+	.bind(session_id)
 	.fetch_optional(connection.as_mut())
 	.await?
 	.ok_or_else(|| Error::no_content())?;
