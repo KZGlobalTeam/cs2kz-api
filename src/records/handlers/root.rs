@@ -92,7 +92,7 @@ pub async fn get(
 			query.filter(" r.teleports > ", 0);
 		}
 		Some(false) => {
-			query.filter(" r.teleports < ", 0);
+			query.filter(" r.teleports = ", 0);
 		}
 	}
 
