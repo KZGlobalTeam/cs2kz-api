@@ -24,9 +24,8 @@ pub struct Record {
 	/// The mode this run was performed in.
 	pub mode: Mode,
 
-	/// The style this run was performed in.
-	pub style: Style,
-
+	// /// The style(s) this run was performed in.
+	// pub style: Style,
 	/// The amount of teleports used during this run.
 	pub teleports: u16,
 
@@ -57,7 +56,7 @@ impl FromRow<'_, MySqlRow> for Record {
 		Ok(Self {
 			id: row.try_get("id")?,
 			mode: row.try_get("mode")?,
-			style: row.try_get("style")?,
+			// style: row.try_get("style_flags")?,
 			teleports: row.try_get("teleports")?,
 			time: row.try_get("time")?,
 			player: Player::from_row(row)?,

@@ -4,9 +4,9 @@ use axum::extract::Query;
 use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{Mode, PlayerIdentifier, ServerIdentifier, Style};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tracing::trace;
-use utoipa::IntoParams;
+use utoipa::{IntoParams, ToSchema};
 
 use crate::auth::Jwt;
 use crate::parameters::{Limit, Offset};
@@ -48,6 +48,18 @@ pub struct GetParams {
 	offset: Offset,
 }
 
+/// Response body for `GET /records`.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct GetResponse {
+	/// The total amount of records available.
+	///
+	/// Used for pagination.
+	total: u64,
+
+	/// The records.
+	records: Vec<Record>,
+}
+
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -55,7 +67,7 @@ pub struct GetParams {
   tag = "Records",
   params(GetParams),
   responses(
-    responses::Ok<Record>,
+    responses::Ok<GetResponse>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,
@@ -74,15 +86,16 @@ pub async fn get(
 		limit,
 		offset,
 	}): Query<GetParams>,
-) -> Result<Json<Vec<Record>>> {
+) -> Result<Json<GetResponse>> {
 	let mut query = FilteredQuery::new(queries::SELECT);
 
 	if let Some(mode) = mode {
 		query.filter(" f.mode_id = ", mode);
 	}
 
-	if let Some(style) = style {
-		query.filter(" r.style_id = ", style);
+	if let Some(_style) = style {
+		// FIXME: flags
+		// query.filter(" r.style_id = ", style);
 	}
 
 	match teleports {
@@ -117,16 +130,26 @@ pub async fn get(
 
 	query.push_limits(limit, offset);
 
+	let mut transaction = state.transaction().await?;
+
 	let records = query
 		.build_query_as::<Record>()
-		.fetch_all(&state.database)
+		.fetch_all(transaction.as_mut())
 		.await?;
+
+	let total = sqlx::query_scalar!("SELECT FOUND_ROWS() as total")
+		.fetch_one(transaction.as_mut())
+		.await?
+		.try_into()
+		.expect("how can a count be negative");
+
+	transaction.commit().await?;
 
 	if records.is_empty() {
 		return Err(Error::no_content());
 	}
 
-	Ok(Json(records))
+	Ok(Json(GetResponse { total, records }))
 }
 
 #[tracing::instrument(level = "debug", skip(state))]

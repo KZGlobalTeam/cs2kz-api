@@ -2,10 +2,10 @@
 
 /// SQL query for fetching records.
 pub static SELECT: &str = r#"
-	SELECT
+	SELECT SQL_CALC_FOUND_ROWS
 	  r.id,
 	  f.mode_id mode,
-	  r.style_id style,
+	  r.style_flags,
 	  r.teleports,
 	  r.time,
 	  p.name player_name,
