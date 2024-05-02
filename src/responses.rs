@@ -11,7 +11,7 @@ use std::collections::BTreeMap;
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use utoipa::openapi::response::Response as ResponseSchema;
 use utoipa::openapi::schema::Schema;
 use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
@@ -20,7 +20,7 @@ use utoipa::{IntoResponses, ToSchema};
 // General purpose response body for pagination.
 //
 // It includes the total amount of results that can be requested, as well as the current payload.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct PaginationResponse<T>
 where
 	T: ToSchema<'static>,

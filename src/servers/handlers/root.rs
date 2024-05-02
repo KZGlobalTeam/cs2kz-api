@@ -177,6 +177,7 @@ mod tests {
 	use cs2kz::SteamID;
 	use reqwest::header;
 
+	use crate::responses::PaginationResponse;
 	use crate::servers::{CreatedServer, NewServer, Server};
 
 	#[crate::test]
@@ -190,9 +191,9 @@ mod tests {
 
 		assert_eq!(response.status(), 200);
 
-		let servers = response.json::<Vec<Server>>().await?;
+		let response = response.json::<PaginationResponse<Server>>().await?;
 
-		assert!(servers.len() <= 7);
+		assert!(response.results.len() <= 7);
 	}
 
 	#[crate::test(fixtures = ["alphakeks-server-role"])]

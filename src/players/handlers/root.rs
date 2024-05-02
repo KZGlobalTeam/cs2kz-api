@@ -129,6 +129,7 @@ mod tests {
 	use tokio::time::sleep;
 
 	use crate::players::{FullPlayer, NewPlayer};
+	use crate::responses::PaginationResponse;
 
 	#[crate::test]
 	async fn fetch_players(ctx: &Context) {
@@ -141,9 +142,9 @@ mod tests {
 
 		assert_eq!(response.status(), 200);
 
-		let players = response.json::<Vec<FullPlayer>>().await?;
+		let response = response.json::<PaginationResponse<FullPlayer>>().await?;
 
-		assert!(players.len() <= 7);
+		assert!(response.results.len() <= 7);
 	}
 
 	#[crate::test]
