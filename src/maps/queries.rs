@@ -2,7 +2,7 @@
 
 /// SQL query for fetching maps.
 pub static SELECT: &str = r#"
-	SELECT
+	SELECT SQL_CALC_FOUND_ROWS
 	  m.id,
 	  m.name,
 	  m.description,

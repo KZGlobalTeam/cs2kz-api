@@ -11,8 +11,8 @@ use utoipa::IntoParams;
 use crate::auth::Jwt;
 use crate::jumpstats::{queries, CreatedJumpstat, Jumpstat, JumpstatID, NewJumpstat};
 use crate::parameters::{Limit, Offset};
-use crate::responses::Created;
-use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
+use crate::responses::{Created, PaginationResponse};
+use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result, State};
 
 /// Query parameters for `GET /jumpstats`.
@@ -56,7 +56,7 @@ pub struct GetParams {
   tag = "Jumpstats",
   params(GetParams),
   responses(
-    responses::Ok<Jumpstat>,
+    responses::Ok<PaginationResponse<Jumpstat>>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,
@@ -75,8 +75,9 @@ pub async fn get(
 		limit,
 		offset,
 	}): Query<GetParams>,
-) -> Result<Json<Vec<Jumpstat>>> {
+) -> Result<Json<PaginationResponse<Jumpstat>>> {
 	let mut query = FilteredQuery::new(queries::SELECT);
+	let mut transaction = state.transaction().await?;
 
 	if let Some(jump_type) = jump_type {
 		query.filter(" j.type = ", jump_type);
@@ -91,13 +92,13 @@ pub async fn get(
 	}
 
 	if let Some(player) = player {
-		let steam_id = player.fetch_id(&state.database).await?;
+		let steam_id = player.fetch_id(transaction.as_mut()).await?;
 
 		query.filter(" j.player_id = ", steam_id);
 	}
 
 	if let Some(server) = server {
-		let server_id = server.fetch_id(&state.database).await?;
+		let server_id = server.fetch_id(transaction.as_mut()).await?;
 
 		query.filter(" j.server_id = ", server_id);
 	}
@@ -114,14 +115,18 @@ pub async fn get(
 
 	let jumpstats = query
 		.build_query_as::<Jumpstat>()
-		.fetch_all(&state.database)
+		.fetch_all(transaction.as_mut())
 		.await?;
+
+	let total = query::total_rows(&mut transaction).await?;
+
+	transaction.commit().await?;
 
 	if jumpstats.is_empty() {
 		return Err(Error::no_content());
 	}
 
-	Ok(Json(jumpstats))
+	Ok(Json(PaginationResponse { total, results: jumpstats }))
 }
 
 #[tracing::instrument(level = "debug", skip(state))]

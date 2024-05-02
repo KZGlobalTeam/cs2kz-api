@@ -12,7 +12,7 @@ use crate::auth::Jwt;
 use crate::parameters::{Limit, Offset};
 use crate::records::{queries, CreatedRecord, NewRecord, Record, RecordID};
 use crate::responses::{Created, PaginationResponse};
-use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
+use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result, State};
 
 /// Query parameters for `GET /records`.
@@ -125,11 +125,7 @@ pub async fn get(
 		.fetch_all(transaction.as_mut())
 		.await?;
 
-	let total = sqlx::query_scalar!("SELECT FOUND_ROWS() as total")
-		.fetch_one(transaction.as_mut())
-		.await?
-		.try_into()
-		.expect("how can a count be negative");
+	let total = query::total_rows(&mut transaction).await?;
 
 	transaction.commit().await?;
 

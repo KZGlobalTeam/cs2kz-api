@@ -2,7 +2,7 @@
 
 /// SQL query for fetching jumpstats.
 pub static SELECT: &str = r#"
-	SELECT
+	SELECT SQL_CALC_FOUND_ROWS
 	  j.id,
 	  j.type,
 	  j.mode_id MODE,

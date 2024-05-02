@@ -14,8 +14,8 @@ use crate::auth::{Jwt, RoleFlags};
 use crate::bans::{queries, Ban, BanID, BanReason, CreatedBan, NewBan};
 use crate::parameters::{Limit, Offset};
 use crate::plugin::PluginVersionID;
-use crate::responses::Created;
-use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
+use crate::responses::{Created, PaginationResponse};
+use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result, State};
 
 /// Query parameters for `GET /bans`.
@@ -61,7 +61,7 @@ pub struct GetParams {
   tag = "Bans",
   params(GetParams),
   responses(
-    responses::Ok<Ban>,
+    responses::Ok<PaginationResponse<Ban>>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,
@@ -81,17 +81,18 @@ pub async fn get(
 		limit,
 		offset,
 	}): Query<GetParams>,
-) -> Result<Json<Vec<Ban>>> {
+) -> Result<Json<PaginationResponse<Ban>>> {
 	let mut query = FilteredQuery::new(queries::SELECT);
+	let mut transaction = state.transaction().await?;
 
 	if let Some(player) = player {
-		let steam_id = player.fetch_id(&state.database).await?;
+		let steam_id = player.fetch_id(transaction.as_mut()).await?;
 
 		query.filter(" b.player_id = ", steam_id);
 	}
 
 	if let Some(server) = server {
-		let server_id = server.fetch_id(&state.database).await?;
+		let server_id = server.fetch_id(transaction.as_mut()).await?;
 
 		query.filter(" b.server_id = ", server_id);
 	}
@@ -116,14 +117,18 @@ pub async fn get(
 
 	let bans = query
 		.build_query_as::<Ban>()
-		.fetch_all(&state.database)
+		.fetch_all(transaction.as_mut())
 		.await?;
+
+	let total = query::total_rows(&mut transaction).await?;
+
+	transaction.commit().await?;
 
 	if bans.is_empty() {
 		return Err(Error::no_content());
 	}
 
-	Ok(Json(bans))
+	Ok(Json(PaginationResponse { total, results: bans }))
 }
 
 #[tracing::instrument(level = "debug", skip(state))]

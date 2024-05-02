@@ -11,8 +11,8 @@ use utoipa::IntoParams;
 use crate::auth::{self, Jwt, RoleFlags};
 use crate::parameters::{Limit, Offset};
 use crate::players::{queries, FullPlayer, NewPlayer};
-use crate::responses::{self, Created};
-use crate::sqlx::{QueryBuilderExt, SqlErrorExt};
+use crate::responses::{self, Created, PaginationResponse};
+use crate::sqlx::{query, QueryBuilderExt, SqlErrorExt};
 use crate::{Error, Result, State};
 
 /// Query parameters for `GET /players`.
@@ -34,7 +34,7 @@ pub struct GetParams {
   tag = "Players",
   params(GetParams),
   responses(
-    responses::Ok<FullPlayer>,
+    responses::Ok<PaginationResponse<FullPlayer>>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,
@@ -44,14 +44,16 @@ pub async fn get(
 	state: &'static State,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
 	Query(GetParams { limit, offset }): Query<GetParams>,
-) -> Result<Json<Vec<FullPlayer>>> {
+) -> Result<Json<PaginationResponse<FullPlayer>>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
 	query.push_limits(limit, offset);
 
+	let mut transaction = state.transaction().await?;
+
 	let players = query
 		.build_query_as::<FullPlayer>()
-		.fetch(&state.database)
+		.fetch(transaction.as_mut())
 		.map_ok(|player| FullPlayer {
 			// Only include IP address information if the requesting user has
 			// permission to view them.
@@ -61,11 +63,15 @@ pub async fn get(
 		.try_collect::<Vec<_>>()
 		.await?;
 
+	let total = query::total_rows(&mut transaction).await?;
+
+	transaction.commit().await?;
+
 	if players.is_empty() {
 		return Err(Error::no_content());
 	}
 
-	Ok(Json(players))
+	Ok(Json(PaginationResponse { total, results: players }))
 }
 
 #[tracing::instrument(level = "debug", skip(state))]

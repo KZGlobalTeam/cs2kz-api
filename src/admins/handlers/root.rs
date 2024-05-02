@@ -10,6 +10,8 @@ use utoipa::IntoParams;
 use crate::admins::Admin;
 use crate::auth::RoleFlags;
 use crate::parameters::{Limit, Offset};
+use crate::responses::PaginationResponse;
+use crate::sqlx::query;
 use crate::{responses, Error, Result, State};
 
 /// Query parameters for `GET /admins`.
@@ -36,7 +38,7 @@ pub struct GetParams {
   tag = "Admins",
   params(GetParams),
   responses(
-    responses::Ok<Admin>,
+    responses::Ok<PaginationResponse<Admin>>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,
@@ -45,10 +47,12 @@ pub struct GetParams {
 pub async fn get(
 	state: &'static State,
 	Query(GetParams { roles, limit, offset }): Query<GetParams>,
-) -> Result<Json<Vec<Admin>>> {
+) -> Result<Json<PaginationResponse<Admin>>> {
+	let mut transaction = state.transaction().await?;
+
 	let admins = sqlx::query! {
 		r#"
-		SELECT
+		SELECT SQL_CALC_FOUND_ROWS
 		  id `id: SteamID`,
 		  name,
 		  role_flags `role_flags: RoleFlags`
@@ -65,14 +69,18 @@ pub async fn get(
 		limit.0,
 		offset.0,
 	}
-	.fetch(&state.database)
+	.fetch(transaction.as_mut())
 	.map_ok(|row| Admin { name: row.name, steam_id: row.id, roles: row.role_flags })
 	.try_collect::<Vec<_>>()
 	.await?;
+
+	let total = query::total_rows(&mut transaction).await?;
+
+	transaction.commit().await?;
 
 	if admins.is_empty() {
 		return Err(Error::no_content());
 	}
 
-	Ok(Json(admins))
+	Ok(Json(PaginationResponse { total, results: admins }))
 }

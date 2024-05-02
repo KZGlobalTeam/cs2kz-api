@@ -9,8 +9,8 @@ use utoipa::IntoParams;
 
 use crate::parameters::{Limit, Offset};
 use crate::plugin::{CreatedPluginVersion, NewPluginVersion, PluginVersion, PluginVersionID};
-use crate::responses::Created;
-use crate::sqlx::{QueryBuilderExt, SqlErrorExt};
+use crate::responses::{Created, PaginationResponse};
+use crate::sqlx::{query, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result, State};
 
 /// Query parameters for `GET /plugin`.
@@ -32,7 +32,7 @@ pub struct GetParams {
   tag = "CS2KZ Plugin",
   params(GetParams),
   responses(
-    responses::Ok<PluginVersion>,
+    responses::Ok<PaginationResponse<PluginVersion>>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,
@@ -41,21 +41,27 @@ pub struct GetParams {
 pub async fn get(
 	state: &'static State,
 	Query(GetParams { limit, offset }): Query<GetParams>,
-) -> Result<Json<Vec<PluginVersion>>> {
-	let mut query = QueryBuilder::new("SELECT * FROM PluginVersions");
+) -> Result<Json<PaginationResponse<PluginVersion>>> {
+	let mut query = QueryBuilder::new("SELECT SQL_CALC_FOUND_ROWS * FROM PluginVersions");
 
 	query.push_limits(limit, offset);
 
+	let mut transaction = state.transaction().await?;
+
 	let plugin_versions = query
 		.build_query_as::<PluginVersion>()
-		.fetch_all(&state.database)
+		.fetch_all(transaction.as_mut())
 		.await?;
+
+	let total = query::total_rows(&mut transaction).await?;
+
+	transaction.commit().await?;
 
 	if plugin_versions.is_empty() {
 		return Err(Error::no_content());
 	}
 
-	Ok(Json(plugin_versions))
+	Ok(Json(PaginationResponse { total, results: plugin_versions }))
 }
 
 #[tracing::instrument(level = "debug", skip(state))]

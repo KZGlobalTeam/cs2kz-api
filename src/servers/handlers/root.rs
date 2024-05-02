@@ -13,9 +13,9 @@ use uuid::Uuid;
 
 use crate::auth::RoleFlags;
 use crate::parameters::{Limit, Offset};
-use crate::responses::Created;
+use crate::responses::{Created, PaginationResponse};
 use crate::servers::{queries, CreatedServer, NewServer, Server, ServerID};
-use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
+use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result, State};
 
 /// Query parameters for `GET /servers`.
@@ -52,7 +52,7 @@ pub struct GetParams {
   tag = "Servers",
   params(GetParams),
   responses(
-    responses::Ok<Server>,
+    responses::Ok<PaginationResponse<Server>>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,
@@ -69,8 +69,9 @@ pub async fn get(
 		limit,
 		offset,
 	}): Query<GetParams>,
-) -> Result<Json<Vec<Server>>> {
+) -> Result<Json<PaginationResponse<Server>>> {
 	let mut query = FilteredQuery::new(queries::SELECT);
+	let mut transaction = state.transaction().await?;
 
 	if let Some(name) = name {
 		query.filter(" s.name LIKE ", format!("%{name}%"));
@@ -81,7 +82,7 @@ pub async fn get(
 	}
 
 	if let Some(player) = owned_by {
-		let steam_id = player.fetch_id(&state.database).await?;
+		let steam_id = player.fetch_id(transaction.as_mut()).await?;
 
 		query.filter(" s.owner_id = ", steam_id);
 	}
@@ -98,14 +99,18 @@ pub async fn get(
 
 	let servers = query
 		.build_query_as::<Server>()
-		.fetch_all(&state.database)
+		.fetch_all(transaction.as_mut())
 		.await?;
+
+	let total = query::total_rows(&mut transaction).await?;
+
+	transaction.commit().await?;
 
 	if servers.is_empty() {
 		return Err(Error::no_content());
 	}
 
-	Ok(Json(servers))
+	Ok(Json(PaginationResponse { total, results: servers }))
 }
 
 #[tracing::instrument(level = "debug", skip(state))]

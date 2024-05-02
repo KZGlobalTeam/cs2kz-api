@@ -2,9 +2,21 @@
 
 use derive_more::{Deref, DerefMut};
 use sqlx::encode::IsNull;
-use sqlx::{MySql, QueryBuilder};
+use sqlx::{MySql, QueryBuilder, Transaction};
 
 use crate::parameters::{Limit, Offset};
+
+/// Returns the total amount of rows that _could_ have been fetched from a query containing
+/// `LIMIT`. This only works for queries containing `SQL_CALC_FOUND_ROWS`.
+pub async fn total_rows(transaction: &mut Transaction<'_, MySql>) -> crate::Result<u64> {
+	let total = sqlx::query_scalar!("SELECT FOUND_ROWS() as total")
+		.fetch_one(transaction.as_mut())
+		.await?
+		.try_into()
+		.expect("how can a count be negative");
+
+	Ok(total)
+}
 
 /// Extension trait for [`sqlx::QueryBuilder`].
 pub trait QueryBuilderExt {

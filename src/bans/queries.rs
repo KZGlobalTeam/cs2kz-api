@@ -2,7 +2,7 @@
 
 /// SQL query for fetching bans.
 pub static SELECT: &str = r#"
-	SELECT
+	SELECT SQL_CALC_FOUND_ROWS
 	  b.id,
 	  p.name player_name,
 	  p.id player_id,

@@ -15,8 +15,8 @@ use crate::auth::RoleFlags;
 use crate::maps::models::{NewCourse, NewFilter};
 use crate::maps::{queries, CourseID, CreatedMap, FullMap, MapID, NewMap, WorkshopID};
 use crate::parameters::Limit;
-use crate::responses::Created;
-use crate::sqlx::{FilteredQuery, SqlErrorExt};
+use crate::responses::{Created, PaginationResponse};
+use crate::sqlx::{query, FilteredQuery, SqlErrorExt};
 use crate::workshop::WorkshopMap;
 use crate::{auth, responses, Error, Result, State};
 
@@ -49,7 +49,7 @@ pub struct GetParams {
   path = "/maps",
   tag = "Maps",
   responses(
-    responses::Ok<FullMap>,
+    responses::Ok<PaginationResponse<FullMap>>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,
@@ -65,8 +65,9 @@ pub async fn get(
 		created_before,
 		limit,
 	}): Query<GetParams>,
-) -> Result<Json<Vec<FullMap>>> {
+) -> Result<Json<PaginationResponse<FullMap>>> {
 	let mut query = FilteredQuery::new(queries::SELECT);
+	let mut transaction = state.transaction().await?;
 
 	if let Some(name) = name {
 		query.filter(" m.name LIKE ", format!("%{name}%"));
@@ -92,15 +93,19 @@ pub async fn get(
 
 	let maps = query
 		.build_query_as::<FullMap>()
-		.fetch_all(&state.database)
+		.fetch_all(transaction.as_mut())
 		.await
 		.map(|maps| FullMap::flatten(maps, limit.into()))?;
+
+	let total = query::total_rows(&mut transaction).await?;
+
+	transaction.commit().await?;
 
 	if maps.is_empty() {
 		return Err(Error::no_content());
 	}
 
-	Ok(Json(maps))
+	Ok(Json(PaginationResponse { total, results: maps }))
 }
 
 #[tracing::instrument(level = "debug", skip(state))]

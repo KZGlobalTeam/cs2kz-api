@@ -2,7 +2,7 @@
 
 /// SQL query for fetching servers.
 pub static SELECT: &str = r#"
-	SELECT
+	SELECT SQL_CALC_FOUND_ROWS
 	  s.id,
 	  s.name,
 	  s.ip_address,
