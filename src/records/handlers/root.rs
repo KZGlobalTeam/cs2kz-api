@@ -4,14 +4,14 @@ use axum::extract::Query;
 use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{Mode, PlayerIdentifier, ServerIdentifier, Style};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tracing::trace;
-use utoipa::{IntoParams, ToSchema};
+use utoipa::IntoParams;
 
 use crate::auth::Jwt;
 use crate::parameters::{Limit, Offset};
 use crate::records::{queries, CreatedRecord, NewRecord, Record, RecordID};
-use crate::responses::Created;
+use crate::responses::{Created, PaginationResponse};
 use crate::sqlx::{FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result, State};
 
@@ -48,18 +48,6 @@ pub struct GetParams {
 	offset: Offset,
 }
 
-/// Response body for `GET /records`.
-#[derive(Debug, Serialize, ToSchema)]
-pub struct GetResponse {
-	/// The total amount of records available.
-	///
-	/// Used for pagination.
-	total: u64,
-
-	/// The records.
-	records: Vec<Record>,
-}
-
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -67,7 +55,7 @@ pub struct GetResponse {
   tag = "Records",
   params(GetParams),
   responses(
-    responses::Ok<GetResponse>,
+    responses::Ok<PaginationResponse<Record>>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,
@@ -86,7 +74,7 @@ pub async fn get(
 		limit,
 		offset,
 	}): Query<GetParams>,
-) -> Result<Json<GetResponse>> {
+) -> Result<Json<PaginationResponse<Record>>> {
 	let mut query = FilteredQuery::new(queries::SELECT);
 
 	if let Some(mode) = mode {
@@ -149,7 +137,7 @@ pub async fn get(
 		return Err(Error::no_content());
 	}
 
-	Ok(Json(GetResponse { total, records }))
+	Ok(Json(PaginationResponse { total, results: records }))
 }
 
 #[tracing::instrument(level = "debug", skip(state))]

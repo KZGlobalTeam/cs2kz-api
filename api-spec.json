@@ -1185,20 +1185,6 @@
             }
           },
           {
-            "name": "style",
-            "in": "query",
-            "description": "Filter by style.",
-            "required": false,
-            "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Style"
-                }
-              ],
-              "nullable": true
-            }
-          },
-          {
             "name": "minimum_distance",
             "in": "query",
             "description": "Filter by a minimum distance.",
@@ -1290,7 +1276,6 @@
                     "id",
                     "type",
                     "mode",
-                    "style",
                     "player",
                     "server",
                     "strafes",
@@ -1317,9 +1302,6 @@
                     },
                     "mode": {
                       "$ref": "#/components/schemas/Mode"
-                    },
-                    "style": {
-                      "$ref": "#/components/schemas/Style"
                     },
                     "player": {
                       "$ref": "#/components/schemas/Player"
@@ -1501,7 +1483,6 @@
                     "id",
                     "type",
                     "mode",
-                    "style",
                     "player",
                     "server",
                     "strafes",
@@ -1528,9 +1509,6 @@
                     },
                     "mode": {
                       "$ref": "#/components/schemas/Mode"
-                    },
-                    "style": {
-                      "$ref": "#/components/schemas/Style"
                     },
                     "player": {
                       "$ref": "#/components/schemas/Player"
@@ -1788,58 +1766,74 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A record (or \"run\").",
+                  "description": "General purpose response body for pagination.\n\nIt includes the total amount of results that can be requested, as well as the current payload.",
                   "required": [
-                    "id",
-                    "mode",
-                    "style",
-                    "teleports",
-                    "time",
-                    "player",
-                    "map",
-                    "course",
-                    "server",
-                    "bhop_stats",
-                    "created_on"
+                    "total",
+                    "results"
                   ],
                   "properties": {
-                    "id": {
-                      "$ref": "#/components/schemas/RecordID"
-                    },
-                    "mode": {
-                      "$ref": "#/components/schemas/Mode"
-                    },
-                    "style": {
-                      "$ref": "#/components/schemas/Style"
-                    },
-                    "teleports": {
+                    "total": {
                       "type": "integer",
-                      "format": "uint16",
-                      "description": "The amount of teleports used during this run.",
+                      "format": "uint64",
+                      "description": "The total amount of available results.",
                       "minimum": 0
                     },
-                    "time": {
-                      "$ref": "#/components/schemas/Seconds"
-                    },
-                    "player": {
-                      "$ref": "#/components/schemas/Player"
-                    },
-                    "map": {
-                      "$ref": "#/components/schemas/MapInfo"
-                    },
-                    "course": {
-                      "$ref": "#/components/schemas/CourseInfo"
-                    },
-                    "server": {
-                      "$ref": "#/components/schemas/ServerInfo"
-                    },
-                    "bhop_stats": {
-                      "$ref": "#/components/schemas/BhopStats"
-                    },
-                    "created_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When this run was submitted."
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "A record (or \"run\").",
+                        "required": [
+                          "id",
+                          "mode",
+                          "teleports",
+                          "time",
+                          "player",
+                          "map",
+                          "course",
+                          "server",
+                          "bhop_stats",
+                          "created_on"
+                        ],
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/RecordID"
+                          },
+                          "mode": {
+                            "$ref": "#/components/schemas/Mode"
+                          },
+                          "teleports": {
+                            "type": "integer",
+                            "format": "uint16",
+                            "description": "The amount of teleports used during this run.",
+                            "minimum": 0
+                          },
+                          "time": {
+                            "$ref": "#/components/schemas/Seconds"
+                          },
+                          "player": {
+                            "$ref": "#/components/schemas/Player"
+                          },
+                          "map": {
+                            "$ref": "#/components/schemas/MapInfo"
+                          },
+                          "course": {
+                            "$ref": "#/components/schemas/CourseInfo"
+                          },
+                          "server": {
+                            "$ref": "#/components/schemas/ServerInfo"
+                          },
+                          "bhop_stats": {
+                            "$ref": "#/components/schemas/BhopStats"
+                          },
+                          "created_on": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "When this run was submitted."
+                          }
+                        }
+                      },
+                      "description": "The results for this request."
                     }
                   }
                 }
@@ -2034,7 +2028,6 @@
                   "required": [
                     "id",
                     "mode",
-                    "style",
                     "teleports",
                     "time",
                     "player",
@@ -2050,9 +2043,6 @@
                     },
                     "mode": {
                       "$ref": "#/components/schemas/Mode"
-                    },
-                    "style": {
-                      "$ref": "#/components/schemas/Style"
                     },
                     "teleports": {
                       "type": "integer",
@@ -2130,7 +2120,6 @@
                   "required": [
                     "id",
                     "mode",
-                    "style",
                     "teleports",
                     "time",
                     "player",
@@ -2146,9 +2135,6 @@
                     },
                     "mode": {
                       "$ref": "#/components/schemas/Mode"
-                    },
-                    "style": {
-                      "$ref": "#/components/schemas/Style"
                     },
                     "teleports": {
                       "type": "integer",
@@ -3456,6 +3442,11 @@
           }
         }
       },
+      "BanID": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
       "BanReason": {
         "type": "string",
         "description": "The different reasons for which players can be banned.",
@@ -3599,6 +3590,11 @@
             "description": "The course's filters."
           }
         }
+      },
+      "CourseID": {
+        "type": "integer",
+        "format": "uint16",
+        "minimum": 0
       },
       "CourseInfo": {
         "type": "object",
@@ -3793,6 +3789,11 @@
           }
         }
       },
+      "FilterID": {
+        "type": "integer",
+        "format": "uint16",
+        "minimum": 0
+      },
       "FilterUpdate": {
         "type": "object",
         "description": "Request body for updating course filters.",
@@ -3913,6 +3914,11 @@
           }
         }
       },
+      "GameSessionID": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
       "GlobalStatus": {
         "anyOf": [
           {
@@ -3977,7 +3983,6 @@
           "id",
           "type",
           "mode",
-          "style",
           "player",
           "server",
           "strafes",
@@ -4004,9 +4009,6 @@
           },
           "mode": {
             "$ref": "#/components/schemas/Mode"
-          },
-          "style": {
-            "$ref": "#/components/schemas/Style"
           },
           "player": {
             "$ref": "#/components/schemas/Player"
@@ -4085,9 +4087,19 @@
           }
         }
       },
+      "JumpstatID": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
       "Limit": {
         "type": "number",
         "description": "limits the amount of returned values",
+        "minimum": 0
+      },
+      "MapID": {
+        "type": "integer",
+        "format": "uint16",
         "minimum": 0
       },
       "MapIdentifier": {
@@ -4302,7 +4314,6 @@
         "required": [
           "type",
           "mode",
-          "style",
           "player_id",
           "strafes",
           "distance",
@@ -4324,9 +4335,6 @@
           },
           "mode": {
             "$ref": "#/components/schemas/Mode"
-          },
-          "style": {
-            "$ref": "#/components/schemas/Style"
           },
           "player_id": {
             "$ref": "#/components/schemas/SteamID"
@@ -4639,6 +4647,11 @@
           }
         }
       },
+      "PluginVersionID": {
+        "type": "integer",
+        "format": "uint16",
+        "minimum": 0
+      },
       "RankedStatus": {
         "anyOf": [
           {
@@ -4670,7 +4683,6 @@
         "required": [
           "id",
           "mode",
-          "style",
           "teleports",
           "time",
           "player",
@@ -4686,9 +4698,6 @@
           },
           "mode": {
             "$ref": "#/components/schemas/Mode"
-          },
-          "style": {
-            "$ref": "#/components/schemas/Style"
           },
           "teleports": {
             "type": "integer",
@@ -4720,6 +4729,11 @@
             "description": "When this run was submitted."
           }
         }
+      },
+      "RecordID": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
       },
       "RefreshKey": {
         "type": "object",
@@ -4790,6 +4804,11 @@
             "description": "When this server was approved."
           }
         }
+      },
+      "ServerID": {
+        "type": "integer",
+        "format": "uint16",
+        "minimum": 0
       },
       "ServerIdentifier": {
         "oneOf": [
@@ -5004,6 +5023,16 @@
             "description": "When the ban was reverted."
           }
         }
+      },
+      "UnbanID": {
+        "type": "integer",
+        "format": "uint64",
+        "minimum": 0
+      },
+      "WorkshopID": {
+        "type": "integer",
+        "format": "uint32",
+        "minimum": 0
       }
     },
     "securitySchemes": {

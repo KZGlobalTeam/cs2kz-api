@@ -17,6 +17,22 @@ use utoipa::openapi::schema::Schema;
 use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
 use utoipa::{IntoResponses, ToSchema};
 
+// General purpose response body for pagination.
+//
+// It includes the total amount of results that can be requested, as well as the current payload.
+#[derive(Debug, Serialize, ToSchema)]
+pub struct PaginationResponse<T>
+where
+	T: ToSchema<'static>,
+{
+	/// The total amount of available results.
+	pub total: u64,
+
+	/// The results for this request.
+	#[schema(inline)]
+	pub results: Vec<T>,
+}
+
 #[derive(Debug, Serialize, IntoResponses)]
 #[response(status = 200)]
 pub struct Ok<T>(#[to_schema] pub T)
