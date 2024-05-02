@@ -47,28 +47,47 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A KZ player.",
                   "required": [
-                    "name",
-                    "steam_id",
-                    "is_banned"
+                    "total",
+                    "results"
                   ],
                   "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "The player's name."
+                    "total": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The total amount of available results.",
+                      "minimum": 0
                     },
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "ip_address": {
-                      "type": "string",
-                      "description": "The player's IP address.",
-                      "nullable": true
-                    },
-                    "is_banned": {
-                      "type": "boolean",
-                      "description": "Whether the player is currently banned."
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "A KZ player.",
+                        "required": [
+                          "name",
+                          "steam_id",
+                          "is_banned"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "The player's name."
+                          },
+                          "steam_id": {
+                            "$ref": "#/components/schemas/SteamID"
+                          },
+                          "ip_address": {
+                            "type": "string",
+                            "description": "The player's IP address.",
+                            "nullable": true
+                          },
+                          "is_banned": {
+                            "type": "boolean",
+                            "description": "Whether the player is currently banned."
+                          }
+                        }
+                      },
+                      "description": "The results for this request."
                     }
                   }
                 }
@@ -414,60 +433,79 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A KZ map.\n\nThe only reason this is named `FullMap` instead of just `Map`, is because `utoipa` macros are\nstupid.",
                   "required": [
-                    "id",
-                    "name",
-                    "global_status",
-                    "workshop_id",
-                    "checksum",
-                    "mappers",
-                    "courses",
-                    "created_on"
+                    "total",
+                    "results"
                   ],
                   "properties": {
-                    "id": {
-                      "$ref": "#/components/schemas/MapID"
-                    },
-                    "name": {
-                      "type": "string",
-                      "description": "The map's name."
-                    },
-                    "description": {
-                      "type": "string",
-                      "description": "The map's description.",
-                      "nullable": true
-                    },
-                    "global_status": {
-                      "$ref": "#/components/schemas/GlobalStatus"
-                    },
-                    "workshop_id": {
-                      "$ref": "#/components/schemas/WorkshopID"
-                    },
-                    "checksum": {
+                    "total": {
                       "type": "integer",
-                      "format": "uint32",
-                      "description": "The map's checksum.",
+                      "format": "uint64",
+                      "description": "The total amount of available results.",
                       "minimum": 0
                     },
-                    "mappers": {
+                    "results": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Player"
+                        "type": "object",
+                        "description": "A KZ map.\n\nThe only reason this is named `FullMap` instead of just `Map`, is because `utoipa` macros are\nstupid.",
+                        "required": [
+                          "id",
+                          "name",
+                          "global_status",
+                          "workshop_id",
+                          "checksum",
+                          "mappers",
+                          "courses",
+                          "created_on"
+                        ],
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/MapID"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "The map's name."
+                          },
+                          "description": {
+                            "type": "string",
+                            "description": "The map's description.",
+                            "nullable": true
+                          },
+                          "global_status": {
+                            "$ref": "#/components/schemas/GlobalStatus"
+                          },
+                          "workshop_id": {
+                            "$ref": "#/components/schemas/WorkshopID"
+                          },
+                          "checksum": {
+                            "type": "integer",
+                            "format": "uint32",
+                            "description": "The map's checksum.",
+                            "minimum": 0
+                          },
+                          "mappers": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/Player"
+                            },
+                            "description": "List of players who have contributed to the creation of this map."
+                          },
+                          "courses": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/Course"
+                            },
+                            "description": "List of courses on this map."
+                          },
+                          "created_on": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "When this map was approved."
+                          }
+                        }
                       },
-                      "description": "List of players who have contributed to the creation of this map."
-                    },
-                    "courses": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Course"
-                      },
-                      "description": "List of courses on this map."
-                    },
-                    "created_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When this map was approved."
+                      "description": "The results for this request."
                     }
                   }
                 }
@@ -801,33 +839,52 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "An approved CS2 server.",
                   "required": [
-                    "id",
-                    "name",
-                    "ip_address",
-                    "owner",
-                    "created_on"
+                    "total",
+                    "results"
                   ],
                   "properties": {
-                    "id": {
-                      "$ref": "#/components/schemas/ServerID"
+                    "total": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The total amount of available results.",
+                      "minimum": 0
                     },
-                    "name": {
-                      "type": "string",
-                      "description": "The server's name."
-                    },
-                    "ip_address": {
-                      "type": "string",
-                      "description": "The server's IP address and port."
-                    },
-                    "owner": {
-                      "$ref": "#/components/schemas/Player"
-                    },
-                    "created_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When this server was approved."
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "An approved CS2 server.",
+                        "required": [
+                          "id",
+                          "name",
+                          "ip_address",
+                          "owner",
+                          "created_on"
+                        ],
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/ServerID"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "The server's name."
+                          },
+                          "ip_address": {
+                            "type": "string",
+                            "description": "The server's IP address and port."
+                          },
+                          "owner": {
+                            "$ref": "#/components/schemas/Player"
+                          },
+                          "created_on": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "When this server was approved."
+                          }
+                        }
+                      },
+                      "description": "The results for this request."
                     }
                   }
                 }
@@ -1271,112 +1328,131 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A jumpstat.",
                   "required": [
-                    "id",
-                    "type",
-                    "mode",
-                    "player",
-                    "server",
-                    "strafes",
-                    "distance",
-                    "sync",
-                    "pre",
-                    "max",
-                    "overlap",
-                    "bad_angles",
-                    "dead_air",
-                    "height",
-                    "airpath",
-                    "deviation",
-                    "average_width",
-                    "airtime",
-                    "created_on"
+                    "total",
+                    "results"
                   ],
                   "properties": {
-                    "id": {
-                      "$ref": "#/components/schemas/JumpstatID"
-                    },
-                    "type": {
-                      "$ref": "#/components/schemas/JumpType"
-                    },
-                    "mode": {
-                      "$ref": "#/components/schemas/Mode"
-                    },
-                    "player": {
-                      "$ref": "#/components/schemas/Player"
-                    },
-                    "server": {
-                      "$ref": "#/components/schemas/ServerInfo"
-                    },
-                    "strafes": {
+                    "total": {
                       "type": "integer",
-                      "format": "uint8",
-                      "description": "The amount of strafes done in this jump.",
+                      "format": "uint64",
+                      "description": "The total amount of available results.",
                       "minimum": 0
                     },
-                    "distance": {
-                      "type": "number",
-                      "format": "float",
-                      "description": "The jump's distance."
-                    },
-                    "sync": {
-                      "type": "number",
-                      "format": "float",
-                      "description": "The % of how much airtime was spent gaining speed."
-                    },
-                    "pre": {
-                      "type": "number",
-                      "format": "float",
-                      "description": "The jump's speed at jumpoff."
-                    },
-                    "max": {
-                      "type": "number",
-                      "format": "float",
-                      "description": "The maximum speed during the jump."
-                    },
-                    "overlap": {
-                      "type": "number",
-                      "format": "float",
-                      "description": "The % of how much airtime was spent pressing both directional keys at once."
-                    },
-                    "bad_angles": {
-                      "type": "number",
-                      "format": "float",
-                      "description": "The % of how much airtime keys were pressed but no speed was gained."
-                    },
-                    "dead_air": {
-                      "type": "number",
-                      "format": "float",
-                      "description": "The % of how much airtime was spent not gaining speed."
-                    },
-                    "height": {
-                      "type": "number",
-                      "format": "float",
-                      "description": "The maximum height during this jump (in units)."
-                    },
-                    "airpath": {
-                      "type": "number",
-                      "format": "float",
-                      "description": "How close to a perfect airpath this jump was.\n\nThe closer to 1.0 the better."
-                    },
-                    "deviation": {
-                      "type": "number",
-                      "format": "float",
-                      "description": "How far the landing point deviates from the jumpoff point."
-                    },
-                    "average_width": {
-                      "type": "number",
-                      "format": "float",
-                      "description": "The average strafe width."
-                    },
-                    "airtime": {
-                      "$ref": "#/components/schemas/Seconds"
-                    },
-                    "created_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When this jump was submitted."
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "A jumpstat.",
+                        "required": [
+                          "id",
+                          "type",
+                          "mode",
+                          "player",
+                          "server",
+                          "strafes",
+                          "distance",
+                          "sync",
+                          "pre",
+                          "max",
+                          "overlap",
+                          "bad_angles",
+                          "dead_air",
+                          "height",
+                          "airpath",
+                          "deviation",
+                          "average_width",
+                          "airtime",
+                          "created_on"
+                        ],
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/JumpstatID"
+                          },
+                          "type": {
+                            "$ref": "#/components/schemas/JumpType"
+                          },
+                          "mode": {
+                            "$ref": "#/components/schemas/Mode"
+                          },
+                          "player": {
+                            "$ref": "#/components/schemas/Player"
+                          },
+                          "server": {
+                            "$ref": "#/components/schemas/ServerInfo"
+                          },
+                          "strafes": {
+                            "type": "integer",
+                            "format": "uint8",
+                            "description": "The amount of strafes done in this jump.",
+                            "minimum": 0
+                          },
+                          "distance": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "The jump's distance."
+                          },
+                          "sync": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "The % of how much airtime was spent gaining speed."
+                          },
+                          "pre": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "The jump's speed at jumpoff."
+                          },
+                          "max": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "The maximum speed during the jump."
+                          },
+                          "overlap": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "The % of how much airtime was spent pressing both directional keys at once."
+                          },
+                          "bad_angles": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "The % of how much airtime keys were pressed but no speed was gained."
+                          },
+                          "dead_air": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "The % of how much airtime was spent not gaining speed."
+                          },
+                          "height": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "The maximum height during this jump (in units)."
+                          },
+                          "airpath": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "How close to a perfect airpath this jump was.\n\nThe closer to 1.0 the better."
+                          },
+                          "deviation": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "How far the landing point deviates from the jumpoff point."
+                          },
+                          "average_width": {
+                            "type": "number",
+                            "format": "float",
+                            "description": "The average strafe width."
+                          },
+                          "airtime": {
+                            "$ref": "#/components/schemas/Seconds"
+                          },
+                          "created_on": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "When this jump was submitted."
+                          }
+                        }
+                      },
+                      "description": "The results for this request."
                     }
                   }
                 }
@@ -1766,7 +1842,6 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "General purpose response body for pagination.\n\nIt includes the total amount of results that can be requested, as well as the current payload.",
                   "required": [
                     "total",
                     "results"
@@ -2360,57 +2435,76 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A player ban.",
                   "required": [
-                    "id",
-                    "player",
-                    "reason",
-                    "created_on"
+                    "total",
+                    "results"
                   ],
                   "properties": {
-                    "id": {
-                      "$ref": "#/components/schemas/BanID"
+                    "total": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The total amount of available results.",
+                      "minimum": 0
                     },
-                    "player": {
-                      "$ref": "#/components/schemas/Player"
-                    },
-                    "server": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/ServerInfo"
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "A player ban.",
+                        "required": [
+                          "id",
+                          "player",
+                          "reason",
+                          "created_on"
+                        ],
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/BanID"
+                          },
+                          "player": {
+                            "$ref": "#/components/schemas/Player"
+                          },
+                          "server": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/ServerInfo"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          "reason": {
+                            "$ref": "#/components/schemas/BanReason"
+                          },
+                          "admin": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/Player"
+                              }
+                            ],
+                            "nullable": true
+                          },
+                          "created_on": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "When this ban was submitted."
+                          },
+                          "expires_on": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "When this ban will expire.",
+                            "nullable": true
+                          },
+                          "unban": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/Unban"
+                              }
+                            ],
+                            "nullable": true
+                          }
                         }
-                      ],
-                      "nullable": true
-                    },
-                    "reason": {
-                      "$ref": "#/components/schemas/BanReason"
-                    },
-                    "admin": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/Player"
-                        }
-                      ],
-                      "nullable": true
-                    },
-                    "created_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When this ban was submitted."
-                    },
-                    "expires_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When this ban will expire.",
-                      "nullable": true
-                    },
-                    "unban": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/Unban"
-                        }
-                      ],
-                      "nullable": true
+                      },
+                      "description": "The results for this request."
                     }
                   }
                 }
@@ -2998,30 +3092,49 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A player with special privileges.",
                   "required": [
-                    "name",
-                    "steam_id",
-                    "roles"
+                    "total",
+                    "results"
                   ],
                   "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "The admin's name."
+                    "total": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The total amount of available results.",
+                      "minimum": 0
                     },
-                    "steam_id": {
-                      "$ref": "#/components/schemas/SteamID"
-                    },
-                    "roles": {
+                    "results": {
                       "type": "array",
                       "items": {
-                        "type": "string"
+                        "type": "object",
+                        "description": "A player with special privileges.",
+                        "required": [
+                          "name",
+                          "steam_id",
+                          "roles"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "The admin's name."
+                          },
+                          "steam_id": {
+                            "$ref": "#/components/schemas/SteamID"
+                          },
+                          "roles": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "The admin's roles.",
+                            "example": [
+                              "bans",
+                              "servers"
+                            ]
+                          }
+                        }
                       },
-                      "description": "The admin's roles.",
-                      "example": [
-                        "bans",
-                        "servers"
-                      ]
+                      "description": "The results for this request."
                     }
                   }
                 }
@@ -3234,29 +3347,48 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "description": "A CS2KZ plugin version.",
                   "required": [
-                    "id",
-                    "semver",
-                    "git_revision",
-                    "created_on"
+                    "total",
+                    "results"
                   ],
                   "properties": {
-                    "id": {
-                      "$ref": "#/components/schemas/PluginVersionID"
+                    "total": {
+                      "type": "integer",
+                      "format": "uint64",
+                      "description": "The total amount of available results.",
+                      "minimum": 0
                     },
-                    "semver": {
-                      "type": "string",
-                      "description": "The semver representation."
-                    },
-                    "git_revision": {
-                      "type": "string",
-                      "description": "The corresponding git revision (commit hash)."
-                    },
-                    "created_on": {
-                      "type": "string",
-                      "format": "date-time",
-                      "description": "When this version was published."
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "A CS2KZ plugin version.",
+                        "required": [
+                          "id",
+                          "semver",
+                          "git_revision",
+                          "created_on"
+                        ],
+                        "properties": {
+                          "id": {
+                            "$ref": "#/components/schemas/PluginVersionID"
+                          },
+                          "semver": {
+                            "type": "string",
+                            "description": "The semver representation."
+                          },
+                          "git_revision": {
+                            "type": "string",
+                            "description": "The corresponding git revision (commit hash)."
+                          },
+                          "created_on": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "When this version was published."
+                          }
+                        }
+                      },
+                      "description": "The results for this request."
                     }
                   }
                 }

@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT FOUND_ROWS() as total",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "char_set": 63,
+          "max_size": 21
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "13292af7c0ffb58ebbd7f41fef9e6f3374b1e238eae2b2172a003c0606a75de8"
+}
