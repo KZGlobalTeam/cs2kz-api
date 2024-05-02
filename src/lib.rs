@@ -163,8 +163,12 @@ mod plugin;
       players::models::PlayerUpdate,
 
       maps::models::FullMap,
+      maps::models::MapID,
+      maps::models::WorkshopID,
       maps::models::Course,
+      maps::models::CourseID,
       maps::models::Filter,
+      maps::models::FilterID,
       maps::models::NewMap,
       maps::models::NewCourse,
       maps::models::NewFilter,
@@ -176,6 +180,7 @@ mod plugin;
       maps::models::CourseInfo,
 
       servers::models::Server,
+      servers::models::ServerID,
       servers::models::NewServer,
       servers::models::CreatedServer,
       servers::models::ServerUpdate,
@@ -184,17 +189,21 @@ mod plugin;
       servers::models::ServerInfo,
 
       jumpstats::models::Jumpstat,
+      jumpstats::models::JumpstatID,
       jumpstats::models::NewJumpstat,
       jumpstats::models::CreatedJumpstat,
 
       records::models::Record,
+      records::models::RecordID,
       records::models::BhopStats,
       records::models::NewRecord,
       records::models::CreatedRecord,
 
       bans::models::Ban,
+      bans::models::BanID,
       bans::models::BanReason,
       bans::models::Unban,
+      bans::models::UnbanID,
       bans::models::NewBan,
       bans::models::CreatedBan,
       bans::models::BanUpdate,
@@ -202,12 +211,14 @@ mod plugin;
       bans::models::CreatedUnban,
 
       game_sessions::models::GameSession,
+      game_sessions::models::GameSessionID,
       game_sessions::models::TimeSpent,
 
       admins::models::Admin,
       admins::models::AdminUpdate,
 
       plugin::models::PluginVersion,
+      plugin::models::PluginVersionID,
       plugin::models::NewPluginVersion,
       plugin::models::CreatedPluginVersion,
     ),
