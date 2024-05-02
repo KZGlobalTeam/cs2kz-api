@@ -25,6 +25,7 @@ pub struct GetParams {
 	name: Option<String>,
 
 	/// Filter by IP address.
+	#[param(value_type = Option<String>)]
 	ip_address: Option<Ipv4Addr>,
 
 	/// Filter by server owner.

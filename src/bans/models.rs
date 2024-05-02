@@ -181,6 +181,7 @@ pub struct NewBan {
 	pub player_id: SteamID,
 
 	/// The player's IP address.
+	#[schema(value_type = Option<String>)]
 	pub player_ip: Option<Ipv4Addr>,
 
 	/// The ban reason.

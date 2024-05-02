@@ -769,11 +769,7 @@
             "description": "Filter by IP address.",
             "required": false,
             "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Ipv4Addr"
-                }
-              ],
+              "type": "string",
               "nullable": true
             }
           },
@@ -4364,11 +4360,8 @@
             "$ref": "#/components/schemas/SteamID"
           },
           "player_ip": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/Ipv4Addr"
-              }
-            ],
+            "type": "string",
+            "description": "The player's IP address.",
             "nullable": true
           },
           "reason": {
