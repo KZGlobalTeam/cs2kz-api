@@ -1,7 +1,7 @@
 //! Types used for describing jumpstats.
 
 use chrono::{DateTime, Utc};
-use cs2kz::{JumpType, Mode, SteamID, Style};
+use cs2kz::{JumpType, Mode, SteamID};
 use serde::{Deserialize, Serialize};
 use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
@@ -27,10 +27,7 @@ pub struct Jumpstat {
 	/// The mode this jump was performed in.
 	pub mode: Mode,
 
-	/// The style this jump was performed in.
-	pub style: Style,
-
-	/// The style this jump was performed in.
+	/// The player this jump was performed by.
 	pub player: Player,
 
 	/// The server this jump was performed on.
@@ -87,7 +84,6 @@ impl FromRow<'_, MySqlRow> for Jumpstat {
 			id: row.try_get("id")?,
 			jump_type: row.try_get("type")?,
 			mode: row.try_get("mode")?,
-			style: row.try_get("style")?,
 			player: Player::from_row(row)?,
 			server: ServerInfo::from_row(row)?,
 			strafes: row.try_get("strafes")?,
@@ -117,9 +113,6 @@ pub struct NewJumpstat {
 
 	/// The mode this jump was performed in.
 	pub mode: Mode,
-
-	/// The style this jump was performed in.
-	pub style: Style,
 
 	/// The SteamID of the player who performed this jump.
 	pub player_id: SteamID,

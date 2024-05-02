@@ -3,7 +3,7 @@
 use axum::extract::Query;
 use axum::Json;
 use chrono::{DateTime, Utc};
-use cs2kz::{JumpType, Mode, PlayerIdentifier, ServerIdentifier, Style};
+use cs2kz::{JumpType, Mode, PlayerIdentifier, ServerIdentifier};
 use serde::Deserialize;
 use tracing::trace;
 use utoipa::IntoParams;
@@ -24,9 +24,6 @@ pub struct GetParams {
 
 	/// Filter by mode.
 	mode: Option<Mode>,
-
-	/// Filter by style.
-	style: Option<Style>,
 
 	/// Filter by a minimum distance.
 	minimum_distance: Option<f32>,
@@ -70,7 +67,6 @@ pub async fn get(
 	Query(GetParams {
 		jump_type,
 		mode,
-		style,
 		minimum_distance,
 		player,
 		server,
@@ -88,10 +84,6 @@ pub async fn get(
 
 	if let Some(mode) = mode {
 		query.filter(" j.mode_id = ", mode);
-	}
-
-	if let Some(style) = style {
-		query.filter(" j.style_id = ", style);
 	}
 
 	if let Some(minimum_distance) = minimum_distance {
@@ -154,7 +146,6 @@ pub async fn post(
 	Json(NewJumpstat {
 		jump_type,
 		mode,
-		style,
 		player_id,
 		strafes,
 		distance,
@@ -179,7 +170,6 @@ pub async fn post(
 		  Jumpstats (
 		    type,
 		    mode_id,
-		    style_id,
 		    strafes,
 		    distance,
 		    sync,
@@ -217,14 +207,12 @@ pub async fn post(
 		    ?,
 		    ?,
 		    ?,
-		    ?,
 		    0,
 		    ?
 		  )
 		"#,
 		jump_type,
 		mode,
-		style,
 		strafes,
 		distance,
 		sync,

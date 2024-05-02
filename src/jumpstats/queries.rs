@@ -6,7 +6,6 @@ pub static SELECT: &str = r#"
 	  j.id,
 	  j.type,
 	  j.mode_id MODE,
-	  j.style_id style,
 	  j.strafes,
 	  j.distance,
 	  j.sync,
