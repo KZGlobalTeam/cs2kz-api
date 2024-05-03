@@ -1,7 +1,8 @@
 //! CORS middlewares.
 
-use axum::http::{header, HeaderValue, Method};
-use tower_http::cors::{AllowMethods, CorsLayer};
+use axum::http::{header, request, HeaderValue, Method};
+use tower_http::cors::{AllowMethods, AllowOrigin, CorsLayer};
+use url::Url;
 
 /// balls
 pub fn permissive() -> CorsLayer {
@@ -15,8 +16,29 @@ pub fn dashboard(methods: impl Into<AllowMethods>) -> CorsLayer {
 		.allow_credentials(true)
 		.allow_headers([header::CONTENT_TYPE])
 		.allow_origin(if cfg!(feature = "production") {
-			HeaderValue::from_static("https://dashboard.cs2.kz")
+			AllowOrigin::exact(HeaderValue::from_static("https://dashboard.cs2.kz"))
 		} else {
-			HeaderValue::from_static("http://127.0.0.1")
+			AllowOrigin::predicate(is_localhost)
 		})
+}
+
+/// Checks if an incoming request came from localhost, ignoring the port.
+fn is_localhost(origin: &HeaderValue, _request: &request::Parts) -> bool {
+	let Ok(origin) = origin.to_str() else {
+		return false;
+	};
+
+	let Ok(origin) = Url::parse(origin) else {
+		return false;
+	};
+
+	if !matches!(origin.scheme(), "http" | "https") {
+		return false;
+	}
+
+	if !matches!(origin.host_str(), Some("127.0.0.1" | "localhost")) {
+		return false;
+	}
+
+	true
 }
