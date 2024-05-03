@@ -136,7 +136,7 @@ macro_rules! bitflags {
 					return None;
 				}
 
-				if self.idx <= <$repr>::BITS {
+				if self.idx >= <$repr>::BITS {
 					return None;
 				}
 
