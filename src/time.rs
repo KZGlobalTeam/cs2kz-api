@@ -11,7 +11,7 @@ use sqlx::MySql;
 use utoipa::ToSchema;
 
 /// Wrapper around [`std::time::Duration`], which takes care of encoding / decoding as seconds.
-#[derive(Debug, Display, Deref, DerefMut, From, Into, ToSchema)]
+#[derive(Debug, Display, Clone, Copy, Deref, DerefMut, From, Into, ToSchema)]
 #[display("{:.3}", self.as_secs_f64())]
 #[schema(value_type = f64)]
 pub struct Seconds(pub Duration);

@@ -10,8 +10,13 @@ license-file = "./LICENSE"
 publish = false
 
 [lints.rust]
+elided_lifetimes_in_paths = "deny"
+macro_use_extern_crate = "deny"
+missing_copy_implementations = "deny"
 missing_debug_implementations = "deny"
 missing_docs = "deny"
+non_ascii_idents = "deny"
+single_use_lifetimes = "warn"
 
 [lints.rustdoc]
 broken_intra_doc_links = "deny"

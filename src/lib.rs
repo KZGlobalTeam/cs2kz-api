@@ -51,7 +51,7 @@ mod auth;
 mod admins;
 mod plugin;
 
-#[derive(OpenApi)]
+#[derive(Debug, Clone, Copy, OpenApi)]
 #[rustfmt::skip]
 #[openapi(
   info(
@@ -200,7 +200,7 @@ mod plugin;
     ),
   ),
 )]
-#[allow(missing_docs, missing_debug_implementations)]
+#[allow(missing_docs)]
 pub struct API;
 
 impl API {

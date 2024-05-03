@@ -26,7 +26,7 @@ pub trait AuthorizeSession: Send + Sync + 'static {
 }
 
 /// No authorization.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct None;
 
 impl AuthorizeSession for None {
