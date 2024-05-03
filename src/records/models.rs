@@ -8,6 +8,7 @@ use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
 use crate::id::make_id;
+use crate::kz::StyleFlags;
 use crate::maps::{CourseID, CourseInfo, MapInfo};
 use crate::players::Player;
 use crate::servers::ServerInfo;
@@ -24,8 +25,9 @@ pub struct Record {
 	/// The mode this run was performed in.
 	pub mode: Mode,
 
-	// /// The style(s) this run was performed in.
-	// pub style: Style,
+	/// The style(s) this run was performed in.
+	pub styles: Vec<Style>,
+
 	/// The amount of teleports used during this run.
 	pub teleports: u16,
 
@@ -56,7 +58,12 @@ impl FromRow<'_, MySqlRow> for Record {
 		Ok(Self {
 			id: row.try_get("id")?,
 			mode: row.try_get("mode")?,
-			// style: row.try_get("style_flags")?,
+			styles: row
+				.try_get("style_flags")
+				.map(StyleFlags::new)?
+				.into_iter()
+				.map(|style| style.parse::<Style>().expect("found invalid style in db"))
+				.collect(),
 			teleports: row.try_get("teleports")?,
 			time: row.try_get("time")?,
 			player: Player::from_row(row)?,
@@ -121,8 +128,8 @@ pub struct NewRecord {
 	/// The mode this run was performed in.
 	pub mode: Mode,
 
-	/// The style this run was performed in.
-	pub style: Style,
+	/// The style(s) this run was performed in.
+	pub styles: Vec<Style>,
 
 	/// The ID of the course this run was performed on.
 	pub course_id: CourseID,

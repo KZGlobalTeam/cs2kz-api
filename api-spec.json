@@ -1739,17 +1739,15 @@
             }
           },
           {
-            "name": "style",
+            "name": "styles",
             "in": "query",
-            "description": "Filter by style.",
+            "description": "Filter by style(s).",
             "required": false,
             "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Style"
-                }
-              ],
-              "nullable": true
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           {
@@ -1857,6 +1855,7 @@
                         "required": [
                           "id",
                           "mode",
+                          "styles",
                           "teleports",
                           "time",
                           "player",
@@ -1872,6 +1871,13 @@
                           },
                           "mode": {
                             "$ref": "#/components/schemas/Mode"
+                          },
+                          "styles": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/Style"
+                            },
+                            "description": "The style(s) this run was performed in."
                           },
                           "teleports": {
                             "type": "integer",
@@ -1996,17 +2002,15 @@
             }
           },
           {
-            "name": "style",
+            "name": "styles",
             "in": "query",
-            "description": "Filter by style.",
+            "description": "Filter by style(s).",
             "required": false,
             "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Style"
-                }
-              ],
-              "nullable": true
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           {
@@ -2099,6 +2103,7 @@
                   "required": [
                     "id",
                     "mode",
+                    "styles",
                     "teleports",
                     "time",
                     "player",
@@ -2114,6 +2119,13 @@
                     },
                     "mode": {
                       "$ref": "#/components/schemas/Mode"
+                    },
+                    "styles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Style"
+                      },
+                      "description": "The style(s) this run was performed in."
                     },
                     "teleports": {
                       "type": "integer",
@@ -2191,6 +2203,7 @@
                   "required": [
                     "id",
                     "mode",
+                    "styles",
                     "teleports",
                     "time",
                     "player",
@@ -2206,6 +2219,13 @@
                     },
                     "mode": {
                       "$ref": "#/components/schemas/Mode"
+                    },
+                    "styles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Style"
+                      },
+                      "description": "The style(s) this run was performed in."
                     },
                     "teleports": {
                       "type": "integer",
@@ -4613,7 +4633,7 @@
         "required": [
           "player_id",
           "mode",
-          "style",
+          "styles",
           "course_id",
           "teleports",
           "time",
@@ -4626,8 +4646,12 @@
           "mode": {
             "$ref": "#/components/schemas/Mode"
           },
-          "style": {
-            "$ref": "#/components/schemas/Style"
+          "styles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Style"
+            },
+            "description": "The style(s) this run was performed in."
           },
           "course_id": {
             "$ref": "#/components/schemas/CourseID"
@@ -4808,6 +4832,7 @@
         "required": [
           "id",
           "mode",
+          "styles",
           "teleports",
           "time",
           "player",
@@ -4823,6 +4848,13 @@
           },
           "mode": {
             "$ref": "#/components/schemas/Mode"
+          },
+          "styles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Style"
+            },
+            "description": "The style(s) this run was performed in."
           },
           "teleports": {
             "type": "integer",

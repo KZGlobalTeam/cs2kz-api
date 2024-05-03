@@ -20,6 +20,7 @@ macro_rules! bitflags {
 		#[sqlx(transparent)]
 		$vis struct $name($repr);
 
+		#[allow(dead_code)]
 		impl $name {
 			pub const fn new(value: $repr) -> Self {
 				Self(value & Self::ALL.0)
@@ -139,8 +140,9 @@ macro_rules! bitflags {
 					return None;
 				}
 
-				while self.bits != 0 && self.idx >= <$repr>::BITS {
+				while self.bits != 0 && self.idx <= <$repr>::BITS {
 					if let Some(name) = $name(self.bits & (1 << self.idx)).name() {
+						self.idx += 1;
 						return Some(name);
 					}
 
@@ -190,11 +192,15 @@ macro_rules! bitflags {
 				#[serde(untagged)]
 				enum Helper {
 					Int($repr),
+					Word(String),
 					Words(Vec<String>),
 				}
 
 				Helper::deserialize(deserializer).map(|value| match value {
 					Helper::Int(flags) => Self::new(flags),
+					Helper::Word(word) => word
+						.parse::<Self>()
+						.unwrap_or_default(),
 					Helper::Words(words) => words
 						.into_iter()
 						.flat_map(|word| word.parse::<Self>())

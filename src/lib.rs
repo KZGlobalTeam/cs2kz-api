@@ -40,6 +40,7 @@ mod serde;
 mod time;
 mod id;
 mod bitflags;
+mod kz;
 
 mod players;
 mod maps;

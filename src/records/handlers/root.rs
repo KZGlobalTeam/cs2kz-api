@@ -3,12 +3,13 @@
 use axum::extract::Query;
 use axum::Json;
 use chrono::{DateTime, Utc};
-use cs2kz::{Mode, PlayerIdentifier, ServerIdentifier, Style};
+use cs2kz::{Mode, PlayerIdentifier, ServerIdentifier};
 use serde::Deserialize;
 use tracing::trace;
 use utoipa::IntoParams;
 
 use crate::auth::Jwt;
+use crate::kz::StyleFlags;
 use crate::parameters::{Limit, Offset};
 use crate::records::{queries, CreatedRecord, NewRecord, Record, RecordID};
 use crate::responses::{Created, PaginationResponse};
@@ -21,8 +22,10 @@ pub struct GetParams {
 	/// Filter by mode.
 	mode: Option<Mode>,
 
-	/// Filter by style.
-	style: Option<Style>,
+	/// Filter by style(s).
+	#[param(value_type = Vec<String>)]
+	#[serde(default)]
+	styles: StyleFlags,
 
 	/// Filter by whether teleports where used.
 	teleports: Option<bool>,
@@ -65,7 +68,7 @@ pub async fn get(
 	state: &'static State,
 	Query(GetParams {
 		mode,
-		style,
+		styles,
 		teleports,
 		player,
 		server,
@@ -81,9 +84,12 @@ pub async fn get(
 		query.filter(" f.mode_id = ", mode);
 	}
 
-	if let Some(_style) = style {
-		// FIXME: flags
-		// query.filter(" r.style_id = ", style);
+	if styles != StyleFlags::NONE {
+		query
+			.filter(" ((r.style_flags & ", styles)
+			.push(") = ")
+			.push_bind(styles)
+			.push(")");
 	}
 
 	match teleports {
@@ -153,7 +159,7 @@ pub async fn get(
 pub async fn post(
 	state: &'static State,
 	Jwt { payload: server, .. }: Jwt<auth::Server>,
-	Json(NewRecord { player_id, mode, style, course_id, teleports, time, bhop_stats }): Json<
+	Json(NewRecord { player_id, mode, styles, course_id, teleports, time, bhop_stats }): Json<
 		NewRecord,
 	>,
 ) -> Result<Created<Json<CreatedRecord>>> {
@@ -206,7 +212,7 @@ pub async fn post(
 		  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
 		"#,
 		filter_id,
-		style,
+		styles.iter().copied().collect::<StyleFlags>(),
 		teleports,
 		time.as_secs_f64(),
 		player_id,
