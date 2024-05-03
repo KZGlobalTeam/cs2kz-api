@@ -1811,6 +1811,24 @@
             }
           },
           {
+            "name": "sort_by",
+            "in": "query",
+            "description": "Sort by a specific property.\n\nDefaults to \"date\".",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SortRecordsBy"
+            }
+          },
+          {
+            "name": "sort_order",
+            "in": "query",
+            "description": "Decide the sorting order.\n\nDefaults to \"ascending\".",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SortingOrder"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Limit the number of returned results.",
@@ -2071,6 +2089,24 @@
               "type": "string",
               "format": "date-time",
               "nullable": true
+            }
+          },
+          {
+            "name": "sort_by",
+            "in": "query",
+            "description": "Sort by a specific property.\n\nDefaults to \"date\".",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SortRecordsBy"
+            }
+          },
+          {
+            "name": "sort_order",
+            "in": "query",
+            "description": "Decide the sorting order.\n\nDefaults to \"ascending\".",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SortingOrder"
             }
           },
           {
@@ -5025,6 +5061,22 @@
             "nullable": true
           }
         }
+      },
+      "SortRecordsBy": {
+        "type": "string",
+        "description": "Sort records.",
+        "enum": [
+          "time",
+          "date"
+        ]
+      },
+      "SortingOrder": {
+        "type": "string",
+        "description": "A query parameter to decide a sorting order.",
+        "enum": [
+          "ascending",
+          "descending"
+        ]
       },
       "SteamID": {
         "anyOf": [

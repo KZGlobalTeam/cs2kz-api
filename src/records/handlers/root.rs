@@ -6,11 +6,11 @@ use chrono::{DateTime, Utc};
 use cs2kz::{Mode, PlayerIdentifier, ServerIdentifier};
 use serde::Deserialize;
 use tracing::trace;
-use utoipa::IntoParams;
+use utoipa::{IntoParams, ToSchema};
 
 use crate::auth::Jwt;
 use crate::kz::StyleFlags;
-use crate::parameters::{Limit, Offset};
+use crate::parameters::{Limit, Offset, SortingOrder};
 use crate::records::{queries, CreatedRecord, NewRecord, Record, RecordID};
 use crate::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
@@ -42,6 +42,18 @@ pub struct GetParams {
 	/// Filter by creation date.
 	created_before: Option<DateTime<Utc>>,
 
+	/// Sort by a specific property.
+	///
+	/// Defaults to "date".
+	#[serde(default)]
+	sort_by: SortRecordsBy,
+
+	/// Decide the sorting order.
+	///
+	/// Defaults to "ascending".
+	#[serde(default)]
+	sort_order: SortingOrder,
+
 	/// Limit the number of returned results.
 	#[serde(default)]
 	limit: Limit,
@@ -49,6 +61,18 @@ pub struct GetParams {
 	/// Paginate by `offset` entries.
 	#[serde(default)]
 	offset: Offset,
+}
+
+/// Sort records.
+#[derive(Debug, Default, Clone, Copy, Deserialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum SortRecordsBy {
+	/// Sort by time.
+	Time,
+
+	/// Sort by date.
+	#[default]
+	Date,
 }
 
 #[tracing::instrument(level = "debug", skip(state))]
@@ -74,6 +98,8 @@ pub async fn get(
 		server,
 		created_after,
 		created_before,
+		sort_by,
+		sort_order,
 		limit,
 		offset,
 	}): Query<GetParams>,
@@ -121,6 +147,11 @@ pub async fn get(
 	if let Some(created_before) = created_before {
 		query.filter(" r.created_on < ", created_before);
 	}
+
+	query.order_by(sort_order, match sort_by {
+		SortRecordsBy::Time => "r.time",
+		SortRecordsBy::Date => "r.created_on",
+	});
 
 	query.push_limits(limit, offset);
 

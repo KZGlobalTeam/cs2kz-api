@@ -131,6 +131,7 @@ mod plugin;
 
       parameters::Offset,
       parameters::Limit,
+      parameters::SortingOrder,
 
       time::Seconds,
 
@@ -176,6 +177,7 @@ mod plugin;
       records::models::BhopStats,
       records::models::NewRecord,
       records::models::CreatedRecord,
+      records::handlers::root::SortRecordsBy,
 
       bans::models::Ban,
       bans::models::BanID,
