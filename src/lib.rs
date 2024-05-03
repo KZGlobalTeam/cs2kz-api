@@ -1,29 +1,5 @@
 //! The CS2KZ API
 
-#![allow(clippy::redundant_closure, clippy::new_without_default)]
-#![warn(
-	clippy::absolute_paths,
-	clippy::as_underscore,
-	clippy::cognitive_complexity,
-	clippy::collection_is_never_read,
-	clippy::dbg_macro,
-	clippy::future_not_send,
-	clippy::todo
-)]
-#![deny(
-	missing_debug_implementations,
-	missing_docs,
-	clippy::missing_docs_in_private_items,
-	rustdoc::broken_intra_doc_links,
-	clippy::perf,
-	clippy::bool_comparison,
-	clippy::bool_to_int_with_if,
-	clippy::cast_possible_truncation,
-	clippy::clone_on_ref_ptr,
-	clippy::ignored_unit_patterns,
-	clippy::unimplemented
-)]
-
 use std::future::Future;
 
 use axum::routing::{get, IntoMakeService};
