@@ -140,7 +140,7 @@ macro_rules! bitflags {
 					return None;
 				}
 
-				while self.bits != 0 && self.idx <= <$repr>::BITS {
+				while self.bits != 0 && self.idx < <$repr>::BITS {
 					if let Some(name) = $name(self.bits & (1 << self.idx)).name() {
 						self.idx += 1;
 						return Some(name);
