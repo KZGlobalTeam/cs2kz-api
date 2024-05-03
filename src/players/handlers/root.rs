@@ -42,7 +42,7 @@ pub struct GetParams {
 )]
 pub async fn get(
 	state: &'static State,
-	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
+	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>>,
 	Query(GetParams { limit, offset }): Query<GetParams>,
 ) -> Result<Json<PaginationResponse<FullPlayer>>> {
 	let mut query = QueryBuilder::new(queries::SELECT);

@@ -125,7 +125,7 @@ pub async fn get(
 )]
 pub async fn put(
 	state: &'static State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.as_u32() }>>,
+	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.value() }>>,
 	Json(NewMap { workshop_id, description, global_status, mappers, courses }): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {
 	let name = WorkshopMap::fetch_name(workshop_id, &state.http_client).await?;

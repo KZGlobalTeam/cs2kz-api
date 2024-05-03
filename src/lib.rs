@@ -39,6 +39,7 @@ mod security;
 mod serde;
 mod time;
 mod id;
+mod bitflags;
 
 mod players;
 mod maps;

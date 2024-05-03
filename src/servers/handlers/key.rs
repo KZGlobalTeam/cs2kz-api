@@ -77,7 +77,7 @@ pub async fn generate_temp(
 pub async fn put_perma(
 	state: &'static State,
 	session: auth::Session<
-		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::ServerOwner>,
+		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.value() }>, auth::ServerOwner>,
 	>,
 	Path(server_id): Path<u16>,
 ) -> Result<Created<Json<RefreshKey>>> {
@@ -125,7 +125,7 @@ pub async fn put_perma(
 )]
 pub async fn delete_perma(
 	state: &'static State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>>,
+	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.value() }>>,
 	Path(server_id): Path<u16>,
 ) -> Result<NoContent> {
 	let mut transaction = state.transaction().await?;

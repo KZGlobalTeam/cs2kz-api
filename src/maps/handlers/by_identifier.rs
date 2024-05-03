@@ -76,7 +76,7 @@ pub async fn get(state: &'static State, Path(map): Path<MapIdentifier>) -> Resul
 )]
 pub async fn patch(
 	state: &'static State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.as_u32() }>>,
+	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.value() }>>,
 	Path(map_id): Path<MapID>,
 	Json(MapUpdate {
 		description,

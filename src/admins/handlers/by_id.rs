@@ -63,7 +63,7 @@ pub async fn get(state: &'static State, Path(steam_id): Path<SteamID>) -> Result
 )]
 pub async fn put(
 	state: &'static State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::ADMIN.as_u32() }>>,
+	session: auth::Session<auth::HasRoles<{ RoleFlags::ADMIN.value() }>>,
 	Path(steam_id): Path<SteamID>,
 	Json(AdminUpdate { roles }): Json<AdminUpdate>,
 ) -> Result<NoContent> {

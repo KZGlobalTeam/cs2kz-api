@@ -149,7 +149,7 @@ pub async fn get(
 pub async fn post(
 	state: &'static State,
 	server: Option<Jwt<auth::Server>>,
-	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>>,
+	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>>,
 	Json(NewBan { player_id, player_ip, reason }): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
 	let (server, admin) = match (server, session) {
