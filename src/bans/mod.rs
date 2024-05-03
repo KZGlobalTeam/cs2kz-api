@@ -19,7 +19,7 @@ pub mod handlers;
 
 /// Returns a router with routes for `/bans`.
 pub fn router(state: &'static State) -> Router {
-	let auth = session_auth!(auth::HasRoles<{ RoleFlags::BANS.as_u32() }>, state);
+	let auth = session_auth!(auth::HasRoles<{ RoleFlags::BANS.value() }>, state);
 
 	let root = Router::new()
 		.route("/", get(handlers::root::get))

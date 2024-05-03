@@ -26,7 +26,7 @@ pub trait AuthorizeSession: Send + Sync + 'static {
 }
 
 /// No authorization.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct None;
 
 impl AuthorizeSession for None {
@@ -48,7 +48,7 @@ impl<const ROLE_FLAGS: u32> AuthorizeSession for HasRoles<ROLE_FLAGS> {
 		_request: &mut request::Parts,
 		_database: &mut Transaction<'static, MySql>,
 	) -> Result<()> {
-		let flags = RoleFlags::from(ROLE_FLAGS);
+		let flags = RoleFlags::new(ROLE_FLAGS);
 
 		match user.role_flags().contains(flags) {
 			true => Ok(()),

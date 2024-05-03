@@ -1,29 +1,5 @@
 //! The CS2KZ API
 
-#![allow(clippy::redundant_closure, clippy::new_without_default)]
-#![warn(
-	clippy::absolute_paths,
-	clippy::as_underscore,
-	clippy::cognitive_complexity,
-	clippy::collection_is_never_read,
-	clippy::dbg_macro,
-	clippy::future_not_send,
-	clippy::todo
-)]
-#![deny(
-	missing_debug_implementations,
-	missing_docs,
-	clippy::missing_docs_in_private_items,
-	rustdoc::broken_intra_doc_links,
-	clippy::perf,
-	clippy::bool_comparison,
-	clippy::bool_to_int_with_if,
-	clippy::cast_possible_truncation,
-	clippy::clone_on_ref_ptr,
-	clippy::ignored_unit_patterns,
-	clippy::unimplemented
-)]
-
 use std::future::Future;
 
 use axum::routing::{get, IntoMakeService};
@@ -63,6 +39,8 @@ mod security;
 mod serde;
 mod time;
 mod id;
+mod bitflags;
+mod kz;
 
 mod players;
 mod maps;
@@ -75,7 +53,7 @@ mod auth;
 mod admins;
 mod plugin;
 
-#[derive(OpenApi)]
+#[derive(Debug, Clone, Copy, OpenApi)]
 #[rustfmt::skip]
 #[openapi(
   info(
@@ -153,6 +131,7 @@ mod plugin;
 
       parameters::Offset,
       parameters::Limit,
+      parameters::SortingOrder,
 
       time::Seconds,
 
@@ -198,6 +177,7 @@ mod plugin;
       records::models::BhopStats,
       records::models::NewRecord,
       records::models::CreatedRecord,
+      records::handlers::root::SortRecordsBy,
 
       bans::models::Ban,
       bans::models::BanID,
@@ -224,7 +204,7 @@ mod plugin;
     ),
   ),
 )]
-#[allow(missing_docs, missing_debug_implementations)]
+#[allow(missing_docs)]
 pub struct API;
 
 impl API {

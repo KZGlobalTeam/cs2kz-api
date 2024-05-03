@@ -9,6 +9,36 @@ repository = "https://github.com/KZGlobalTeam/cs2kz-api"
 license-file = "./LICENSE"
 publish = false
 
+[lints.rust]
+elided_lifetimes_in_paths = "deny"
+macro_use_extern_crate = "deny"
+missing_copy_implementations = "deny"
+missing_debug_implementations = "deny"
+missing_docs = "deny"
+non_ascii_idents = "deny"
+single_use_lifetimes = "warn"
+
+[lints.rustdoc]
+broken_intra_doc_links = "deny"
+
+[lints.clippy]
+absolute_paths = "warn"
+as_underscore = "warn"
+bool_comparison = "deny"
+bool_to_int_with_if = "deny"
+cast_possible_truncation = "deny"
+clone_on_ref_ptr = "deny"
+cognitive_complexity = "warn"
+collection_is_never_read = "warn"
+dbg_macro = "warn"
+future_not_send = "warn"
+ignored_unit_patterns = "deny"
+missing_docs_in_private_items = "deny"
+new_without_default = "allow"
+redundant_closure = "allow"
+todo = "warn"
+unimplemented = "deny"
+
 [workspace]
 resolver = "2"
 members = ["crates/spec-generator", "crates/macros"]

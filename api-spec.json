@@ -1739,17 +1739,15 @@
             }
           },
           {
-            "name": "style",
+            "name": "styles",
             "in": "query",
-            "description": "Filter by style.",
+            "description": "Filter by style(s).",
             "required": false,
             "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Style"
-                }
-              ],
-              "nullable": true
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           {
@@ -1813,6 +1811,24 @@
             }
           },
           {
+            "name": "sort_by",
+            "in": "query",
+            "description": "Sort by a specific property.\n\nDefaults to \"date\".",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SortRecordsBy"
+            }
+          },
+          {
+            "name": "sort_order",
+            "in": "query",
+            "description": "Decide the sorting order.\n\nDefaults to \"ascending\".",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SortingOrder"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Limit the number of returned results.",
@@ -1857,6 +1873,7 @@
                         "required": [
                           "id",
                           "mode",
+                          "styles",
                           "teleports",
                           "time",
                           "player",
@@ -1872,6 +1889,13 @@
                           },
                           "mode": {
                             "$ref": "#/components/schemas/Mode"
+                          },
+                          "styles": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/Style"
+                            },
+                            "description": "The style(s) this run was performed in."
                           },
                           "teleports": {
                             "type": "integer",
@@ -1996,17 +2020,15 @@
             }
           },
           {
-            "name": "style",
+            "name": "styles",
             "in": "query",
-            "description": "Filter by style.",
+            "description": "Filter by style(s).",
             "required": false,
             "schema": {
-              "allOf": [
-                {
-                  "$ref": "#/components/schemas/Style"
-                }
-              ],
-              "nullable": true
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           {
@@ -2070,6 +2092,24 @@
             }
           },
           {
+            "name": "sort_by",
+            "in": "query",
+            "description": "Sort by a specific property.\n\nDefaults to \"date\".",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SortRecordsBy"
+            }
+          },
+          {
+            "name": "sort_order",
+            "in": "query",
+            "description": "Decide the sorting order.\n\nDefaults to \"ascending\".",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SortingOrder"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "description": "Limit the number of returned results.",
@@ -2099,6 +2139,7 @@
                   "required": [
                     "id",
                     "mode",
+                    "styles",
                     "teleports",
                     "time",
                     "player",
@@ -2114,6 +2155,13 @@
                     },
                     "mode": {
                       "$ref": "#/components/schemas/Mode"
+                    },
+                    "styles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Style"
+                      },
+                      "description": "The style(s) this run was performed in."
                     },
                     "teleports": {
                       "type": "integer",
@@ -2191,6 +2239,7 @@
                   "required": [
                     "id",
                     "mode",
+                    "styles",
                     "teleports",
                     "time",
                     "player",
@@ -2206,6 +2255,13 @@
                     },
                     "mode": {
                       "$ref": "#/components/schemas/Mode"
+                    },
+                    "styles": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Style"
+                      },
+                      "description": "The style(s) this run was performed in."
                     },
                     "teleports": {
                       "type": "integer",
@@ -4613,7 +4669,7 @@
         "required": [
           "player_id",
           "mode",
-          "style",
+          "styles",
           "course_id",
           "teleports",
           "time",
@@ -4626,8 +4682,12 @@
           "mode": {
             "$ref": "#/components/schemas/Mode"
           },
-          "style": {
-            "$ref": "#/components/schemas/Style"
+          "styles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Style"
+            },
+            "description": "The style(s) this run was performed in."
           },
           "course_id": {
             "$ref": "#/components/schemas/CourseID"
@@ -4808,6 +4868,7 @@
         "required": [
           "id",
           "mode",
+          "styles",
           "teleports",
           "time",
           "player",
@@ -4823,6 +4884,13 @@
           },
           "mode": {
             "$ref": "#/components/schemas/Mode"
+          },
+          "styles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Style"
+            },
+            "description": "The style(s) this run was performed in."
           },
           "teleports": {
             "type": "integer",
@@ -4993,6 +5061,22 @@
             "nullable": true
           }
         }
+      },
+      "SortRecordsBy": {
+        "type": "string",
+        "description": "Sort records.",
+        "enum": [
+          "time",
+          "date"
+        ]
+      },
+      "SortingOrder": {
+        "type": "string",
+        "description": "A query parameter to decide a sorting order.",
+        "enum": [
+          "ascending",
+          "descending"
+        ]
       },
       "SteamID": {
         "anyOf": [

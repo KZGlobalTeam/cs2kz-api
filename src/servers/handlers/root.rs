@@ -131,7 +131,7 @@ pub async fn get(
 )]
 pub async fn post(
 	state: &'static State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>>,
+	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.value() }>>,
 	Json(NewServer { name, ip_address, owned_by }): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
 	let mut transaction = state.transaction().await?;

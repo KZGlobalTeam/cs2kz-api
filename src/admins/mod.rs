@@ -22,7 +22,7 @@ pub mod handlers;
 
 /// Returns a router with routes for `/admins`.
 pub fn router(state: &'static State) -> Router {
-	let auth = session_auth!(auth::HasRoles<{ RoleFlags::ADMIN.as_u32() }>, state);
+	let auth = session_auth!(auth::HasRoles<{ RoleFlags::ADMIN.value() }>, state);
 
 	let root = Router::new()
 		.route("/", get(handlers::root::get))

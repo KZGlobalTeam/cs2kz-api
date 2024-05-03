@@ -67,7 +67,7 @@ pub async fn get(
 pub async fn patch(
 	state: &'static State,
 	session: auth::Session<
-		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.as_u32() }>, auth::ServerOwner>,
+		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.value() }>, auth::ServerOwner>,
 	>,
 	Path(server_id): Path<u16>,
 	Json(ServerUpdate { name, ip_address, owned_by }): Json<ServerUpdate>,

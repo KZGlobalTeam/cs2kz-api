@@ -90,3 +90,25 @@ impl<'s, const MAX: u64, const DEFAULT: u64> ToSchema<'s> for Limit<MAX, DEFAULT
 		)
 	}
 }
+
+/// A query parameter to decide a sorting order.
+#[derive(Debug, Default, Clone, Copy, Deserialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum SortingOrder {
+	/// Sort from lowest to highest.
+	#[default]
+	Ascending,
+
+	/// Sort from highest to lowest.
+	Descending,
+}
+
+impl SortingOrder {
+	/// Returns a SQL keyword that can be used in an `ORDER BY` clause.
+	pub const fn sql(&self) -> &'static str {
+		match *self {
+			SortingOrder::Ascending => " ASC ",
+			SortingOrder::Descending => " DESC ",
+		}
+	}
+}

@@ -56,7 +56,7 @@ pub async fn get(state: &'static State, Path(ban_id): Path<u64>) -> Result<Json<
 )]
 pub async fn patch(
 	state: &'static State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>,
+	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>,
 	Path(ban_id): Path<BanID>,
 	Json(BanUpdate { reason, expires_on }): Json<BanUpdate>,
 ) -> Result<NoContent> {
@@ -112,7 +112,7 @@ pub async fn patch(
 )]
 pub async fn delete(
 	state: &'static State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.as_u32() }>>,
+	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>,
 	Path(ban_id): Path<BanID>,
 	Json(NewUnban { reason }): Json<NewUnban>,
 ) -> Result<Created<Json<CreatedUnban>>> {

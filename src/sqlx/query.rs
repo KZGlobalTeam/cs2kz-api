@@ -1,10 +1,12 @@
 //! Utilities for SQL queries.
 
+use std::fmt::Display;
+
 use derive_more::{Deref, DerefMut};
 use sqlx::encode::IsNull;
 use sqlx::{MySql, QueryBuilder, Transaction};
 
-use crate::parameters::{Limit, Offset};
+use crate::parameters::{Limit, Offset, SortingOrder};
 
 /// Returns the total amount of rows that _could_ have been fetched from a query containing
 /// `LIMIT`. This only works for queries containing `SQL_CALC_FOUND_ROWS`.
@@ -22,6 +24,9 @@ pub async fn total_rows(transaction: &mut Transaction<'_, MySql>) -> crate::Resu
 pub trait QueryBuilderExt {
 	/// Pushes `LIMIT` and `OFFSET` clauses into the query.
 	fn push_limits(&mut self, limit: Limit, offset: Offset) -> &mut Self;
+
+	/// Pushes an `ORDER BY` clause into the query.
+	fn order_by(&mut self, order: SortingOrder, columns: impl Display) -> &mut Self;
 }
 
 impl QueryBuilderExt for QueryBuilder<'_, MySql> {
@@ -30,6 +35,10 @@ impl QueryBuilderExt for QueryBuilder<'_, MySql> {
 			.push_bind(limit.0)
 			.push(" OFFSET ")
 			.push_bind(offset.0)
+	}
+
+	fn order_by(&mut self, order: SortingOrder, columns: impl Display) -> &mut Self {
+		self.push(" ORDER BY ").push(columns).push(order.sql())
 	}
 }
 

@@ -15,6 +15,7 @@ pub trait FetchID {
 	type ID;
 
 	/// Fetches an ID from the database if necessary.
+	#[allow(single_use_lifetimes)]
 	fn fetch_id<'c>(
 		&self,
 		executor: impl MySqlExecutor<'c>,
@@ -24,7 +25,7 @@ pub trait FetchID {
 impl FetchID for PlayerIdentifier {
 	type ID = SteamID;
 
-	async fn fetch_id<'c>(&self, executor: impl MySqlExecutor<'c>) -> Result<SteamID> {
+	async fn fetch_id(&self, executor: impl MySqlExecutor<'_>) -> Result<SteamID> {
 		match self {
 			Self::SteamID(steam_id) => Ok(*steam_id),
 			Self::Name(name) => sqlx::query! {
@@ -49,7 +50,7 @@ impl FetchID for PlayerIdentifier {
 impl FetchID for MapIdentifier {
 	type ID = u16;
 
-	async fn fetch_id<'c>(&self, executor: impl MySqlExecutor<'c>) -> Result<u16> {
+	async fn fetch_id(&self, executor: impl MySqlExecutor<'_>) -> Result<u16> {
 		match self {
 			Self::ID(id) => Ok(*id),
 			Self::Name(name) => sqlx::query! {
@@ -74,7 +75,7 @@ impl FetchID for MapIdentifier {
 impl FetchID for ServerIdentifier {
 	type ID = u16;
 
-	async fn fetch_id<'c>(&self, executor: impl MySqlExecutor<'c>) -> Result<u16> {
+	async fn fetch_id(&self, executor: impl MySqlExecutor<'_>) -> Result<u16> {
 		match self {
 			Self::ID(id) => Ok(*id),
 			Self::Name(name) => sqlx::query! {
