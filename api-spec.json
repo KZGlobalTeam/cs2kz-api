@@ -357,81 +357,6 @@
         }
       }
     },
-    "/players/{steam_id}/preferences": {
-      "put": {
-        "tags": [
-          "Players"
-        ],
-        "summary": "Replace a player's current set of preference settings.",
-        "description": "Replace a player's current set of preference settings.\n\nThis endpoint will be hit periodically by CS2 servers whenever a map changes, or a player\ndisconnects.",
-        "operationId": "put",
-        "parameters": [
-          {
-            "name": "steam_id",
-            "in": "path",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "title": "Steam ID",
-                  "example": "STEAM_1:1:161178172"
-                },
-                {
-                  "type": "string",
-                  "title": "Steam ID3",
-                  "example": "U:1:322356345"
-                },
-                {
-                  "type": "integer",
-                  "title": "Steam ID32",
-                  "example": 322356345
-                },
-                {
-                  "type": "integer",
-                  "title": "Steam ID64",
-                  "example": 76561198282622073
-                }
-              ],
-              "description": "a player's SteamID",
-              "example": "STEAM_1:1:161178172"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": ""
-          },
-          "400": {
-            "description": ""
-          },
-          "401": {
-            "description": ""
-          },
-          "422": {
-            "description": ""
-          },
-          "500": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "CS2 Server": []
-          }
-        ]
-      }
-    },
     "/maps": {
       "get": {
         "tags": [
@@ -1055,18 +980,6 @@
         "summary": "Update a server.",
         "description": "Update a server.\n\nThis endpoint can be used by both admins and server owners.",
         "operationId": "patch",
-        "parameters": [
-          {
-            "name": "server",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint16",
-              "minimum": 0
-            }
-          }
-        ],
         "requestBody": {
           "description": "",
           "content": {
@@ -2928,16 +2841,6 @@
             "name": "sesion_id",
             "in": "path",
             "description": "The session's ID",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "uint64",
-              "minimum": 0
-            }
-          },
-          {
-            "name": "session_id",
-            "in": "path",
             "required": true,
             "schema": {
               "type": "integer",
@@ -4868,7 +4771,8 @@
         "required": [
           "name",
           "ip_address",
-          "session"
+          "session",
+          "preferences"
         ],
         "properties": {
           "name": {
@@ -4881,6 +4785,9 @@
           },
           "session": {
             "$ref": "#/components/schemas/Session"
+          },
+          "preferences": {
+            "$ref": "#/components/schemas/JsonValue"
           }
         }
       },
