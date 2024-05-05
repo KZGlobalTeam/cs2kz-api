@@ -8,21 +8,33 @@ use crate::middleware::cors;
 use crate::State;
 
 mod jwt;
+
+#[doc(inline)]
 pub use jwt::Jwt;
 
-pub mod role_flags;
+mod role_flags;
+
+#[doc(inline)]
 pub use role_flags::RoleFlags;
 
 mod key;
+
+#[doc(inline)]
 pub use key::Key;
 
-pub mod session;
+mod session;
+
+#[doc(inline)]
 pub use session::Session;
 
 mod authorization;
+
+#[doc(inline)]
 pub use authorization::{AdminOrServerOwner, AuthorizeSession, HasRoles, None};
 
-pub mod models;
+mod models;
+
+#[doc(inline)]
 pub use models::{Server, SteamLoginForm, SteamLoginResponse, SteamUser, User};
 
 pub mod handlers;

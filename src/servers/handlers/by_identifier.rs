@@ -11,6 +11,7 @@ use crate::servers::{queries, Server, ServerUpdate};
 use crate::sqlx::UpdateQuery;
 use crate::{auth, responses, Error, Result, State};
 
+/// Fetch a specific server.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -46,6 +47,9 @@ pub async fn get(state: &State, Path(server): Path<ServerIdentifier>) -> Result<
 	Ok(Json(server))
 }
 
+/// Update a server.
+///
+/// This endpoint can be used by both admins and server owners.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   patch,

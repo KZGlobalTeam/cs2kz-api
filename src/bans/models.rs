@@ -70,7 +70,7 @@ impl FromRow<'_, MySqlRow> for Ban {
 }
 
 /// The different reasons for which players can be banned.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum BanReason {
 	/// Perfect strafes
@@ -175,7 +175,7 @@ impl FromRow<'_, MySqlRow> for Unban {
 }
 
 /// Request body for submitting new bans.
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
 pub struct NewBan {
 	/// The player's SteamID.
 	pub player_id: SteamID,
@@ -189,14 +189,14 @@ pub struct NewBan {
 }
 
 /// A newly created ban.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct CreatedBan {
 	/// The ban's ID.
 	pub ban_id: BanID,
 }
 
 /// Request body for updating bans.
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
 pub struct BanUpdate {
 	/// A new ban reason.
 	pub reason: Option<BanReason>,
@@ -217,7 +217,7 @@ pub struct NewUnban {
 }
 
 /// A newly reverted ban.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct CreatedUnban {
 	/// The unban's ID.
 	pub unban_id: UnbanID,

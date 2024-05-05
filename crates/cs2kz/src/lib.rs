@@ -14,34 +14,56 @@
 #![warn(clippy::cognitive_complexity, clippy::missing_const_for_fn)]
 
 mod error;
+
+#[doc(inline)]
 pub use error::{Error, Result};
 
-pub mod steam_id;
+mod steam_id;
+
+#[doc(inline)]
 pub use steam_id::SteamID;
 
-pub mod mode;
+mod mode;
+
+#[doc(inline)]
 pub use mode::Mode;
 
-pub mod style;
+mod style;
+
+#[doc(inline)]
 pub use style::Style;
 
-pub mod tier;
+mod tier;
+
+#[doc(inline)]
 pub use tier::Tier;
 
-pub mod jumptype;
+mod jumptype;
+
+#[doc(inline)]
 pub use jumptype::JumpType;
 
-pub mod player_identifier;
+mod player_identifier;
+
+#[doc(inline)]
 pub use player_identifier::PlayerIdentifier;
 
-pub mod map_identifier;
+mod map_identifier;
+
+#[doc(inline)]
 pub use map_identifier::MapIdentifier;
 
-pub mod server_identifier;
+mod server_identifier;
+
+#[doc(inline)]
 pub use server_identifier::ServerIdentifier;
 
-pub mod global_status;
+mod global_status;
+
+#[doc(inline)]
 pub use global_status::GlobalStatus;
 
-pub mod ranked_status;
+mod ranked_status;
+
+#[doc(inline)]
 pub use ranked_status::RankedStatus;

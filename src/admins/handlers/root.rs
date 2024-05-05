@@ -15,7 +15,7 @@ use crate::sqlx::query;
 use crate::{responses, Error, Result, State};
 
 /// Query parameters for `GET /admins`.
-#[derive(Debug, Deserialize, IntoParams)]
+#[derive(Debug, Clone, Copy, Deserialize, IntoParams)]
 pub struct GetParams {
 	/// Filter by roles.
 	#[param(value_type = Vec<String>)]
@@ -31,6 +31,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
+/// Fetch admins (players with permissions).
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,

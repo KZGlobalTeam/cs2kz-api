@@ -39,6 +39,7 @@ impl AuthorizeSession for None {
 }
 
 /// Ensures the user has a given set of roles.
+#[derive(Debug, Clone, Copy)]
 pub struct HasRoles<const ROLE_FLAGS: u32>;
 
 impl<const ROLE_FLAGS: u32> AuthorizeSession for HasRoles<ROLE_FLAGS> {

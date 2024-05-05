@@ -77,7 +77,7 @@ impl FromRow<'_, MySqlRow> for Record {
 }
 
 /// Bhop statistics over a certain time period.
-#[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct BhopStats {
 	/// The amount of perfect Bhops.
 	pub perfs: u16,
@@ -145,7 +145,7 @@ pub struct NewRecord {
 }
 
 /// A newly created record.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct CreatedRecord {
 	/// The record's ID.
 	pub record_id: RecordID,

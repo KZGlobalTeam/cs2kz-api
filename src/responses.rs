@@ -67,7 +67,7 @@ where
 	}
 }
 
-#[derive(Debug, Serialize, IntoResponses)]
+#[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
 #[response(status = 204)]
 pub struct NoContent;
 

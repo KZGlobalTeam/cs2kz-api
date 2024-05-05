@@ -54,6 +54,10 @@ pub struct GetParams {
 	offset: Offset,
 }
 
+/// Fetch bans.
+///
+/// These are bans that might have expired / have been reverted. If that's the case, they will also
+/// include the according "unban" entry.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -131,6 +135,9 @@ pub async fn get(
 	Ok(Json(PaginationResponse { total, results: bans }))
 }
 
+/// Ban a player.
+///
+/// This endpoint can be used by both CS2 servers and admins.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,

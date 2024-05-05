@@ -10,6 +10,7 @@ use crate::auth::{self, RoleFlags};
 use crate::responses::NoContent;
 use crate::{responses, Error, Result, State};
 
+/// Fetch a specific admin by their SteamID.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -45,6 +46,9 @@ pub async fn get(state: &State, Path(steam_id): Path<SteamID>) -> Result<Json<Ad
 	Ok(Json(admin))
 }
 
+/// Create / update an admin's permissions.
+///
+/// This will completely replace their previous set of permissions!
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   put,

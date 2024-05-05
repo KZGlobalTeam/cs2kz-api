@@ -4,7 +4,7 @@
 //! These permissions are assigned in the form of [roles], which can be managed using the
 //! endpoints in this module.
 //!
-//! [roles]: crate::auth::role_flags
+//! [roles]: crate::auth::RoleFlags
 
 use axum::http::Method;
 use axum::routing::{get, put};
@@ -15,7 +15,9 @@ use crate::middleware::auth::session_auth;
 use crate::middleware::cors;
 use crate::{auth, State};
 
-pub mod models;
+mod models;
+
+#[doc(inline)]
 pub use models::{Admin, AdminUpdate};
 
 pub mod handlers;

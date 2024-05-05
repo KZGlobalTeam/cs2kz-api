@@ -6,8 +6,10 @@ use axum::Router;
 use crate::middleware::cors;
 use crate::State;
 
-pub mod models;
-pub use models::GameSession;
+mod models;
+
+#[doc(inline)]
+pub use models::{GameSession, GameSessionID, TimeSpent};
 
 pub mod handlers;
 

@@ -14,7 +14,7 @@ use crate::sqlx::{query, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result, State};
 
 /// Query parameters for `GET /plugin`.
-#[derive(Debug, Deserialize, IntoParams)]
+#[derive(Debug, Clone, Copy, Deserialize, IntoParams)]
 pub struct GetParams {
 	/// Limit the number of returned results.
 	#[serde(default)]
@@ -25,6 +25,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
+/// Fetch cs2kz plugin versions.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -64,6 +65,9 @@ pub async fn get(
 	Ok(Json(PaginationResponse { total, results: plugin_versions }))
 }
 
+/// Create a new cs2kz plugin version.
+///
+/// This endpoint is intended to be used by GitHub CI for new releases.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,

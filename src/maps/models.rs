@@ -322,7 +322,7 @@ pub struct NewFilter {
 }
 
 /// A newly created map.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct CreatedMap {
 	/// The map's ID.
 	pub map_id: MapID,

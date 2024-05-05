@@ -16,7 +16,7 @@ use crate::sqlx::{query, QueryBuilderExt, SqlErrorExt};
 use crate::{Error, Result, State};
 
 /// Query parameters for `GET /players`.
-#[derive(Debug, Deserialize, IntoParams)]
+#[derive(Debug, Clone, Copy, Deserialize, IntoParams)]
 pub struct GetParams {
 	/// Limit the number of returned results.
 	#[serde(default)]
@@ -27,6 +27,10 @@ pub struct GetParams {
 	offset: Offset,
 }
 
+/// Fetch players.
+///
+/// If you send a cookie that shows you're "logged in", and you happen to have permissions for
+/// managing bans, the response will include IP addresses.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -74,6 +78,9 @@ pub async fn get(
 	Ok(Json(PaginationResponse { total, results: players }))
 }
 
+/// Register a new player.
+///
+/// This endpoint will be hit by CS2 servers whenever an unknown player joins.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,

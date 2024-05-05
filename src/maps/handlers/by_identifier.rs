@@ -11,13 +11,15 @@ use tracing::{debug, info};
 use super::root::create_mappers;
 use crate::auth::RoleFlags;
 use crate::maps::handlers::root::insert_course_mappers;
-use crate::maps::models::{CourseUpdate, FilterUpdate};
-use crate::maps::{queries, CourseID, FilterID, FullMap, MapID, MapUpdate, WorkshopID};
+use crate::maps::{
+	queries, CourseID, CourseUpdate, FilterID, FilterUpdate, FullMap, MapID, MapUpdate, WorkshopID,
+};
 use crate::responses::NoContent;
 use crate::sqlx::UpdateQuery;
 use crate::workshop::WorkshopMap;
 use crate::{auth, responses, Error, Result, State};
 
+/// Fetch a single map.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -58,6 +60,11 @@ pub async fn get(state: &State, Path(map): Path<MapIdentifier>) -> Result<Json<F
 	Ok(Json(map))
 }
 
+/// Update a specific map.
+///
+/// This endpoint is used for non-breaking changes, i.e. changes that do not change the
+/// **gameplay** of a map in a backwards-incompatible way. This could include the map's name,
+/// filters, mappers, etc.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   patch,

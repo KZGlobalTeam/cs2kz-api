@@ -9,7 +9,7 @@ use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
-use crate::game_sessions::models::TimeSpent;
+use crate::game_sessions::TimeSpent;
 use crate::maps::CourseID;
 use crate::records::BhopStats;
 use crate::time::Seconds;
@@ -146,7 +146,7 @@ impl Session {
 }
 
 /// Session data about a specific course.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 pub struct CourseSession {
 	/// The mode the player was playing the course in.
 	pub mode: Mode,

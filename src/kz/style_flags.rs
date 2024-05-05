@@ -7,9 +7,7 @@ use cs2kz::Style;
 crate::bitflags::bitflags! {
 	/// Bitfield for holding style information.
 	///
-	/// See [module level documentation] for more details.
-	///
-	/// [module level documentation]: crate::auth::role_flags
+	/// See [`cs2kz::Style`].
 	pub StyleFlags as u32 {
 		NORMAL = { 1 << 0, "normal" };
 		BACKWARDS = { 1 << 1, "backwards" };

@@ -46,6 +46,10 @@ pub struct GetParams {
 	offset: Offset,
 }
 
+/// Fetch servers.
+///
+/// Servers returned by this endpoint are officially approved CS2 servers that you can play on to
+/// submit records.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -114,6 +118,7 @@ pub async fn get(
 	Ok(Json(PaginationResponse { total, results: servers }))
 }
 
+/// Create (approve) a new CS2 server.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,

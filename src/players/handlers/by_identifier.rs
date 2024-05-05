@@ -8,13 +8,16 @@ use tracing::trace;
 
 use crate::auth::{self, Jwt, RoleFlags};
 use crate::maps::CourseID;
-use crate::players::models::CourseSession;
-use crate::players::{queries, FullPlayer, PlayerUpdate};
+use crate::players::{queries, CourseSession, FullPlayer, PlayerUpdate};
 use crate::responses::{self, NoContent};
 use crate::servers::ServerID;
 use crate::sqlx::SqlErrorExt;
 use crate::{Error, Result, State};
 
+/// Fetch a specific player.
+///
+/// If you send a cookie that shows you're "logged in", and you happen to have permissions for
+/// managing bans, the response will include the player's IP address.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -59,6 +62,10 @@ pub async fn get(
 	Ok(Json(player))
 }
 
+/// Updates information about a player.
+///
+/// This endpoint will be hit periodically by CS2 servers whenever a map changes, or a player
+/// disconnects.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   patch,
@@ -249,9 +256,8 @@ mod tests {
 	use std::net::Ipv4Addr;
 	use std::time::Duration;
 
-	use crate::game_sessions::models::TimeSpent;
-	use crate::players::models::Session;
-	use crate::players::{FullPlayer, PlayerUpdate};
+	use crate::game_sessions::TimeSpent;
+	use crate::players::{FullPlayer, PlayerUpdate, Session};
 	use crate::records::BhopStats;
 
 	#[crate::test]

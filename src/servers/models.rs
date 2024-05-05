@@ -77,7 +77,7 @@ pub struct NewServer {
 }
 
 /// A newly created server.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 pub struct CreatedServer {
 	/// The server's ID.
 	pub server_id: ServerID,
@@ -118,7 +118,7 @@ pub struct RefreshKeyResponse {
 }
 
 /// Response for generating a new permanent refresh key.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 pub struct RefreshKey {
 	/// The refresh key.
 	pub refresh_key: Uuid,

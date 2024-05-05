@@ -75,6 +75,7 @@ pub enum SortRecordsBy {
 	Date,
 }
 
+/// Fetch records.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -173,6 +174,9 @@ pub async fn get(
 	Ok(Json(PaginationResponse { total, results: records }))
 }
 
+/// Create a new record.
+///
+/// This is used by CS2 servers to submit new records.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,

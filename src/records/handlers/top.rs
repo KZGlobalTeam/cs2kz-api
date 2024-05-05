@@ -7,6 +7,7 @@ use super::root::GetParams;
 use crate::records::Record;
 use crate::responses;
 
+/// Fetch "personal best" records.
 #[tracing::instrument(level = "debug")]
 #[utoipa::path(
   get,

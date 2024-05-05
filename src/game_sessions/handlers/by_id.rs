@@ -6,6 +6,7 @@ use axum::Json;
 use crate::game_sessions::GameSession;
 use crate::{responses, Error, Result, State};
 
+/// Fetch a specific game session by its ID.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,

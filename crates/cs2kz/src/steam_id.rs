@@ -1,10 +1,4 @@
 //! A type for working with [SteamID]s.
-//!
-//! This is a unique identifier for Steam accounts. Therefore it is used to identify KZ players,
-//! across various API boundaries. This type will take care of validation and provides various
-//! utility methods you might find useful.
-//!
-//! [SteamID]: https://developer.valvesoftware.com/wiki/SteamID
 
 use std::borrow::Borrow;
 use std::fmt::{self, Display};
@@ -17,10 +11,11 @@ use crate::{Error, Result};
 
 /// Wrapper for a [SteamID].
 ///
-/// See [module-level documentation] for more details.
+/// This is a unique identifier for Steam accounts. Therefore it is used to identify KZ players,
+/// across various API boundaries. This type will take care of validation and provides various
+/// utility methods you might find useful.
 ///
 /// [SteamID]: https://developer.valvesoftware.com/wiki/SteamID
-/// [module-level documentation]: crate::steam_id
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct SteamID(NonZeroU64);

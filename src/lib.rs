@@ -1,4 +1,4 @@
-//! The CS2KZ API
+#![doc = include_str!("../README.md")]
 
 use std::future::Future;
 
@@ -16,18 +16,25 @@ use utoipa_swagger_ui::SwaggerUi;
 use self::security::Security;
 
 mod error;
+
+#[doc(inline)]
 pub use error::{Error, Result};
 
 mod config;
+
+#[doc(inline)]
 pub use config::Config;
 
 mod state;
-pub use state::State;
+
+#[doc(inline)]
+pub(crate) use state::State;
 
 #[cfg(test)]
 mod test;
 
 #[cfg(test)]
+#[doc(inline)]
 pub(crate) use cs2kz_api_macros::test;
 
 mod responses;
@@ -42,16 +49,16 @@ mod id;
 mod bitflags;
 mod kz;
 
-mod players;
-mod maps;
-mod servers;
-mod jumpstats;
-mod records;
-mod bans;
-mod game_sessions;
-mod auth;
-mod admins;
-mod plugin;
+pub mod players;
+pub mod maps;
+pub mod servers;
+pub mod jumpstats;
+pub mod records;
+pub mod bans;
+pub mod game_sessions;
+pub mod auth;
+pub mod admins;
+pub mod plugin;
 
 #[derive(Debug, Clone, Copy, OpenApi)]
 #[rustfmt::skip]
@@ -137,70 +144,70 @@ mod plugin;
 
       responses::Object,
 
-      players::models::Player,
-      players::models::NewPlayer,
-      players::models::PlayerUpdate,
+      players::Player,
+      players::NewPlayer,
+      players::PlayerUpdate,
 
-      maps::models::FullMap,
-      maps::models::MapID,
-      maps::models::WorkshopID,
-      maps::models::Course,
-      maps::models::CourseID,
-      maps::models::Filter,
-      maps::models::FilterID,
-      maps::models::NewMap,
-      maps::models::NewCourse,
-      maps::models::NewFilter,
-      maps::models::CreatedMap,
-      maps::models::MapUpdate,
-      maps::models::CourseUpdate,
-      maps::models::FilterUpdate,
-      maps::models::MapInfo,
-      maps::models::CourseInfo,
+      maps::FullMap,
+      maps::MapID,
+      maps::WorkshopID,
+      maps::Course,
+      maps::CourseID,
+      maps::Filter,
+      maps::FilterID,
+      maps::NewMap,
+      maps::NewCourse,
+      maps::NewFilter,
+      maps::CreatedMap,
+      maps::MapUpdate,
+      maps::CourseUpdate,
+      maps::FilterUpdate,
+      maps::MapInfo,
+      maps::CourseInfo,
 
-      servers::models::Server,
-      servers::models::ServerID,
-      servers::models::NewServer,
-      servers::models::CreatedServer,
-      servers::models::ServerUpdate,
-      servers::models::RefreshKeyRequest,
-      servers::models::RefreshKey,
-      servers::models::ServerInfo,
+      servers::Server,
+      servers::ServerID,
+      servers::NewServer,
+      servers::CreatedServer,
+      servers::ServerUpdate,
+      servers::RefreshKeyRequest,
+      servers::RefreshKey,
+      servers::ServerInfo,
 
-      jumpstats::models::Jumpstat,
-      jumpstats::models::JumpstatID,
-      jumpstats::models::NewJumpstat,
-      jumpstats::models::CreatedJumpstat,
+      jumpstats::Jumpstat,
+      jumpstats::JumpstatID,
+      jumpstats::NewJumpstat,
+      jumpstats::CreatedJumpstat,
 
-      records::models::Record,
-      records::models::RecordID,
-      records::models::BhopStats,
-      records::models::NewRecord,
-      records::models::CreatedRecord,
+      records::Record,
+      records::RecordID,
+      records::BhopStats,
+      records::NewRecord,
+      records::CreatedRecord,
       records::handlers::root::SortRecordsBy,
 
-      bans::models::Ban,
-      bans::models::BanID,
-      bans::models::BanReason,
-      bans::models::Unban,
-      bans::models::UnbanID,
-      bans::models::NewBan,
-      bans::models::CreatedBan,
-      bans::models::BanUpdate,
-      bans::models::NewUnban,
-      bans::models::CreatedUnban,
+      bans::Ban,
+      bans::BanID,
+      bans::BanReason,
+      bans::Unban,
+      bans::UnbanID,
+      bans::NewBan,
+      bans::CreatedBan,
+      bans::BanUpdate,
+      bans::NewUnban,
+      bans::CreatedUnban,
 
-      game_sessions::models::GameSession,
-      game_sessions::models::GameSessionID,
-      game_sessions::models::TimeSpent,
+      game_sessions::GameSession,
+      game_sessions::GameSessionID,
+      game_sessions::TimeSpent,
 
-      admins::models::Admin,
-      admins::models::AdminUpdate,
+      admins::Admin,
+      admins::AdminUpdate,
 
-      plugin::models::PluginVersion,
-      plugin::models::PluginVersionID,
-      plugin::models::NewPluginVersion,
-      plugin::models::CreatedPluginVersion,
+      plugin::PluginVersion,
+      plugin::PluginVersionID,
+      plugin::NewPluginVersion,
+      plugin::CreatedPluginVersion,
     ),
   ),
 )]

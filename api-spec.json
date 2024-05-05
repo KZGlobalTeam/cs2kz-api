@@ -19,6 +19,8 @@
         "tags": [
           "Players"
         ],
+        "summary": "Fetch players.",
+        "description": "Fetch players.\n\nIf you send a cookie that shows you're \"logged in\", and you happen to have permissions for\nmanaging bans, the response will include IP addresses.",
         "operationId": "get",
         "parameters": [
           {
@@ -109,6 +111,8 @@
         "tags": [
           "Players"
         ],
+        "summary": "Register a new player.",
+        "description": "Register a new player.\n\nThis endpoint will be hit by CS2 servers whenever an unknown player joins.",
         "operationId": "post",
         "requestBody": {
           "content": {
@@ -157,6 +161,8 @@
         "tags": [
           "Players"
         ],
+        "summary": "Fetch a specific player.",
+        "description": "Fetch a specific player.\n\nIf you send a cookie that shows you're \"logged in\", and you happen to have permissions for\nmanaging bans, the response will include the player's IP address.",
         "operationId": "get",
         "parameters": [
           {
@@ -229,6 +235,8 @@
         "tags": [
           "Players"
         ],
+        "summary": "Updates information about a player.",
+        "description": "Updates information about a player.\n\nThis endpoint will be hit periodically by CS2 servers whenever a map changes, or a player\ndisconnects.",
         "operationId": "patch",
         "parameters": [
           {
@@ -302,6 +310,8 @@
         "tags": [
           "Players"
         ],
+        "summary": "Fetch in-game preference settings for a specific player.",
+        "description": "Fetch in-game preference settings for a specific player.\n\nThis is used by CS2 servers for keeping settings in sync across multiple servers.",
         "operationId": "get",
         "parameters": [
           {
@@ -352,6 +362,8 @@
         "tags": [
           "Players"
         ],
+        "summary": "Replace a player's current set of preference settings.",
+        "description": "Replace a player's current set of preference settings.\n\nThis endpoint will be hit periodically by CS2 servers whenever a map changes, or a player\ndisconnects.",
         "operationId": "put",
         "parameters": [
           {
@@ -390,7 +402,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/JsonValue"
+                "type": "object"
               }
             }
           },
@@ -425,6 +437,8 @@
         "tags": [
           "Maps"
         ],
+        "summary": "Fetch maps.",
+        "description": "Fetch maps.\n\nAny maps returned by this endpoint are currently, or have been previously, accepted into the\nglobal map pool.",
         "operationId": "get",
         "responses": {
           "200": {
@@ -527,6 +541,8 @@
         "tags": [
           "Maps"
         ],
+        "summary": "Create / update a map.",
+        "description": "Create / update a map.\n\nThis is used whenever a new map is approved, or an existing map receives breaking changes.",
         "operationId": "put",
         "requestBody": {
           "content": {
@@ -585,6 +601,8 @@
         "tags": [
           "Maps"
         ],
+        "summary": "Fetch a single map.",
+        "description": "Fetch a single map.",
         "operationId": "get",
         "parameters": [
           {
@@ -692,6 +710,8 @@
         "tags": [
           "Maps"
         ],
+        "summary": "Update a specific map.",
+        "description": "Update a specific map.\n\nThis endpoint is used for non-breaking changes, i.e. changes that do not change the\n**gameplay** of a map in a backwards-incompatible way. This could include the map's name,\nfilters, mappers, etc.",
         "operationId": "patch",
         "parameters": [
           {
@@ -751,6 +771,8 @@
         "tags": [
           "Servers"
         ],
+        "summary": "Fetch servers.",
+        "description": "Fetch servers.\n\nServers returned by this endpoint are officially approved CS2 servers that you can play on to\nsubmit records.",
         "operationId": "get",
         "parameters": [
           {
@@ -902,6 +924,8 @@
         "tags": [
           "Servers"
         ],
+        "summary": "Create (approve) a new CS2 server.",
+        "description": "Create (approve) a new CS2 server.",
         "operationId": "post",
         "requestBody": {
           "description": "",
@@ -970,6 +994,8 @@
         "tags": [
           "Servers"
         ],
+        "summary": "Fetch a specific server.",
+        "description": "Fetch a specific server.",
         "operationId": "get",
         "responses": {
           "200": {
@@ -1026,6 +1052,8 @@
         "tags": [
           "Servers"
         ],
+        "summary": "Update a server.",
+        "description": "Update a server.\n\nThis endpoint can be used by both admins and server owners.",
         "operationId": "patch",
         "parameters": [
           {
@@ -1081,6 +1109,8 @@
         "tags": [
           "Servers"
         ],
+        "summary": "Generate a temporary authentication key for a CS2 server.",
+        "description": "Generate a temporary authentication key for a CS2 server.\n\nCS2 servers will use this endpoint together with their refresh key, to generate temporary\naccess keys, which will then be included in any following requests.\n\nSee `CS2 Servers` in `ARCHITECTURE.md` in the repository root for more details.",
         "operationId": "generate_temp",
         "requestBody": {
           "description": "",
@@ -1125,6 +1155,8 @@
         "tags": [
           "Servers"
         ],
+        "summary": "Generate a new refresh key for a server.",
+        "description": "Generate a new refresh key for a server.\n\nIt will immediately invalidate the old **refresh** key, but cannot invalidate **access** keys,\nas those are JWTs with set expiration dates.\n\nThis endpoint can be used by both admins and server owners.",
         "operationId": "put_perma",
         "parameters": [
           {
@@ -1165,6 +1197,8 @@
         "tags": [
           "Servers"
         ],
+        "summary": "Delete a server's refresh key.",
+        "description": "Delete a server's refresh key.\n\nThis can be used to effectively \"de-global\" server. Keep in mind though, that any previously\ngenerated access keys are not invalidated, and will expire naturally.\n\nThis endpoint can only be hit by admins.",
         "operationId": "delete_perma",
         "parameters": [
           {
@@ -1207,6 +1241,8 @@
         "tags": [
           "Jumpstats"
         ],
+        "summary": "Fetch jumpstats.",
+        "description": "Fetch jumpstats.",
         "operationId": "get",
         "parameters": [
           {
@@ -1470,6 +1506,8 @@
         "tags": [
           "Jumpstats"
         ],
+        "summary": "Create a new jumpstat.",
+        "description": "Create a new jumpstat.",
         "operationId": "post",
         "requestBody": {
           "content": {
@@ -1529,6 +1567,8 @@
         "tags": [
           "Jumpstats"
         ],
+        "summary": "Fetch a specific jumpstat by its ID.",
+        "description": "Fetch a specific jumpstat by its ID.",
         "operationId": "get",
         "parameters": [
           {
@@ -1679,6 +1719,8 @@
         "tags": [
           "Jumpstats"
         ],
+        "summary": "Fetch the replay file for a specific jumpstat.",
+        "description": "Fetch the replay file for a specific jumpstat.",
         "operationId": "get",
         "parameters": [
           {
@@ -1722,6 +1764,8 @@
         "tags": [
           "Records"
         ],
+        "summary": "Fetch records.",
+        "description": "Fetch records.",
         "operationId": "get",
         "parameters": [
           {
@@ -1950,6 +1994,8 @@
         "tags": [
           "Records"
         ],
+        "summary": "Create a new record.",
+        "description": "Create a new record.\n\nThis is used by CS2 servers to submit new records.",
         "operationId": "post",
         "requestBody": {
           "content": {
@@ -2003,6 +2049,8 @@
         "tags": [
           "Records"
         ],
+        "summary": "Fetch \"personal best\" records.",
+        "description": "Fetch \"personal best\" records.",
         "operationId": "get",
         "parameters": [
           {
@@ -2214,6 +2262,8 @@
         "tags": [
           "Records"
         ],
+        "summary": "Fetch a specific record by its ID.",
+        "description": "Fetch a specific record by its ID.",
         "operationId": "get",
         "parameters": [
           {
@@ -2314,6 +2364,8 @@
         "tags": [
           "Records"
         ],
+        "summary": "Fetch the replay file for a specific record.",
+        "description": "Fetch the replay file for a specific record.",
         "operationId": "get",
         "parameters": [
           {
@@ -2357,6 +2409,8 @@
         "tags": [
           "Bans"
         ],
+        "summary": "Fetch bans.",
+        "description": "Fetch bans.\n\nThese are bans that might have expired / have been reverted. If that's the case, they will also\ninclude the according \"unban\" entry.",
         "operationId": "get",
         "parameters": [
           {
@@ -2578,6 +2632,8 @@
         "tags": [
           "Bans"
         ],
+        "summary": "Ban a player.",
+        "description": "Ban a player.\n\nThis endpoint can be used by both CS2 servers and admins.",
         "operationId": "post",
         "requestBody": {
           "content": {
@@ -2636,6 +2692,8 @@
         "tags": [
           "Bans"
         ],
+        "summary": "Fetch a specific ban by its ID.",
+        "description": "Fetch a specific ban by its ID.",
         "operationId": "get",
         "parameters": [
           {
@@ -2729,6 +2787,8 @@
         "tags": [
           "Bans"
         ],
+        "summary": "Update a ban's details.",
+        "description": "Update a ban's details.\n\nNote that this is **not** used for _reverting_ bans. Use `DELETE /bans/{ban_id}` for that.",
         "operationId": "patch",
         "parameters": [
           {
@@ -2786,6 +2846,8 @@
         "tags": [
           "Bans"
         ],
+        "summary": "Revert a ban.",
+        "description": "Revert a ban.",
         "operationId": "delete",
         "parameters": [
           {
@@ -2858,6 +2920,8 @@
         "tags": [
           "Sessions"
         ],
+        "summary": "Fetch a specific game session by its ID.",
+        "description": "Fetch a specific game session by its ID.",
         "operationId": "get",
         "parameters": [
           {
@@ -2911,6 +2975,8 @@
         "tags": [
           "Auth"
         ],
+        "summary": "Log in with Steam.",
+        "description": "Log in with Steam.\n\nThis will redirect to Steam, and after you login, you will be sent back to `/auth/callback`,\nand then to whatever the `redirect_to` query parameter is set to. A cookie with a session ID\nwill be inserted.",
         "operationId": "login",
         "parameters": [
           {
@@ -2942,6 +3008,8 @@
         "tags": [
           "Auth"
         ],
+        "summary": "Log out again.",
+        "description": "Log out again.\n\nThis will invalidate your current session and delete your cookie.\nIf you wish to invalidate all other existing sessions as well, set\n`invalidate_all_sessions=true`.",
         "operationId": "logout",
         "parameters": [
           {
@@ -2980,6 +3048,8 @@
         "tags": [
           "Auth"
         ],
+        "summary": "The callback endpoint that will be hit by Steam after a successful login.",
+        "description": "The callback endpoint that will be hit by Steam after a successful login.",
         "operationId": "callback",
         "parameters": [
           {
@@ -3104,6 +3174,8 @@
         "tags": [
           "Admins"
         ],
+        "summary": "Fetch admins (players with permissions).",
+        "description": "Fetch admins (players with permissions).",
         "operationId": "get",
         "parameters": [
           {
@@ -3210,6 +3282,8 @@
         "tags": [
           "Admins"
         ],
+        "summary": "Fetch a specific admin by their SteamID.",
+        "description": "Fetch a specific admin by their SteamID.",
         "operationId": "get",
         "parameters": [
           {
@@ -3296,6 +3370,8 @@
         "tags": [
           "Admins"
         ],
+        "summary": "Create / update an admin's permissions.",
+        "description": "Create / update an admin's permissions.\n\nThis will completely replace their previous set of permissions!",
         "operationId": "put",
         "parameters": [
           {
@@ -3371,6 +3447,8 @@
         "tags": [
           "CS2KZ Plugin"
         ],
+        "summary": "Fetch cs2kz plugin versions.",
+        "description": "Fetch cs2kz plugin versions.",
         "operationId": "get",
         "parameters": [
           {
@@ -3462,6 +3540,8 @@
         "tags": [
           "CS2KZ Plugin"
         ],
+        "summary": "Create a new cs2kz plugin version.",
+        "description": "Create a new cs2kz plugin version.\n\nThis endpoint is intended to be used by GitHub CI for new releases.",
         "operationId": "post",
         "requestBody": {
           "content": {
@@ -4066,7 +4146,7 @@
       },
       "GameSession": {
         "type": "object",
-        "description": "An in-game session.\n\nSee [module level documentation] for more details.\n\n[module level documentation]: crate::game_sessions::models",
+        "description": "An in-game session.\n\nGame sessions are recorded while players are playing on global servers, and submitted whenever\na player disconnects or when the map changes.",
         "required": [
           "id",
           "player",

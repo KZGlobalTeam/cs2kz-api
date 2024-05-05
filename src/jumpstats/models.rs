@@ -105,7 +105,7 @@ impl FromRow<'_, MySqlRow> for Jumpstat {
 }
 
 /// Request body for submitting new jumpstats.
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
 pub struct NewJumpstat {
 	/// The jump type.
 	#[serde(rename = "type")]
@@ -160,7 +160,7 @@ pub struct NewJumpstat {
 }
 
 /// A newly created jumpstat.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct CreatedJumpstat {
 	/// The jumpstat's ID.
 	pub jumpstat_id: JumpstatID,

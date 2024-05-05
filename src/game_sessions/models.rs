@@ -1,7 +1,4 @@
 //! Types used for describing game sessions and related concepts.
-//!
-//! Game sessions are recorded while players are playing on global servers, and submitted whenever
-//! a player disconnects or when the map changes.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -19,9 +16,8 @@ make_id!(GameSessionID as u64);
 
 /// An in-game session.
 ///
-/// See [module level documentation] for more details.
-///
-/// [module level documentation]: crate::game_sessions::models
+/// Game sessions are recorded while players are playing on global servers, and submitted whenever
+/// a player disconnects or when the map changes.
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct GameSession {
 	/// The session's ID.
@@ -48,7 +44,7 @@ pub struct GameSession {
 }
 
 /// Breakdown of how time was spent.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 pub struct TimeSpent {
 	/// How much time did the player spend actively playing?
 	pub active: Seconds,

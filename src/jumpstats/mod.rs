@@ -6,7 +6,9 @@ use axum::Router;
 use crate::middleware::cors;
 use crate::State;
 
-pub mod models;
+mod models;
+
+#[doc(inline)]
 pub use models::{CreatedJumpstat, Jumpstat, JumpstatID, NewJumpstat};
 
 mod queries;

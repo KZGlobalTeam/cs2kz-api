@@ -12,6 +12,9 @@ use crate::auth::{self, Jwt};
 use crate::responses::{self, NoContent};
 use crate::{Error, Result, State};
 
+/// Fetch in-game preference settings for a specific player.
+///
+/// This is used by CS2 servers for keeping settings in sync across multiple servers.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -46,6 +49,10 @@ pub async fn get(state: &State, Path(player): Path<PlayerIdentifier>) -> Result<
 	Ok(Json(preferences))
 }
 
+/// Replace a player's current set of preference settings.
+///
+/// This endpoint will be hit periodically by CS2 servers whenever a map changes, or a player
+/// disconnects.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   put,
@@ -53,7 +60,7 @@ pub async fn get(state: &State, Path(player): Path<PlayerIdentifier>) -> Result<
   tag = "Players",
   security(("CS2 Server" = [])),
   params(SteamID),
-  request_body = JsonValue,
+  request_body = Object,
   responses(
     responses::NoContent,
     responses::BadRequest,

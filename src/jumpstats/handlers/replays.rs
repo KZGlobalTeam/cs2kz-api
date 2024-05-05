@@ -5,6 +5,7 @@ use axum::http::StatusCode;
 
 use crate::responses;
 
+/// Fetch the replay file for a specific jumpstat.
 #[tracing::instrument(level = "debug")]
 #[utoipa::path(
   get,

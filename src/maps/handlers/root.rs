@@ -12,8 +12,9 @@ use tracing::{info, warn};
 use utoipa::IntoParams;
 
 use crate::auth::RoleFlags;
-use crate::maps::models::{NewCourse, NewFilter};
-use crate::maps::{queries, CourseID, CreatedMap, FullMap, MapID, NewMap, WorkshopID};
+use crate::maps::{
+	queries, CourseID, CreatedMap, FullMap, MapID, NewCourse, NewFilter, NewMap, WorkshopID,
+};
 use crate::parameters::Limit;
 use crate::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, FilteredQuery, SqlErrorExt};
@@ -43,6 +44,10 @@ pub struct GetParams {
 	limit: Limit,
 }
 
+/// Fetch maps.
+///
+/// Any maps returned by this endpoint are currently, or have been previously, accepted into the
+/// global map pool.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -108,6 +113,9 @@ pub async fn get(
 	Ok(Json(PaginationResponse { total, results: maps }))
 }
 
+/// Create / update a map.
+///
+/// This is used whenever a new map is approved, or an existing map receives breaking changes.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   put,

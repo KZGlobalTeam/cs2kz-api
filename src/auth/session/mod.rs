@@ -49,6 +49,8 @@ use crate::sqlx::SqlErrorExt;
 use crate::{Error, Result, State};
 
 mod id;
+
+#[doc(inline)]
 pub use id::ID;
 
 /// An authenticated session.

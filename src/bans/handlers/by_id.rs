@@ -11,6 +11,7 @@ use crate::responses::{Created, NoContent};
 use crate::sqlx::UpdateQuery;
 use crate::{auth, responses, Error, Result, State};
 
+/// Fetch a specific ban by its ID.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -38,6 +39,9 @@ pub async fn get(state: &State, Path(ban_id): Path<u64>) -> Result<Json<Ban>> {
 	Ok(Json(ban))
 }
 
+/// Update a ban's details.
+///
+/// Note that this is **not** used for _reverting_ bans. Use `DELETE /bans/{ban_id}` for that.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   patch,
@@ -95,6 +99,7 @@ pub async fn patch(
 	Ok(NoContent)
 }
 
+/// Revert a ban.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   delete,

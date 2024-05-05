@@ -13,6 +13,12 @@ use crate::responses::{self, Created, NoContent};
 use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse, ServerID};
 use crate::{auth, Error, Result, State};
 
+/// Generate a temporary authentication key for a CS2 server.
+///
+/// CS2 servers will use this endpoint together with their refresh key, to generate temporary
+/// access keys, which will then be included in any following requests.
+///
+/// See `CS2 Servers` in `ARCHITECTURE.md` in the repository root for more details.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,
@@ -60,6 +66,12 @@ pub async fn generate_temp(
 	Ok(Created(Json(access_key)))
 }
 
+/// Generate a new refresh key for a server.
+///
+/// It will immediately invalidate the old **refresh** key, but cannot invalidate **access** keys,
+/// as those are JWTs with set expiration dates.
+///
+/// This endpoint can be used by both admins and server owners.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   put,
@@ -107,6 +119,12 @@ pub async fn put_perma(
 	Ok(Created(Json(RefreshKey { refresh_key })))
 }
 
+/// Delete a server's refresh key.
+///
+/// This can be used to effectively "de-global" server. Keep in mind though, that any previously
+/// generated access keys are not invalidated, and will expire naturally.
+///
+/// This endpoint can only be hit by admins.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   delete,

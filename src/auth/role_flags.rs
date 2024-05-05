@@ -1,18 +1,14 @@
 //! Helper type for dealing with user roles.
-//!
-//! Every role is represented as a specific bit in a 32-bit integer.
-//! If the bit is 1, it means the user has this role.
-//!
-//! This module contains the [`RoleFlags`] type, which abstracts over this idea.
-//! It has various constants defined for the existing roles, and can be serialized / deserialized
-//! by serde, as well as be inserted into the database.
 
 crate::bitflags::bitflags! {
 	/// Bitfield for holding role information.
 	///
-	/// See [module level documentation] for more details.
+	/// Every role is represented as a specific bit in a 32-bit integer.
+	/// If the bit is 1, it means the user has this role.
 	///
-	/// [module level documentation]: crate::auth::role_flags
+	/// This module contains the [`RoleFlags`] type, which abstracts over this idea.
+	/// It has various constants defined for the existing roles, and can be serialized / deserialized
+	/// by serde, as well as be inserted into the database.
 	pub RoleFlags as u32 {
 		BANS = { 1 << 0, "bans" };
 		SERVERS = { 1 << 8, "servers" };

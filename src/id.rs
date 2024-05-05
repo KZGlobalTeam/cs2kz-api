@@ -3,6 +3,7 @@
 /// Creates a thin integer wrapper that can be used as an ID with semantic meaning.
 macro_rules! make_id {
 	($name:ident as $repr:ty) => {
+		#[allow(missing_docs, clippy::missing_docs_in_private_items)]
 		#[repr(transparent)]
 		#[derive(
 			Debug,

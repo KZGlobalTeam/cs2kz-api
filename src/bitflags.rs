@@ -22,14 +22,19 @@ macro_rules! bitflags {
 
 		#[allow(dead_code)]
 		impl $name {
+			#[doc = concat!("Create a new [`", stringify!($name), "`].")]
+			///
+			/// This will discard any invalid bits.
 			pub const fn new(value: $repr) -> Self {
 				Self(value & Self::ALL.0)
 			}
 
+			/// Get the underlying integer value.
 			pub const fn value(self) -> $repr {
 				self.0
 			}
 
+			/// Get the name of the flag, if `self` only contains 1 flag.
 			pub const fn name(self) -> Option<&'static str> {
 				match self {
 					$(
@@ -39,13 +44,16 @@ macro_rules! bitflags {
 				}
 			}
 
+			/// Check if `other` is a subset of `self`.
 			pub const fn contains(self, other: Self) -> bool {
 				(self.0 & other.0) == other.0
 			}
 
+			/// The 0-value.
 			pub const NONE: Self = Self(0);
 
 			$(
+				#[allow(missing_docs, clippy::missing_docs_in_private_items)]
 				$(#[$variant_meta])*
 				pub const $variant: Self = Self($value);
 			)*

@@ -23,7 +23,7 @@ pub struct Admin {
 }
 
 /// Request body for updating admins.
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
 pub struct AdminUpdate {
 	/// New roles for the admin.
 	#[debug("{roles}")]

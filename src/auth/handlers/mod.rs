@@ -20,6 +20,11 @@ pub struct LoginParams {
 	redirect_to: Url,
 }
 
+/// Log in with Steam.
+///
+/// This will redirect to Steam, and after you login, you will be sent back to `/auth/callback`,
+/// and then to whatever the `redirect_to` query parameter is set to. A cookie with a session ID
+/// will be inserted.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -40,13 +45,18 @@ pub async fn login(
 }
 
 /// Query parameters for logging out.
-#[derive(Debug, Deserialize, IntoParams)]
+#[derive(Debug, Clone, Copy, Deserialize, IntoParams)]
 pub struct LogoutParams {
 	/// Whether *all* previous sessions should be invalidated.
 	#[serde(default)]
 	invalidate_all_sessions: bool,
 }
 
+/// Log out again.
+///
+/// This will invalidate your current session and delete your cookie.
+/// If you wish to invalidate all other existing sessions as well, set
+/// `invalidate_all_sessions=true`.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -79,6 +89,7 @@ pub async fn logout(
 	Ok((session, StatusCode::OK))
 }
 
+/// The callback endpoint that will be hit by Steam after a successful login.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,

@@ -58,7 +58,7 @@ pub struct NewPluginVersion {
 }
 
 /// A newly created plugin version.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct CreatedPluginVersion {
 	/// The version's ID.
 	pub plugin_version_id: PluginVersionID,

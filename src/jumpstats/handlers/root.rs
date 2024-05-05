@@ -49,6 +49,7 @@ pub struct GetParams {
 	offset: Offset,
 }
 
+/// Fetch jumpstats.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
@@ -129,6 +130,7 @@ pub async fn get(
 	Ok(Json(PaginationResponse { total, results: jumpstats }))
 }
 
+/// Create a new jumpstat.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   post,

@@ -9,9 +9,11 @@ use crate::middleware::auth::session_auth;
 use crate::middleware::cors;
 use crate::{auth, State};
 
-pub mod models;
+mod models;
+
+#[doc(inline)]
 pub use models::{
-	Ban, BanID, BanReason, BanUpdate, CreatedBan, CreatedUnban, NewBan, NewUnban, UnbanID,
+	Ban, BanID, BanReason, BanUpdate, CreatedBan, CreatedUnban, NewBan, NewUnban, Unban, UnbanID,
 };
 
 mod queries;

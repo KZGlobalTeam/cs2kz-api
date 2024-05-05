@@ -7,6 +7,7 @@ use sqlx::QueryBuilder;
 use crate::records::{queries, Record};
 use crate::{responses, Error, Result, State};
 
+/// Fetch a specific record by its ID.
 #[tracing::instrument(level = "debug", skip(state))]
 #[utoipa::path(
   get,
