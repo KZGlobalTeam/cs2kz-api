@@ -60,7 +60,7 @@ impl Error {
 	/// Convenience function for logging out an error while creating it.
 	fn with_loc<F>(self, f: F) -> Self
 	where
-		F: FnOnce(&'static Location<'static>),
+		F: FnOnce(&Location<'_>),
 	{
 		f(self.location);
 		self

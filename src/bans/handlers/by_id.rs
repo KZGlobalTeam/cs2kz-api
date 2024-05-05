@@ -24,7 +24,7 @@ use crate::{auth, responses, Error, Result, State};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(state: &'static State, Path(ban_id): Path<u64>) -> Result<Json<Ban>> {
+pub async fn get(state: &State, Path(ban_id): Path<u64>) -> Result<Json<Ban>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
 	query.push(" WHERE b.id = ").push_bind(ban_id);
@@ -55,7 +55,7 @@ pub async fn get(state: &'static State, Path(ban_id): Path<u64>) -> Result<Json<
   ),
 )]
 pub async fn patch(
-	state: &'static State,
+	state: &State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>,
 	Path(ban_id): Path<BanID>,
 	Json(BanUpdate { reason, expires_on }): Json<BanUpdate>,
@@ -111,7 +111,7 @@ pub async fn patch(
   ),
 )]
 pub async fn delete(
-	state: &'static State,
+	state: &State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>,
 	Path(ban_id): Path<BanID>,
 	Json(NewUnban { reason }): Json<NewUnban>,

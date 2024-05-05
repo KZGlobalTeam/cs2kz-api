@@ -60,7 +60,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: &'static State,
+	state: &State,
 	Query(GetParams {
 		name,
 		ip_address,
@@ -130,7 +130,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: &'static State,
+	state: &State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.value() }>>,
 	Json(NewServer { name, ip_address, owned_by }): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {

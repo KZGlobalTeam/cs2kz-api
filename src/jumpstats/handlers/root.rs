@@ -63,7 +63,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: &'static State,
+	state: &State,
 	Query(GetParams {
 		jump_type,
 		mode,
@@ -146,7 +146,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: &'static State,
+	state: &State,
 	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Json(NewJumpstat {
 		jump_type,

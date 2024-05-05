@@ -68,7 +68,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: &'static State,
+	state: &State,
 	Query(GetParams {
 		player,
 		server,
@@ -147,7 +147,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: &'static State,
+	state: &State,
 	server: Option<Jwt<auth::Server>>,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>>,
 	Json(NewBan { player_id, player_ip, reason }): Json<NewBan>,

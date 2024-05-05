@@ -29,7 +29,7 @@ use crate::{Error, Result, State};
   ),
 )]
 pub async fn get(
-	state: &'static State,
+	state: &State,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>>,
 	Path(player): Path<PlayerIdentifier>,
 ) -> Result<Json<FullPlayer>> {
@@ -76,7 +76,7 @@ pub async fn get(
   ),
 )]
 pub async fn patch(
-	state: &'static State,
+	state: &State,
 	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Path(steam_id): Path<SteamID>,
 	Json(PlayerUpdate { name, ip_address, session }): Json<PlayerUpdate>,

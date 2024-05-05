@@ -33,7 +33,7 @@ pub struct LoginParams {
   ),
 )]
 pub async fn login(
-	state: &'static State,
+	state: &State,
 	Query(LoginParams { redirect_to }): Query<LoginParams>,
 ) -> Redirect {
 	SteamLoginForm::new(state.config.public_url.clone()).redirect_to(&redirect_to)
@@ -62,7 +62,7 @@ pub struct LogoutParams {
   ),
 )]
 pub async fn logout(
-	state: &'static State,
+	state: &State,
 	mut session: Session,
 	Query(LogoutParams { invalidate_all_sessions }): Query<LogoutParams>,
 ) -> Result<(Session, StatusCode)> {

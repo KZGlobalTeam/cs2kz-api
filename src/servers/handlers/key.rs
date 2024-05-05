@@ -27,7 +27,7 @@ use crate::{auth, Error, Result, State};
   ),
 )]
 pub async fn generate_temp(
-	state: &'static State,
+	state: &State,
 	Json(RefreshKeyRequest { refresh_key, plugin_version }): Json<RefreshKeyRequest>,
 ) -> Result<Created<Json<RefreshKeyResponse>>> {
 	let mut transaction = state.transaction().await?;
@@ -75,7 +75,7 @@ pub async fn generate_temp(
   ),
 )]
 pub async fn put_perma(
-	state: &'static State,
+	state: &State,
 	session: auth::Session<
 		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.value() }>, auth::ServerOwner>,
 	>,
@@ -124,7 +124,7 @@ pub async fn put_perma(
   ),
 )]
 pub async fn delete_perma(
-	state: &'static State,
+	state: &State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.value() }>>,
 	Path(server_id): Path<u16>,
 ) -> Result<NoContent> {

@@ -25,10 +25,7 @@ use crate::{Error, Result, State};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(
-	state: &'static State,
-	Path(player): Path<PlayerIdentifier>,
-) -> Result<Json<JsonValue>> {
+pub async fn get(state: &State, Path(player): Path<PlayerIdentifier>) -> Result<Json<JsonValue>> {
 	let mut query = QueryBuilder::new("SELECT preferences FROM Players WHERE");
 
 	match player {
@@ -66,7 +63,7 @@ pub async fn get(
   ),
 )]
 pub async fn put(
-	state: &'static State,
+	state: &State,
 	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Path(steam_id): Path<SteamID>,
 	Json(preferences): Json<JsonValue>,

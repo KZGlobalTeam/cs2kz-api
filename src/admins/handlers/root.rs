@@ -45,7 +45,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: &'static State,
+	state: &State,
 	Query(GetParams { roles, limit, offset }): Query<GetParams>,
 ) -> Result<Json<PaginationResponse<Admin>>> {
 	let mut transaction = state.transaction().await?;

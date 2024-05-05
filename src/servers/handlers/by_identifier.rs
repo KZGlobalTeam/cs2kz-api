@@ -24,10 +24,7 @@ use crate::{auth, responses, Error, Result, State};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(
-	state: &'static State,
-	Path(server): Path<ServerIdentifier>,
-) -> Result<Json<Server>> {
+pub async fn get(state: &State, Path(server): Path<ServerIdentifier>) -> Result<Json<Server>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
 	query.push(" WHERE ");
@@ -65,7 +62,7 @@ pub async fn get(
   ),
 )]
 pub async fn patch(
-	state: &'static State,
+	state: &State,
 	session: auth::Session<
 		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.value() }>, auth::ServerOwner>,
 	>,

@@ -88,7 +88,7 @@ impl Session {
 	pub async fn create(
 		user_id: SteamID,
 		config: &'static crate::Config,
-		mut transaction: Transaction<'static, MySql>,
+		mut transaction: Transaction<'_, MySql>,
 	) -> Result<Self> {
 		let session_id = ID::new();
 		let expires_on = Self::expiration_date();

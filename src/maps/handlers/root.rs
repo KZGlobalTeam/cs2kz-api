@@ -56,7 +56,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: &'static State,
+	state: &State,
 	Query(GetParams {
 		name,
 		workshop_id,
@@ -124,7 +124,7 @@ pub async fn get(
   ),
 )]
 pub async fn put(
-	state: &'static State,
+	state: &State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.value() }>>,
 	Json(NewMap { workshop_id, description, global_status, mappers, courses }): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {

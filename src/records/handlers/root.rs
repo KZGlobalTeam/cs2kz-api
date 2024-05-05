@@ -89,7 +89,7 @@ pub enum SortRecordsBy {
   ),
 )]
 pub async fn get(
-	state: &'static State,
+	state: &State,
 	Query(GetParams {
 		mode,
 		styles,
@@ -188,7 +188,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: &'static State,
+	state: &State,
 	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Json(NewRecord { player_id, mode, styles, course_id, teleports, time, bhop_stats }): Json<
 		NewRecord,

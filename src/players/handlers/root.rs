@@ -41,7 +41,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: &'static State,
+	state: &State,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>>,
 	Query(GetParams { limit, offset }): Query<GetParams>,
 ) -> Result<Json<PaginationResponse<FullPlayer>>> {
@@ -90,7 +90,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: &'static State,
+	state: &State,
 	server: Jwt<auth::Server>,
 	Json(NewPlayer { name, steam_id, ip_address }): Json<NewPlayer>,
 ) -> Result<Created> {

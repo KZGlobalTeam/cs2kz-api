@@ -23,7 +23,7 @@ use crate::{responses, Error, Result, State};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(state: &'static State, Path(steam_id): Path<SteamID>) -> Result<Json<Admin>> {
+pub async fn get(state: &State, Path(steam_id): Path<SteamID>) -> Result<Json<Admin>> {
 	let admin = sqlx::query! {
 		r#"
 		SELECT
@@ -62,7 +62,7 @@ pub async fn get(state: &'static State, Path(steam_id): Path<SteamID>) -> Result
   ),
 )]
 pub async fn put(
-	state: &'static State,
+	state: &State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::ADMIN.value() }>>,
 	Path(steam_id): Path<SteamID>,
 	Json(AdminUpdate { roles }): Json<AdminUpdate>,

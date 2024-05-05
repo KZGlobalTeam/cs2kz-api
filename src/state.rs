@@ -61,7 +61,7 @@ impl State {
 	}
 
 	/// Begins a new database transaction.
-	pub async fn transaction(&self) -> Result<Transaction<'static, MySql>> {
+	pub async fn transaction(&self) -> Result<Transaction<'_, MySql>> {
 		self.database.begin().await.map_err(Error::from)
 	}
 
