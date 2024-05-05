@@ -20,7 +20,7 @@ pub mod session;
 pub use session::Session;
 
 mod authorization;
-pub use authorization::{AuthorizeSession, Either, HasRoles, None, ServerOwner};
+pub use authorization::{AdminOrServerOwner, AuthorizeSession, HasRoles, None};
 
 pub mod models;
 pub use models::{Server, SteamLoginForm, SteamLoginResponse, SteamUser, User};

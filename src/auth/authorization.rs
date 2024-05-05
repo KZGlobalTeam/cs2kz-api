@@ -1,7 +1,6 @@
 //! Session authorization.
 
 use std::future::Future;
-use std::marker::PhantomData;
 
 use axum::extract::{FromRequestParts, Path};
 use axum::http::request;
@@ -57,17 +56,25 @@ impl<const ROLE_FLAGS: u32> AuthorizeSession for HasRoles<ROLE_FLAGS> {
 	}
 }
 
-/// Ensures the user is a server owner.
+/// Checks if the requesting user is either an admin with the [`SERVERS`] role, or a server owner.
 ///
-/// This assumes there is a "server ID" path parameter and will fail if it can't be extracted.
-pub struct ServerOwner;
+/// [`SERVERS`]: RoleFlags::SERVERS
+#[derive(Debug, Clone, Copy)]
+pub struct AdminOrServerOwner;
 
-impl AuthorizeSession for ServerOwner {
+impl AuthorizeSession for AdminOrServerOwner {
 	async fn authorize(
 		user: &User,
 		request: &mut request::Parts,
 		database: &mut Transaction<'static, MySql>,
 	) -> Result<()> {
+		if HasRoles::<{ RoleFlags::SERVERS.value() }>::authorize(user, request, database)
+			.await
+			.is_ok()
+		{
+			return Ok(());
+		}
+
 		let Path(server_id) = Path::<u16>::from_request_parts(request, &()).await?;
 
 		let _query_result = sqlx::query! {
@@ -88,32 +95,5 @@ impl AuthorizeSession for ServerOwner {
 		.ok_or_else(|| Error::must_be_server_owner())?;
 
 		Ok(())
-	}
-}
-
-/// Helper for trying multiple authorization strategies.
-///
-/// If `A` fails, `B` will be used instead.
-/// If both fail, the request will be rejected.
-pub struct Either<A, B> {
-	/// Marker so `A` and `B` are used.
-	_marker: PhantomData<(A, B)>,
-}
-
-impl<A, B> AuthorizeSession for Either<A, B>
-where
-	A: AuthorizeSession,
-	B: AuthorizeSession,
-{
-	async fn authorize(
-		user: &User,
-		request: &mut request::Parts,
-		database: &mut Transaction<'static, MySql>,
-	) -> Result<()> {
-		if let Ok(()) = A::authorize(user, request, database).await {
-			return Ok(());
-		}
-
-		B::authorize(user, request, database).await
 	}
 }

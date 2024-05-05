@@ -6,7 +6,6 @@ use cs2kz::ServerIdentifier;
 use sqlx::QueryBuilder;
 use tracing::info;
 
-use crate::auth::RoleFlags;
 use crate::responses::NoContent;
 use crate::servers::{queries, Server, ServerUpdate};
 use crate::sqlx::UpdateQuery;
@@ -63,9 +62,7 @@ pub async fn get(state: &State, Path(server): Path<ServerIdentifier>) -> Result<
 )]
 pub async fn patch(
 	state: &State,
-	session: auth::Session<
-		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.value() }>, auth::ServerOwner>,
-	>,
+	session: auth::Session<auth::AdminOrServerOwner>,
 	Path(server_id): Path<u16>,
 	Json(ServerUpdate { name, ip_address, owned_by }): Json<ServerUpdate>,
 ) -> Result<NoContent> {

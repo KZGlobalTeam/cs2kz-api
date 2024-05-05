@@ -76,9 +76,7 @@ pub async fn generate_temp(
 )]
 pub async fn put_perma(
 	state: &State,
-	session: auth::Session<
-		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.value() }>, auth::ServerOwner>,
-	>,
+	session: auth::Session<auth::AdminOrServerOwner>,
 	Path(server_id): Path<u16>,
 ) -> Result<Created<Json<RefreshKey>>> {
 	let mut transaction = state.transaction().await?;

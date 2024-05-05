@@ -21,10 +21,7 @@ pub mod handlers;
 /// Returns a router with routes for `/servers`.
 pub fn router(state: &'static State) -> Router {
 	let is_admin = session_auth!(auth::HasRoles<{ RoleFlags::SERVERS.value() }>, state);
-	let is_admin_or_owner = session_auth!(
-		auth::Either<auth::HasRoles<{ RoleFlags::SERVERS.value() }>, auth::ServerOwner>,
-		state
-	);
+	let is_admin_or_owner = session_auth!(auth::AdminOrServerOwner, state);
 
 	let root = Router::new()
 		.route("/", get(handlers::root::get))
