@@ -1,6 +1,6 @@
 //! Everything related to players.
 
-use axum::routing::{get, patch, post, put};
+use axum::routing::{get, patch, post};
 use axum::Router;
 
 use crate::middleware::cors;
@@ -31,7 +31,6 @@ pub fn router(state: &'static State) -> Router {
 	let preferences = Router::new()
 		.route("/:player/preferences", get(handlers::preferences::get))
 		.route_layer(cors::permissive())
-		.route("/:player/preferences", put(handlers::preferences::put))
 		.with_state(state);
 
 	root.merge(by_identifier).merge(preferences)

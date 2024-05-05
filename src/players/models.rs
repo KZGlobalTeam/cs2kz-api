@@ -5,6 +5,7 @@ use std::net::Ipv4Addr;
 
 use cs2kz::{Mode, SteamID};
 use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::Value as JsonValue;
 use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
@@ -88,6 +89,9 @@ pub struct PlayerUpdate {
 
 	/// Data about the player's game session.
 	pub session: Session,
+
+	/// The player's current in-game preference settings.
+	pub preferences: JsonValue,
 }
 
 /// Data about the player's game session.

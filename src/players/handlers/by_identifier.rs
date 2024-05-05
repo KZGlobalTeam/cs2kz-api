@@ -3,6 +3,7 @@
 use axum::extract::Path;
 use axum::Json;
 use cs2kz::{PlayerIdentifier, SteamID};
+use sqlx::types::Json as SqlJson;
 use sqlx::{MySql, QueryBuilder};
 use tracing::trace;
 
@@ -86,7 +87,7 @@ pub async fn patch(
 	state: &State,
 	Jwt { payload: server, .. }: Jwt<auth::Server>,
 	Path(steam_id): Path<SteamID>,
-	Json(PlayerUpdate { name, ip_address, session }): Json<PlayerUpdate>,
+	Json(PlayerUpdate { name, ip_address, session, preferences }): Json<PlayerUpdate>,
 ) -> Result<NoContent> {
 	let mut transaction = state.transaction().await?;
 
@@ -96,12 +97,14 @@ pub async fn patch(
 		  Players
 		SET
 		  name = ?,
-		  ip_address = ?
+		  ip_address = ?,
+		  preferences = ?
 		WHERE
 		  id = ?
 		"#,
 		name,
 		ip_address.to_string(),
+		SqlJson(&preferences),
 		steam_id,
 	}
 	.execute(transaction.as_mut())
@@ -256,6 +259,9 @@ mod tests {
 	use std::net::Ipv4Addr;
 	use std::time::Duration;
 
+	use serde_json::{json, Value as JsonValue};
+	use uuid::Uuid;
+
 	use crate::game_sessions::TimeSpent;
 	use crate::players::{FullPlayer, PlayerUpdate, Session};
 	use crate::records::BhopStats;
@@ -312,6 +318,7 @@ mod tests {
 				},
 				course_sessions: BTreeMap::new(),
 			},
+			preferences: json!({ "funny_test": ctx.test_id }),
 		};
 
 		let url = ctx.url(format_args!("/players/{}", player.steam_id));
@@ -335,5 +342,15 @@ mod tests {
 		let player = response.json::<FullPlayer>().await?;
 
 		assert_eq!(player.name, new_name);
+
+		let url = ctx.url(format_args!("/players/{}/preferences", player.steam_id));
+		let response = ctx.http_client.get(url).send().await?;
+
+		assert_eq!(response.status(), 200);
+
+		let mut preferences = response.json::<JsonValue>().await?;
+		let funny_test = serde_json::from_value::<Uuid>(preferences["funny_test"].take())?;
+
+		assert_eq!(funny_test, ctx.test_id);
 	}
 }
