@@ -7,7 +7,7 @@ use sqlx::QueryBuilder;
 use tracing::info;
 
 use crate::responses::NoContent;
-use crate::servers::{queries, Server, ServerUpdate};
+use crate::servers::{queries, Server, ServerID, ServerUpdate};
 use crate::sqlx::UpdateQuery;
 use crate::{auth, responses, Error, Result, State};
 
@@ -67,7 +67,7 @@ pub async fn get(state: &State, Path(server): Path<ServerIdentifier>) -> Result<
 pub async fn patch(
 	state: &State,
 	session: auth::Session<auth::AdminOrServerOwner>,
-	Path(server_id): Path<u16>,
+	Path(server_id): Path<ServerID>,
 	Json(ServerUpdate { name, ip_address, owned_by }): Json<ServerUpdate>,
 ) -> Result<NoContent> {
 	if name.is_none() && ip_address.is_none() && owned_by.is_none() {

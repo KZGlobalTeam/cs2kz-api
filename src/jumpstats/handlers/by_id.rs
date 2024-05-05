@@ -4,7 +4,7 @@ use axum::extract::Path;
 use axum::Json;
 use sqlx::QueryBuilder;
 
-use crate::jumpstats::{queries, Jumpstat};
+use crate::jumpstats::{queries, Jumpstat, JumpstatID};
 use crate::{responses, Error, Result, State};
 
 /// Fetch a specific jumpstat by its ID.
@@ -21,7 +21,7 @@ use crate::{responses, Error, Result, State};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(state: &State, Path(jumpstat_id): Path<u64>) -> Result<Json<Jumpstat>> {
+pub async fn get(state: &State, Path(jumpstat_id): Path<JumpstatID>) -> Result<Json<Jumpstat>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
 	query.push(" WHERE j.id = ").push_bind(jumpstat_id);

@@ -3,6 +3,7 @@
 use axum::extract::Path;
 use axum::http::StatusCode;
 
+use crate::jumpstats::JumpstatID;
 use crate::responses;
 
 /// Fetch the replay file for a specific jumpstat.
@@ -19,6 +20,6 @@ use crate::responses;
     responses::InternalServerError,
   ),
 )]
-pub async fn get(Path(_jumpstat_id): Path<u64>) -> StatusCode {
+pub async fn get(Path(_jumpstat_id): Path<JumpstatID>) -> StatusCode {
 	StatusCode::SERVICE_UNAVAILABLE
 }

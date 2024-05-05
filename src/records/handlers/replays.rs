@@ -3,6 +3,7 @@
 use axum::extract::Path;
 use axum::http::StatusCode;
 
+use crate::records::RecordID;
 use crate::responses;
 
 /// Fetch the replay file for a specific record.
@@ -19,6 +20,6 @@ use crate::responses;
     responses::InternalServerError,
   ),
 )]
-pub async fn get(Path(_record_id): Path<u64>) -> StatusCode {
+pub async fn get(Path(_record_id): Path<RecordID>) -> StatusCode {
 	StatusCode::SERVICE_UNAVAILABLE
 }

@@ -89,7 +89,7 @@ pub async fn generate_temp(
 pub async fn put_perma(
 	state: &State,
 	session: auth::Session<auth::AdminOrServerOwner>,
-	Path(server_id): Path<u16>,
+	Path(server_id): Path<ServerID>,
 ) -> Result<Created<Json<RefreshKey>>> {
 	let mut transaction = state.transaction().await?;
 	let refresh_key = Uuid::new_v4();
@@ -142,7 +142,7 @@ pub async fn put_perma(
 pub async fn delete_perma(
 	state: &State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.value() }>>,
-	Path(server_id): Path<u16>,
+	Path(server_id): Path<ServerID>,
 ) -> Result<NoContent> {
 	let mut transaction = state.transaction().await?;
 

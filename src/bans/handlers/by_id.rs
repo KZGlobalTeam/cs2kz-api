@@ -25,7 +25,7 @@ use crate::{auth, responses, Error, Result, State};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(state: &State, Path(ban_id): Path<u64>) -> Result<Json<Ban>> {
+pub async fn get(state: &State, Path(ban_id): Path<BanID>) -> Result<Json<Ban>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
 	query.push(" WHERE b.id = ").push_bind(ban_id);

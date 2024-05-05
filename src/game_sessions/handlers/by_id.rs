@@ -3,7 +3,7 @@
 use axum::extract::Path;
 use axum::Json;
 
-use crate::game_sessions::GameSession;
+use crate::game_sessions::{GameSession, GameSessionID};
 use crate::{responses, Error, Result, State};
 
 /// Fetch a specific game session by its ID.
@@ -20,7 +20,10 @@ use crate::{responses, Error, Result, State};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(state: &State, Path(session_id): Path<u64>) -> Result<Json<GameSession>> {
+pub async fn get(
+	state: &State,
+	Path(session_id): Path<GameSessionID>,
+) -> Result<Json<GameSession>> {
 	let session = sqlx::query_as(
 		r#"
 		SELECT
