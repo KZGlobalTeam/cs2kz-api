@@ -2,21 +2,19 @@ FROM lukemathwalker/cargo-chef:latest-rust-1.76-slim-bullseye AS chef
 WORKDIR /kz
 
 FROM chef AS planner
-COPY Cargo.toml .
-COPY Cargo.lock .
 COPY crates crates
 COPY src src
 COPY .sqlx .sqlx
+COPY Cargo.toml Cargo.lock README.md .
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef as BUILDER
 COPY --from=planner /kz/recipe.json recipe.json
 RUN cargo chef cook --workspace --release --recipe-path recipe.json
 COPY crates crates
-COPY Cargo.toml .
-COPY Cargo.lock .
 COPY src src
 COPY .sqlx .sqlx
+COPY Cargo.toml Cargo.lock README.md .
 COPY database/migrations database/migrations
 RUN cargo build --release --features production
 
