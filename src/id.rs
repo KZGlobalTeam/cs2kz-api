@@ -15,6 +15,8 @@ macro_rules! make_id {
 			Ord,
 			Hash,
 			::derive_more::Display,
+			::derive_more::Into,
+			::derive_more::From,
 			::serde::Serialize,
 			::serde::Deserialize,
 			::sqlx::Type,

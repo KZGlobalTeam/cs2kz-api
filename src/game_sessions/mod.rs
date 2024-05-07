@@ -9,7 +9,7 @@ use crate::State;
 mod models;
 
 #[doc(inline)]
-pub use models::{GameSession, GameSessionID, TimeSpent};
+pub use models::{CourseSessionID, GameSession, GameSessionID, TimeSpent};
 
 pub mod handlers;
 

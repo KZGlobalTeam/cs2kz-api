@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t  id\n\t\tFROM\n\t\t  Courses\n\t\tWHERE\n\t\t  map_id = ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t  id `id: FilterID`\n\t\tFROM\n\t\t  CourseFilters\n\t\tWHERE\n\t\t  course_id = ?\n\t\t  AND mode_id = ?\n\t\t  AND teleports = ?\n\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id: FilterID",
         "type_info": {
           "type": "Short",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
@@ -15,11 +15,11 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 3
     },
     "nullable": [
       false
     ]
   },
-  "hash": "a4602cd536bce6fe445836dcdf6a6e119114bf51678870da39744b28fddde1ac"
+  "hash": "7d28483a8e461dade866c2c913bef9b19830806586935b4ebbd61f62008bc03e"
 }

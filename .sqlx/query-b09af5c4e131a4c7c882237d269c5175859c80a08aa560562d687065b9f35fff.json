@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\tSELECT\n\t\t\t  id\n\t\t\tFROM\n\t\t\t  PluginVersions\n\t\t\tORDER BY\n\t\t\t  created_on DESC\n\t\t\tLIMIT\n\t\t\t  1\n\t\t\t",
+  "query": "\n\t\t\t\tSELECT\n\t\t\t\t  id `id: MapID`\n\t\t\t\tFROM\n\t\t\t\t  Maps\n\t\t\t\tWHERE\n\t\t\t\t  name LIKE ?\n\t\t\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id: MapID",
         "type_info": {
           "type": "Short",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
@@ -15,11 +15,11 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false
     ]
   },
-  "hash": "18ce84599e2ac5c3f0351f0141fd0c59c73f6a980fa8adc1afdb7395c72fd1d3"
+  "hash": "b09af5c4e131a4c7c882237d269c5175859c80a08aa560562d687065b9f35fff"
 }

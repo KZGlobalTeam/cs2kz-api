@@ -11,7 +11,7 @@ use tracing::{trace, warn};
 use utoipa::IntoParams;
 
 use crate::auth::{Jwt, RoleFlags};
-use crate::bans::{queries, Ban, BanID, BanReason, CreatedBan, NewBan};
+use crate::bans::{queries, Ban, BanReason, CreatedBan, NewBan};
 use crate::parameters::{Limit, Offset};
 use crate::plugin::PluginVersionID;
 use crate::responses::{Created, PaginationResponse};
@@ -206,19 +206,19 @@ pub async fn post(
 
 	let player_ip = match player_ip {
 		Some(ip) => ip.to_string(),
-		None => sqlx::query!("SELECT ip_address FROM Players WHERE id = ?", player_id)
+		None => sqlx::query_scalar!("SELECT ip_address FROM Players WHERE id = ?", player_id)
 			.fetch_optional(transaction.as_mut())
 			.await?
-			.map(|row| row.ip_address)
 			.ok_or_else(|| Error::unknown("player"))?,
 	};
 
-	let plugin_version_id = match server.map(|server| server.plugin_version_id()) {
-		Some(id) => id,
-		None => sqlx::query! {
+	let plugin_version_id = if let Some(id) = server.map(|server| server.plugin_version_id()) {
+		id
+	} else {
+		sqlx::query_scalar! {
 			r#"
 			SELECT
-			  id
+			  id `id: PluginVersionID`
 			FROM
 			  PluginVersions
 			ORDER BY
@@ -228,8 +228,7 @@ pub async fn post(
 			"#,
 		}
 		.fetch_one(transaction.as_mut())
-		.await
-		.map(|row| PluginVersionID(row.id))?,
+		.await?
 	};
 
 	let expires_on = OffsetDateTime::now_utc() + reason.duration(previous_offenses);
@@ -268,11 +267,12 @@ pub async fn post(
 			Error::from(err)
 		}
 	})?
-	.last_insert_id();
+	.last_insert_id()
+	.into();
 
 	transaction.commit().await?;
 
 	trace!(%ban_id, %player_id, ?reason, ?server, ?admin, "created ban");
 
-	Ok(Created(Json(CreatedBan { ban_id: BanID(ban_id) })))
+	Ok(Created(Json(CreatedBan { ban_id })))
 }

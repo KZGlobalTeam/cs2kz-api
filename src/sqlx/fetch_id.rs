@@ -28,9 +28,9 @@ impl FetchID for PlayerIdentifier {
 	type ID = SteamID;
 
 	async fn fetch_id(&self, executor: impl MySqlExecutor<'_>) -> Result<SteamID> {
-		match self {
-			Self::SteamID(steam_id) => Ok(*steam_id),
-			Self::Name(name) => sqlx::query! {
+		match *self {
+			Self::SteamID(steam_id) => Ok(steam_id),
+			Self::Name(ref name) => sqlx::query_scalar! {
 				r#"
 				SELECT
 				  id `steam_id: SteamID`
@@ -43,7 +43,6 @@ impl FetchID for PlayerIdentifier {
 			}
 			.fetch_optional(executor)
 			.await?
-			.map(|row| row.steam_id)
 			.ok_or_else(|| Error::no_content()),
 		}
 	}
@@ -53,12 +52,12 @@ impl FetchID for MapIdentifier {
 	type ID = MapID;
 
 	async fn fetch_id(&self, executor: impl MySqlExecutor<'_>) -> Result<MapID> {
-		match self {
-			Self::ID(id) => Ok(MapID(*id)),
-			Self::Name(name) => sqlx::query! {
+		match *self {
+			Self::ID(id) => Ok(MapID(id)),
+			Self::Name(ref name) => sqlx::query_scalar! {
 				r#"
 				SELECT
-				  id
+				  id `id: MapID`
 				FROM
 				  Maps
 				WHERE
@@ -68,7 +67,6 @@ impl FetchID for MapIdentifier {
 			}
 			.fetch_optional(executor)
 			.await?
-			.map(|row| MapID(row.id))
 			.ok_or_else(|| Error::no_content()),
 		}
 	}
@@ -78,12 +76,12 @@ impl FetchID for ServerIdentifier {
 	type ID = ServerID;
 
 	async fn fetch_id(&self, executor: impl MySqlExecutor<'_>) -> Result<ServerID> {
-		match self {
-			Self::ID(id) => Ok(ServerID(*id)),
-			Self::Name(name) => sqlx::query! {
+		match *self {
+			Self::ID(id) => Ok(ServerID(id)),
+			Self::Name(ref name) => sqlx::query_scalar! {
 				r#"
 				SELECT
-				  id
+				  id `id: ServerID`
 				FROM
 				  Servers
 				WHERE
@@ -93,7 +91,6 @@ impl FetchID for ServerIdentifier {
 			}
 			.fetch_optional(executor)
 			.await?
-			.map(|row| ServerID(row.id))
 			.ok_or_else(|| Error::no_content()),
 		}
 	}

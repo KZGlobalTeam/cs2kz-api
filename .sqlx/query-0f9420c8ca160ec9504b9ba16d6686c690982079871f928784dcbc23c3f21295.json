@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t  id\n\t\tFROM\n\t\t  CourseFilters\n\t\tWHERE\n\t\t  course_id = ?\n\t\t  AND mode_id = ?\n\t\t  AND teleports = ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t  id `id: CourseID`\n\t\tFROM\n\t\t  Courses\n\t\tWHERE\n\t\t  id >= (\n\t\t    SELECT\n\t\t      LAST_INSERT_ID()\n\t\t  )\n\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id: CourseID",
         "type_info": {
           "type": "Short",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
@@ -15,11 +15,11 @@
       }
     ],
     "parameters": {
-      "Right": 3
+      "Right": 0
     },
     "nullable": [
       false
     ]
   },
-  "hash": "5034ab60ecd61ab692e056c96666829f935017bf3cb8a9eea2ea10c6a53f58b0"
+  "hash": "0f9420c8ca160ec9504b9ba16d6686c690982079871f928784dcbc23c3f21295"
 }

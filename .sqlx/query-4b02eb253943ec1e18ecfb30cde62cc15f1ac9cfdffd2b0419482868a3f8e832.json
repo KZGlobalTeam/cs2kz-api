@@ -1,16 +1,16 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\t\tSELECT\n\t\t\t\t  id\n\t\t\t\tFROM\n\t\t\t\t  Maps\n\t\t\t\tWHERE\n\t\t\t\t  name LIKE ?\n\t\t\t\t",
+  "query": "\n\t\tSELECT\n\t\t  id `id: UnbanID`\n\t\tFROM\n\t\t  Unbans\n\t\tWHERE\n\t\t  ban_id = ?\n\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id: UnbanID",
         "type_info": {
-          "type": "Short",
+          "type": "LongLong",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
           "char_set": 63,
-          "max_size": 5
+          "max_size": 20
         }
       }
     ],
@@ -21,5 +21,5 @@
       false
     ]
   },
-  "hash": "0820d029773e60994430e0fd87cb356fd43d4c26d5758cc075dc6cac9b90fd98"
+  "hash": "4b02eb253943ec1e18ecfb30cde62cc15f1ac9cfdffd2b0419482868a3f8e832"
 }

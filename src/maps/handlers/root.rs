@@ -274,10 +274,10 @@ async fn create_courses(
 
 	info!(target: "audit_log", %map_id, ?courses, "inserted courses");
 
-	let course_ids = sqlx::query! {
+	let course_ids = sqlx::query_scalar! {
 		r#"
 		SELECT
-		  id
+		  id `id: CourseID`
 		FROM
 		  Courses
 		WHERE
@@ -288,9 +288,7 @@ async fn create_courses(
 		"#,
 	}
 	.fetch_all(transaction.as_mut())
-	.await?
-	.into_iter()
-	.map(|row| CourseID(row.id));
+	.await?;
 
 	for (course_id, course) in iter::zip(course_ids, courses) {
 		insert_course_mappers(course_id, &course.mappers, transaction).await?;

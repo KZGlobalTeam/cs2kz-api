@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\tSELECT\n\t\t\t  id\n\t\t\tFROM\n\t\t\t  Servers\n\t\t\tWHERE\n\t\t\t  id = ?\n\t\t\t  AND owner_id = ?\n\t\t\t",
+  "query": "\n\t\tSELECT\n\t\t  id `id: FilterID`\n\t\tFROM\n\t\t  CourseFilters\n\t\tWHERE\n\t\t  course_id = ?\n\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id: FilterID",
         "type_info": {
           "type": "Short",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
@@ -15,11 +15,11 @@
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 1
     },
     "nullable": [
       false
     ]
   },
-  "hash": "05e9cff7c9dae2be27d589a738914e21fe27a73e205ddffb6e4a35a8937f689f"
+  "hash": "11ddaeaa96bd1dc75780d7569a9fde0f0ea936aba553efd02f30e5a0cb2495a2"
 }

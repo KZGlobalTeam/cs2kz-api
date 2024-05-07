@@ -13,6 +13,7 @@ use crate::servers::ServerInfo;
 use crate::time::Seconds;
 
 make_id!(GameSessionID as u64);
+make_id!(CourseSessionID as u64);
 
 /// An in-game session.
 ///

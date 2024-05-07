@@ -10,8 +10,9 @@ use utoipa::{IntoParams, ToSchema};
 
 use crate::auth::Jwt;
 use crate::kz::StyleFlags;
+use crate::maps::FilterID;
 use crate::parameters::{Limit, Offset, SortingOrder};
-use crate::records::{queries, CreatedRecord, NewRecord, Record, RecordID};
+use crate::records::{queries, CreatedRecord, NewRecord, Record};
 use crate::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{auth, responses, Error, Result, State};
@@ -200,10 +201,10 @@ pub async fn post(
 ) -> Result<Created<Json<CreatedRecord>>> {
 	let mut transaction = state.transaction().await?;
 
-	let filter_id = sqlx::query! {
+	let filter_id = sqlx::query_scalar! {
 		r#"
 		SELECT
-		  id
+		  id `id: FilterID`
 		FROM
 		  CourseFilters
 		WHERE
@@ -217,7 +218,6 @@ pub async fn post(
 	}
 	.fetch_optional(transaction.as_mut())
 	.await?
-	.map(|row| row.id)
 	.ok_or_else(|| Error::unknown("course ID"))?;
 
 	let record_id = sqlx::query! {
@@ -273,11 +273,12 @@ pub async fn post(
 			Error::from(err)
 		}
 	})?
-	.last_insert_id();
+	.last_insert_id()
+	.into();
 
 	transaction.commit().await?;
 
 	trace!(%record_id, "inserted record");
 
-	Ok(Created(Json(CreatedRecord { record_id: RecordID(record_id) })))
+	Ok(Created(Json(CreatedRecord { record_id })))
 }

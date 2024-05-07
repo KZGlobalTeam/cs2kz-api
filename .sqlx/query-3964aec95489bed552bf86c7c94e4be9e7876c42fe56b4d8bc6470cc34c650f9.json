@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t  id\n\t\tFROM\n\t\t  Courses\n\t\tWHERE\n\t\t  id >= (\n\t\t    SELECT\n\t\t      LAST_INSERT_ID()\n\t\t  )\n\t\t",
+  "query": "\n\t\t\t\tSELECT\n\t\t\t\t  id `id: ServerID`\n\t\t\t\tFROM\n\t\t\t\t  Servers\n\t\t\t\tWHERE\n\t\t\t\t  name LIKE ?\n\t\t\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id: ServerID",
         "type_info": {
           "type": "Short",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
@@ -15,11 +15,11 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false
     ]
   },
-  "hash": "c70c7360b150a8d0de9c10b3ded2ef69b00cc33d461809d5855352bdbb19fe4a"
+  "hash": "3964aec95489bed552bf86c7c94e4be9e7876c42fe56b4d8bc6470cc34c650f9"
 }

@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT workshop_id FROM Maps where id = ?",
+  "query": "\n\t\tSELECT\n\t\t  workshop_id `workshop_id: WorkshopID`\n\t\tFROM\n\t\t  Maps\n\t\tWHERE\n\t\t  id = ?\n\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "workshop_id",
+        "name": "workshop_id: WorkshopID",
         "type_info": {
           "type": "Long",
           "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
@@ -21,5 +21,5 @@
       false
     ]
   },
-  "hash": "08afd4d3c2c545a0ab138fa8f33f9a1f6a0361bbdef5a608a7bf59616b058fd7"
+  "hash": "19b02623eecc44684de07a58c40e1cbef3f4a60dd1d08efc0f77ba2d405420b3"
 }

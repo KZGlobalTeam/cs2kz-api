@@ -8,6 +8,7 @@ use sqlx::{MySql, QueryBuilder};
 use tracing::trace;
 
 use crate::auth::{self, Jwt, RoleFlags};
+use crate::game_sessions::{CourseSessionID, GameSessionID};
 use crate::maps::CourseID;
 use crate::players::{queries, CourseSession, FullPlayer, PlayerUpdate};
 use crate::responses::{self, NoContent};
@@ -116,7 +117,7 @@ pub async fn patch(
 
 	trace!(target: "audit_log", %steam_id, "updated player");
 
-	let session_id = sqlx::query! {
+	let session_id: GameSessionID = sqlx::query! {
 		r#"
 		INSERT INTO
 		  GameSessions (
@@ -164,7 +165,8 @@ pub async fn patch(
 			Error::from(err)
 		}
 	})?
-	.last_insert_id();
+	.last_insert_id()
+	.into();
 
 	trace!(target: "audit_log", %steam_id, session.id = %session_id, "created game session");
 
@@ -185,7 +187,7 @@ async fn insert_course_session(
 	course_id: CourseID,
 	CourseSession { mode, playtime, started_runs, finished_runs, bhop_stats }: CourseSession,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<()> {
+) -> Result<CourseSessionID> {
 	let session_id = sqlx::query! {
 		r#"
 		INSERT INTO
@@ -240,7 +242,8 @@ async fn insert_course_session(
 			Error::from(err)
 		}
 	})?
-	.last_insert_id();
+	.last_insert_id()
+	.into();
 
 	trace! {
 		target: "audit_log",
@@ -250,7 +253,7 @@ async fn insert_course_session(
 		"created course session",
 	};
 
-	Ok(())
+	Ok(session_id)
 }
 
 #[cfg(test)]

@@ -9,7 +9,7 @@ use tracing::trace;
 use utoipa::IntoParams;
 
 use crate::auth::Jwt;
-use crate::jumpstats::{queries, CreatedJumpstat, Jumpstat, JumpstatID, NewJumpstat};
+use crate::jumpstats::{queries, CreatedJumpstat, Jumpstat, NewJumpstat};
 use crate::parameters::{Limit, Offset};
 use crate::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
@@ -246,13 +246,12 @@ pub async fn post(
 			Error::from(err)
 		}
 	})?
-	.last_insert_id();
+	.last_insert_id()
+	.into();
 
 	transaction.commit().await?;
 
 	trace!(%jumpstat_id, "created jumpstat");
 
-	Ok(Created(Json(CreatedJumpstat {
-		jumpstat_id: JumpstatID(jumpstat_id),
-	})))
+	Ok(Created(Json(CreatedJumpstat { jumpstat_id })))
 }

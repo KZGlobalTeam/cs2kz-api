@@ -160,13 +160,14 @@ pub async fn delete(
 	}
 	.execute(transaction.as_mut())
 	.await?
-	.last_insert_id();
+	.last_insert_id()
+	.into();
 
 	transaction.commit().await?;
 
 	info!(target: "audit_log", %ban_id, %unban_id, "created unban");
 
-	Ok(Created(Json(CreatedUnban { unban_id: UnbanID(unban_id) })))
+	Ok(Created(Json(CreatedUnban { unban_id })))
 }
 
 /// Checks if there is an unban associated with the given `ban_id` and returns the corresponding
@@ -175,10 +176,10 @@ async fn is_already_unbanned(
 	ban_id: BanID,
 	executor: impl MySqlExecutor<'_>,
 ) -> Result<Option<UnbanID>> {
-	sqlx::query! {
+	sqlx::query_scalar! {
 		r#"
 		SELECT
-		  id
+		  id `id: UnbanID`
 		FROM
 		  Unbans
 		WHERE
@@ -188,6 +189,5 @@ async fn is_already_unbanned(
 	}
 	.fetch_optional(executor)
 	.await
-	.map(|row| row.map(|row| UnbanID(row.id)))
 	.map_err(Error::from)
 }

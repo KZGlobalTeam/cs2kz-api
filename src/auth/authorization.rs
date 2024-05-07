@@ -79,10 +79,10 @@ impl AuthorizeSession for AdminOrServerOwner {
 
 		let Path(server_id) = Path::<ServerID>::from_request_parts(request, &()).await?;
 
-		let _query_result = sqlx::query! {
+		let _query_result = sqlx::query_scalar! {
 			r#"
 			SELECT
-			  id
+			  id `id: ServerID`
 			FROM
 			  Servers
 			WHERE

@@ -169,10 +169,19 @@ async fn update_name_and_checksum(
 	http_client: &reqwest::Client,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
-	let workshop_id = sqlx::query_scalar!("SELECT workshop_id FROM Maps where id = ?", map_id)
-		.fetch_one(transaction.as_mut())
-		.await
-		.map(WorkshopID)?;
+	let workshop_id = sqlx::query_scalar! {
+		r#"
+		SELECT
+		  workshop_id `workshop_id: WorkshopID`
+		FROM
+		  Maps
+		WHERE
+		  id = ?
+		"#,
+		map_id,
+	}
+	.fetch_one(transaction.as_mut())
+	.await?;
 
 	let name = WorkshopMap::fetch_name(workshop_id, http_client).await?;
 	let checksum = WorkshopMap::download(workshop_id, config)
@@ -225,7 +234,7 @@ async fn delete_mappers(
 	query.push(")");
 	query.build().execute(transaction.as_mut()).await?;
 
-	let remaining_mappers = sqlx::query! {
+	let remaining_mappers = sqlx::query_scalar! {
 		r#"
 		SELECT
 		  COUNT(map_id) count
@@ -237,8 +246,7 @@ async fn delete_mappers(
 		map_id,
 	}
 	.fetch_one(transaction.as_mut())
-	.await
-	.map(|row| row.count)?;
+	.await?;
 
 	if remaining_mappers == 0 {
 		return Err(Error::must_have_mappers());
@@ -259,10 +267,10 @@ where
 	C: IntoIterator<Item = (CourseID, CourseUpdate)> + Send,
 	C::IntoIter: Send,
 {
-	let mut valid_course_ids = sqlx::query! {
+	let mut valid_course_ids = sqlx::query_scalar! {
 		r#"
 		SELECT
-		  id
+		  id `id: CourseID`
 		FROM
 		  Courses
 		WHERE
@@ -273,7 +281,6 @@ where
 	.fetch_all(transaction.as_mut())
 	.await?
 	.into_iter()
-	.map(|row| row.id)
 	.collect::<HashSet<_>>();
 
 	let courses = courses.into_iter().map(|(id, update)| {
@@ -364,7 +371,7 @@ async fn delete_course_mappers(
 	query.push(")");
 	query.build().execute(transaction.as_mut()).await?;
 
-	let remaining_mappers = sqlx::query! {
+	let remaining_mappers = sqlx::query_scalar! {
 		r#"
 		SELECT
 		  COUNT(course_id) count
@@ -376,8 +383,7 @@ async fn delete_course_mappers(
 		course_id,
 	}
 	.fetch_one(transaction.as_mut())
-	.await
-	.map(|row| row.count)?;
+	.await?;
 
 	if remaining_mappers == 0 {
 		return Err(Error::must_have_mappers());
@@ -399,10 +405,10 @@ where
 	F: IntoIterator<Item = (FilterID, FilterUpdate)> + Send,
 	F::IntoIter: Send,
 {
-	let mut valid_filter_ids = sqlx::query! {
+	let mut valid_filter_ids = sqlx::query_scalar! {
 		r#"
 		SELECT
-		  id
+		  id `id: FilterID`
 		FROM
 		  CourseFilters
 		WHERE
@@ -413,7 +419,6 @@ where
 	.fetch_all(transaction.as_mut())
 	.await?
 	.into_iter()
-	.map(|row| row.id)
 	.collect::<HashSet<_>>();
 
 	let filters = filters.into_iter().map(|(id, update)| {
