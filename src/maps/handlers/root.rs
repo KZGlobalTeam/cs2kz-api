@@ -15,7 +15,7 @@ use crate::auth::RoleFlags;
 use crate::maps::{
 	queries, CourseID, CreatedMap, FullMap, MapID, NewCourse, NewFilter, NewMap, WorkshopID,
 };
-use crate::parameters::Limit;
+use crate::parameters::{Limit, Offset};
 use crate::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, FilteredQuery, SqlErrorExt};
 use crate::workshop::WorkshopMap;
@@ -42,6 +42,10 @@ pub struct GetParams {
 	/// Limit the number of returned results.
 	#[serde(default)]
 	limit: Limit,
+
+	/// Paginate by `offset` entries.
+	#[serde(default)]
+	offset: Offset,
 }
 
 /// Fetch maps.
@@ -69,6 +73,7 @@ pub async fn get(
 		created_after,
 		created_before,
 		limit,
+		offset,
 	}): Query<GetParams>,
 ) -> Result<Json<PaginationResponse<FullMap>>> {
 	let mut query = FilteredQuery::new(queries::SELECT);
@@ -92,6 +97,11 @@ pub async fn get(
 
 	if let Some(created_before) = created_before {
 		query.filter(" m.created_on < ", created_before);
+	}
+
+	// not entirely sure if this is correct?
+	if let offset @ 1.. = offset.0 {
+		query.filter(" m.id > ", offset);
 	}
 
 	query.push(" ORDER BY m.id DESC ");
