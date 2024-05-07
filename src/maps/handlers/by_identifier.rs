@@ -100,8 +100,14 @@ pub async fn patch(
 	update_details(map_id, description, workshop_id, global_status, &mut transaction).await?;
 
 	if check_steam || workshop_id.is_some() {
-		update_name_and_checksum(map_id, &state.config, &state.http_client, &mut transaction)
-			.await?;
+		update_name_and_checksum(
+			map_id,
+			workshop_id,
+			&state.config,
+			&state.http_client,
+			&mut transaction,
+		)
+		.await?;
 	}
 
 	if let Some(added_mappers) = added_mappers {
@@ -165,23 +171,28 @@ async fn update_details(
 /// Updates a map's name and checksum by downloading its map file from Steam.
 async fn update_name_and_checksum(
 	map_id: MapID,
+	workshop_id: Option<WorkshopID>,
 	config: &crate::Config,
 	http_client: &reqwest::Client,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
-	let workshop_id = sqlx::query_scalar! {
-		r#"
-		SELECT
-		  workshop_id `workshop_id: WorkshopID`
-		FROM
-		  Maps
-		WHERE
-		  id = ?
-		"#,
-		map_id,
-	}
-	.fetch_one(transaction.as_mut())
-	.await?;
+	let workshop_id = if let Some(workshop_id) = workshop_id {
+		workshop_id
+	} else {
+		sqlx::query_scalar! {
+			r#"
+			SELECT
+			  workshop_id `workshop_id: WorkshopID`
+			FROM
+			  Maps
+			WHERE
+			  id = ?
+			"#,
+			map_id,
+		}
+		.fetch_one(transaction.as_mut())
+		.await?
+	};
 
 	let name = WorkshopMap::fetch_name(workshop_id, http_client).await?;
 	let checksum = WorkshopMap::download(workshop_id, config)
