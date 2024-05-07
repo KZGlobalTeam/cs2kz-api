@@ -28,7 +28,7 @@ pub struct GetParams {
 	name: Option<String>,
 
 	/// Filter by workshop ID.
-	workshop_id: Option<u32>,
+	workshop_id: Option<WorkshopID>,
 
 	/// Filter by global status.
 	global_status: Option<GlobalStatus>,

@@ -7,6 +7,7 @@ use axum::http::request;
 use sqlx::{MySql, Transaction};
 
 use crate::auth::{RoleFlags, User};
+use crate::servers::ServerID;
 use crate::{Error, Result};
 
 /// Session authorization.
@@ -76,7 +77,7 @@ impl AuthorizeSession for AdminOrServerOwner {
 			return Ok(());
 		}
 
-		let Path(server_id) = Path::<u16>::from_request_parts(request, &()).await?;
+		let Path(server_id) = Path::<ServerID>::from_request_parts(request, &()).await?;
 
 		let _query_result = sqlx::query! {
 			r#"

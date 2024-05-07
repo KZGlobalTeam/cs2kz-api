@@ -5,6 +5,8 @@ use std::future::Future;
 use cs2kz::{MapIdentifier, PlayerIdentifier, ServerIdentifier, SteamID};
 use sqlx::MySqlExecutor;
 
+use crate::maps::MapID;
+use crate::servers::ServerID;
 use crate::{Error, Result};
 
 /// Helper trait for querying IDs from the database.
@@ -48,11 +50,11 @@ impl FetchID for PlayerIdentifier {
 }
 
 impl FetchID for MapIdentifier {
-	type ID = u16;
+	type ID = MapID;
 
-	async fn fetch_id(&self, executor: impl MySqlExecutor<'_>) -> Result<u16> {
+	async fn fetch_id(&self, executor: impl MySqlExecutor<'_>) -> Result<MapID> {
 		match self {
-			Self::ID(id) => Ok(*id),
+			Self::ID(id) => Ok(MapID(*id)),
 			Self::Name(name) => sqlx::query! {
 				r#"
 				SELECT
@@ -66,18 +68,18 @@ impl FetchID for MapIdentifier {
 			}
 			.fetch_optional(executor)
 			.await?
-			.map(|row| row.id)
+			.map(|row| MapID(row.id))
 			.ok_or_else(|| Error::no_content()),
 		}
 	}
 }
 
 impl FetchID for ServerIdentifier {
-	type ID = u16;
+	type ID = ServerID;
 
-	async fn fetch_id(&self, executor: impl MySqlExecutor<'_>) -> Result<u16> {
+	async fn fetch_id(&self, executor: impl MySqlExecutor<'_>) -> Result<ServerID> {
 		match self {
-			Self::ID(id) => Ok(*id),
+			Self::ID(id) => Ok(ServerID(*id)),
 			Self::Name(name) => sqlx::query! {
 				r#"
 				SELECT
@@ -91,7 +93,7 @@ impl FetchID for ServerIdentifier {
 			}
 			.fetch_optional(executor)
 			.await?
-			.map(|row| row.id)
+			.map(|row| ServerID(row.id))
 			.ok_or_else(|| Error::no_content()),
 		}
 	}

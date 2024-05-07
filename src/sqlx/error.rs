@@ -17,7 +17,6 @@ impl SqlErrorExt for sqlx::Error {
 
 	fn is_fk_violation_of(&self, fk: &str) -> bool {
 		self.as_database_error()
-			.map(|err| err.is_foreign_key_violation() && err.message().contains(fk))
-			.unwrap_or_default()
+			.is_some_and(|err| err.is_foreign_key_violation() && err.message().contains(fk))
 	}
 }

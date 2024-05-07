@@ -70,7 +70,7 @@ enum Filter {
 
 impl Filter {
 	/// The corresponding SQL for the current state.
-	fn sql(&self) -> &'static str {
+	const fn sql(&self) -> &'static str {
 		match self {
 			Self::Where => " WHERE ",
 			Self::And => " AND ",
@@ -149,7 +149,7 @@ enum UpdateDelimiter {
 
 impl UpdateDelimiter {
 	/// The corresponding SQL for the current state.
-	fn sql(&self) -> &'static str {
+	const fn sql(&self) -> &'static str {
 		match self {
 			Self::Set => " SET ",
 			Self::Comma => " , ",
