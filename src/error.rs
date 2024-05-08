@@ -35,7 +35,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 ///
 /// Every fallible function returns it.
 #[derive(Debug, Error)]
-#[error("{}", message.as_deref().unwrap_or("something unexpected happened! please report this"))]
+#[error("{}", message.as_deref().unwrap_or("something unexpected happened"))]
 pub struct Error {
 	/// The HTTP status code to use in the response.
 	status: StatusCode,
@@ -67,13 +67,16 @@ impl Error {
 	}
 
 	/// Set the message of the error.
-	pub(crate) fn with_message(mut self, message: impl Display) -> Self {
+	fn with_message(mut self, message: impl Display) -> Self {
 		self.message = Some(message.to_string());
 		self
 	}
 
 	/// Set the source of the error.
-	pub(crate) fn with_source(mut self, source: impl StdError + Send + Sync + 'static) -> Self {
+	pub(crate) fn with_source<S>(mut self, source: S) -> Self
+	where
+		S: StdError + Send + Sync + 'static,
+	{
 		self.source = Some(Box::new(source));
 		self
 	}
