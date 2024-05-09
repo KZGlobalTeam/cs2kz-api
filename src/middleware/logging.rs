@@ -5,7 +5,7 @@ use std::time::Duration;
 use axum::extract::Request;
 use axum::response::Response;
 use tower_http::classify::ServerErrorsFailureClass;
-use tracing::{debug, error, warn, Level, Span};
+use tracing::{debug, error, warn};
 use uuid::Uuid;
 
 /// A tower layer that will log HTTP requests & responses.
@@ -21,13 +21,12 @@ macro_rules! layer {
 pub(crate) use layer;
 
 #[doc(hidden)]
-pub(crate) fn make_span_with(request: &Request) -> Span {
-	tracing::span! {
-		Level::TRACE,
+pub(crate) fn make_span_with(request: &Request) -> tracing::Span {
+	tracing::trace_span! {
 		"request",
 		request.id = %Uuid::new_v4(),
 		request.method = %request.method(),
-		request.path = %request.uri(),
+		request.path = format_args!("`{}`", request.uri()),
 		request.version = ?request.version(),
 		request.headers = ?request.headers(),
 		response.status = tracing::field::Empty,
@@ -37,14 +36,18 @@ pub(crate) fn make_span_with(request: &Request) -> Span {
 }
 
 #[doc(hidden)]
-pub(crate) fn on_response(response: &Response, latency: Duration, span: &Span) {
-	span.record("status", format_args!("{}", response.status()))
+pub(crate) fn on_response(response: &Response, latency: Duration, span: &tracing::Span) {
+	span.record("response.status", format_args!("{}", response.status()))
 		.record("response.headers", format_args!("{:?}", response.headers()))
 		.record("latency", format_args!("{:?}", latency));
 }
 
 #[doc(hidden)]
-pub(crate) fn on_failure(failure: ServerErrorsFailureClass, _latency: Duration, _span: &Span) {
+pub(crate) fn on_failure(
+	failure: ServerErrorsFailureClass,
+	_latency: Duration,
+	_span: &tracing::Span,
+) {
 	match failure {
 		ServerErrorsFailureClass::Error(error) => {
 			warn!(target: "audit_log", %error, "request handler failed");
