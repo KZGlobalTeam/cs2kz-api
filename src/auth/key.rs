@@ -53,7 +53,7 @@ impl FromRequestParts<&'static State> for Key {
 			return Err(Error::key_expired());
 		}
 
-		info!(%key, "validated API key");
+		info!(%key, name = %credentials.name, "validated API key");
 
 		Ok(Self(key))
 	}
