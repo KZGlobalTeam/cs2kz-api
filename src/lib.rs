@@ -77,6 +77,7 @@ pub mod plugin;
     players::handlers::root::post,
     players::handlers::by_identifier::get,
     players::handlers::by_identifier::patch,
+    players::handlers::steam::get,
     players::handlers::preferences::get,
 
     maps::handlers::root::get,

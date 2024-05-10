@@ -28,10 +28,15 @@ pub fn router(state: &'static State) -> Router {
 		.route("/:player", patch(handlers::by_identifier::patch))
 		.with_state(state);
 
+	let steam = Router::new()
+		.route("/:player/steam", get(handlers::steam::get))
+		.route_layer(cors::permissive())
+		.with_state(state);
+
 	let preferences = Router::new()
 		.route("/:player/preferences", get(handlers::preferences::get))
 		.route_layer(cors::permissive())
 		.with_state(state);
 
-	root.merge(by_identifier).merge(preferences)
+	root.merge(by_identifier).merge(steam).merge(preferences)
 }

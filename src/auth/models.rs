@@ -258,7 +258,7 @@ impl FromRequestParts<&'static State> for SteamLoginResponse {
 /// Information about a Steam user.
 ///
 /// This will be serialized as JSON and put into a cookie so frontends can use it.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct SteamUser {
 	/// The user's SteamID.
 	pub steam_id: SteamID,
@@ -291,6 +291,26 @@ impl SteamUser {
 
 	/// The cookie name used to store the user information.
 	const COOKIE_NAME: &'static str = "kz-player";
+
+	/// Fetch this user from Steam's API.
+	pub async fn fetch(
+		steam_id: SteamID,
+		http_client: &reqwest::Client,
+		config: &crate::Config,
+	) -> Result<Self> {
+		let url = Url::parse_with_params(Self::API_URL, [
+			("key", config.steam_api_key.clone()),
+			("steamids", steam_id.as_u64().to_string()),
+		])
+		.map_err(|err| {
+			error!(target: "audit_log", %err, "failed to parse url");
+			Error::internal_server_error("failed to parse url").with_source(err)
+		})?;
+
+		let user = http_client.get(url).send().await?.json::<Self>().await?;
+
+		Ok(user)
+	}
 
 	/// Creates a [`Cookie`] containing this [`SteamUser`] as a JSON value.
 	pub fn to_cookie<'c>(&self, config: &'c crate::Config) -> Cookie<'c> {
@@ -360,22 +380,6 @@ impl FromRequestParts<&'static State> for SteamUser {
 			.copied()
 			.expect("`SteamLoginResponse` extractor should have inserted this");
 
-		let url = Url::parse_with_params(Self::API_URL, [
-			("key", state.config.steam_api_key.clone()),
-			("steamids", steam_id.as_u64().to_string()),
-		])
-		.map_err(|err| {
-			error!(target: "audit_log", %err, "failed to parse url");
-			Error::internal_server_error("failed to parse url").with_source(err)
-		})?;
-
-		state
-			.http_client
-			.get(url)
-			.send()
-			.await?
-			.json::<Self>()
-			.await
-			.map_err(|err| Error::from(err))
+		Self::fetch(steam_id, &state.http_client, &state.config).await
 	}
 }

@@ -305,6 +305,97 @@
         ]
       }
     },
+    "/players/{player}/steam": {
+      "get": {
+        "tags": [
+          "Players"
+        ],
+        "summary": "Fetch Steam profile information about a specific player.",
+        "description": "Fetch Steam profile information about a specific player.",
+        "operationId": "get",
+        "parameters": [
+          {
+            "name": "player",
+            "in": "path",
+            "required": false,
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/SteamID"
+                },
+                {
+                  "type": "string",
+                  "description": "A player's name."
+                }
+              ],
+              "description": "Players are usually identified by their [SteamID], which is unique, or their name."
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Information about a Steam user.\n\nThis will be serialized as JSON and put into a cookie so frontends can use it.",
+                  "required": [
+                    "steam_id",
+                    "steam_id64",
+                    "username",
+                    "profile_url",
+                    "avatar_url"
+                  ],
+                  "properties": {
+                    "steam_id": {
+                      "$ref": "#/components/schemas/SteamID"
+                    },
+                    "steam_id64": {
+                      "type": "string",
+                      "description": "Also the user's SteamID, but encoded as a stringified 64-bit integer, because\nJavaScript."
+                    },
+                    "username": {
+                      "type": "string",
+                      "description": "The user's username."
+                    },
+                    "realname": {
+                      "type": "string",
+                      "description": "The user's \"real\" name.",
+                      "nullable": true
+                    },
+                    "country": {
+                      "type": "string",
+                      "description": "The user's country.",
+                      "nullable": true
+                    },
+                    "profile_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "URL to the user's profile."
+                    },
+                    "avatar_url": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "URL to the user's avatar."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": ""
+          },
+          "500": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/players/{player}/preferences": {
       "get": {
         "tags": [
