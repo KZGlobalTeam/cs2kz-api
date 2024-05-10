@@ -131,6 +131,7 @@ pub mod plugin;
       cs2kz::JumpType,
       cs2kz::PlayerIdentifier,
       cs2kz::MapIdentifier,
+      cs2kz::CourseIdentifier,
       cs2kz::ServerIdentifier,
       cs2kz::GlobalStatus,
       cs2kz::RankedStatus,

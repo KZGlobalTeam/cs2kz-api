@@ -3763,6 +3763,21 @@
         "format": "uint16",
         "minimum": 0
       },
+      "CourseIdentifier": {
+        "oneOf": [
+          {
+            "type": "integer",
+            "format": "uint16",
+            "description": "A course's ID.",
+            "minimum": 0
+          },
+          {
+            "type": "string",
+            "description": "A course's name."
+          }
+        ],
+        "description": "Courses are either identified by their ID, which is unique, or their name."
+      },
       "CourseInfo": {
         "type": "object",
         "description": "Information about a course.",

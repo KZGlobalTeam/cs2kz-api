@@ -53,6 +53,11 @@ mod map_identifier;
 #[doc(inline)]
 pub use map_identifier::MapIdentifier;
 
+mod course_identifier;
+
+#[doc(inline)]
+pub use course_identifier::CourseIdentifier;
+
 mod server_identifier;
 
 #[doc(inline)]
