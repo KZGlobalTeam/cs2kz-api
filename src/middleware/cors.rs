@@ -4,12 +4,12 @@ use axum::http::{header, request, HeaderValue, Method};
 use tower_http::cors::{AllowMethods, AllowOrigin, CorsLayer};
 use url::Url;
 
-/// balls
+/// Creates a permissive CORS layer that allows `GET` requests.
 pub fn permissive() -> CorsLayer {
 	CorsLayer::permissive().allow_methods([Method::GET])
 }
 
-/// balls
+/// Creates a CORS layer that allows requests of the given `methods` from the dashboard.
 pub fn dashboard(methods: impl Into<AllowMethods>) -> CorsLayer {
 	CorsLayer::new()
 		.allow_methods(methods)
