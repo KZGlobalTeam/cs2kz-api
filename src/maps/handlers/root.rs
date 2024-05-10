@@ -6,6 +6,7 @@ use axum::extract::Query;
 use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{GlobalStatus, SteamID};
+use futures::TryFutureExt;
 use serde::Deserialize;
 use sqlx::{MySql, QueryBuilder};
 use tracing::{info, warn};
@@ -146,11 +147,10 @@ pub async fn put(
 	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.value() }>>,
 	Json(NewMap { workshop_id, description, global_status, mappers, courses }): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {
-	let name = WorkshopMap::fetch_name(workshop_id, &state.http_client).await?;
-	let checksum = WorkshopMap::download(workshop_id, &state.config)
-		.await?
-		.checksum()
-		.await?;
+	let (name, checksum) = tokio::try_join! {
+		WorkshopMap::fetch_name(workshop_id, &state.http_client),
+		WorkshopMap::download(workshop_id, &state.config).and_then(WorkshopMap::checksum),
+	}?;
 
 	let mut transaction = state.transaction().await?;
 

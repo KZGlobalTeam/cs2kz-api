@@ -5,6 +5,7 @@ use std::collections::HashSet;
 use axum::extract::Path;
 use axum::Json;
 use cs2kz::{GlobalStatus, MapIdentifier, SteamID};
+use futures::TryFutureExt;
 use sqlx::{MySql, QueryBuilder};
 use tracing::{debug, info};
 
@@ -194,11 +195,10 @@ async fn update_name_and_checksum(
 		.await?
 	};
 
-	let name = WorkshopMap::fetch_name(workshop_id, http_client).await?;
-	let checksum = WorkshopMap::download(workshop_id, config)
-		.await?
-		.checksum()
-		.await?;
+	let (name, checksum) = tokio::try_join! {
+		WorkshopMap::fetch_name(workshop_id, http_client),
+		WorkshopMap::download(workshop_id, config).and_then(WorkshopMap::checksum),
+	}?;
 
 	let query_result = sqlx::query! {
 		r#"

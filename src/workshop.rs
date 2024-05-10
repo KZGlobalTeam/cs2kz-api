@@ -117,7 +117,7 @@ impl WorkshopMap {
 	/// The algorithm used is [crc32].
 	///
 	/// [crc32]: crc32fast
-	pub async fn checksum(&mut self) -> Result<u32> {
+	pub async fn checksum(mut self) -> Result<u32> {
 		let mut buf = Vec::new();
 
 		self.file.read_to_end(&mut buf).await.map_err(|err| {
