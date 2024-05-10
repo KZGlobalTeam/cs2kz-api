@@ -16,7 +16,7 @@ pub fn dashboard(methods: impl Into<AllowMethods>) -> CorsLayer {
 		.allow_credentials(true)
 		.allow_headers([header::CONTENT_TYPE])
 		.allow_origin(if cfg!(feature = "production") {
-			AllowOrigin::exact(HeaderValue::from_static("https://dashboard.cs2.kz"))
+			AllowOrigin::exact(HeaderValue::from_static("https://dashboard.cs2kz.org"))
 		} else {
 			AllowOrigin::predicate(is_localhost)
 		})

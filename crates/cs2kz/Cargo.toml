@@ -5,10 +5,10 @@ authors = ["AlphaKeks <alphakeks@dawn.sh>"]
 edition = "2021"
 readme = "./README.md"
 description = "Types for building around CS2KZ"
-homepage = "https://cs2.kz"
+homepage = "https://cs2kz.org"
 repository = "https://github.com/KZGlobalTeam/cs2kz-api"
 license-file = "./LICENSE"
-publish = false # TODO
+publish = false                                          # TODO
 
 [dependencies.thiserror]
 version = "1.0"

@@ -1,5 +1,5 @@
 //! This module contains the [`Session`] type and [`AuthorizeSession`] trait, which are used for
-//! managing user sessions on websites such as <https://dashboard.cs2.kz>.
+//! managing user sessions on websites such as <https://dashboard.cs2kz.org>.
 //!
 //! [`Session`] implements both [`FromRequestParts`] as well as [`IntoResponseParts`], which means
 //! it acts as an [extractor] and can be returned from handlers. When it is extracted, it fetches
