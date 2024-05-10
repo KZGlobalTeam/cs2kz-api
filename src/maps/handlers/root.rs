@@ -113,13 +113,13 @@ pub async fn get(
 		.await
 		.map(|maps| FullMap::flatten(maps, limit.into()))?;
 
-	let total = query::total_rows(&mut transaction).await?;
-
-	transaction.commit().await?;
-
 	if maps.is_empty() {
 		return Err(Error::no_content());
 	}
+
+	let total = query::total_rows(&mut transaction).await?;
+
+	transaction.commit().await?;
 
 	Ok(Json(PaginationResponse { total, results: maps }))
 }

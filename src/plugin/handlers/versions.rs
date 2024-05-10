@@ -54,13 +54,13 @@ pub async fn get(
 		.fetch_all(transaction.as_mut())
 		.await?;
 
-	let total = query::total_rows(&mut transaction).await?;
-
-	transaction.commit().await?;
-
 	if plugin_versions.is_empty() {
 		return Err(Error::no_content());
 	}
+
+	let total = query::total_rows(&mut transaction).await?;
+
+	transaction.commit().await?;
 
 	Ok(Json(PaginationResponse { total, results: plugin_versions }))
 }

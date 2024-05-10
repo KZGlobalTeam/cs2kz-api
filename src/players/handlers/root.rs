@@ -67,13 +67,13 @@ pub async fn get(
 		.try_collect::<Vec<_>>()
 		.await?;
 
-	let total = query::total_rows(&mut transaction).await?;
-
-	transaction.commit().await?;
-
 	if players.is_empty() {
 		return Err(Error::no_content());
 	}
+
+	let total = query::total_rows(&mut transaction).await?;
+
+	transaction.commit().await?;
 
 	Ok(Json(PaginationResponse { total, results: players }))
 }
