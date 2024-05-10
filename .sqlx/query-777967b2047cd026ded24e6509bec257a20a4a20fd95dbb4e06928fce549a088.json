@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\tSELECT\n\t\t\t\t  id `id: CourseID`\n\t\t\t\tFROM\n\t\t\t\t  Courses\n\t\t\t\tWHERE\n\t\t\t\t  name LIKE ?\n\t\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: CourseID",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 5
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "777967b2047cd026ded24e6509bec257a20a4a20fd95dbb4e06928fce549a088"
+}

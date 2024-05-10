@@ -1732,6 +1732,34 @@
             }
           },
           {
+            "name": "map",
+            "in": "query",
+            "description": "Filter by map.",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/MapIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "course",
+            "in": "query",
+            "description": "Filter by course.",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/CourseIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
             "name": "server",
             "in": "query",
             "description": "Filter by server.",
@@ -2011,6 +2039,34 @@
               "allOf": [
                 {
                   "$ref": "#/components/schemas/PlayerIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "map",
+            "in": "query",
+            "description": "Filter by map.",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/MapIdentifier"
+                }
+              ],
+              "nullable": true
+            }
+          },
+          {
+            "name": "course",
+            "in": "query",
+            "description": "Filter by course.",
+            "required": false,
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/CourseIdentifier"
                 }
               ],
               "nullable": true

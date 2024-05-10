@@ -2,10 +2,10 @@
 
 use std::future::Future;
 
-use cs2kz::{MapIdentifier, PlayerIdentifier, ServerIdentifier, SteamID};
+use cs2kz::{CourseIdentifier, MapIdentifier, PlayerIdentifier, ServerIdentifier, SteamID};
 use sqlx::MySqlExecutor;
 
-use crate::maps::MapID;
+use crate::maps::{CourseID, MapID};
 use crate::servers::ServerID;
 use crate::{Error, Result};
 
@@ -60,6 +60,30 @@ impl FetchID for MapIdentifier {
 				  id `id: MapID`
 				FROM
 				  Maps
+				WHERE
+				  name LIKE ?
+				"#,
+				format!("%{name}%"),
+			}
+			.fetch_optional(executor)
+			.await?
+			.ok_or_else(|| Error::no_content()),
+		}
+	}
+}
+
+impl FetchID for CourseIdentifier {
+	type ID = CourseID;
+
+	async fn fetch_id(&self, executor: impl MySqlExecutor<'_>) -> Result<CourseID> {
+		match *self {
+			CourseIdentifier::ID(course_id) => Ok(CourseID(course_id)),
+			CourseIdentifier::Name(ref name) => sqlx::query_scalar! {
+				r#"
+				SELECT
+				  id `id: CourseID`
+				FROM
+				  Courses
 				WHERE
 				  name LIKE ?
 				"#,

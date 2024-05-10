@@ -3,7 +3,7 @@
 use axum::extract::Query;
 use axum::Json;
 use chrono::{DateTime, Utc};
-use cs2kz::{Mode, PlayerIdentifier, ServerIdentifier};
+use cs2kz::{CourseIdentifier, MapIdentifier, Mode, PlayerIdentifier, ServerIdentifier};
 use serde::Deserialize;
 use tracing::trace;
 use utoipa::{IntoParams, ToSchema};
@@ -33,6 +33,12 @@ pub struct GetParams {
 
 	/// Filter by player.
 	player: Option<PlayerIdentifier>,
+
+	/// Filter by map.
+	map: Option<MapIdentifier>,
+
+	/// Filter by course.
+	course: Option<CourseIdentifier>,
 
 	/// Filter by server.
 	server: Option<ServerIdentifier>,
@@ -97,6 +103,8 @@ pub async fn get(
 		styles,
 		teleports,
 		player,
+		map,
+		course,
 		server,
 		created_after,
 		created_before,
@@ -134,6 +142,18 @@ pub async fn get(
 		let steam_id = player.fetch_id(&state.database).await?;
 
 		query.filter(" r.player_id = ", steam_id);
+	}
+
+	if let Some(map) = map {
+		let map_id = map.fetch_id(&state.database).await?;
+
+		query.filter(" m.id = ", map_id);
+	}
+
+	if let Some(course) = course {
+		let course_id = course.fetch_id(&state.database).await?;
+
+		query.filter(" c.id = ", course_id);
 	}
 
 	if let Some(server) = server {
