@@ -1,0 +1,37 @@
+[package]
+name = "cs2kz-api-points"
+version = "0.0.0"
+authors = ["AlphaKeks <alphakeks@dawn.sh>"]
+edition = "2021"
+readme = "./README.md"
+homepage = "https://cs2.kz"
+repository = "https://github.com/KZGlobalTeam/cs2kz-api"
+license-file = "../../LICENSE"
+publish = false
+
+[dependencies.cs2kz]
+path = "../cs2kz"
+features = ["serde"]
+
+[dependencies.eyre]
+workspace = true
+
+[dependencies.clap]
+workspace = true
+
+[dependencies.dotenvy]
+workspace = true
+
+[dependencies.serde]
+workspace = true
+
+[dependencies.serde_json]
+workspace = true
+
+[dependencies.chrono]
+workspace = true
+
+[dependencies.pyo3]
+version = "0.21"
+default-features = false
+features = ["auto-initialize"]

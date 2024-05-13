@@ -10,7 +10,7 @@
     };
   in {
     devShell = pkgs.mkShell {
-      nativeBuildInputs = with pkgs; [ rustup ];
+      nativeBuildInputs = with pkgs; [ rustup python3 python3Packages.scipy ];
       buildInputs = with pkgs; [
         mariadb_110
         just
