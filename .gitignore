@@ -1,15 +1,14 @@
-# nix
-.direnv/*
+# build artifacts
+/target
 
-# docker volumes
-database/volumes/*
-docker/*
-logs/*
-workshop/*
+# persistent data
+/database/volumes
+/logs
+/docker
 
-# rust
-target/*
-
-# env
+# environment variables
 .env
 .env.docker
+
+# nix
+/.direnv
