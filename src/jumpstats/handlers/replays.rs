@@ -4,7 +4,7 @@ use axum::extract::Path;
 use axum::http::StatusCode;
 
 use crate::jumpstats::JumpstatID;
-use crate::responses;
+use crate::openapi::responses;
 
 /// Fetch the replay file for a specific jumpstat.
 #[tracing::instrument(level = "debug")]

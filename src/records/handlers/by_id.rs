@@ -4,8 +4,9 @@ use axum::extract::Path;
 use axum::Json;
 use sqlx::QueryBuilder;
 
+use crate::openapi::responses;
 use crate::records::{queries, Record, RecordID};
-use crate::{responses, Error, Result, State};
+use crate::{Error, Result, State};
 
 /// Fetch a specific record by its ID.
 #[tracing::instrument(level = "debug", skip(state))]

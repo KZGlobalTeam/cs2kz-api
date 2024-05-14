@@ -7,8 +7,9 @@ use tracing::trace;
 
 use crate::admins::{Admin, AdminUpdate};
 use crate::auth::{self, RoleFlags};
-use crate::responses::NoContent;
-use crate::{responses, Error, Result, State};
+use crate::openapi::responses;
+use crate::openapi::responses::NoContent;
+use crate::{Error, Result, State};
 
 /// Fetch a specific admin by their SteamID.
 #[tracing::instrument(level = "debug", skip(state))]

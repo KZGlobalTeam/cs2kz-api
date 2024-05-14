@@ -5,7 +5,8 @@ use axum::Json;
 use sqlx::QueryBuilder;
 
 use crate::jumpstats::{queries, Jumpstat, JumpstatID};
-use crate::{responses, Error, Result, State};
+use crate::openapi::responses;
+use crate::{Error, Result, State};
 
 /// Fetch a specific jumpstat by its ID.
 #[tracing::instrument(level = "debug", skip(state))]

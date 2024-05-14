@@ -12,11 +12,12 @@ use utoipa::IntoParams;
 use uuid::Uuid;
 
 use crate::auth::RoleFlags;
-use crate::parameters::{Limit, Offset};
-use crate::responses::{Created, PaginationResponse};
+use crate::openapi::parameters::{Limit, Offset};
+use crate::openapi::responses;
+use crate::openapi::responses::{Created, PaginationResponse};
 use crate::servers::{queries, CreatedServer, NewServer, Server, ServerID};
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, responses, Error, Result, State};
+use crate::{auth, Error, Result, State};
 
 /// Query parameters for `GET /servers`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -193,7 +194,7 @@ mod tests {
 	use cs2kz::SteamID;
 	use reqwest::header;
 
-	use crate::responses::PaginationResponse;
+	use crate::openapi::responses::PaginationResponse;
 	use crate::servers::{CreatedServer, NewServer, Server};
 
 	#[crate::test]

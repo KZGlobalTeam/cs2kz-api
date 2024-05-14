@@ -9,9 +9,9 @@ use tracing::info;
 use utoipa::IntoParams;
 
 use crate::auth::{self, Jwt, RoleFlags};
-use crate::parameters::{Limit, Offset};
+use crate::openapi::parameters::{Limit, Offset};
+use crate::openapi::responses::{self, Created, PaginationResponse};
 use crate::players::{queries, FullPlayer, NewPlayer};
-use crate::responses::{self, Created, PaginationResponse};
 use crate::sqlx::{query, QueryBuilderExt, SqlErrorExt};
 use crate::{Error, Result, State};
 
@@ -142,8 +142,8 @@ mod tests {
 	use cs2kz::SteamID;
 	use tokio::time::sleep;
 
+	use crate::openapi::responses::PaginationResponse;
 	use crate::players::{FullPlayer, NewPlayer};
-	use crate::responses::PaginationResponse;
 
 	#[crate::test]
 	async fn fetch_players(ctx: &Context) {

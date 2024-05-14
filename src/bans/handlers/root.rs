@@ -11,11 +11,12 @@ use utoipa::IntoParams;
 
 use crate::auth::{Jwt, RoleFlags};
 use crate::bans::{queries, Ban, BanReason, CreatedBan, NewBan};
-use crate::parameters::{Limit, Offset};
+use crate::openapi::parameters::{Limit, Offset};
+use crate::openapi::responses;
+use crate::openapi::responses::{Created, PaginationResponse};
 use crate::plugin::PluginVersionID;
-use crate::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, responses, Error, Result, State};
+use crate::{auth, Error, Result, State};
 
 /// Query parameters for `GET /bans`.
 #[derive(Debug, Deserialize, IntoParams)]

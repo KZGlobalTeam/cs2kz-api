@@ -4,8 +4,8 @@ use axum::extract::Query;
 use axum::http::StatusCode;
 
 use super::root::GetParams;
+use crate::openapi::responses;
 use crate::records::Record;
-use crate::responses;
 
 /// Fetch "personal best" records.
 #[tracing::instrument(level = "debug")]

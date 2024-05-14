@@ -5,7 +5,7 @@ use std::fmt::Display;
 use derive_more::{Deref, DerefMut};
 use sqlx::{MySql, QueryBuilder, Transaction};
 
-use crate::parameters::{Limit, Offset, SortingOrder};
+use crate::openapi::parameters::{Limit, Offset, SortingOrder};
 
 /// Returns the total amount of rows that _could_ have been fetched from a query containing
 /// `LIMIT`. This only works for queries containing `SQL_CALC_FOUND_ROWS`.

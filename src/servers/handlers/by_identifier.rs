@@ -6,10 +6,11 @@ use cs2kz::ServerIdentifier;
 use sqlx::QueryBuilder;
 use tracing::info;
 
-use crate::responses::NoContent;
+use crate::openapi::responses;
+use crate::openapi::responses::NoContent;
 use crate::servers::{queries, Server, ServerID, ServerUpdate};
 use crate::sqlx::UpdateQuery;
-use crate::{auth, responses, Error, Result, State};
+use crate::{auth, Error, Result, State};
 
 /// Fetch a specific server.
 #[tracing::instrument(level = "debug", skip(state))]

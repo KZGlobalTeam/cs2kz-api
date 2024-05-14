@@ -7,7 +7,8 @@ use serde_json::Value as JsonValue;
 use sqlx::types::Json as SqlJson;
 use sqlx::QueryBuilder;
 
-use crate::{responses, Error, Result, State};
+use crate::openapi::responses;
+use crate::{Error, Result, State};
 
 /// Fetch in-game preference settings for a specific player.
 ///

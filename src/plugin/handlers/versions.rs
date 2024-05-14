@@ -7,11 +7,12 @@ use sqlx::QueryBuilder;
 use tracing::debug;
 use utoipa::IntoParams;
 
-use crate::parameters::{Limit, Offset};
+use crate::openapi::parameters::{Limit, Offset};
+use crate::openapi::responses;
+use crate::openapi::responses::{Created, PaginationResponse};
 use crate::plugin::{CreatedPluginVersion, NewPluginVersion, PluginVersion, PluginVersionID};
-use crate::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, responses, Error, Result, State};
+use crate::{auth, Error, Result, State};
 
 /// Query parameters for `GET /plugin`.
 #[derive(Debug, Clone, Copy, Deserialize, IntoParams)]

@@ -13,7 +13,7 @@ use tracing::{debug, info};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use self::security::Security;
+use self::openapi::security::Security;
 
 mod error;
 
@@ -37,12 +37,10 @@ mod test;
 #[doc(inline)]
 pub(crate) use cs2kz_api_macros::test;
 
-mod responses;
-mod parameters;
+mod openapi;
 mod middleware;
 mod sqlx;
 mod workshop;
-mod security;
 mod serde;
 mod time;
 mod id;
@@ -61,7 +59,6 @@ pub mod admins;
 pub mod plugin;
 
 #[derive(Debug, Clone, Copy, OpenApi)]
-#[rustfmt::skip]
 #[openapi(
   info(
     title = "CS2KZ API",
@@ -137,13 +134,12 @@ pub mod plugin;
       cs2kz::GlobalStatus,
       cs2kz::RankedStatus,
 
-      parameters::Offset,
-      parameters::Limit,
-      parameters::SortingOrder,
+      openapi::parameters::Offset,
+      openapi::parameters::Limit,
+      openapi::parameters::SortingOrder,
+      openapi::responses::Object,
 
       time::Seconds,
-
-      responses::Object,
 
       players::Player,
       players::NewPlayer,

@@ -15,10 +15,11 @@ use crate::maps::handlers::root::insert_course_mappers;
 use crate::maps::{
 	queries, CourseID, CourseUpdate, FilterID, FilterUpdate, FullMap, MapID, MapUpdate, WorkshopID,
 };
-use crate::responses::NoContent;
+use crate::openapi::responses;
+use crate::openapi::responses::NoContent;
 use crate::sqlx::UpdateQuery;
 use crate::workshop::WorkshopMap;
-use crate::{auth, responses, Error, Result, State};
+use crate::{auth, Error, Result, State};
 
 /// Fetch a single map.
 #[tracing::instrument(level = "debug", skip(state))]

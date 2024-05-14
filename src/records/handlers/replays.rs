@@ -3,8 +3,8 @@
 use axum::extract::Path;
 use axum::http::StatusCode;
 
+use crate::openapi::responses;
 use crate::records::RecordID;
-use crate::responses;
 
 /// Fetch the replay file for a specific record.
 #[tracing::instrument(level = "debug")]

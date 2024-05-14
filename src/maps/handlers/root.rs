@@ -16,11 +16,12 @@ use crate::auth::RoleFlags;
 use crate::maps::{
 	queries, CourseID, CreatedMap, FullMap, MapID, NewCourse, NewFilter, NewMap, WorkshopID,
 };
-use crate::parameters::{Limit, Offset};
-use crate::responses::{Created, PaginationResponse};
+use crate::openapi::parameters::{Limit, Offset};
+use crate::openapi::responses;
+use crate::openapi::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, FilteredQuery, SqlErrorExt};
 use crate::workshop::WorkshopMap;
-use crate::{auth, responses, Error, Result, State};
+use crate::{auth, Error, Result, State};
 
 /// Query parameters for `GET /maps`.
 #[derive(Debug, Deserialize, IntoParams)]

@@ -11,7 +11,8 @@ use utoipa::IntoParams;
 
 use super::{Session, SteamLoginResponse, SteamUser};
 use crate::auth::SteamLoginForm;
-use crate::{responses, Result, State};
+use crate::openapi::responses;
+use crate::{Result, State};
 
 /// Query parameters for logging in with Steam.
 #[derive(Debug, Deserialize, IntoParams)]

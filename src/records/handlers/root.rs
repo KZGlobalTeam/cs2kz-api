@@ -11,11 +11,12 @@ use utoipa::{IntoParams, ToSchema};
 use crate::auth::Jwt;
 use crate::kz::StyleFlags;
 use crate::maps::FilterID;
-use crate::parameters::{Limit, Offset, SortingOrder};
+use crate::openapi::parameters::{Limit, Offset, SortingOrder};
+use crate::openapi::responses;
+use crate::openapi::responses::{Created, PaginationResponse};
 use crate::records::{queries, CreatedRecord, NewRecord, Record};
-use crate::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, responses, Error, Result, State};
+use crate::{auth, Error, Result, State};
 
 /// Query parameters for `GET /records`.
 #[derive(Debug, Deserialize, IntoParams)]

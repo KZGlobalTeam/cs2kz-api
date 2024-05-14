@@ -5,8 +5,9 @@ use axum::Json;
 use cs2kz::PlayerIdentifier;
 
 use crate::auth::SteamUser;
+use crate::openapi::responses;
 use crate::sqlx::FetchID;
-use crate::{responses, Result, State};
+use crate::{Result, State};
 
 /// Fetch Steam profile information about a specific player.
 #[tracing::instrument(level = "debug", skip(state))]

@@ -7,9 +7,10 @@ use tracing::info;
 
 use crate::auth::RoleFlags;
 use crate::bans::{queries, Ban, BanID, BanUpdate, CreatedUnban, NewUnban, UnbanID};
-use crate::responses::{Created, NoContent};
+use crate::openapi::responses;
+use crate::openapi::responses::{Created, NoContent};
 use crate::sqlx::UpdateQuery;
-use crate::{auth, responses, Error, Result, State};
+use crate::{auth, Error, Result, State};
 
 /// Fetch a specific ban by its ID.
 #[tracing::instrument(level = "debug", skip(state))]

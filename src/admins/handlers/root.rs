@@ -9,10 +9,11 @@ use utoipa::IntoParams;
 
 use crate::admins::Admin;
 use crate::auth::RoleFlags;
-use crate::parameters::{Limit, Offset};
-use crate::responses::PaginationResponse;
+use crate::openapi::parameters::{Limit, Offset};
+use crate::openapi::responses;
+use crate::openapi::responses::PaginationResponse;
 use crate::sqlx::query;
-use crate::{responses, Error, Result, State};
+use crate::{Error, Result, State};
 
 /// Query parameters for `GET /admins`.
 #[derive(Debug, Clone, Copy, Deserialize, IntoParams)]

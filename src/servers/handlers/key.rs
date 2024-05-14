@@ -8,8 +8,8 @@ use tracing::info;
 use uuid::Uuid;
 
 use crate::auth::{Jwt, RoleFlags};
+use crate::openapi::responses::{self, Created, NoContent};
 use crate::plugin::PluginVersionID;
-use crate::responses::{self, Created, NoContent};
 use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse, ServerID};
 use crate::{auth, Error, Result, State};
 
