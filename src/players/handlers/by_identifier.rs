@@ -86,9 +86,16 @@ pub async fn get(
 )]
 pub async fn patch(
 	state: &State,
-	Jwt { payload: server, .. }: Jwt<auth::Server>,
+	Jwt {
+		payload: server, ..
+	}: Jwt<auth::Server>,
 	Path(steam_id): Path<SteamID>,
-	Json(PlayerUpdate { name, ip_address, session, preferences }): Json<PlayerUpdate>,
+	Json(PlayerUpdate {
+		name,
+		ip_address,
+		session,
+		preferences,
+	}): Json<PlayerUpdate>,
 ) -> Result<NoContent> {
 	let mut transaction = state.transaction().await?;
 
@@ -171,8 +178,14 @@ pub async fn patch(
 	trace!(target: "audit_log", %steam_id, session.id = %session_id, "created game session");
 
 	for (course_id, course_session) in session.course_sessions {
-		insert_course_session(steam_id, server.id(), course_id, course_session, &mut transaction)
-			.await?;
+		insert_course_session(
+			steam_id,
+			server.id(),
+			course_id,
+			course_session,
+			&mut transaction,
+		)
+		.await?;
 	}
 
 	transaction.commit().await?;
@@ -185,7 +198,13 @@ async fn insert_course_session(
 	steam_id: SteamID,
 	server_id: ServerID,
 	course_id: CourseID,
-	CourseSession { mode, playtime, started_runs, finished_runs, bhop_stats }: CourseSession,
+	CourseSession {
+		mode,
+		playtime,
+		started_runs,
+		finished_runs,
+		bhop_stats,
+	}: CourseSession,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<CourseSessionID> {
 	let session_id = sqlx::query! {
@@ -352,7 +371,11 @@ mod tests {
 		assert_eq!(response.status(), 200);
 
 		let mut preferences = response.json::<JsonValue>().await?;
-		let funny_test = serde_json::from_value::<Uuid>(preferences["funny_test"].take())?;
+		let funny_test = preferences
+			.get_mut("funny_test")
+			.map(JsonValue::take)
+			.map(serde_json::from_value::<Uuid>)
+			.expect("this cannot fail")?;
 
 		assert_eq!(funny_test, ctx.test_id);
 	}

@@ -109,7 +109,10 @@ impl Context {
 		})
 	}
 
-	pub fn url(&self, path: impl Display) -> Url {
+	pub fn url<P>(&self, path: P) -> Url
+	where
+		P: Display,
+	{
 		self.config
 			.public_url
 			.join(&format!("{path}"))
@@ -129,11 +132,14 @@ impl Context {
 		auth::Session::create(steam_id, self.config, self.database.begin().await?).await
 	}
 
-	pub fn encode_jwt(
+	pub fn encode_jwt<T>(
 		&self,
-		payload: &impl Serialize,
+		payload: &T,
 		expires_after: Duration,
-	) -> Result<String, jsonwebtoken::errors::Error> {
+	) -> Result<String, jsonwebtoken::errors::Error>
+	where
+		T: Serialize,
+	{
 		jsonwebtoken::encode(
 			&self.jwt_header,
 			&Jwt::new(payload, expires_after),
@@ -167,7 +173,7 @@ fn setup() {
 			.init();
 	}
 
-	let _ = ::dotenvy::dotenv();
+	drop(dotenvy::dotenv());
 }
 
 #[crate::test]

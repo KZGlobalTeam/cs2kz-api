@@ -158,7 +158,10 @@ mod serde_impls {
 					-1 => Ok(Self::NotGlobal),
 					0 => Ok(Self::InTesting),
 					1 => Ok(Self::Global),
-					value => Err(Error::invalid_value(U::Signed(value as i64), &"-1, 0, or 1")),
+					value => Err(Error::invalid_value(
+						U::Signed(value as i64),
+						&"-1, 0, or 1",
+					)),
 				}
 			}
 		}

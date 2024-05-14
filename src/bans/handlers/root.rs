@@ -5,7 +5,6 @@ use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{PlayerIdentifier, ServerIdentifier};
 use serde::Deserialize;
-use sqlx::encode::IsNull;
 use time::OffsetDateTime;
 use tracing::{trace, warn};
 use utoipa::IntoParams;
@@ -106,7 +105,7 @@ pub async fn get(
 	}
 
 	if let Some(unbanned) = unbanned {
-		query.filter_is_null(" ub.id ", if unbanned { IsNull::No } else { IsNull::Yes });
+		query.filter_is_null(" ub.id ", !unbanned);
 	}
 
 	if let Some(created_after) = created_after {
@@ -132,7 +131,10 @@ pub async fn get(
 
 	transaction.commit().await?;
 
-	Ok(Json(PaginationResponse { total, results: bans }))
+	Ok(Json(PaginationResponse {
+		total,
+		results: bans,
+	}))
 }
 
 /// Ban a player.
@@ -157,7 +159,11 @@ pub async fn post(
 	state: &State,
 	server: Option<Jwt<auth::Server>>,
 	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>>,
-	Json(NewBan { player_id, player_ip, reason }): Json<NewBan>,
+	Json(NewBan {
+		player_id,
+		player_ip,
+		reason,
+	}): Json<NewBan>,
 ) -> Result<Created<Json<CreatedBan>>> {
 	let (server, admin) = match (server, session) {
 		(Some(server), None) => (Some(server.into_payload()), None),

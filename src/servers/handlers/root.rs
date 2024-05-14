@@ -115,7 +115,10 @@ pub async fn get(
 
 	transaction.commit().await?;
 
-	Ok(Json(PaginationResponse { total, results: servers }))
+	Ok(Json(PaginationResponse {
+		total,
+		results: servers,
+	}))
 }
 
 /// Create (approve) a new CS2 server.
@@ -137,7 +140,11 @@ pub async fn get(
 pub async fn post(
 	state: &State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.value() }>>,
-	Json(NewServer { name, ip_address, owned_by }): Json<NewServer>,
+	Json(NewServer {
+		name,
+		ip_address,
+		owned_by,
+	}): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
 	let mut transaction = state.transaction().await?;
 	let refresh_key = Uuid::new_v4();
@@ -172,7 +179,10 @@ pub async fn post(
 
 	debug!(id = %server_id, %refresh_key, session.user = ?session.user(), "created new server");
 
-	Ok(Created(Json(CreatedServer { server_id, refresh_key })))
+	Ok(Created(Json(CreatedServer {
+		server_id,
+		refresh_key,
+	})))
 }
 
 #[cfg(test)]

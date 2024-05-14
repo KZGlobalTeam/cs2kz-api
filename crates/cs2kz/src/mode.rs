@@ -140,7 +140,10 @@ mod serde_impls {
 				match <&'de str>::deserialize(deserializer)? {
 					"vanilla" | "Vanilla" => Ok(Self::Vanilla),
 					"classic" | "Classic" => Ok(Self::Classic),
-					value => Err(Error::invalid_value(U::Str(value), &"`vanilla` or `classic`")),
+					value => Err(Error::invalid_value(
+						U::Str(value),
+						&"`vanilla` or `classic`",
+					)),
 				}
 			}
 

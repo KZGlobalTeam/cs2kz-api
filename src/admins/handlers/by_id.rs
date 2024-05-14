@@ -40,7 +40,11 @@ pub async fn get(state: &State, Path(steam_id): Path<SteamID>) -> Result<Json<Ad
 	}
 	.fetch_optional(&state.database)
 	.await?
-	.map(|row| Admin { name: row.name, steam_id: row.id, roles: row.role_flags })
+	.map(|row| Admin {
+		name: row.name,
+		steam_id: row.id,
+		roles: row.role_flags,
+	})
 	.ok_or_else(|| Error::no_content())?;
 
 	Ok(Json(admin))

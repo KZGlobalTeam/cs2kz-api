@@ -98,7 +98,14 @@ pub async fn patch(
 ) -> Result<NoContent> {
 	let mut transaction = state.transaction().await?;
 
-	update_details(map_id, description, workshop_id, global_status, &mut transaction).await?;
+	update_details(
+		map_id,
+		description,
+		workshop_id,
+		global_status,
+		&mut transaction,
+	)
+	.await?;
 
 	if check_steam || workshop_id.is_some() {
 		update_name_and_checksum(
@@ -321,7 +328,13 @@ where
 async fn update_course(
 	map_id: MapID,
 	course_id: CourseID,
-	CourseUpdate { name, description, added_mappers, removed_mappers, filter_updates }: CourseUpdate,
+	CourseUpdate {
+		name,
+		description,
+		added_mappers,
+		removed_mappers,
+		filter_updates,
+	}: CourseUpdate,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<Option<CourseID>> {
 	if name.is_none()
@@ -436,7 +449,10 @@ where
 		if valid_filter_ids.remove(&id) {
 			(id, Ok(update))
 		} else {
-			(id, Err(Error::filter_does_not_belong_to_course(id, course_id)))
+			(
+				id,
+				Err(Error::filter_does_not_belong_to_course(id, course_id)),
+			)
 		}
 	});
 
@@ -464,7 +480,11 @@ where
 /// Updates information about a course filter.
 async fn update_filter(
 	filter_id: FilterID,
-	FilterUpdate { tier, ranked_status, notes }: FilterUpdate,
+	FilterUpdate {
+		tier,
+		ranked_status,
+		notes,
+	}: FilterUpdate,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<Option<FilterID>> {
 	if tier.is_none() && ranked_status.is_none() && notes.is_none() {

@@ -3,7 +3,6 @@
 use std::fmt::Display;
 
 use derive_more::{Deref, DerefMut};
-use sqlx::encode::IsNull;
 use sqlx::{MySql, QueryBuilder, Transaction};
 
 use crate::parameters::{Limit, Offset, SortingOrder};
@@ -82,8 +81,14 @@ impl<'q> FilteredQuery<'q> {
 	/// Creates a new [`FilteredQuery`] from a base `query`.
 	///
 	/// This is a wrapper over [`QueryBuilder::new()`].
-	pub fn new(query: impl Into<String>) -> Self {
-		Self { query: QueryBuilder::new(query), filter: Filter::default() }
+	pub fn new<S>(query: S) -> Self
+	where
+		S: Into<String>,
+	{
+		Self {
+			query: QueryBuilder::new(query),
+			filter: Filter::default(),
+		}
 	}
 
 	/// Filter by a specific `column` and compare it with a `value`.
@@ -107,13 +112,14 @@ impl<'q> FilteredQuery<'q> {
 
 	/// Similar to [`FilteredQuery::filter()`], but instead of comparing a column with a value,
 	/// an `IS NULL` / `IS NOT NULL` check is done instead.
-	pub fn filter_is_null(&mut self, column: &str, is_null: IsNull) -> &mut Self {
+	pub fn filter_is_null(&mut self, column: &str, is_null: bool) -> &mut Self {
 		self.query
 			.push(self.filter.sql())
 			.push(column)
-			.push(match is_null {
-				IsNull::Yes => " IS NULL ",
-				IsNull::No => " IS NOT NULL ",
+			.push(if is_null {
+				" IS NULL "
+			} else {
+				" IS NOT NULL "
 			});
 
 		self.filter = Filter::And;
@@ -161,11 +167,17 @@ impl<'q> UpdateQuery<'q> {
 	/// Creates a new [`UpdateQuery`] for updating the given `table`.
 	///
 	/// This is a wrapper over [`QueryBuilder::new()`] with a base query of `UPDATE {table}`.
-	pub fn new(table: impl AsRef<str>) -> Self {
+	pub fn new<S>(table: S) -> Self
+	where
+		S: AsRef<str>,
+	{
 		let mut query = QueryBuilder::new("UPDATE ");
 		query.push(table.as_ref()).push(' ');
 
-		Self { query, delimiter: UpdateDelimiter::default() }
+		Self {
+			query,
+			delimiter: UpdateDelimiter::default(),
+		}
 	}
 
 	/// Set a specific `column` to some `value`.

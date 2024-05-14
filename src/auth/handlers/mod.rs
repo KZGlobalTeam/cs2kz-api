@@ -74,7 +74,9 @@ pub struct LogoutParams {
 pub async fn logout(
 	state: &State,
 	mut session: Session,
-	Query(LogoutParams { invalidate_all_sessions }): Query<LogoutParams>,
+	Query(LogoutParams {
+		invalidate_all_sessions,
+	}): Query<LogoutParams>,
 ) -> Result<(Session, StatusCode)> {
 	let mut transaction = state.transaction().await?;
 

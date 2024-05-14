@@ -92,7 +92,9 @@ impl SteamID {
 			// SAFETY: the bounds checks above ensure `value` is not zero
 			Ok(Self(unsafe { NonZeroU64::new_unchecked(value) }))
 		} else {
-			Err(Error::InvalidSteamID { reason: "value out of bounds" })
+			Err(Error::InvalidSteamID {
+				reason: "value out of bounds",
+			})
 		}
 	}
 
@@ -111,9 +113,13 @@ impl SteamID {
 		value
 			.rsplit_once(':')
 			.map(|(_, value)| value.trim_end_matches(']'))
-			.ok_or(Error::InvalidSteamID { reason: "missing `:`" })?
+			.ok_or(Error::InvalidSteamID {
+				reason: "missing `:`",
+			})?
 			.parse::<u32>()
-			.map_err(|_| Error::InvalidSteamID { reason: "invalid Steam3ID" })
+			.map_err(|_| Error::InvalidSteamID {
+				reason: "invalid Steam3ID",
+			})
 			.and_then(Self::from_u32)
 	}
 
@@ -123,36 +129,54 @@ impl SteamID {
 	pub fn from_standard(value: &str) -> Result<Self> {
 		let mut segments = value
 			.split_once('_')
-			.ok_or(Error::InvalidSteamID { reason: "missing `_`" })?
+			.ok_or(Error::InvalidSteamID {
+				reason: "missing `_`",
+			})?
 			.1
 			.split(':');
 
 		let Some("0" | "1") = segments.next() else {
-			return Err(Error::InvalidSteamID { reason: "invalid `X` segment" });
+			return Err(Error::InvalidSteamID {
+				reason: "invalid `X` segment",
+			});
 		};
 
 		let y = segments
 			.next()
-			.ok_or(Error::InvalidSteamID { reason: "missing `Y` segment" })?
+			.ok_or(Error::InvalidSteamID {
+				reason: "missing `Y` segment",
+			})?
 			.parse::<u64>()
-			.map_err(|_| Error::InvalidSteamID { reason: "invalid `Y` segment" })?;
+			.map_err(|_| Error::InvalidSteamID {
+				reason: "invalid `Y` segment",
+			})?;
 
 		if y > 1 {
-			return Err(Error::InvalidSteamID { reason: "invalid `Y` segment" });
+			return Err(Error::InvalidSteamID {
+				reason: "invalid `Y` segment",
+			});
 		}
 
 		let z = segments
 			.next()
-			.ok_or(Error::InvalidSteamID { reason: "missing `Z` segment" })?
+			.ok_or(Error::InvalidSteamID {
+				reason: "missing `Z` segment",
+			})?
 			.parse::<u64>()
-			.map_err(|_| Error::InvalidSteamID { reason: "invalid `Z` segment" })?;
+			.map_err(|_| Error::InvalidSteamID {
+				reason: "invalid `Z` segment",
+			})?;
 
 		if y == 0 && z == 0 {
-			return Err(Error::InvalidSteamID { reason: "cannot be 0" });
+			return Err(Error::InvalidSteamID {
+				reason: "cannot be 0",
+			});
 		}
 
 		if (z + Self::MAGIC_OFFSET) > Self::MAX {
-			return Err(Error::InvalidSteamID { reason: "value out of bounds" });
+			return Err(Error::InvalidSteamID {
+				reason: "value out of bounds",
+			});
 		}
 
 		Self::from_u64(Self::MAGIC_OFFSET | y | (z << 1))
@@ -321,7 +345,9 @@ impl FromStr for SteamID {
 			return Self::from_u64(value);
 		}
 
-		Err(Error::InvalidSteamID { reason: "unrecognized format" })
+		Err(Error::InvalidSteamID {
+			reason: "unrecognized format",
+		})
 	}
 }
 

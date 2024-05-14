@@ -121,7 +121,10 @@ pub async fn get(
 
 	transaction.commit().await?;
 
-	Ok(Json(PaginationResponse { total, results: maps }))
+	Ok(Json(PaginationResponse {
+		total,
+		results: maps,
+	}))
 }
 
 /// Create / update a map.
@@ -145,7 +148,13 @@ pub async fn get(
 pub async fn put(
 	state: &State,
 	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.value() }>>,
-	Json(NewMap { workshop_id, description, global_status, mappers, courses }): Json<NewMap>,
+	Json(NewMap {
+		workshop_id,
+		description,
+		global_status,
+		mappers,
+		courses,
+	}): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {
 	let (name, checksum) = tokio::try_join! {
 		WorkshopMap::fetch_name(workshop_id, &state.http_client),

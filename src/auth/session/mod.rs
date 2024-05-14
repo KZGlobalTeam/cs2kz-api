@@ -144,7 +144,12 @@ impl Session {
 			.expires(expires_on)
 			.build();
 
-		Ok(Self { id: session_id, user, cookie, _authorization: PhantomData })
+		Ok(Self {
+			id: session_id,
+			user,
+			cookie,
+			_authorization: PhantomData,
+		})
 	}
 }
 

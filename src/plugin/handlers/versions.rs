@@ -62,7 +62,10 @@ pub async fn get(
 
 	transaction.commit().await?;
 
-	Ok(Json(PaginationResponse { total, results: plugin_versions }))
+	Ok(Json(PaginationResponse {
+		total,
+		results: plugin_versions,
+	}))
 }
 
 /// Create a new cs2kz plugin version.
@@ -87,7 +90,10 @@ pub async fn get(
 pub async fn post(
 	state: &State,
 	auth::Key(key): auth::Key,
-	Json(NewPluginVersion { semver, git_revision }): Json<NewPluginVersion>,
+	Json(NewPluginVersion {
+		semver,
+		git_revision,
+	}): Json<NewPluginVersion>,
 ) -> Result<Created<Json<CreatedPluginVersion>>> {
 	let mut transaction = state.transaction().await?;
 
@@ -110,7 +116,7 @@ pub async fn post(
 	.map_err(|err| Error::internal_server_error("invalid semver in database").with_source(err))?;
 
 	if let Some(version) = latest_version.filter(|version| version >= &semver) {
-		return Err(Error::invalid_semver(version));
+		return Err(Error::invalid_semver(&version));
 	}
 
 	let plugin_version_id = sqlx::query! {

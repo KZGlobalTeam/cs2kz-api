@@ -55,7 +55,10 @@ impl FromRow<'_, MySqlRow> for Server {
 
 				SocketAddrV4::new(ip, port)
 			},
-			owner: Player { name: row.try_get("owner_name")?, steam_id: row.try_get("owner_id")? },
+			owner: Player {
+				name: row.try_get("owner_name")?,
+				steam_id: row.try_get("owner_id")?,
+			},
 			created_on: row.try_get("created_on")?,
 		})
 	}

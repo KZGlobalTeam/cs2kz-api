@@ -127,7 +127,10 @@ pub async fn get(
 
 	transaction.commit().await?;
 
-	Ok(Json(PaginationResponse { total, results: jumpstats }))
+	Ok(Json(PaginationResponse {
+		total,
+		results: jumpstats,
+	}))
 }
 
 /// Create a new jumpstat.
@@ -149,7 +152,9 @@ pub async fn get(
 )]
 pub async fn post(
 	state: &State,
-	Jwt { payload: server, .. }: Jwt<auth::Server>,
+	Jwt {
+		payload: server, ..
+	}: Jwt<auth::Server>,
 	Json(NewJumpstat {
 		jump_type,
 		mode,

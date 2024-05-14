@@ -75,7 +75,10 @@ pub async fn get(
 
 	transaction.commit().await?;
 
-	Ok(Json(PaginationResponse { total, results: players }))
+	Ok(Json(PaginationResponse {
+		total,
+		results: players,
+	}))
 }
 
 /// Register a new player.
@@ -99,7 +102,11 @@ pub async fn get(
 pub async fn post(
 	state: &State,
 	server: Jwt<auth::Server>,
-	Json(NewPlayer { name, steam_id, ip_address }): Json<NewPlayer>,
+	Json(NewPlayer {
+		name,
+		steam_id,
+		ip_address,
+	}): Json<NewPlayer>,
 ) -> Result<Created> {
 	sqlx::query! {
 		r#"

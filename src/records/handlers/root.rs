@@ -192,7 +192,10 @@ pub async fn get(
 
 	transaction.commit().await?;
 
-	Ok(Json(PaginationResponse { total, results: records }))
+	Ok(Json(PaginationResponse {
+		total,
+		results: records,
+	}))
 }
 
 /// Create a new record.
@@ -214,10 +217,18 @@ pub async fn get(
 )]
 pub async fn post(
 	state: &State,
-	Jwt { payload: server, .. }: Jwt<auth::Server>,
-	Json(NewRecord { player_id, mode, styles, course_id, teleports, time, bhop_stats }): Json<
-		NewRecord,
-	>,
+	Jwt {
+		payload: server, ..
+	}: Jwt<auth::Server>,
+	Json(NewRecord {
+		player_id,
+		mode,
+		styles,
+		course_id,
+		teleports,
+		time,
+		bhop_stats,
+	}): Json<NewRecord>,
 ) -> Result<Created<Json<CreatedRecord>>> {
 	let mut transaction = state.transaction().await?;
 

@@ -47,7 +47,11 @@ pub struct GetParams {
 )]
 pub async fn get(
 	state: &State,
-	Query(GetParams { roles, limit, offset }): Query<GetParams>,
+	Query(GetParams {
+		roles,
+		limit,
+		offset,
+	}): Query<GetParams>,
 ) -> Result<Json<PaginationResponse<Admin>>> {
 	let mut transaction = state.transaction().await?;
 
@@ -71,7 +75,11 @@ pub async fn get(
 		offset.0,
 	}
 	.fetch(transaction.as_mut())
-	.map_ok(|row| Admin { name: row.name, steam_id: row.id, roles: row.role_flags })
+	.map_ok(|row| Admin {
+		name: row.name,
+		steam_id: row.id,
+		roles: row.role_flags,
+	})
 	.try_collect::<Vec<_>>()
 	.await?;
 
@@ -83,5 +91,8 @@ pub async fn get(
 
 	transaction.commit().await?;
 
-	Ok(Json(PaginationResponse { total, results: admins }))
+	Ok(Json(PaginationResponse {
+		total,
+		results: admins,
+	}))
 }

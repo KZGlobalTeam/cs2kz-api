@@ -176,7 +176,7 @@ impl<'de> Deserialize<'de> for MapInfo {
 		Helper1::deserialize(deserializer)
 			.map(|x| x.response)
 			.map(|mut x| x.publishedfiledetails.remove(0))
-			.map(|mut json| json["title"].take())
+			.map(|mut json| json.get_mut("title").expect("this cannot fail").take())
 			.map(|json| json.as_str().map(ToOwned::to_owned))?
 			.map(|title| Self { title })
 			.ok_or_else(|| E::missing_field("title"))

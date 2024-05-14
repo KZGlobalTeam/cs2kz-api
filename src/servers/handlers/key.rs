@@ -34,7 +34,10 @@ use crate::{auth, Error, Result, State};
 )]
 pub async fn generate_temp(
 	state: &State,
-	Json(RefreshKeyRequest { refresh_key, plugin_version }): Json<RefreshKeyRequest>,
+	Json(RefreshKeyRequest {
+		refresh_key,
+		plugin_version,
+	}): Json<RefreshKeyRequest>,
 ) -> Result<Created<Json<RefreshKeyResponse>>> {
 	let mut transaction = state.transaction().await?;
 

@@ -22,9 +22,8 @@ pub fn layer<S>() -> Result<(impl tracing_subscriber::Layer<S>, WorkerGuard, Pat
 where
 	S: tracing::Subscriber + for<'a> LookupSpan<'a>,
 {
-	let log_dir = env::var("LOG_DIR")
-		.map(PathBuf::from)
-		.unwrap_or_else(|_| PathBuf::from("/var/log/cs2kz-api"));
+	let log_dir =
+		env::var("LOG_DIR").map_or_else(|_| PathBuf::from("/var/log/cs2kz-api"), PathBuf::from);
 
 	if !log_dir.exists() {
 		fs::create_dir_all(&log_dir).context("create log dir")?;

@@ -152,7 +152,10 @@ mod serde_impls {
 					-1 => Ok(Self::Never),
 					0 => Ok(Self::Unranked),
 					1 => Ok(Self::Ranked),
-					value => Err(Error::invalid_value(U::Signed(value as i64), &"-1, 0, or 1")),
+					value => Err(Error::invalid_value(
+						U::Signed(value as i64),
+						&"-1, 0, or 1",
+					)),
 				}
 			}
 		}

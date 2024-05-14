@@ -30,7 +30,7 @@ impl FromIterator<Style> for StyleFlags {
 		I: IntoIterator<Item = Style>,
 	{
 		iter.into_iter()
-			.map(|style| StyleFlags::new(style as u32))
+			.map(|style| StyleFlags::new(u8::from(style).into()))
 			.fold(StyleFlags::NONE, |acc, curr| (acc | curr))
 	}
 }

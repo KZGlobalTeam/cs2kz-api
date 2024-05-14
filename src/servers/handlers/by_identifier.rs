@@ -68,7 +68,11 @@ pub async fn patch(
 	state: &State,
 	session: auth::Session<auth::AdminOrServerOwner>,
 	Path(server_id): Path<ServerID>,
-	Json(ServerUpdate { name, ip_address, owned_by }): Json<ServerUpdate>,
+	Json(ServerUpdate {
+		name,
+		ip_address,
+		owned_by,
+	}): Json<ServerUpdate>,
 ) -> Result<NoContent> {
 	if name.is_none() && ip_address.is_none() && owned_by.is_none() {
 		return Ok(NoContent);

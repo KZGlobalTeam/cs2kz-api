@@ -34,7 +34,10 @@ pub fn router(state: &'static State) -> Router {
 	let by_identifier = Router::new()
 		.route("/:map", get(handlers::by_identifier::get))
 		.route_layer(cors::permissive())
-		.route("/:map", patch(handlers::by_identifier::patch).route_layer(auth()))
+		.route(
+			"/:map",
+			patch(handlers::by_identifier::patch).route_layer(auth()),
+		)
 		.route_layer(cors::dashboard([Method::PATCH]))
 		.with_state(state);
 

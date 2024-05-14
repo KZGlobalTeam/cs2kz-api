@@ -10,7 +10,10 @@ pub fn permissive() -> CorsLayer {
 }
 
 /// Creates a CORS layer that allows requests of the given `methods` from the dashboard.
-pub fn dashboard(methods: impl Into<AllowMethods>) -> CorsLayer {
+pub fn dashboard<M>(methods: M) -> CorsLayer
+where
+	M: Into<AllowMethods>,
+{
 	CorsLayer::new()
 		.allow_methods(methods)
 		.allow_credentials(true)

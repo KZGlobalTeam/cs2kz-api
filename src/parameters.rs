@@ -29,8 +29,8 @@ impl<'s> ToSchema<'s> for Offset {
 				ObjectBuilder::new()
 					.description(Some("used for pagination"))
 					.schema_type(SchemaType::Number)
-					.minimum(Some(i64::MIN as f64))
-					.maximum(Some(i64::MAX as f64))
+					.minimum(Some(f64::MIN))
+					.maximum(Some(f64::MAX))
 					.default(Some(0.into()))
 					.build(),
 			)
@@ -53,7 +53,7 @@ impl<const MAX: u64, const DEFAULT: u64> Default for Limit<MAX, DEFAULT> {
 }
 
 impl From<Limit> for usize {
-	#[allow(clippy::cast_possible_truncation)]
+	#[allow(clippy::as_conversions, clippy::cast_possible_truncation)]
 	fn from(value: Limit) -> Self {
 		value.0 as usize
 	}
@@ -83,7 +83,7 @@ impl<'s, const MAX: u64, const DEFAULT: u64> ToSchema<'s> for Limit<MAX, DEFAULT
 				ObjectBuilder::new()
 					.description(Some("limits the amount of returned values"))
 					.schema_type(SchemaType::Number)
-					.minimum(Some(0 as f64))
+					.minimum(Some(0.0))
 					.build(),
 			)
 			.into(),

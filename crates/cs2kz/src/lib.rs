@@ -10,7 +10,12 @@
 //! [cs2kz]: https://github.com/KZGlobalTeam/cs2kz-metamod
 //! [API]: https://github.com/KZGlobalTeam/cs2kz-api
 
-#![deny(missing_docs, rustdoc::broken_intra_doc_links, missing_debug_implementations, clippy::perf)]
+#![deny(
+	missing_docs,
+	rustdoc::broken_intra_doc_links,
+	missing_debug_implementations,
+	clippy::perf
+)]
 #![warn(clippy::cognitive_complexity, clippy::missing_const_for_fn)]
 
 mod error;

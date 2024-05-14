@@ -101,8 +101,8 @@ pub mod semver {
 	{
 		let mut version = <&'de str>::deserialize(deserializer)?;
 
-		if version.starts_with('v') {
-			version = &version[1..];
+		if let ("v", rest) = version.split_at(1) {
+			version = rest;
 		}
 
 		version.parse::<Version>().map_err(de::Error::custom)

@@ -33,7 +33,10 @@ pub struct Server {
 impl Server {
 	/// Creates a new [`Server`].
 	pub const fn new(id: ServerID, plugin_version_id: PluginVersionID) -> Self {
-		Self { id, plugin_version_id }
+		Self {
+			id,
+			plugin_version_id,
+		}
 	}
 
 	/// The server's ID.
@@ -61,7 +64,10 @@ pub struct User {
 impl User {
 	/// Creates a new [`User`].
 	pub const fn new(steam_id: SteamID, role_flags: RoleFlags) -> Self {
-		Self { steam_id, role_flags }
+		Self {
+			steam_id,
+			role_flags,
+		}
 	}
 
 	/// The user's SteamID.

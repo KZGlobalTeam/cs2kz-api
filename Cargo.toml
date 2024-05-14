@@ -9,46 +9,12 @@ repository = "https://github.com/KZGlobalTeam/cs2kz-api"
 license-file = "./LICENSE"
 publish = false
 
-[lints.rust]
-elided_lifetimes_in_paths = "deny"
-macro_use_extern_crate = "deny"
-missing_copy_implementations = "deny"
-missing_debug_implementations = "deny"
-missing_docs = "deny"
-non_ascii_idents = "deny"
-single_use_lifetimes = "warn"
-
-[lints.rustdoc]
-broken_intra_doc_links = "deny"
-
-[lints.clippy]
-absolute_paths = "warn"
-as_underscore = "warn"
-bool_comparison = "deny"
-bool_to_int_with_if = "deny"
-cast_possible_truncation = "deny"
-clone_on_ref_ptr = "deny"
-cognitive_complexity = "warn"
-collection_is_never_read = "warn"
-dbg_macro = "warn"
-future_not_send = "warn"
-ignored_unit_patterns = "deny"
-missing_docs_in_private_items = "deny"
-new_without_default = "allow"
-redundant_closure = "allow"
-todo = "warn"
-unimplemented = "deny"
-
-[workspace]
-resolver = "2"
-members = ["crates/spec-generator", "crates/macros"]
-
 [features]
 production = []
 console = ["dep:console-subscriber", "tokio/tracing"]
 
-[workspace.dependencies.eyre]
-version = "0.6"
+[lints]
+workspace = true
 
 [dependencies.cs2kz]
 path = "./crates/cs2kz"
@@ -189,3 +155,82 @@ version = "0.2"
 
 [dev-dependencies.cs2kz-api-macros]
 path = "./crates/macros"
+
+[workspace]
+resolver = "2"
+members = ["crates/spec-generator", "crates/macros"]
+
+# See https://doc.rust-lang.org/rustc/lints/listing/index.html
+[workspace.lints.rust]
+elided_lifetimes_in_paths = "deny"
+let_underscore_drop = "warn"
+missing_copy_implementations = "warn"
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+unsafe_op_in_unsafe_fn = "forbid"
+unused_lifetimes = "warn"
+
+# See https://doc.rust-lang.org/rustdoc/lints.html
+[workspace.lints.rustdoc]
+broken_intra_doc_links = "deny"
+
+# See https://rust-lang.github.io/rust-clippy/stable/index.html
+[workspace.lints.clippy]
+as_conversions = "warn"
+bool_comparison = "allow"
+bool_to_int_with_if = "warn"
+branches_sharing_code = "warn"
+cast_lossless = "warn"
+cast_possible_truncation = "warn"
+cast_possible_wrap = "warn"
+cast_precision_loss = "warn"
+cast_sign_loss = "warn"
+checked_conversions = "warn"
+clone_on_ref_ptr = "warn"
+cloned_instead_of_copied = "warn"
+dbg_macro = "warn"
+derive_partial_eq_without_eq = "warn"
+enum_glob_use = "deny"
+explicit_into_iter_loop = "warn"
+explicit_iter_loop = "warn"
+fallible_impl_from = "warn"
+filter_map_next = "warn"
+flat_map_option = "warn"
+fn_params_excessive_bools = "warn"
+future_not_send = "warn"
+if_not_else = "warn"
+ignored_unit_patterns = "warn"
+impl_trait_in_params = "deny"
+inconsistent_struct_constructor = "deny"
+indexing_slicing = "deny"
+inefficient_to_string = "warn"
+manual_assert = "warn"
+manual_instant_elapsed = "warn"
+manual_is_variant_and = "warn"
+manual_let_else = "warn"
+manual_ok_or = "warn"
+manual_string_new = "deny"
+many_single_char_names = "deny"
+map_unwrap_or = "warn"
+match_on_vec_items = "deny"
+missing_assert_message = "deny"
+missing_asserts_for_indexing = "deny"
+missing_const_for_fn = "warn"
+missing_docs_in_private_items = "warn"
+missing_safety_doc = "deny"
+needless_collect = "warn"
+needless_continue = "warn"
+needless_for_each = "warn"
+needless_pass_by_value = "warn"
+new_without_default = "allow"
+redundant_closure = "allow"
+redundant_else = "deny"
+same_name_method = "deny"
+todo = "warn"
+unimplemented = "deny"
+unnecessary_safety_comment = "warn"
+unnecessary_safety_doc = "warn"
+wildcard_imports = "deny"
+
+[workspace.dependencies.eyre]
+version = "0.6"

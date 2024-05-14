@@ -54,7 +54,12 @@ impl Error {
 	/// Create a new blank error with the given status code.
 	#[track_caller]
 	fn new(status: StatusCode) -> Self {
-		Self { status, message: None, location: Location::caller(), source: None }
+		Self {
+			status,
+			message: None,
+			location: Location::caller(),
+			source: None,
+		}
 	}
 
 	/// Convenience function for logging out an error while creating it.
@@ -150,7 +155,7 @@ impl Error {
 	/// When submitting new plugin versions, the submitted version cannot be <= the current
 	/// latest version.
 	#[track_caller]
-	pub(crate) fn invalid_semver(current_latest: semver::Version) -> Self {
+	pub(crate) fn invalid_semver(current_latest: &semver::Version) -> Self {
 		Self::new(StatusCode::CONFLICT).with_message(format_args!(
 			"invalid plugin version; current latest version is {current_latest}"
 		))
@@ -166,8 +171,9 @@ impl Error {
 	/// previously.
 	#[track_caller]
 	pub(crate) fn ban_already_reverted(unban_id: UnbanID) -> Self {
-		Self::new(StatusCode::CONFLICT)
-			.with_message(format_args!("ban has already been reverted (unban `{unban_id}`)"))
+		Self::new(StatusCode::CONFLICT).with_message(format_args!(
+			"ban has already been reverted (unban `{unban_id}`)"
+		))
 	}
 
 	/// A CS2 server tried to request an access key (JWT) but their supplied refresh key was
@@ -235,7 +241,12 @@ impl Error {
 
 impl IntoResponse for Error {
 	fn into_response(self) -> Response {
-		let Self { status, message, location, .. } = &self;
+		let Self {
+			status,
+			message,
+			location,
+			..
+		} = &self;
 
 		debug!(%location, %status, ?message, "error occurred in request handler");
 
@@ -246,7 +257,7 @@ impl IntoResponse for Error {
 			.as_deref()
 			.filter(|_| cfg!(not(feature = "production")))
 		{
-			json["debug_info"] = format!("{source:?}").into();
+			*json.get_mut("debug_info").expect("this cannot fail") = format!("{source:?}").into();
 		}
 
 		(self.status, Json(json)).into_response()

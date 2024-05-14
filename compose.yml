@@ -13,7 +13,7 @@ services:
       - ./database/volumes/cs2kz:/var/lib/mysql
 
   cs2kz-api:
-    depends_on: cs2kz-database
+    depends_on: [cs2kz-database]
     env_file: .env.docker
     build:
       context: .

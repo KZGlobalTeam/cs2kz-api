@@ -57,7 +57,12 @@ impl State {
 		let http_client = reqwest::Client::new();
 		let jwt_state = JwtState::new(&config)?;
 
-		Ok(Self { config, database, http_client, jwt_state })
+		Ok(Self {
+			config,
+			database,
+			http_client,
+			jwt_state,
+		})
 	}
 
 	/// Begins a new database transaction.
@@ -66,7 +71,10 @@ impl State {
 	}
 
 	/// Encodes the given `payload` in a JWT that will expire after a given amount of time.
-	pub fn encode_jwt(&self, payload: &impl Serialize, expires_after: Duration) -> Result<String> {
+	pub fn encode_jwt<T>(&self, payload: &T, expires_after: Duration) -> Result<String>
+	where
+		T: Serialize,
+	{
 		self.jwt_state.encode(payload, expires_after)
 	}
 
@@ -115,11 +123,19 @@ impl JwtState {
 		let jwt_decoding_key = jsonwebtoken::DecodingKey::from_base64_secret(&config.jwt_secret)?;
 		let jwt_validation = jsonwebtoken::Validation::default();
 
-		Ok(Self { jwt_header, jwt_encoding_key, jwt_decoding_key, jwt_validation })
+		Ok(Self {
+			jwt_header,
+			jwt_encoding_key,
+			jwt_decoding_key,
+			jwt_validation,
+		})
 	}
 
 	/// Encodes the given `payload` in a JWT that will expire after a given amount of time.
-	fn encode(&self, payload: &impl Serialize, expires_after: Duration) -> Result<String> {
+	fn encode<T>(&self, payload: &T, expires_after: Duration) -> Result<String>
+	where
+		T: Serialize,
+	{
 		jsonwebtoken::encode(
 			&self.jwt_header,
 			&Jwt::new(payload, expires_after),
