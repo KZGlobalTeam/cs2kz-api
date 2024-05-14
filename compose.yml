@@ -2,32 +2,26 @@ services:
   cs2kz-database:
     image: mariadb:11.0
     command: --max-connections 256
-    restart: no
     environment:
-      MARIADB_USER: kz
+      MARIADB_USER: schnose
       MARIADB_PASSWORD: csgo-kz-is-dead-boys
       MARIADB_DATABASE: cs2kz
       MARIADB_ROOT_PASSWORD: csgo-kz-is-dead-boys
     ports:
-      - ${DATABASE_PORT:-8070}:3306
+      - ${DATABASE_PORT}:3306
     volumes:
       - ./database/volumes/cs2kz:/var/lib/mysql
 
   cs2kz-api:
-    restart: no
+    depends_on: cs2kz-database
+    env_file: .env.docker
     build:
       context: .
       dockerfile: ./Dockerfile
       args:
-        USERNAME: $USER
         DEPOT_DOWNLOADER_URL: https://github.com/SteamRE/DepotDownloader/releases/download/DepotDownloader_2.5.0/DepotDownloader-linux-x64.zip
-    env_file:
-      - .env.example
-      - .env
-      - .env.docker.example
-      - .env.docker
     ports:
       - ${KZ_API_PORT:-42069}:${KZ_API_PORT:-42069}
     volumes:
       - ./docker/logs:/var/log/cs2kz-api
-      - ./docker/workshop:/kz/workshop
+      - ./docker/workshop:/var/lib/cs2kz-api/workshop

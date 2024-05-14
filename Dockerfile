@@ -20,7 +20,6 @@ RUN cargo build --release --features production
 
 FROM debian:bullseye-slim AS runtime
 
-ARG USERNAME
 ARG DEPOT_DOWNLOADER_URL
 
 RUN apt-get update -y && apt-get install -y curl unzip libicu-dev
