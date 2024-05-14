@@ -13,12 +13,12 @@ use super::root::create_mappers;
 use crate::auth::RoleFlags;
 use crate::maps::handlers::root::insert_course_mappers;
 use crate::maps::{
-	queries, CourseID, CourseUpdate, FilterID, FilterUpdate, FullMap, MapID, MapUpdate, WorkshopID,
+	queries, CourseID, CourseUpdate, FilterID, FilterUpdate, FullMap, MapID, MapUpdate,
 };
 use crate::openapi::responses;
 use crate::openapi::responses::NoContent;
 use crate::sqlx::UpdateQuery;
-use crate::workshop::WorkshopMap;
+use crate::steam::workshop::{self, WorkshopID};
 use crate::{auth, Error, Result, State};
 
 /// Fetch a single map.
@@ -204,8 +204,12 @@ async fn update_name_and_checksum(
 	};
 
 	let (name, checksum) = tokio::try_join! {
-		WorkshopMap::fetch_name(workshop_id, http_client),
-		WorkshopMap::download(workshop_id, config).and_then(WorkshopMap::checksum),
+		workshop::fetch_map_name(workshop_id, http_client),
+		workshop::MapFile::download(workshop_id, config).and_then(|map| async move {
+			map.checksum().await.map_err(|err| {
+				Error::internal_server_error("failed to compute map checksum").with_source(err)
+			})
+		}),
 	}?;
 
 	let query_result = sqlx::query! {

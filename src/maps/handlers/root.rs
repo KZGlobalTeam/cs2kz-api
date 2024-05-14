@@ -13,14 +13,12 @@ use tracing::{info, warn};
 use utoipa::IntoParams;
 
 use crate::auth::RoleFlags;
-use crate::maps::{
-	queries, CourseID, CreatedMap, FullMap, MapID, NewCourse, NewFilter, NewMap, WorkshopID,
-};
+use crate::maps::{queries, CourseID, CreatedMap, FullMap, MapID, NewCourse, NewFilter, NewMap};
 use crate::openapi::parameters::{Limit, Offset};
 use crate::openapi::responses;
 use crate::openapi::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, FilteredQuery, SqlErrorExt};
-use crate::workshop::WorkshopMap;
+use crate::steam::workshop::{self, WorkshopID};
 use crate::{auth, Error, Result, State};
 
 /// Query parameters for `GET /maps`.
@@ -158,8 +156,12 @@ pub async fn put(
 	}): Json<NewMap>,
 ) -> Result<Created<Json<CreatedMap>>> {
 	let (name, checksum) = tokio::try_join! {
-		WorkshopMap::fetch_name(workshop_id, &state.http_client),
-		WorkshopMap::download(workshop_id, &state.config).and_then(WorkshopMap::checksum),
+		workshop::fetch_map_name(workshop_id, &state.http_client),
+		workshop::MapFile::download(workshop_id, &state.config).and_then(|map| async move {
+			map.checksum().await.map_err(|err| {
+				Error::internal_server_error("failed to compute map checksum").with_source(err)
+			})
+		}),
 	}?;
 
 	let mut transaction = state.transaction().await?;

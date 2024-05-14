@@ -9,10 +9,9 @@ use tracing::debug;
 use url::Url;
 use utoipa::IntoParams;
 
-use super::{Session, SteamLoginResponse, SteamUser};
-use crate::auth::SteamLoginForm;
+use crate::auth::{Session, SteamLoginForm, SteamLoginResponse};
 use crate::openapi::responses;
-use crate::{Result, State};
+use crate::{steam, Result, State};
 
 /// Query parameters for logging in with Steam.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -110,7 +109,7 @@ pub async fn callback(
 	state: &'static State,
 	cookies: CookieJar,
 	login: SteamLoginResponse,
-	user: SteamUser,
+	user: steam::User,
 ) -> Result<(CookieJar, Redirect)> {
 	let transaction = state.transaction().await?;
 	let session = Session::create(user.steam_id, &state.config, transaction).await?;

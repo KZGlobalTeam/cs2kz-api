@@ -4,10 +4,9 @@ use axum::extract::Path;
 use axum::Json;
 use cs2kz::PlayerIdentifier;
 
-use crate::auth::SteamUser;
 use crate::openapi::responses;
 use crate::sqlx::FetchID;
-use crate::{Result, State};
+use crate::{steam, Result, State};
 
 /// Fetch Steam profile information about a specific player.
 #[tracing::instrument(level = "debug", skip(state))]
@@ -17,15 +16,15 @@ use crate::{Result, State};
   tag = "Players",
   params(PlayerIdentifier),
   responses(
-    responses::Ok<SteamUser>,
+    responses::Ok<steam::User>,
     responses::NoContent,
     responses::BadRequest,
     responses::InternalServerError,
   ),
 )]
-pub async fn get(state: &State, Path(player): Path<PlayerIdentifier>) -> Result<Json<SteamUser>> {
+pub async fn get(state: &State, Path(player): Path<PlayerIdentifier>) -> Result<Json<steam::User>> {
 	let steam_id = player.fetch_id(&state.database).await?;
-	let user = SteamUser::fetch(steam_id, &state.http_client, &state.config).await?;
+	let user = steam::User::fetch(steam_id, &state.http_client, &state.config).await?;
 
 	Ok(Json(user))
 }

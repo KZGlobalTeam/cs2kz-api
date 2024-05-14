@@ -14,7 +14,7 @@ mod models;
 #[doc(inline)]
 pub use models::{
 	Course, CourseID, CourseInfo, CourseUpdate, CreatedMap, Filter, FilterID, FilterUpdate,
-	FullMap, MapID, MapInfo, MapUpdate, NewCourse, NewFilter, NewMap, WorkshopID,
+	FullMap, MapID, MapInfo, MapUpdate, NewCourse, NewFilter, NewMap,
 };
 
 mod queries;

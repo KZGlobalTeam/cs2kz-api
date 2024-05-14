@@ -170,8 +170,32 @@
             "in": "path",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "a player's SteamID or name"
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "SteamID"
+                  ],
+                  "properties": {
+                    "SteamID": {
+                      "$ref": "#/components/schemas/SteamID"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "Name"
+                  ],
+                  "properties": {
+                    "Name": {
+                      "type": "string",
+                      "description": "A player name."
+                    }
+                  }
+                }
+              ],
+              "description": "Different ways of identifying a player."
             }
           }
         ],
@@ -236,8 +260,30 @@
             "in": "path",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "a player's SteamID"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "title": "Steam ID",
+                  "example": "STEAM_1:1:161178172"
+                },
+                {
+                  "type": "string",
+                  "title": "Steam ID3",
+                  "example": "U:1:322356345"
+                },
+                {
+                  "type": "integer",
+                  "title": "Steam ID32",
+                  "example": 322356345
+                },
+                {
+                  "type": "integer",
+                  "title": "Steam ID64",
+                  "example": 76561198282622073
+                }
+              ],
+              "description": "a player's SteamID",
+              "example": "STEAM_1:1:161178172"
             }
           }
         ],
@@ -289,8 +335,32 @@
             "in": "path",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "a player's SteamID or name"
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "SteamID"
+                  ],
+                  "properties": {
+                    "SteamID": {
+                      "$ref": "#/components/schemas/SteamID"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "Name"
+                  ],
+                  "properties": {
+                    "Name": {
+                      "type": "string",
+                      "description": "A player name."
+                    }
+                  }
+                }
+              ],
+              "description": "Different ways of identifying a player."
             }
           }
         ],
@@ -372,8 +442,32 @@
             "in": "path",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "a player's SteamID or name"
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "SteamID"
+                  ],
+                  "properties": {
+                    "SteamID": {
+                      "$ref": "#/components/schemas/SteamID"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "Name"
+                  ],
+                  "properties": {
+                    "Name": {
+                      "type": "string",
+                      "description": "A player name."
+                    }
+                  }
+                }
+              ],
+              "description": "Different ways of identifying a player."
             }
           }
         ],
@@ -580,8 +674,35 @@
             "in": "path",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "a map's ID or name"
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "ID"
+                  ],
+                  "properties": {
+                    "ID": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "An ID.",
+                      "minimum": 0
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "Name"
+                  ],
+                  "properties": {
+                    "Name": {
+                      "type": "string",
+                      "description": "A name."
+                    }
+                  }
+                }
+              ],
+              "description": "Different ways of identifying a map."
             }
           }
         ],
@@ -3284,8 +3405,30 @@
             "in": "path",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "a player's SteamID"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "title": "Steam ID",
+                  "example": "STEAM_1:1:161178172"
+                },
+                {
+                  "type": "string",
+                  "title": "Steam ID3",
+                  "example": "U:1:322356345"
+                },
+                {
+                  "type": "integer",
+                  "title": "Steam ID32",
+                  "example": 322356345
+                },
+                {
+                  "type": "integer",
+                  "title": "Steam ID64",
+                  "example": 76561198282622073
+                }
+              ],
+              "description": "a player's SteamID",
+              "example": "STEAM_1:1:161178172"
             }
           }
         ],
@@ -3350,8 +3493,30 @@
             "in": "path",
             "required": false,
             "schema": {
-              "type": "string",
-              "description": "a player's SteamID"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "title": "Steam ID",
+                  "example": "STEAM_1:1:161178172"
+                },
+                {
+                  "type": "string",
+                  "title": "Steam ID3",
+                  "example": "U:1:322356345"
+                },
+                {
+                  "type": "integer",
+                  "title": "Steam ID32",
+                  "example": 322356345
+                },
+                {
+                  "type": "integer",
+                  "title": "Steam ID64",
+                  "example": 76561198282622073
+                }
+              ],
+              "description": "a player's SteamID",
+              "example": "STEAM_1:1:161178172"
             }
           }
         ],
@@ -3809,6 +3974,37 @@
         "format": "uint16",
         "minimum": 0
       },
+      "CourseIdentifier": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "ID"
+            ],
+            "properties": {
+              "ID": {
+                "type": "integer",
+                "format": "uint16",
+                "description": "An ID.",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Name"
+            ],
+            "properties": {
+              "Name": {
+                "type": "string",
+                "description": "A name."
+              }
+            }
+          }
+        ],
+        "description": "Different ways of identifying a map course."
+      },
       "CourseInfo": {
         "type": "object",
         "description": "Information about a course.",
@@ -4132,6 +4328,63 @@
         "format": "uint64",
         "minimum": 0
       },
+      "GlobalStatus": {
+        "anyOf": [
+          {
+            "type": "string",
+            "title": "Name",
+            "enum": [
+              "not_global",
+              "in_testing",
+              "global"
+            ],
+            "example": "global"
+          },
+          {
+            "type": "integer",
+            "title": "Integer",
+            "enum": [
+              -1,
+              0,
+              1
+            ],
+            "example": 1
+          }
+        ],
+        "default": "global",
+        "example": "global"
+      },
+      "JumpType": {
+        "anyOf": [
+          {
+            "type": "string",
+            "title": "Name",
+            "enum": [
+              "longjump",
+              "single_bhop",
+              "multi_bhop",
+              "weirdjump",
+              "ladderjump",
+              "ladderhop"
+            ],
+            "example": "longjump"
+          },
+          {
+            "type": "integer",
+            "title": "ID",
+            "enum": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "example": 1
+          }
+        ],
+        "example": "longjump"
+      },
       "Jumpstat": {
         "type": "object",
         "description": "A jumpstat.",
@@ -4258,6 +4511,37 @@
         "format": "uint16",
         "minimum": 0
       },
+      "MapIdentifier": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "ID"
+            ],
+            "properties": {
+              "ID": {
+                "type": "integer",
+                "format": "uint16",
+                "description": "An ID.",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Name"
+            ],
+            "properties": {
+              "Name": {
+                "type": "string",
+                "description": "A name."
+              }
+            }
+          }
+        ],
+        "description": "Different ways of identifying a map."
+      },
       "MapInfo": {
         "type": "object",
         "description": "Information about a map.",
@@ -4337,6 +4621,29 @@
             "nullable": true
           }
         }
+      },
+      "Mode": {
+        "anyOf": [
+          {
+            "type": "string",
+            "title": "Name",
+            "enum": [
+              "vanilla",
+              "classic"
+            ],
+            "example": "classic"
+          },
+          {
+            "type": "integer",
+            "title": "ID",
+            "enum": [
+              1,
+              2
+            ],
+            "example": 1
+          }
+        ],
+        "example": "classic"
       },
       "NewBan": {
         "type": "object",
@@ -4704,6 +5011,34 @@
           }
         }
       },
+      "PlayerIdentifier": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "SteamID"
+            ],
+            "properties": {
+              "SteamID": {
+                "$ref": "#/components/schemas/SteamID"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Name"
+            ],
+            "properties": {
+              "Name": {
+                "type": "string",
+                "description": "A player name."
+              }
+            }
+          }
+        ],
+        "description": "Different ways of identifying a player."
+      },
       "PlayerUpdate": {
         "type": "object",
         "description": "Request body for updating players.",
@@ -4762,6 +5097,31 @@
         "type": "integer",
         "format": "uint16",
         "minimum": 0
+      },
+      "RankedStatus": {
+        "anyOf": [
+          {
+            "type": "string",
+            "title": "Name",
+            "enum": [
+              "never",
+              "unranked",
+              "ranked"
+            ],
+            "example": "ranked"
+          },
+          {
+            "type": "integer",
+            "title": "Integer",
+            "enum": [
+              -1,
+              0,
+              1
+            ],
+            "example": 1
+          }
+        ],
+        "example": "ranked"
       },
       "Record": {
         "type": "object",
@@ -4904,6 +5264,37 @@
         "format": "uint16",
         "minimum": 0
       },
+      "ServerIdentifier": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "ID"
+            ],
+            "properties": {
+              "ID": {
+                "type": "integer",
+                "format": "uint16",
+                "description": "An ID.",
+                "minimum": 0
+              }
+            }
+          },
+          {
+            "type": "object",
+            "required": [
+              "Name"
+            ],
+            "properties": {
+              "Name": {
+                "type": "string",
+                "description": "A name."
+              }
+            }
+          }
+        ],
+        "description": "Different ways of identifying a server."
+      },
       "ServerInfo": {
         "type": "object",
         "description": "Information about a server.",
@@ -4963,6 +5354,94 @@
           "ascending",
           "descending"
         ]
+      },
+      "SteamID": {
+        "anyOf": [
+          {
+            "type": "string",
+            "title": "Steam ID",
+            "example": "STEAM_1:1:161178172"
+          },
+          {
+            "type": "string",
+            "title": "Steam ID3",
+            "example": "U:1:322356345"
+          },
+          {
+            "type": "integer",
+            "title": "Steam ID32",
+            "example": 322356345
+          },
+          {
+            "type": "integer",
+            "title": "Steam ID64",
+            "example": 76561198282622073
+          }
+        ],
+        "description": "a player's SteamID",
+        "example": "STEAM_1:1:161178172"
+      },
+      "Style": {
+        "anyOf": [
+          {
+            "type": "string",
+            "title": "Name",
+            "enum": [
+              "normal",
+              "auto_bhop"
+            ],
+            "example": "normal"
+          },
+          {
+            "type": "integer",
+            "title": "ID",
+            "enum": [
+              1,
+              2
+            ],
+            "example": 1
+          }
+        ],
+        "example": "normal"
+      },
+      "Tier": {
+        "anyOf": [
+          {
+            "type": "string",
+            "title": "Name",
+            "enum": [
+              "very_easy",
+              "easy",
+              "medium",
+              "advanced",
+              "hard",
+              "very_hard",
+              "extreme",
+              "death",
+              "unfeasible",
+              "impossible"
+            ],
+            "example": "hard"
+          },
+          {
+            "type": "integer",
+            "title": "Numeric Value",
+            "enum": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "example": 1
+          }
+        ],
+        "example": "hard"
       },
       "TimeSpent": {
         "type": "object",
@@ -5024,50 +5503,6 @@
         "type": "integer",
         "format": "uint32",
         "minimum": 0
-      },
-      "super::CourseIdentifier": {
-        "type": "string",
-        "description": "a course's ID or name"
-      },
-      "super::GlobalStatus": {
-        "type": "string",
-        "description": "a map's global status"
-      },
-      "super::JumpType": {
-        "type": "string",
-        "description": "a jumpstat type"
-      },
-      "super::MapIdentifier": {
-        "type": "string",
-        "description": "a map's ID or name"
-      },
-      "super::Mode": {
-        "type": "string",
-        "description": "`vanilla` or `classic`"
-      },
-      "super::PlayerIdentifier": {
-        "type": "string",
-        "description": "a player's SteamID or name"
-      },
-      "super::RankedStatus": {
-        "type": "string",
-        "description": "a filters' ranked status"
-      },
-      "super::ServerIdentifier": {
-        "type": "string",
-        "description": "a server's ID or name"
-      },
-      "super::SteamID": {
-        "type": "string",
-        "description": "a player's SteamID"
-      },
-      "super::Style": {
-        "type": "string",
-        "description": "a gameplay style"
-      },
-      "super::Tier": {
-        "type": "string",
-        "description": "a difficulty tier"
       }
     },
     "securitySchemes": {

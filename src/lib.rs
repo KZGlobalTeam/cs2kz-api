@@ -40,7 +40,7 @@ pub(crate) use cs2kz_api_macros::test;
 mod openapi;
 mod middleware;
 mod sqlx;
-mod workshop;
+mod steam;
 mod serde;
 mod time;
 mod id;
@@ -141,13 +141,14 @@ pub mod plugin;
 
       time::Seconds,
 
+      steam::workshop::WorkshopID,
+
       players::Player,
       players::NewPlayer,
       players::PlayerUpdate,
 
       maps::FullMap,
       maps::MapID,
-      maps::WorkshopID,
       maps::Course,
       maps::CourseID,
       maps::Filter,

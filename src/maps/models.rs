@@ -13,11 +13,11 @@ use utoipa::ToSchema;
 
 use crate::id::make_id;
 use crate::players::Player;
+use crate::steam::workshop::WorkshopID;
 
 make_id!(MapID as u16);
 make_id!(CourseID as u16);
 make_id!(FilterID as u16);
-make_id!(WorkshopID as u32);
 
 /// A KZ map.
 ///

@@ -35,7 +35,7 @@ pub use authorization::{AdminOrServerOwner, AuthorizeSession, HasRoles, None};
 mod models;
 
 #[doc(inline)]
-pub use models::{Server, SteamLoginForm, SteamLoginResponse, SteamUser, User};
+pub use models::{Server, SteamLoginForm, SteamLoginResponse, User};
 
 pub mod handlers;
 
