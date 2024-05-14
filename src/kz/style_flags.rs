@@ -4,7 +4,7 @@
 
 use cs2kz::Style;
 
-crate::bitflags::bitflags! {
+crate::bitflags! {
 	/// Bitfield for holding style information.
 	///
 	/// See [`cs2kz::Style`].

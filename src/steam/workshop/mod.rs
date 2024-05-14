@@ -1,6 +1,6 @@
 //! Helper types for interacting with Steam's Workshop.
 
-use crate::id::make_id;
+use crate::make_id;
 
 mod map_info;
 

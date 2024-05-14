@@ -12,7 +12,7 @@ use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::id::make_id;
+use crate::make_id;
 use crate::players::Player;
 
 make_id!(ServerID as u16);

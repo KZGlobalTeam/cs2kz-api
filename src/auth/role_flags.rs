@@ -1,6 +1,6 @@
 //! Helper type for dealing with user roles.
 
-crate::bitflags::bitflags! {
+crate::bitflags! {
 	/// Bitfield for holding role information.
 	///
 	/// Every role is represented as a specific bit in a 32-bit integer.

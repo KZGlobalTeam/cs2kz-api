@@ -43,7 +43,7 @@ mod sqlx;
 mod steam;
 mod serde;
 mod time;
-mod id;
+mod make_id;
 mod bitflags;
 mod kz;
 

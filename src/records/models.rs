@@ -7,8 +7,8 @@ use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
-use crate::id::make_id;
 use crate::kz::StyleFlags;
+use crate::make_id;
 use crate::maps::{CourseID, CourseInfo, MapInfo};
 use crate::players::Player;
 use crate::servers::ServerInfo;

@@ -3,6 +3,7 @@
 use thiserror::Error;
 
 /// Creates an integer wrapper that can be used for "flags".
+#[macro_export]
 macro_rules! bitflags {
 	(
 		$(#[$outer_meta:meta])*
@@ -218,8 +219,6 @@ macro_rules! bitflags {
 		}
 	};
 }
-
-pub(crate) use bitflags;
 
 /// Indicates a failure when parsing the string representation of a flag created with
 /// [`bitflags!()`].

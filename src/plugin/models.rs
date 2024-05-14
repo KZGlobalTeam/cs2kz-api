@@ -7,7 +7,7 @@ use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
 
-use crate::id::make_id;
+use crate::make_id;
 
 make_id!(PluginVersionID as u16);
 
