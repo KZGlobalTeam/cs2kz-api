@@ -31,9 +31,6 @@ workspace = true
 [dependencies.dotenvy]
 version = "0.15"
 
-[dependencies.envy]
-version = "0.4"
-
 [dependencies.tokio]
 version = "1"
 features = ["rt-multi-thread", "macros", "signal", "process"]

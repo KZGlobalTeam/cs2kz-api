@@ -4,18 +4,20 @@
 //! or be [globalled] right away. At some later point they might be [degloballed] again because the
 //! creator requested it, or because the map approval team decided so.
 //!
-//! [testing]: type@GlobalStatus::InTesting
-//! [globalled]: type@GlobalStatus::Global
-//! [degloballed]: type@GlobalStatus::NotGlobal
+//! [testing]: GlobalStatus::InTesting
+//! [globalled]: GlobalStatus::Global
+//! [degloballed]: GlobalStatus::NotGlobal
 
-use std::fmt::{self, Display};
+use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
-use crate::{Error, Result};
+use thiserror::Error;
 
 /// The global status of a map.
 #[repr(i8)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
 pub enum GlobalStatus {
 	/// The map is not global.
 	NotGlobal = -1,
@@ -24,15 +26,27 @@ pub enum GlobalStatus {
 	InTesting = 0,
 
 	/// The map is global.
-	#[default]
 	Global = 1,
 }
 
 impl GlobalStatus {
-	/// A string format compatible with the API.
-	#[inline]
-	pub const fn api(&self) -> &'static str {
-		match self {
+	/// Checks whether `self` is [Global].
+	///
+	/// [Global]: Self::Global
+	pub const fn is_global(&self) -> bool {
+		matches!(*self, Self::Global)
+	}
+
+	/// Checks whether `self` is [in testing].
+	///
+	/// [in testing]: Self::InTesting
+	pub const fn is_in_testing(&self) -> bool {
+		matches!(*self, Self::InTesting)
+	}
+
+	/// Returns a string representation of this [GlobalStatus], as accepted by the API.
+	pub const fn as_str(&self) -> &'static str {
+		match *self {
 			Self::NotGlobal => "not_global",
 			Self::InTesting => "in_testing",
 			Self::Global => "global",
@@ -41,159 +55,89 @@ impl GlobalStatus {
 }
 
 impl Display for GlobalStatus {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.write_str(match self {
-			Self::NotGlobal => "Not Global",
-			Self::InTesting => "In Testing",
-			Self::Global => "Global",
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		f.write_str(match *self {
+			Self::NotGlobal => "not global",
+			Self::InTesting => "in testing",
+			Self::Global => "global",
 		})
 	}
 }
 
-impl From<GlobalStatus> for i8 {
-	fn from(global_status: GlobalStatus) -> Self {
-		global_status as i8
+/// Error for parsing a string into a [`GlobalStatus`].
+#[derive(Debug, Clone, Error)]
+#[error("unknown global status `{0}`")]
+pub struct UnknownGlobalStatus(pub String);
+
+impl FromStr for GlobalStatus {
+	type Err = UnknownGlobalStatus;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		let s = s.to_lowercase();
+
+		match s.as_str() {
+			"not global" | "not_global" => Ok(Self::NotGlobal),
+			"in testing" | "in_testing" => Ok(Self::InTesting),
+			"global" => Ok(Self::Global),
+			_ => Err(UnknownGlobalStatus(s)),
+		}
 	}
 }
 
-impl TryFrom<i8> for GlobalStatus {
-	type Error = Error;
+/// Error for converting an integer to a [`GlobalStatus`].
+#[derive(Debug, Clone, Copy, Error)]
+#[error("invalid global status `{0}`")]
+pub struct InvalidGlobalStatus(pub i8);
 
-	fn try_from(value: i8) -> Result<Self> {
+impl TryFrom<i8> for GlobalStatus {
+	type Error = InvalidGlobalStatus;
+
+	fn try_from(value: i8) -> Result<Self, Self::Error> {
 		match value {
 			-1 => Ok(Self::NotGlobal),
 			0 => Ok(Self::InTesting),
 			1 => Ok(Self::Global),
-			_ => Err(Error::InvalidGlobalStatus),
+			invalid => Err(InvalidGlobalStatus(invalid)),
 		}
 	}
 }
 
-impl FromStr for GlobalStatus {
-	type Err = Error;
-
-	fn from_str(value: &str) -> Result<Self> {
-		if let Ok(value) = value.parse::<i8>() {
-			return Self::try_from(value);
-		}
-
-		match value {
-			"not_global" | "not global" => Ok(Self::NotGlobal),
-			"in_testing" | "in testing" => Ok(Self::InTesting),
-			"global" => Ok(Self::Global),
-			_ => Err(Error::InvalidGlobalStatus),
-		}
+impl From<GlobalStatus> for i8 {
+	#[allow(clippy::as_conversions)]
+	fn from(value: GlobalStatus) -> Self {
+		value as i8
 	}
 }
 
+/// Method and Trait implementations when depending on [`serde`].
 #[cfg(feature = "serde")]
 mod serde_impls {
-	mod ser {
-		use serde::{Serialize, Serializer};
+	use serde::{de, Deserialize, Deserializer};
 
-		use crate::GlobalStatus;
+	use super::GlobalStatus;
 
-		impl GlobalStatus {
-			/// Serialize in a API compatible format.
-			pub fn serialize_api<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-			where
-				S: Serializer,
-			{
-				self.api().serialize(serializer)
+	impl<'de> Deserialize<'de> for GlobalStatus {
+		fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+		where
+			D: Deserializer<'de>,
+		{
+			#[derive(Deserialize)]
+			#[serde(untagged)]
+			#[allow(clippy::missing_docs_in_private_items)]
+			enum Helper {
+				I8(i8),
+				Str(String),
 			}
 
-			/// Serialize this global status as an integer value.
-			pub fn serialize_int<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-			where
-				S: Serializer,
-			{
-				(*self as i8).serialize(serializer)
-			}
-		}
-
-		impl Serialize for GlobalStatus {
-			/// Uses the [`GlobalStatus::serialize_api()`] method.
-			///
-			/// If you need a different format, consider using
-			/// `#[serde(serialize_with = "…")]` with one of the other available
-			/// `serialize_*` methods.
-			fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-			where
-				S: Serializer,
-			{
-				self.serialize_api(serializer)
-			}
-		}
-	}
-
-	mod de {
-		use serde::de::{Error, Unexpected as U};
-		use serde::{Deserialize, Deserializer};
-
-		use crate::GlobalStatus;
-
-		impl GlobalStatus {
-			/// Deserializes the value returned by [`GlobalStatus::api()`].
-			pub fn deserialize_api<'de, D>(deserializer: D) -> Result<Self, D::Error>
-			where
-				D: Deserializer<'de>,
-			{
-				match <&'de str>::deserialize(deserializer)? {
-					"not_global" | "not global" => Ok(Self::NotGlobal),
-					"in_testing" | "in testing" => Ok(Self::InTesting),
-					"global" => Ok(Self::Global),
-					value => Err(Error::invalid_value(
-						U::Str(value),
-						&"`not_global` | `in_testing` | `global`",
-					)),
-				}
-			}
-
-			/// Deserializes a global status integer value.
-			pub fn deserialize_int<'de, D>(deserializer: D) -> Result<Self, D::Error>
-			where
-				D: Deserializer<'de>,
-			{
-				match <i8>::deserialize(deserializer)? {
-					-1 => Ok(Self::NotGlobal),
-					0 => Ok(Self::InTesting),
-					1 => Ok(Self::Global),
-					value => Err(Error::invalid_value(
-						U::Signed(value as i64),
-						&"-1, 0, or 1",
-					)),
-				}
-			}
-		}
-
-		impl<'de> Deserialize<'de> for GlobalStatus {
-			/// Best-effort attempt at deserializing a [`GlobalStatus`] of unknown
-			/// format.
-			///
-			/// If you know / expect the specific format, consider using
-			/// `#[serde(deserialize_with = "…")]` with one of the `deserialize_*`
-			/// methods instead.
-			fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-			where
-				D: Deserializer<'de>,
-			{
-				#[derive(Deserialize)]
-				#[serde(untagged)]
-				enum Helper<'a> {
-					I8(i8),
-					Str(&'a str),
-				}
-
-				match <Helper<'de>>::deserialize(deserializer)? {
-					Helper::I8(value) => value.try_into(),
-					Helper::Str(value) => value.parse(),
-				}
-				.map_err(Error::custom)
-			}
+			Helper::deserialize(deserializer).and_then(|value| match value {
+				Helper::I8(int) => Self::try_from(int).map_err(de::Error::custom),
+				Helper::Str(str) => str.parse().map_err(de::Error::custom),
+			})
 		}
 	}
 }
 
+/// Method and Trait implementations when depending on [`sqlx`].
 #[cfg(feature = "sqlx")]
 mod sqlx_impls {
 	use sqlx::database::{HasArguments, HasValueRef};
@@ -201,7 +145,7 @@ mod sqlx_impls {
 	use sqlx::error::BoxDynError;
 	use sqlx::{Database, Decode, Encode, Type};
 
-	use crate::GlobalStatus;
+	use super::GlobalStatus;
 
 	impl<DB> Type<DB> for GlobalStatus
 	where
@@ -219,7 +163,7 @@ mod sqlx_impls {
 		i8: Encode<'q, DB>,
 	{
 		fn encode_by_ref(&self, buf: &mut <DB as HasArguments<'q>>::ArgumentBuffer) -> IsNull {
-			(*self as i8).encode_by_ref(buf)
+			<i8 as Encode<'q, DB>>::encode_by_ref(&i8::from(*self), buf)
 		}
 	}
 
@@ -229,11 +173,14 @@ mod sqlx_impls {
 		i8: Decode<'r, DB>,
 	{
 		fn decode(value: <DB as HasValueRef<'r>>::ValueRef) -> Result<Self, BoxDynError> {
-			i8::decode(value).map(Self::try_from)?.map_err(Into::into)
+			<i8 as Decode<'r, DB>>::decode(value)
+				.map(Self::try_from)?
+				.map_err(Into::into)
 		}
 	}
 }
 
+/// Method and Trait implementations when depending on [`utoipa`].
 #[cfg(feature = "utoipa")]
 mod utoipa_impls {
 	use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};

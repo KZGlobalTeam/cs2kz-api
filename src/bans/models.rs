@@ -122,7 +122,7 @@ impl FromStr for BanReason {
 
 impl sqlx::Type<MySql> for BanReason {
 	fn type_info() -> <MySql as sqlx::Database>::TypeInfo {
-		str::type_info()
+		<str as sqlx::Type<MySql>>::type_info()
 	}
 }
 
@@ -131,7 +131,7 @@ impl<'q> sqlx::Encode<'q, MySql> for BanReason {
 		&self,
 		buf: &mut <MySql as database::HasArguments<'q>>::ArgumentBuffer,
 	) -> sqlx::encode::IsNull {
-		self.as_str().encode_by_ref(buf)
+		<&'q str as sqlx::Encode<'q, MySql>>::encode_by_ref(&self.as_str(), buf)
 	}
 }
 
@@ -139,7 +139,8 @@ impl<'q> sqlx::Decode<'q, MySql> for BanReason {
 	fn decode(
 		value: <MySql as database::HasValueRef<'q>>::ValueRef,
 	) -> Result<Self, sqlx::error::BoxDynError> {
-		Ok(<&'q str>::decode(value).map(|value| value.parse::<Self>())??)
+		Ok(<&'q str as sqlx::Decode<'q, MySql>>::decode(value)
+			.map(|value| value.parse::<Self>())??)
 	}
 }
 

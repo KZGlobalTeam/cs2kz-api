@@ -248,7 +248,7 @@ impl API {
 	async fn server(config: Config) -> anyhow::Result<Serve<IntoMakeService<Router>, Router>> {
 		info!(target: "audit_log", ?config, "API starting up");
 
-		let tcp_listener = TcpListener::bind(config.socket_addr())
+		let tcp_listener = TcpListener::bind(config.addr)
 			.await
 			.context("bind tcp socket")?;
 

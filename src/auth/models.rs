@@ -323,7 +323,7 @@ impl SteamUser {
 		let json = serde_json::to_string(self).expect("this is valid json");
 
 		Cookie::build((Self::COOKIE_NAME, json))
-			.domain(&config.domain)
+			.domain(config.cookie_domain.clone())
 			.path("/")
 			.secure(cfg!(feature = "production"))
 			.http_only(false)

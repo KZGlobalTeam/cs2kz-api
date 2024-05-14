@@ -137,7 +137,7 @@ impl Session {
 		debug!(%session_id, %user_id, "created session");
 
 		let cookie = Cookie::build((Self::COOKIE_NAME, session_id.to_string()))
-			.domain(&config.domain)
+			.domain(config.cookie_domain.clone())
 			.path("/")
 			.secure(cfg!(feature = "production"))
 			.http_only(true)

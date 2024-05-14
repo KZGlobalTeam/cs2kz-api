@@ -1,103 +1,115 @@
-//! The gamemodes available in CS2KZ.
+//! Jumpstat types.
 
 use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
 use thiserror::Error;
 
-/// All official gamemodes included in the CS2KZ plugin.
+/// All the different kinds of jumpstats.
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
-#[cfg_attr(feature = "serde", serde(rename_all = "lowercase"))]
-pub enum Mode {
-	/// The VNL gamemode.
-	Vanilla = 1,
+#[non_exhaustive]
+pub enum JumpType {
+	/// LJ
+	LongJump = 1,
 
-	/// The CKZ gamemode.
-	Classic = 2,
+	/// BH
+	Bhop = 2,
+
+	/// MBH
+	MultiBhop = 3,
+
+	/// WJ
+	WeirdJump = 4,
+
+	/// LAJ
+	LadderJump = 5,
+
+	/// LAH
+	Ladderhop = 6,
+
+	/// JB
+	Jumpbug = 7,
 }
 
-impl Mode {
-	/// Checks whether `self` is of the [Vanilla] variant.
-	///
-	/// [Vanilla]: Self::Vanilla
-	pub const fn is_vanilla(&self) -> bool {
-		matches!(*self, Self::Vanilla)
-	}
-
-	/// Checks whether `self` is of the [Classic] variant.
-	///
-	/// [Classic]: Self::Classic
-	pub const fn is_classic(&self) -> bool {
-		matches!(*self, Self::Classic)
-	}
-
-	/// Returns a string representation of this [Mode], as accepted by the API.
+impl JumpType {
+	/// Returns a string representation of this [JumpType], as accepted by the API.
 	pub const fn as_str(&self) -> &'static str {
 		match *self {
-			Self::Vanilla => "vanilla",
-			Self::Classic => "classic",
-		}
-	}
-
-	/// Returns a short string representation of this [Mode], as displayed in-game.
-	pub const fn as_str_short(&self) -> &'static str {
-		match *self {
-			Self::Vanilla => "VNL",
-			Self::Classic => "CKZ",
+			Self::LongJump => "longjump",
+			Self::Bhop => "bhop",
+			Self::MultiBhop => "multi_bhop",
+			Self::WeirdJump => "weird_jump",
+			Self::LadderJump => "ladder_jump",
+			Self::Ladderhop => "ladder_hop",
+			Self::Jumpbug => "jump_bug",
 		}
 	}
 }
 
-impl Display for Mode {
+impl Display for JumpType {
 	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 		f.write_str(match *self {
-			Self::Vanilla => "Vanilla",
-			Self::Classic => "Classic",
+			Self::LongJump => "LongJump",
+			Self::Bhop => "Bhop",
+			Self::MultiBhop => "MultiBhop",
+			Self::WeirdJump => "WeirdJump",
+			Self::LadderJump => "LadderJump",
+			Self::Ladderhop => "Ladderhop",
+			Self::Jumpbug => "Jumpbug",
 		})
 	}
 }
 
-/// Error for parsing a string into a [`Mode`].
+/// Error for parsing a string into a [`JumpType`].
 #[derive(Debug, Clone, Error)]
-#[error("unrecognized mode `{0}`")]
-pub struct UnknownMode(pub String);
+#[error("unrecognized jump type `{0}`")]
+pub struct UnknownJumpType(pub String);
 
-impl FromStr for Mode {
-	type Err = UnknownMode;
+impl FromStr for JumpType {
+	type Err = UnknownJumpType;
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
 		let s = s.to_lowercase();
 
 		match s.as_str() {
-			"vnl" | "vanilla" => Ok(Self::Vanilla),
-			"ckz" | "classic" => Ok(Self::Classic),
-			_ => Err(UnknownMode(s)),
+			"lj" | "longjump" => Ok(Self::LongJump),
+			"bh" | "bhop" => Ok(Self::Bhop),
+			"mbh" | "multi_bhop" => Ok(Self::MultiBhop),
+			"wj" | "weird_jump" => Ok(Self::WeirdJump),
+			"laj" | "ladder_jump" => Ok(Self::LadderJump),
+			"lah" | "ladder_hop" => Ok(Self::Ladderhop),
+			"jb" | "jump_bug" => Ok(Self::Jumpbug),
+			_ => Err(UnknownJumpType(s)),
 		}
 	}
 }
 
-/// Error for converting a mode ID to a [`Mode`].
+/// Error for parsing an integer into a [`JumpType`].
 #[derive(Debug, Clone, Copy, Error)]
-#[error("invalid mode ID `{0}`")]
-pub struct InvalidModeID(pub u8);
+#[error("invalid jump type `{0}`")]
+pub struct InvalidJumpType(pub u8);
 
-impl TryFrom<u8> for Mode {
-	type Error = InvalidModeID;
+impl TryFrom<u8> for JumpType {
+	type Error = InvalidJumpType;
 
 	fn try_from(value: u8) -> Result<Self, Self::Error> {
 		match value {
-			1 => Ok(Self::Vanilla),
-			2 => Ok(Self::Classic),
-			invalid => Err(InvalidModeID(invalid)),
+			1 => Ok(Self::LongJump),
+			2 => Ok(Self::Bhop),
+			3 => Ok(Self::MultiBhop),
+			4 => Ok(Self::WeirdJump),
+			5 => Ok(Self::LadderJump),
+			6 => Ok(Self::Ladderhop),
+			7 => Ok(Self::Jumpbug),
+			invalid => Err(InvalidJumpType(invalid)),
 		}
 	}
 }
 
-impl From<Mode> for u8 {
+impl From<JumpType> for u8 {
 	#[allow(clippy::as_conversions)]
-	fn from(value: Mode) -> Self {
+	fn from(value: JumpType) -> Self {
 		value as u8
 	}
 }
@@ -105,11 +117,20 @@ impl From<Mode> for u8 {
 /// Method and Trait implementations when depending on [`serde`].
 #[cfg(feature = "serde")]
 mod serde_impls {
-	use serde::{de, Deserialize, Deserializer};
+	use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-	use super::Mode;
+	use super::JumpType;
 
-	impl<'de> Deserialize<'de> for Mode {
+	impl Serialize for JumpType {
+		fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+		where
+			S: Serializer,
+		{
+			self.as_str().serialize(serializer)
+		}
+	}
+
+	impl<'de> Deserialize<'de> for JumpType {
 		fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 		where
 			D: Deserializer<'de>,
@@ -138,9 +159,9 @@ mod sqlx_impls {
 	use sqlx::error::BoxDynError;
 	use sqlx::{Database, Decode, Encode, Type};
 
-	use super::Mode;
+	use super::JumpType;
 
-	impl<DB> Type<DB> for Mode
+	impl<DB> Type<DB> for JumpType
 	where
 		DB: Database,
 		u8: Type<DB>,
@@ -150,7 +171,7 @@ mod sqlx_impls {
 		}
 	}
 
-	impl<'q, DB> Encode<'q, DB> for Mode
+	impl<'q, DB> Encode<'q, DB> for JumpType
 	where
 		DB: Database,
 		u8: Encode<'q, DB>,
@@ -160,7 +181,7 @@ mod sqlx_impls {
 		}
 	}
 
-	impl<'r, DB> Decode<'r, DB> for Mode
+	impl<'r, DB> Decode<'r, DB> for JumpType
 	where
 		DB: Database,
 		u8: Decode<'r, DB>,
@@ -181,22 +202,29 @@ mod utoipa_impls {
 	use utoipa::openapi::{ObjectBuilder, RefOr, Schema, SchemaType};
 	use utoipa::{IntoParams, ToSchema};
 
-	use crate::Mode;
+	use crate::JumpType;
 
-	impl<'s> ToSchema<'s> for Mode {
+	impl<'s> ToSchema<'s> for JumpType {
 		fn schema() -> (&'s str, RefOr<Schema>) {
 			(
-				"Mode",
+				"JumpType",
 				Schema::AnyOf(
 					AnyOfBuilder::new()
 						.nullable(false)
-						.example(Some("classic".into()))
+						.example(Some("longjump".into()))
 						.item(Schema::Object(
 							ObjectBuilder::new()
 								.title(Some("Name"))
 								.schema_type(SchemaType::String)
-								.example(Some("classic".into()))
-								.enum_values(Some(["vanilla", "classic"]))
+								.example(Some("longjump".into()))
+								.enum_values(Some([
+									"longjump",
+									"single_bhop",
+									"multi_bhop",
+									"weirdjump",
+									"ladderjump",
+									"ladderhop",
+								]))
 								.build(),
 						))
 						.item(Schema::Object(
@@ -204,7 +232,7 @@ mod utoipa_impls {
 								.title(Some("ID"))
 								.schema_type(SchemaType::Integer)
 								.example(Some(1.into()))
-								.enum_values(Some(1..=2))
+								.enum_values(Some(1..=6))
 								.build(),
 						))
 						.build(),
@@ -214,11 +242,11 @@ mod utoipa_impls {
 		}
 	}
 
-	impl IntoParams for Mode {
+	impl IntoParams for JumpType {
 		fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter> {
 			vec![
 				ParameterBuilder::new()
-					.name("mode")
+					.name("jump_type")
 					.parameter_in(parameter_in_provider().unwrap_or_default())
 					.schema(Some(Self::schema().1))
 					.build(),

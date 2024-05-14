@@ -162,7 +162,7 @@ mod tests {
 
 		assert_eq!(response.status(), 401);
 
-		let alphakeks = SteamID::from_u64(76561198282622073_u64)?;
+		let alphakeks = SteamID::from_u64(76561198282622073_u64).unwrap();
 		let session = ctx.auth_session(alphakeks).await?;
 		let session_cookie = Cookie::from(session).encoded().to_string();
 

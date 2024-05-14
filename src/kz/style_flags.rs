@@ -10,15 +10,7 @@ crate::bitflags::bitflags! {
 	/// See [`cs2kz::Style`].
 	pub StyleFlags as u32 {
 		NORMAL = { 1 << 0, "normal" };
-		BACKWARDS = { 1 << 1, "backwards" };
-		SIDEWAYS = { 1 << 2, "sideways" };
-		HALF_SIDEWAYS = { 1 << 3, "half_sideways" };
-		W_ONLY = { 1 << 4, "w_only" };
-		LOW_GRAVITY = { 1 << 5, "low_gravity" };
-		HIGH_GRAVITY = { 1 << 6, "high_gravity" };
-		NO_PRESTRAFE = { 1 << 7, "no_prestrafe" };
-		NEGEV = { 1 << 8, "negev" };
-		ICE = { 1 << 9, "ice" };
+		BACKWARDS = { 1 << 1, "auto_bhop" };
 	}
 
 	iter: StyleFlagsIter

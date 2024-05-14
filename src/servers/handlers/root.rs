@@ -214,7 +214,7 @@ mod tests {
 
 	#[crate::test(fixtures = ["alphakeks-server-role"])]
 	async fn approve_server(ctx: &Context) {
-		let alphakeks = SteamID::from_u64(76561198282622073_u64)?;
+		let alphakeks = SteamID::from_u64(76561198282622073_u64).unwrap();
 		let server = NewServer {
 			name: String::from("very cool server"),
 			ip_address: SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 69),

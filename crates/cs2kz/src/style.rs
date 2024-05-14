@@ -1,247 +1,138 @@
-//! An enum for the styles available in CS2KZ.
+//! The styles available in CS2KZ.
 
-use std::fmt::{self, Display};
+use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
-use crate::{Error, Result};
+use thiserror::Error;
 
-/// The current gameplay styles in CS2KZ.
+/// All official gameplay styles included in the CS2KZ plugin.
 #[repr(u8)]
+#[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Style {
-	/// The default style
+	/// The "normal" style (default).
 	#[default]
 	Normal = 1,
 
-	/// You can only move backwards
-	Backwards = 2,
-
-	/// You can only move sideways
-	Sideways = 3,
-
-	/// You can only move half-sideways
-	HalfSideways = 4,
-
-	/// You can only use +forward
-	WOnly = 5,
-
-	/// Low gravity
-	LowGravity = 6,
-
-	/// High gravity
-	HighGravity = 7,
-
-	/// No prestrafing allowed
-	NoPrestrafe = 8,
-
-	/// You have to hold a negev (lower running speed)
-	Negev = 9,
-
-	/// The floor is ice
-	Ice = 10,
+	/// Perfect automatic bunnyhopping.
+	AutoBhop = 2,
 }
 
 impl Style {
-	/// A string format compatible with the API.
-	#[inline]
-	pub const fn api(&self) -> &'static str {
-		match self {
+	/// Checks whether `self` is the default [Normal] style.
+	///
+	/// [Normal]: Self::Normal
+	pub const fn is_normal(&self) -> bool {
+		matches!(*self, Self::Normal)
+	}
+
+	/// Returns a string representation of this [Style], as accepted by the API.
+	pub const fn as_str(&self) -> &'static str {
+		match *self {
 			Self::Normal => "normal",
-			Self::Backwards => "backwards",
-			Self::Sideways => "sideways",
-			Self::HalfSideways => "half_sideways",
-			Self::WOnly => "w_only",
-			Self::LowGravity => "low_gravity",
-			Self::HighGravity => "high_gravity",
-			Self::NoPrestrafe => "no_prestrafe",
-			Self::Negev => "negev",
-			Self::Ice => "ice",
+			Self::AutoBhop => "auto_bhop",
+		}
+	}
+
+	/// Returns a short string representation of this [Style], as displayed in-game.
+	pub const fn as_str_short(&self) -> &'static str {
+		match *self {
+			Self::Normal => "NRM",
+			Self::AutoBhop => "ABH",
 		}
 	}
 }
 
 impl Display for Style {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.write_str(match self {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		f.write_str(match *self {
 			Self::Normal => "Normal",
-			Self::Backwards => "Backwards",
-			Self::Sideways => "Sideways",
-			Self::HalfSideways => "Half Sideways",
-			Self::WOnly => "W Only",
-			Self::LowGravity => "Low Gravity",
-			Self::HighGravity => "High Gravity",
-			Self::NoPrestrafe => "No Prestrafe",
-			Self::Negev => "Negev",
-			Self::Ice => "Ice",
+			Self::AutoBhop => "Auto Bhop",
 		})
 	}
 }
 
-impl From<Style> for u8 {
-	fn from(style: Style) -> Self {
-		style as u8
-	}
-}
-
-impl TryFrom<u8> for Style {
-	type Error = Error;
-
-	fn try_from(value: u8) -> Result<Self> {
-		match value {
-			1 => Ok(Self::Normal),
-			2 => Ok(Self::Backwards),
-			3 => Ok(Self::Sideways),
-			4 => Ok(Self::HalfSideways),
-			5 => Ok(Self::WOnly),
-			6 => Ok(Self::LowGravity),
-			7 => Ok(Self::HighGravity),
-			8 => Ok(Self::NoPrestrafe),
-			9 => Ok(Self::Negev),
-			10 => Ok(Self::Ice),
-			_ => Err(Error::InvalidStyle),
-		}
-	}
-}
+/// Error for parsing a string into a [`Style`].
+#[derive(Debug, Clone, Error)]
+#[error("unrecognized style `{0}`")]
+pub struct UnknownStyle(pub String);
 
 impl FromStr for Style {
-	type Err = Error;
+	type Err = UnknownStyle;
 
-	fn from_str(value: &str) -> Result<Self> {
-		if let Ok(value) = value.parse::<u8>() {
-			return Self::try_from(value);
-		}
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		let s = s.to_lowercase();
 
-		match value {
-			"normal" => Ok(Self::Normal),
-			"backwards" => Ok(Self::Backwards),
-			"sideways" => Ok(Self::Sideways),
-			"half_sideways" => Ok(Self::HalfSideways),
-			"w_only" => Ok(Self::WOnly),
-			"low_gravity" => Ok(Self::LowGravity),
-			"high_gravity" => Ok(Self::HighGravity),
-			"no_prestrafe" => Ok(Self::NoPrestrafe),
-			"negev" => Ok(Self::Negev),
-			"ice" => Ok(Self::Ice),
-			_ => Err(Error::InvalidStyle),
+		match s.as_str() {
+			"nrm" | "normal" => Ok(Self::Normal),
+			"abh" | "auto_bhop" | "auto-bhop" => Ok(Self::AutoBhop),
+			_ => Err(UnknownStyle(s)),
 		}
 	}
 }
 
+/// Error for converting a style ID into a [`Style`].
+#[derive(Debug, Clone, Copy, Error)]
+#[error("invalid style ID `{0}`")]
+pub struct InvalidStyleID(pub u8);
+
+impl TryFrom<u8> for Style {
+	type Error = InvalidStyleID;
+
+	fn try_from(value: u8) -> Result<Self, Self::Error> {
+		match value {
+			1 => Ok(Self::Normal),
+			2 => Ok(Self::AutoBhop),
+			invalid => Err(InvalidStyleID(invalid)),
+		}
+	}
+}
+
+impl From<Style> for u8 {
+	#[allow(clippy::as_conversions)]
+	fn from(value: Style) -> Self {
+		value as u8
+	}
+}
+
+/// Method and Trait implementations when depending on [`serde`].
 #[cfg(feature = "serde")]
 mod serde_impls {
-	mod ser {
-		use serde::{Serialize, Serializer};
+	use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-		use crate::Style;
+	use super::Style;
 
-		impl Style {
-			/// Serialize in a API compatible format.
-			pub fn serialize_api<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-			where
-				S: Serializer,
-			{
-				self.api().serialize(serializer)
-			}
-
-			/// Serialize this style's ID.
-			pub fn serialize_id<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-			where
-				S: Serializer,
-			{
-				(*self as u8).serialize(serializer)
-			}
-		}
-
-		impl Serialize for Style {
-			/// Uses the [`Style::serialize_api()`] method.
-			///
-			/// If you need a different format, consider using
-			/// `#[serde(serialize_with = "…")]` with one of the other available
-			/// `serialize_*` methods.
-			fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-			where
-				S: Serializer,
-			{
-				self.serialize_api(serializer)
-			}
+	impl Serialize for Style {
+		fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+		where
+			S: Serializer,
+		{
+			self.as_str().serialize(serializer)
 		}
 	}
 
-	mod de {
-		use serde::de::{Error, Unexpected as U};
-		use serde::{Deserialize, Deserializer};
-
-		use crate::Style;
-
-		impl Style {
-			/// Deserializes the value returned by [`Style::api()`].
-			pub fn deserialize_api<'de, D>(deserializer: D) -> Result<Self, D::Error>
-			where
-				D: Deserializer<'de>,
-			{
-				match <&'de str>::deserialize(deserializer)? {
-					"normal" => Ok(Self::Normal),
-					"backwards" => Ok(Self::Backwards),
-					"sideways" => Ok(Self::Sideways),
-					"half_sideways" => Ok(Self::HalfSideways),
-					"w_only" => Ok(Self::WOnly),
-					"low_gravity" => Ok(Self::LowGravity),
-					"high_gravity" => Ok(Self::HighGravity),
-					"no_prestrafe" => Ok(Self::NoPrestrafe),
-					"negev" => Ok(Self::Negev),
-					"ice" => Ok(Self::Ice),
-					value => Err(Error::invalid_value(U::Str(value), &"style")),
-				}
+	impl<'de> Deserialize<'de> for Style {
+		fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+		where
+			D: Deserializer<'de>,
+		{
+			#[derive(Deserialize)]
+			#[serde(untagged)]
+			#[allow(clippy::missing_docs_in_private_items)]
+			enum Helper {
+				U8(u8),
+				Str(String),
 			}
 
-			/// Deserializes a style ID.
-			pub fn deserialize_id<'de, D>(deserializer: D) -> Result<Self, D::Error>
-			where
-				D: Deserializer<'de>,
-			{
-				match u8::deserialize(deserializer)? {
-					1 => Ok(Self::Normal),
-					2 => Ok(Self::Backwards),
-					3 => Ok(Self::Sideways),
-					4 => Ok(Self::HalfSideways),
-					5 => Ok(Self::WOnly),
-					6 => Ok(Self::LowGravity),
-					7 => Ok(Self::HighGravity),
-					8 => Ok(Self::NoPrestrafe),
-					9 => Ok(Self::Negev),
-					10 => Ok(Self::Ice),
-					value => Err(Error::invalid_value(U::Unsigned(value as u64), &"style ID")),
-				}
-			}
-		}
-
-		impl<'de> Deserialize<'de> for Style {
-			/// Best-effort attempt at deserializing a [`Style`] of unknown format.
-			///
-			/// If you know / expect the specific format, consider using
-			/// `#[serde(deserialize_with = "…")]` with one of the `deserialize_*`
-			/// methods instead.
-			fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-			where
-				D: Deserializer<'de>,
-			{
-				#[derive(Deserialize)]
-				#[serde(untagged)]
-				enum Helper<'a> {
-					U8(u8),
-					Str(&'a str),
-				}
-
-				match <Helper<'de>>::deserialize(deserializer)? {
-					Helper::U8(value) => value.try_into(),
-					Helper::Str(value) => value.parse(),
-				}
-				.map_err(Error::custom)
-			}
+			Helper::deserialize(deserializer).and_then(|value| match value {
+				Helper::U8(int) => Self::try_from(int).map_err(de::Error::custom),
+				Helper::Str(str) => str.parse().map_err(de::Error::custom),
+			})
 		}
 	}
 }
 
+/// Method and Trait implementations when depending on [`sqlx`].
 #[cfg(feature = "sqlx")]
 mod sqlx_impls {
 	use sqlx::database::{HasArguments, HasValueRef};
@@ -249,7 +140,7 @@ mod sqlx_impls {
 	use sqlx::error::BoxDynError;
 	use sqlx::{Database, Decode, Encode, Type};
 
-	use crate::Style;
+	use super::Style;
 
 	impl<DB> Type<DB> for Style
 	where
@@ -267,7 +158,7 @@ mod sqlx_impls {
 		u8: Encode<'q, DB>,
 	{
 		fn encode_by_ref(&self, buf: &mut <DB as HasArguments<'q>>::ArgumentBuffer) -> IsNull {
-			(*self as u8).encode_by_ref(buf)
+			<u8 as Encode<'q, DB>>::encode_by_ref(&u8::from(*self), buf)
 		}
 	}
 
@@ -277,11 +168,14 @@ mod sqlx_impls {
 		u8: Decode<'r, DB>,
 	{
 		fn decode(value: <DB as HasValueRef<'r>>::ValueRef) -> Result<Self, BoxDynError> {
-			u8::decode(value).map(Self::try_from)?.map_err(Into::into)
+			<u8 as Decode<'r, DB>>::decode(value)
+				.map(Self::try_from)?
+				.map_err(Into::into)
 		}
 	}
 }
 
+/// Method and Trait implementations when depending on [`utoipa`].
 #[cfg(feature = "utoipa")]
 mod utoipa_impls {
 	use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};
@@ -304,18 +198,7 @@ mod utoipa_impls {
 								.title(Some("Name"))
 								.schema_type(SchemaType::String)
 								.example(Some("normal".into()))
-								.enum_values(Some([
-									"normal",
-									"backwards",
-									"sideways",
-									"half_sideways",
-									"w_only",
-									"low_gravity",
-									"high_gravity",
-									"no_prestrafe",
-									"negev",
-									"ice",
-								]))
+								.enum_values(Some(["normal", "auto_bhop"]))
 								.build(),
 						))
 						.item(Schema::Object(
@@ -323,7 +206,7 @@ mod utoipa_impls {
 								.title(Some("ID"))
 								.schema_type(SchemaType::Integer)
 								.example(Some(1.into()))
-								.enum_values(Some(1..=10))
+								.enum_values(Some(1..=2))
 								.build(),
 						))
 						.build(),

@@ -1,17 +1,11 @@
-//! Difficulty ratings for CS2KZ courses.
+//! Course difficulty ratings for CS2KZ.
 
-use std::fmt::{self, Display};
+use std::fmt::{self, Display, Formatter};
 use std::str::FromStr;
 
-use crate::{Error, Result};
+use thiserror::Error;
 
-/// The 10 difficulty tiers for KZ courses.
-///
-/// Only the first 8 are considered "humanly possible". [Unfeasible] is technically possible,
-/// but not realistically. [Impossible] is _actually_ impossible.
-///
-/// [Unfeasible]: type@Tier::Unfeasible
-/// [Impossible]: type@Tier::Impossible
+/// All the different course difficulties.
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Tier {
@@ -57,10 +51,9 @@ pub enum Tier {
 }
 
 impl Tier {
-	/// A string format compatible with the API.
-	#[inline]
-	pub const fn api(&self) -> &'static str {
-		match self {
+	/// Returns a string representation of this [Tier], as accepted by the API.
+	pub const fn as_str(&self) -> &'static str {
+		match *self {
 			Self::VeryEasy => "very_easy",
 			Self::Easy => "easy",
 			Self::Medium => "medium",
@@ -76,8 +69,8 @@ impl Tier {
 }
 
 impl Display for Tier {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.write_str(match self {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		f.write_str(match *self {
 			Self::VeryEasy => "Very Easy",
 			Self::Easy => "Easy",
 			Self::Medium => "Medium",
@@ -92,16 +85,42 @@ impl Display for Tier {
 	}
 }
 
-impl From<Tier> for u8 {
-	fn from(tier: Tier) -> Self {
-		tier as u8
+/// Error for parsing a string into a [`Tier`].
+#[derive(Debug, Clone, Error)]
+#[error("unrecognized tier `{0}`")]
+pub struct UnknownTier(pub String);
+
+impl FromStr for Tier {
+	type Err = UnknownTier;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		let s = s.to_lowercase();
+
+		match s.as_str() {
+			"very_easy" | "very easy" => Ok(Self::VeryEasy),
+			"easy" => Ok(Self::Easy),
+			"medium" => Ok(Self::Medium),
+			"advanced" => Ok(Self::Advanced),
+			"hard" => Ok(Self::Hard),
+			"very_hard" | "very hard" => Ok(Self::VeryHard),
+			"extreme" => Ok(Self::Extreme),
+			"death" => Ok(Self::Death),
+			"unfeasible" => Ok(Self::Unfeasible),
+			"impossible" => Ok(Self::Impossible),
+			_ => Err(UnknownTier(s)),
+		}
 	}
 }
 
-impl TryFrom<u8> for Tier {
-	type Error = Error;
+/// Error for parsing an integer into a [`Tier`].
+#[derive(Debug, Clone, Copy, Error)]
+#[error("invalid tier `{0}`")]
+pub struct InvalidTier(pub u8);
 
-	fn try_from(value: u8) -> Result<Self> {
+impl TryFrom<u8> for Tier {
+	type Error = InvalidTier;
+
+	fn try_from(value: u8) -> Result<Self, Self::Error> {
 		match value {
 			1 => Ok(Self::VeryEasy),
 			2 => Ok(Self::Easy),
@@ -113,148 +132,56 @@ impl TryFrom<u8> for Tier {
 			8 => Ok(Self::Death),
 			9 => Ok(Self::Unfeasible),
 			10 => Ok(Self::Impossible),
-			_ => Err(Error::InvalidTier),
+			invalid => Err(InvalidTier(invalid)),
 		}
 	}
 }
 
-impl FromStr for Tier {
-	type Err = Error;
-
-	fn from_str(value: &str) -> Result<Self> {
-		if let Ok(value) = value.parse::<u8>() {
-			return Self::try_from(value);
-		}
-
-		match value {
-			"very easy" | "very_easy" => Ok(Self::VeryEasy),
-			"easy" => Ok(Self::Easy),
-			"medium" => Ok(Self::Medium),
-			"advanced" => Ok(Self::Advanced),
-			"hard" => Ok(Self::Hard),
-			"very hard" | "very_hard" => Ok(Self::VeryHard),
-			"extreme" => Ok(Self::Extreme),
-			"death" => Ok(Self::Death),
-			"unfeasible" => Ok(Self::Unfeasible),
-			"impossible" => Ok(Self::Impossible),
-			_ => Err(Error::InvalidTier),
-		}
+impl From<Tier> for u8 {
+	#[allow(clippy::as_conversions)]
+	fn from(value: Tier) -> Self {
+		value as u8
 	}
 }
 
+/// Method and Trait implementations when depending on [`serde`].
 #[cfg(feature = "serde")]
 mod serde_impls {
-	mod ser {
-		use serde::{Serialize, Serializer};
+	use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
-		use crate::Tier;
+	use super::Tier;
 
-		impl Tier {
-			/// Serialize in a API compatible format.
-			pub fn serialize_api<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-			where
-				S: Serializer,
-			{
-				self.api().serialize(serializer)
-			}
-
-			/// Serialize as an integer.
-			pub fn serialize_int<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-			where
-				S: Serializer,
-			{
-				(*self as u8).serialize(serializer)
-			}
-		}
-
-		impl Serialize for Tier {
-			fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-			where
-				S: Serializer,
-			{
-				self.serialize_api(serializer)
-			}
+	impl Serialize for Tier {
+		fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+		where
+			S: Serializer,
+		{
+			self.as_str().serialize(serializer)
 		}
 	}
 
-	mod de {
-		use serde::de::{Error, Unexpected as U};
-		use serde::{Deserialize, Deserializer};
-
-		use crate::Tier;
-
-		impl Tier {
-			/// Deserializes the value returned by [`Tier::api()`].
-			pub fn deserialize_api<'de, D>(deserializer: D) -> Result<Self, D::Error>
-			where
-				D: Deserializer<'de>,
-			{
-				match <&'de str>::deserialize(deserializer)? {
-					"very easy" | "very_easy" => Ok(Self::VeryEasy),
-					"easy" => Ok(Self::Easy),
-					"medium" => Ok(Self::Medium),
-					"advanced" => Ok(Self::Advanced),
-					"hard" => Ok(Self::Hard),
-					"very hard" | "very_hard" => Ok(Self::VeryHard),
-					"extreme" => Ok(Self::Extreme),
-					"death" => Ok(Self::Death),
-					"unfeasible" => Ok(Self::Unfeasible),
-					"impossible" => Ok(Self::Impossible),
-					value => Err(Error::invalid_value(U::Str(value), &"tier")),
-				}
+	impl<'de> Deserialize<'de> for Tier {
+		fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+		where
+			D: Deserializer<'de>,
+		{
+			#[derive(Deserialize)]
+			#[serde(untagged)]
+			#[allow(clippy::missing_docs_in_private_items)]
+			enum Helper {
+				U8(u8),
+				Str(String),
 			}
 
-			/// Deserializes from an integer.
-			pub fn deserialize_int<'de, D>(deserializer: D) -> Result<Self, D::Error>
-			where
-				D: Deserializer<'de>,
-			{
-				match <u8>::deserialize(deserializer)? {
-					1 => Ok(Self::VeryEasy),
-					2 => Ok(Self::Easy),
-					3 => Ok(Self::Medium),
-					4 => Ok(Self::Advanced),
-					5 => Ok(Self::Hard),
-					6 => Ok(Self::VeryHard),
-					7 => Ok(Self::Extreme),
-					8 => Ok(Self::Death),
-					9 => Ok(Self::Unfeasible),
-					10 => Ok(Self::Impossible),
-					value => Err(Error::invalid_value(
-						U::Unsigned(value as u64),
-						&"value between 1 and 10",
-					)),
-				}
-			}
-		}
-
-		impl<'de> Deserialize<'de> for Tier {
-			/// Best-effort attempt at deserializing a [`Tier`] of unknown format.
-			///
-			/// If you know / expect the specific format, consider using
-			/// `#[serde(deserialize_with = "…")]` with one of the `deserialize_*`
-			/// methods instead.
-			fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-			where
-				D: Deserializer<'de>,
-			{
-				#[derive(Deserialize)]
-				#[serde(untagged)]
-				enum Helper<'a> {
-					U8(u8),
-					Str(&'a str),
-				}
-
-				match <Helper<'de>>::deserialize(deserializer)? {
-					Helper::U8(value) => value.try_into(),
-					Helper::Str(value) => value.parse(),
-				}
-				.map_err(Error::custom)
-			}
+			Helper::deserialize(deserializer).and_then(|value| match value {
+				Helper::U8(int) => Self::try_from(int).map_err(de::Error::custom),
+				Helper::Str(str) => str.parse().map_err(de::Error::custom),
+			})
 		}
 	}
 }
 
+/// Method and Trait implementations when depending on [`sqlx`].
 #[cfg(feature = "sqlx")]
 mod sqlx_impls {
 	use sqlx::database::{HasArguments, HasValueRef};
@@ -262,7 +189,7 @@ mod sqlx_impls {
 	use sqlx::error::BoxDynError;
 	use sqlx::{Database, Decode, Encode, Type};
 
-	use crate::Tier;
+	use super::Tier;
 
 	impl<DB> Type<DB> for Tier
 	where
@@ -280,7 +207,7 @@ mod sqlx_impls {
 		u8: Encode<'q, DB>,
 	{
 		fn encode_by_ref(&self, buf: &mut <DB as HasArguments<'q>>::ArgumentBuffer) -> IsNull {
-			(*self as u8).encode_by_ref(buf)
+			<u8 as Encode<'q, DB>>::encode_by_ref(&u8::from(*self), buf)
 		}
 	}
 
@@ -290,11 +217,14 @@ mod sqlx_impls {
 		u8: Decode<'r, DB>,
 	{
 		fn decode(value: <DB as HasValueRef<'r>>::ValueRef) -> Result<Self, BoxDynError> {
-			u8::decode(value).map(Self::try_from)?.map_err(Into::into)
+			<u8 as Decode<'r, DB>>::decode(value)
+				.map(Self::try_from)?
+				.map_err(Into::into)
 		}
 	}
 }
 
+/// Method and Trait implementations when depending on [`utoipa`].
 #[cfg(feature = "utoipa")]
 mod utoipa_impls {
 	use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};

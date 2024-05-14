@@ -165,7 +165,7 @@ mod tests {
 	async fn register_player(ctx: &Context) {
 		let player = NewPlayer {
 			name: String::from("AlphaKeks"),
-			steam_id: SteamID::from_u64(76561198282622073_u64)?,
+			steam_id: SteamID::from_u64(76561198282622073_u64).unwrap(),
 			ip_address: Ipv4Addr::new(127, 0, 0, 1),
 		};
 

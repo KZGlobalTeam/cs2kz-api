@@ -102,23 +102,30 @@ fn expand(TestArgs { queries }: TestArgs, test_function: ItemFn) -> syn::Result<
 			let test_id = ::uuid::Uuid::new_v4();
 			let mut config = crate::Config::new()?;
 
-			config.port = <::rand::rngs::ThreadRng as ::rand::Rng>::gen_range(&mut ::rand::thread_rng(), 5000_u16..50000_u16);
+			let port = <::rand::rngs::ThreadRng as ::rand::Rng>::gen_range(&mut ::rand::thread_rng(), 5000_u16..50000_u16);
+
+			config.addr.set_port(port);
 			config.public_url
-				.set_port(Some(config.port))
+				.set_port(Some(port))
 				.ok()
 				.context("tests must use a custom port")?;
 
 			let http_client = ::reqwest::Client::new();
+			let old_user = config.database_url.username().to_owned();
 
-			::std::env::set_var("DATABASE_URL", config.database_admin_url.as_str());
+			config.database_url.set_username("root").unwrap();
 
-			let database_url = format!("{}-test-{}", config.database_admin_url, test_id);
+			::std::env::set_var("DATABASE_URL", config.database_url.as_str());
+
+			let database_url = format!("{}-test-{}", config.database_url, test_id);
 
 			config.database_url = database_url.parse()?;
 
 			::tracing::debug!("creating database... ({test_id})");
 			::sqlx::MySql::drop_database(&database_url).await?;
 			::sqlx::MySql::create_database(&database_url).await?;
+
+			config.database_url.set_username(&old_user).unwrap();
 
 			let database = ::sqlx::Pool::<::sqlx::MySql>::connect(&database_url).await?;
 
