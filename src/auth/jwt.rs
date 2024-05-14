@@ -45,7 +45,7 @@ impl<T> Jwt<T> {
 	pub fn new(payload: T, expires_after: Duration) -> Self {
 		Self {
 			payload,
-			exp: jsonwebtoken::get_current_timestamp() + expires_after.as_secs(),
+			exp: jwt::get_current_timestamp() + expires_after.as_secs(),
 		}
 	}
 
@@ -58,7 +58,7 @@ impl<T> Jwt<T> {
 
 	/// Checks whether this JWT has already expired.
 	pub fn has_expired(&self) -> bool {
-		self.exp < jsonwebtoken::get_current_timestamp()
+		self.exp < jwt::get_current_timestamp()
 	}
 
 	/// Returns the wrapped payload.

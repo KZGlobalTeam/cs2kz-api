@@ -282,9 +282,9 @@ impl From<sqlx::Error> for Error {
 	}
 }
 
-impl From<jsonwebtoken::errors::Error> for Error {
+impl From<jwt::errors::Error> for Error {
 	#[track_caller]
-	fn from(error: jsonwebtoken::errors::Error) -> Self {
+	fn from(error: jwt::errors::Error) -> Self {
 		Self::new(StatusCode::INTERNAL_SERVER_ERROR)
 			.with_loc(|location| {
 				error!(target: "audit_log", %error, %location, "failed to (de)serialize jwt");

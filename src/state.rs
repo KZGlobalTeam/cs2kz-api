@@ -103,25 +103,25 @@ impl FromRequestParts<&'static State> for &'static State {
 #[allow(missing_debug_implementations)]
 struct JwtState {
 	/// Header data to use when signing JWTs.
-	jwt_header: jsonwebtoken::Header,
+	jwt_header: jwt::Header,
 
 	/// Secret key to use when signing JWTs.
-	jwt_encoding_key: jsonwebtoken::EncodingKey,
+	jwt_encoding_key: jwt::EncodingKey,
 
 	/// Secret key to use when validating JWTs.
-	jwt_decoding_key: jsonwebtoken::DecodingKey,
+	jwt_decoding_key: jwt::DecodingKey,
 
 	/// Extra validation steps when validating JWTs.
-	jwt_validation: jsonwebtoken::Validation,
+	jwt_validation: jwt::Validation,
 }
 
 impl JwtState {
 	/// Creates a new [`JwtState`].
 	fn new(config: &crate::Config) -> Result<Self> {
-		let jwt_header = jsonwebtoken::Header::default();
-		let jwt_encoding_key = jsonwebtoken::EncodingKey::from_base64_secret(&config.jwt_secret)?;
-		let jwt_decoding_key = jsonwebtoken::DecodingKey::from_base64_secret(&config.jwt_secret)?;
-		let jwt_validation = jsonwebtoken::Validation::default();
+		let jwt_header = jwt::Header::default();
+		let jwt_encoding_key = jwt::EncodingKey::from_base64_secret(&config.jwt_secret)?;
+		let jwt_decoding_key = jwt::DecodingKey::from_base64_secret(&config.jwt_secret)?;
+		let jwt_validation = jwt::Validation::default();
 
 		Ok(Self {
 			jwt_header,
@@ -136,7 +136,7 @@ impl JwtState {
 	where
 		T: Serialize,
 	{
-		jsonwebtoken::encode(
+		jwt::encode(
 			&self.jwt_header,
 			&Jwt::new(payload, expires_after),
 			&self.jwt_encoding_key,
@@ -149,7 +149,7 @@ impl JwtState {
 	where
 		T: DeserializeOwned,
 	{
-		jsonwebtoken::decode(jwt, &self.jwt_decoding_key, &self.jwt_validation)
+		jwt::decode(jwt, &self.jwt_decoding_key, &self.jwt_validation)
 			.map(|jwt| jwt.claims)
 			.map_err(|err| Error::from(err))
 	}

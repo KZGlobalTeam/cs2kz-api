@@ -7,7 +7,6 @@ readme = "./README.md"
 homepage = "https://cs2kz.org"
 repository = "https://github.com/KZGlobalTeam/cs2kz-api"
 license-file = "./LICENSE"
-publish = false
 
 [features]
 production = []
@@ -20,66 +19,74 @@ workspace = true
 path = "./crates/cs2kz"
 features = ["serde", "sqlx", "utoipa"]
 
+[dependencies.cs2kz-api-macros]
+path = "./crates/macros"
+
 [dependencies.anyhow]
 workspace = true
 
 [dependencies.thiserror]
 workspace = true
 
+[dependencies.dotenvy]
+version = "0.15"
+
+[dependencies.envy]
+version = "0.4"
+
 [dependencies.tokio]
-version = "1.36"
-features = ["rt-multi-thread", "macros", "process", "signal"]
-
-[dependencies.futures]
-version = "0.3"
-
-[dependencies.reqwest]
-version = "0.12"
-default-features = false
-features = ["rustls-tls", "json"]
+version = "1"
+features = ["rt-multi-thread", "macros", "signal", "process"]
 
 [dependencies.axum]
 version = "0.7"
 default-features = false
-features = ["http1", "http2", "tokio", "query", "json", "macros"]
+features = ["http1", "http2", "json", "macros", "tokio", "query"]
 
 [dependencies.axum-extra]
 version = "0.9"
-features = ["typed-header", "cookie", "query"]
+default-features = false
+features = ["cookie", "query", "typed-header"]
 
 [dependencies.tower-http]
 version = "0.5"
 features = ["trace", "cors"]
 
+[dependencies.futures]
+version = "0.3"
+default-features = false
+features = ["std"]
+
 [dependencies.sqlx]
-version = "0.7"
+version = "0.7.4"
 default-features = false
 features = [
-  "runtime-tokio-rustls",
-  "mysql",
-  "chrono",
-  "time",
-  "json",
-  "uuid",
+  "runtime-tokio",
+  "tls-rustls",
   "macros",
   "migrate",
+  "mysql",
+  "json",
+  "chrono",
+  "time",
+  "uuid",
 ]
 
 [dependencies.utoipa]
 version = "4.2"
 features = [
+  "axum_extras",
   "debug",
+  "chrono",
+  "uuid",
+  "url",
   "preserve_order",
   "preserve_path_order",
   "non_strict_integers",
-  "url",
-  "chrono",
-  "uuid",
-  "axum_extras",
 ]
 
 [dependencies.utoipa-swagger-ui]
-version = "6.0"
+version = "6.0.0"
 features = ["axum"]
 
 [dependencies.tracing]
@@ -88,7 +95,7 @@ version = "0.1"
 [dependencies.tracing-subscriber]
 version = "0.3"
 default-features = false
-features = ["std", "fmt", "ansi", "json", "env-filter"]
+features = ["ansi", "env-filter"]
 
 [dependencies.tracing-appender]
 version = "0.2"
@@ -97,68 +104,64 @@ version = "0.2"
 version = "0.2"
 optional = true
 
-[dependencies.dotenvy]
-version = "0.15"
+[dependencies.reqwest]
+version = "0.12"
+default-features = false
+features = ["rustls-tls", "json"]
 
 [dependencies.serde]
-version = "1.0"
+version = "1"
 features = ["derive"]
 
 [dependencies.serde_json]
-version = "1.0"
+version = "1"
 
 [dependencies.serde_urlencoded]
 version = "0.7"
 
-[dependencies.envy]
+[dependencies.chrono]
 version = "0.4"
+default-features = false
+features = ["std", "clock", "serde"]
+
+[dependencies.time]
+version = "0.3"
+features = ["serde"]
 
 [dependencies.url]
 version = "2.5"
 features = ["serde"]
 
-[dependencies.rand]
-version = "0.8"
-
 [dependencies.uuid]
-version = "1.7"
-features = ["v4", "fast-rng", "serde"]
-
-[dependencies.jsonwebtoken]
-version = "9.2"
+version = "1.8"
+features = ["v4", "v7", "serde"]
 
 [dependencies.semver]
-version = "1.0"
+version = "1"
 features = ["serde"]
 
-[dependencies.chrono]
-version = "0.4"
-default-features = false
-features = ["std", "serde"]
+[dependencies.jwt]
+package = "jsonwebtoken"
+version = "9.3"
 
-[dependencies.time]
-version = "0.3"
+[dependencies.derive_more]
+version = "1.0.0-beta.6"
+features = ["from", "into", "debug", "display", "deref", "deref_mut"]
 
 [dependencies.itertools]
 version = "0.12"
 
-[dependencies.derive_more]
-version = "1.0.0-beta.6"
-default-features = false
-features = ["display", "debug", "deref", "deref_mut", "from", "into"]
-
 [dependencies.crc32fast]
-version = "1.4"
+version = "1"
 
 [dev-dependencies.ctor]
 version = "0.2"
 
-[dev-dependencies.cs2kz-api-macros]
-path = "./crates/macros"
+[dev-dependencies.rand]
+version = "0.8"
 
 [workspace]
-resolver = "2"
-members = ["crates/spec-generator", "crates/macros"]
+members = ["crates/cs2kz", "crates/macros", "crates/spec-generator"]
 
 # See https://doc.rust-lang.org/rustc/lints/listing/index.html
 [workspace.lints.rust]

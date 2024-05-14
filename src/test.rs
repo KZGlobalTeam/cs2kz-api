@@ -70,16 +70,16 @@ pub(crate) struct Context {
 	pub shutdown: oneshot::Sender<()>,
 
 	/// Header data to use when signing JWTs.
-	jwt_header: jsonwebtoken::Header,
+	jwt_header: jwt::Header,
 
 	/// Secret key to use when signing JWTs.
-	jwt_encoding_key: jsonwebtoken::EncodingKey,
+	jwt_encoding_key: jwt::EncodingKey,
 
 	/// Secret key to use when validating JWTs.
-	jwt_decoding_key: jsonwebtoken::DecodingKey,
+	jwt_decoding_key: jwt::DecodingKey,
 
 	/// Extra validation steps when validating JWTs.
-	jwt_validation: jsonwebtoken::Validation,
+	jwt_validation: jwt::Validation,
 }
 
 impl Context {
@@ -91,10 +91,10 @@ impl Context {
 		shutdown: oneshot::Sender<()>,
 	) -> anyhow::Result<Self> {
 		let config = Box::leak(Box::new(config));
-		let jwt_header = jsonwebtoken::Header::default();
-		let jwt_encoding_key = jsonwebtoken::EncodingKey::from_base64_secret(&config.jwt_secret)?;
-		let jwt_decoding_key = jsonwebtoken::DecodingKey::from_base64_secret(&config.jwt_secret)?;
-		let jwt_validation = jsonwebtoken::Validation::default();
+		let jwt_header = jwt::Header::default();
+		let jwt_encoding_key = jwt::EncodingKey::from_base64_secret(&config.jwt_secret)?;
+		let jwt_decoding_key = jwt::DecodingKey::from_base64_secret(&config.jwt_secret)?;
+		let jwt_validation = jwt::Validation::default();
 
 		Ok(Context {
 			test_id,
@@ -119,10 +119,7 @@ impl Context {
 			.expect("invalid url path")
 	}
 
-	pub fn auth_server(
-		&self,
-		expires_after: Duration,
-	) -> Result<String, jsonwebtoken::errors::Error> {
+	pub fn auth_server(&self, expires_after: Duration) -> Result<String, jwt::errors::Error> {
 		let server = auth::Server::new(ServerID(1), PluginVersionID(1));
 
 		self.encode_jwt(&server, expires_after)
@@ -136,23 +133,22 @@ impl Context {
 		&self,
 		payload: &T,
 		expires_after: Duration,
-	) -> Result<String, jsonwebtoken::errors::Error>
+	) -> Result<String, jwt::errors::Error>
 	where
 		T: Serialize,
 	{
-		jsonwebtoken::encode(
+		jwt::encode(
 			&self.jwt_header,
 			&Jwt::new(payload, expires_after),
 			&self.jwt_encoding_key,
 		)
 	}
 
-	pub fn decode_jwt<T>(&self, jwt: &str) -> Result<Jwt<T>, jsonwebtoken::errors::Error>
+	pub fn decode_jwt<T>(&self, jwt: &str) -> Result<Jwt<T>, jwt::errors::Error>
 	where
 		T: DeserializeOwned,
 	{
-		jsonwebtoken::decode(jwt, &self.jwt_decoding_key, &self.jwt_validation)
-			.map(|jwt| jwt.claims)
+		jwt::decode(jwt, &self.jwt_decoding_key, &self.jwt_validation).map(|jwt| jwt.claims)
 	}
 }
 
