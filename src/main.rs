@@ -1,13 +1,13 @@
 //! The entrypoint for the API.
 
+use anyhow::Context;
 use cs2kz_api::API;
-use eyre::{Context, Result};
 use sqlx::{Connection, MySqlConnection};
 
 mod logging;
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> anyhow::Result<()> {
 	if dotenvy::dotenv().is_err() {
 		eprintln!("WARNING: no `.env` file found");
 	}

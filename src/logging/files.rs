@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 use std::{env, fs};
 
-use eyre::{Context, Result};
+use anyhow::Context;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::rolling::Rotation;
 use tracing_subscriber::filter::FilterFn;
@@ -18,7 +18,7 @@ use tracing_subscriber::Layer;
 /// - the tracing layer
 /// - guard that has to be kept around until the end of the program; for proper cleanup
 /// - the path to the log directory
-pub fn layer<S>() -> Result<(impl tracing_subscriber::Layer<S>, WorkerGuard, PathBuf)>
+pub fn layer<S>() -> anyhow::Result<(impl tracing_subscriber::Layer<S>, WorkerGuard, PathBuf)>
 where
 	S: tracing::Subscriber + for<'a> LookupSpan<'a>,
 {

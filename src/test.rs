@@ -13,20 +13,20 @@ use crate::auth::{self, Jwt};
 use crate::plugin::PluginVersionID;
 use crate::servers::ServerID;
 
-/// Wrapper over std's `assert!()` macro that uses [`eyre::ensure!()`] instead.
+/// Wrapper over std's `assert!()` macro that uses [`anyhow::ensure!()`] instead.
 macro_rules! assert {
 	($($t:tt)*) => {
-		::eyre::ensure!($($t)*)
+		::anyhow::ensure!($($t)*)
 	};
 }
 
 pub(crate) use assert;
 
-/// Wrapper over std's `assert_eq!()` macro that uses [`eyre::ensure!()`] instead.
+/// Wrapper over std's `assert_eq!()` macro that uses [`anyhow::ensure!()`] instead.
 macro_rules! assert_eq {
 	($left:expr, $right:expr $(,)?) => {
 		if $left != $right {
-			::eyre::bail!("assertion `left == right` failed\n  left: {:?}\n right: {:?}", $left, $right)
+			::anyhow::bail!("assertion `left == right` failed\n  left: {:?}\n right: {:?}", $left, $right)
 		}
 	};
 	($left:expr, $right:expr, $($t:tt)*) => {
@@ -36,11 +36,11 @@ macro_rules! assert_eq {
 
 pub(crate) use assert_eq;
 
-/// Wrapper over std's `assert_ne!()` macro that uses [`eyre::ensure!()`] instead.
+/// Wrapper over std's `assert_ne!()` macro that uses [`anyhow::ensure!()`] instead.
 macro_rules! assert_ne {
 	($left:expr, $right:expr $(,)?) => {
 		if $left == $right {
-			::eyre::bail!("assertion `left != right` failed\n  left: {:?}\n right: {:?}", $left, $right)
+			::anyhow::bail!("assertion `left != right` failed\n  left: {:?}\n right: {:?}", $left, $right)
 		}
 	};
 	($left:expr, $right:expr, $($t:tt)*) => {
@@ -89,7 +89,7 @@ impl Context {
 		http_client: reqwest::Client,
 		database: Pool<MySql>,
 		shutdown: oneshot::Sender<()>,
-	) -> eyre::Result<Self> {
+	) -> anyhow::Result<Self> {
 		let config = Box::leak(Box::new(config));
 		let jwt_header = jsonwebtoken::Header::default();
 		let jwt_encoding_key = jsonwebtoken::EncodingKey::from_base64_secret(&config.jwt_secret)?;

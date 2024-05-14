@@ -85,13 +85,13 @@ fn expand(TestArgs { queries }: TestArgs, test_function: ItemFn) -> syn::Result<
 
 	let output = quote! {
 		#[tokio::test]
-		async fn #test_function_ident() -> ::eyre::Result<()> {
+		async fn #test_function_ident() -> ::anyhow::Result<()> {
 			use crate::test::Context;
 			use ::sqlx::{Connection as _, migrate::MigrateDatabase as _};
-			use ::eyre::{Context as _, ContextCompat as _};
+			use ::anyhow::Context as _;
 
-			#signature -> ::eyre::Result<()> {
-				use ::eyre::{Context as _, bail, eyre};
+			#signature -> ::anyhow::Result<()> {
+				use ::anyhow::{Context as _, bail, anyhow};
 				use crate::test::{assert, assert_eq, assert_ne};
 
 				#test_function_body
@@ -151,7 +151,7 @@ fn expand(TestArgs { queries }: TestArgs, test_function: ItemFn) -> syn::Result<
 			::sqlx::MySql::drop_database(&database_url).await?;
 
 			if shutdown_fail {
-				::eyre::bail!("api already shut down?");
+				::anyhow::bail!("api already shut down?");
 			}
 
 			Ok(())

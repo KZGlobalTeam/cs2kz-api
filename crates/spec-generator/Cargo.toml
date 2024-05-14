@@ -12,7 +12,7 @@ publish = false
 [dependencies.cs2kz-api]
 path = "../../"
 
-[dependencies.eyre]
+[dependencies.anyhow]
 workspace = true
 
 [dependencies.clap]

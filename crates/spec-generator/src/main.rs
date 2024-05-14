@@ -1,9 +1,9 @@
 use std::path::PathBuf;
 use std::{fs, process};
 
+use anyhow::Context;
 use clap::Parser;
 use cs2kz_api::API;
-use eyre::{Context, Result};
 use similar::TextDiff;
 
 #[derive(Parser)]
@@ -16,7 +16,7 @@ struct Args {
 	check: Option<PathBuf>,
 }
 
-fn main() -> Result<()> {
+fn main() -> anyhow::Result<()> {
 	let args = Args::parse();
 	let spec = API::spec();
 

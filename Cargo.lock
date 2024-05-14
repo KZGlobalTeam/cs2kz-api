@@ -596,6 +596,7 @@ dependencies = [
 name = "cs2kz-api"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "axum 0.7.4",
  "axum-extra",
  "chrono",
@@ -607,7 +608,6 @@ dependencies = [
  "derive_more",
  "dotenvy",
  "envy",
- "eyre",
  "futures",
  "itertools 0.12.1",
  "jsonwebtoken",
@@ -759,16 +759,6 @@ name = "event-listener"
 version = "2.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0206175f82b8d6bf6652ff7d71a1e27fd2e4efde587fd368662814d6ec1d9ce0"
-
-[[package]]
-name = "eyre"
-version = "0.6.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cd915d99f24784cdc19fd37ef22b97e3ff0ae756c7e492e9fbfe897d61e2aec"
-dependencies = [
- "indenter",
- "once_cell",
-]
 
 [[package]]
 name = "fastrand"
@@ -1295,12 +1285,6 @@ dependencies = [
  "unicode-bidi",
  "unicode-normalization",
 ]
-
-[[package]]
-name = "indenter"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexmap"
@@ -2312,9 +2296,9 @@ dependencies = [
 name = "spec-generator"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "clap",
  "cs2kz-api",
- "eyre",
  "similar",
 ]
 

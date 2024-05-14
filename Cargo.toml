@@ -20,15 +20,15 @@ workspace = true
 path = "./crates/cs2kz"
 features = ["serde", "sqlx", "utoipa"]
 
-[dependencies.thiserror]
-version = "1.0"
+[dependencies.anyhow]
+workspace = true
 
-[dependencies.eyre]
+[dependencies.thiserror]
 workspace = true
 
 [dependencies.tokio]
 version = "1.36"
-features = ["rt-multi-thread", "net", "process", "signal", "macros"]
+features = ["rt-multi-thread", "macros", "process", "signal"]
 
 [dependencies.futures]
 version = "0.3"
@@ -232,5 +232,8 @@ unnecessary_safety_comment = "warn"
 unnecessary_safety_doc = "warn"
 wildcard_imports = "deny"
 
-[workspace.dependencies.eyre]
-version = "0.6"
+[workspace.dependencies.anyhow]
+version = "1"
+
+[workspace.dependencies.thiserror]
+version = "1"

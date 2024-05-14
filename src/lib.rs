@@ -2,10 +2,10 @@
 
 use std::future::Future;
 
+use anyhow::Context;
 use axum::routing::{get, IntoMakeService};
 use axum::serve::Serve;
 use axum::Router;
-use eyre::Context;
 use itertools::Itertools;
 use tokio::net::TcpListener;
 use tokio::signal;
@@ -217,7 +217,7 @@ pub struct API;
 
 impl API {
 	/// Run the API.
-	pub async fn run(config: Config) -> eyre::Result<()> {
+	pub async fn run(config: Config) -> anyhow::Result<()> {
 		Self::server(config)
 			.await
 			.context("build http server")?
@@ -227,7 +227,7 @@ impl API {
 	}
 
 	/// Run the API, until the given `until` future completes.
-	pub async fn run_until<Until>(config: Config, until: Until) -> eyre::Result<()>
+	pub async fn run_until<Until>(config: Config, until: Until) -> anyhow::Result<()>
 	where
 		Until: Future<Output = ()> + Send + 'static,
 	{
@@ -245,7 +245,7 @@ impl API {
 	}
 
 	/// Creates a hyper server that will serve the API.
-	async fn server(config: Config) -> eyre::Result<Serve<IntoMakeService<Router>, Router>> {
+	async fn server(config: Config) -> anyhow::Result<Serve<IntoMakeService<Router>, Router>> {
 		info!(target: "audit_log", ?config, "API starting up");
 
 		let tcp_listener = TcpListener::bind(config.socket_addr())
