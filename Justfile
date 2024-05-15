@@ -46,7 +46,7 @@ database-connection:
 	fi
 
 	export cmd="$cmd \
-	  -u kz \
+	  -u schnose \
 	  -pcsgo-kz-is-dead-boys \
 	  -h 127.0.0.1 \
 	  -P "$DATABASE_PORT" \
