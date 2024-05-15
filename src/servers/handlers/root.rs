@@ -199,7 +199,7 @@ mod tests {
 	use crate::openapi::responses::PaginationResponse;
 	use crate::servers::{CreatedServer, NewServer, Server};
 
-	#[crate::test]
+	#[crate::integration_test]
 	async fn fetch_servers(ctx: &Context) {
 		let response = ctx
 			.http_client
@@ -215,7 +215,7 @@ mod tests {
 		assert!(response.results.len() <= 7);
 	}
 
-	#[crate::test(fixtures = ["alphakeks-server-role"])]
+	#[crate::integration_test(fixtures = ["alphakeks-server-role"])]
 	async fn approve_server(ctx: &Context) {
 		let alphakeks = SteamID::from_u64(76561198282622073_u64).unwrap();
 		let server = NewServer {

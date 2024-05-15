@@ -291,7 +291,7 @@ mod tests {
 	use crate::players::{FullPlayer, PlayerUpdate, Session};
 	use crate::records::BhopStats;
 
-	#[crate::test]
+	#[crate::integration_test]
 	async fn fetch_player(ctx: &Context) {
 		let response = ctx
 			.http_client
@@ -307,7 +307,7 @@ mod tests {
 		assert_eq!(alphakeks.steam_id, 76561198282622073_u64);
 	}
 
-	#[crate::test]
+	#[crate::integration_test]
 	async fn update_player(ctx: &Context) {
 		let response = ctx
 			.http_client

@@ -119,7 +119,7 @@ mod tests {
 
 	use crate::servers::{Server, ServerUpdate};
 
-	#[crate::test]
+	#[crate::integration_test]
 	async fn fetch_server(ctx: &Context) {
 		let response = ctx
 			.http_client
@@ -135,7 +135,7 @@ mod tests {
 		assert_eq!(server.owner.steam_id, 76561198282622073_u64);
 	}
 
-	#[crate::test]
+	#[crate::integration_test]
 	async fn update_server(ctx: &Context) {
 		let update = ServerUpdate {
 			name: Some(String::from("Church of Schnose")),

@@ -35,7 +35,7 @@ mod test;
 
 #[cfg(test)]
 #[doc(inline)]
-pub(crate) use cs2kz_api_macros::test;
+pub(crate) use cs2kz_api_macros::integration_test;
 
 mod openapi;
 mod middleware;

@@ -188,7 +188,7 @@ mod tests {
 	use crate::plugin::PluginVersionID;
 	use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse, ServerID};
 
-	#[crate::test]
+	#[crate::integration_test]
 	async fn generate_temp(ctx: &Context) {
 		let server = sqlx::query! {
 			r#"
@@ -230,7 +230,7 @@ mod tests {
 		assert_eq!(server_info.plugin_version_id(), server.plugin_version_id);
 	}
 
-	#[crate::test(fixtures = ["alphakeks-server-role"])]
+	#[crate::integration_test(fixtures = ["alphakeks-server-role"])]
 	async fn put_perma(ctx: &Context) {
 		let server = sqlx::query! {
 			r#"
@@ -286,7 +286,7 @@ mod tests {
 		assert_eq!(server.refresh_key, refresh_key.hyphenated());
 	}
 
-	#[crate::test(fixtures = ["alphakeks-server-role"])]
+	#[crate::integration_test(fixtures = ["alphakeks-server-role"])]
 	async fn delete_perma(ctx: &Context) {
 		let server = sqlx::query! {
 			r#"

@@ -14,7 +14,9 @@ services:
 
   cs2kz-api:
     depends_on: [cs2kz-database]
-    env_file: .env.docker
+    env_file:
+      - .env
+      - .env.docker
     build:
       context: .
       dockerfile: ./Dockerfile

@@ -150,7 +150,7 @@ mod tests {
 	use crate::openapi::responses::PaginationResponse;
 	use crate::players::{FullPlayer, NewPlayer};
 
-	#[crate::test]
+	#[crate::integration_test]
 	async fn fetch_players(ctx: &Context) {
 		let response = ctx
 			.http_client
@@ -166,7 +166,7 @@ mod tests {
 		assert!(response.results.len() <= 7);
 	}
 
-	#[crate::test]
+	#[crate::integration_test]
 	async fn register_player(ctx: &Context) {
 		let player = NewPlayer {
 			name: String::from("AlphaKeks"),

@@ -157,6 +157,13 @@ version = "0.2"
 [dev-dependencies.rand]
 version = "0.8"
 
+[dev-dependencies.testcontainers]
+version = "0.16"
+
+[dev-dependencies.testcontainers-modules]
+version = "0.4.3"
+features = ["mariadb"]
+
 [workspace]
 members = ["crates/cs2kz", "crates/macros", "crates/spec-generator"]
 

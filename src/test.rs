@@ -1,17 +1,26 @@
 use std::fmt::Display;
+use std::net::{IpAddr, Ipv4Addr};
 use std::time::Duration;
 
+use anyhow::Context as _;
 use cs2kz::SteamID;
+use rand::{thread_rng, Rng};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
+use sqlx::migrate::MigrateDatabase;
 use sqlx::{MySql, Pool};
+use testcontainers::runners::AsyncRunner;
+use testcontainers::ContainerAsync;
+use testcontainers_modules::mariadb::Mariadb;
 use tokio::sync::oneshot;
-use url::Url;
+use tokio::task;
+use url::{Host, Url};
 use uuid::Uuid;
 
 use crate::authentication::{self, Jwt};
 use crate::plugin::PluginVersionID;
 use crate::servers::ServerID;
+use crate::{Config, API};
 
 /// Wrapper over std's `assert!()` macro that uses [`anyhow::ensure!()`] instead.
 macro_rules! assert {
@@ -67,7 +76,13 @@ pub(crate) struct Context {
 	pub database: Pool<MySql>,
 
 	/// A shutdown signal to have the API shutdown cleanly.
-	pub shutdown: oneshot::Sender<()>,
+	shutdown: oneshot::Sender<()>,
+
+	/// Handle to the API's background task.
+	api_task: task::JoinHandle<anyhow::Result<()>>,
+
+	/// Database container handle.
+	database_container: ContainerAsync<Mariadb>,
 
 	/// Header data to use when signing JWTs.
 	jwt_header: jwt::Header,
@@ -83,18 +98,81 @@ pub(crate) struct Context {
 }
 
 impl Context {
-	pub fn new(
-		test_id: Uuid,
-		config: crate::Config,
-		http_client: reqwest::Client,
-		database: Pool<MySql>,
-		shutdown: oneshot::Sender<()>,
-	) -> anyhow::Result<Self> {
-		let config = Box::leak(Box::new(config));
+	/// Create a new test context.
+	///
+	/// This is called in macro code and so should not be invoked manually.
+	#[doc(hidden)]
+	pub async fn new() -> anyhow::Result<Self> {
+		let test_id = Uuid::now_v7();
+
+		eprintln!("[{test_id}] setting up");
+		eprintln!("[{test_id}] starting database container");
+
+		let database_container = Mariadb::default().start().await;
+		let database_ip = match database_container.get_host().await {
+			Host::Domain(domain) if domain == "localhost" => IpAddr::V4(Ipv4Addr::LOCALHOST),
+			Host::Domain(domain) => anyhow::bail!("cannot use domain for database url ({domain})"),
+			Host::Ipv4(ip) => IpAddr::V4(ip),
+			Host::Ipv6(ip) => IpAddr::V6(ip),
+		};
+		let database_port = database_container.get_host_port_ipv4(3306).await;
+
+		let config = Config::new()
+			.map(Box::new)
+			.map(Box::leak)
+			.context("load config")?;
+		let port = thread_rng().gen_range(5000..=50000);
+
+		config.addr.set_port(port);
+		config.public_url.set_port(Some(port)).unwrap();
+
+		config.database_url.set_username("root").unwrap();
+		config.database_url.set_password(None).unwrap();
+		config.database_url.set_ip_host(database_ip).unwrap();
+		config.database_url.set_port(Some(database_port)).unwrap();
+
+		let config: &'static Config = config;
+		let http_client = reqwest::Client::new();
 		let jwt_header = jwt::Header::default();
 		let jwt_encoding_key = jwt::EncodingKey::from_base64_secret(&config.jwt_secret)?;
 		let jwt_decoding_key = jwt::DecodingKey::from_base64_secret(&config.jwt_secret)?;
 		let jwt_validation = jwt::Validation::default();
+
+		eprintln!("[{test_id}] creating database");
+
+		sqlx::MySql::create_database(config.database_url.as_str())
+			.await
+			.context("create database")?;
+
+		eprintln!("[{test_id}] connecting to database");
+
+		let database = sqlx::Pool::connect(config.database_url.as_str())
+			.await
+			.context("connect to database")?;
+
+		eprintln!("[{test_id}] running migrations");
+
+		sqlx::migrate!("./database/migrations")
+			.run(&database)
+			.await
+			.context("run migrations")?;
+
+		let (shutdown, shutdown_rx) = oneshot::channel();
+		let api_task = task::spawn(async move {
+			eprintln!("[{test_id}] spawning API task");
+			API::run_until(config.clone(), async move {
+				_ = shutdown_rx.await;
+			})
+			.await
+			.context("run api")?;
+
+			anyhow::Ok(())
+		});
+
+		// let the API start up
+		task::yield_now().await;
+
+		eprintln!("[{test_id}] running test");
 
 		Ok(Context {
 			test_id,
@@ -102,11 +180,51 @@ impl Context {
 			http_client,
 			database,
 			shutdown,
+			api_task,
+			database_container,
 			jwt_header,
 			jwt_encoding_key,
 			jwt_decoding_key,
 			jwt_validation,
 		})
+	}
+
+	/// Run cleanup logic after a test.
+	///
+	/// This is called in macro code and so should not be invoked manually.
+	#[doc(hidden)]
+	pub async fn cleanup(self) -> anyhow::Result<()> {
+		let Self {
+			test_id,
+			config,
+			shutdown,
+			api_task,
+			database_container,
+			..
+		} = self;
+
+		eprintln!("[{test_id}] sending shutdown signal");
+
+		shutdown.send(()).expect("send shutdown signal");
+
+		eprintln!("[{test_id}] dropping database");
+
+		sqlx::MySql::drop_database(config.database_url.as_str())
+			.await
+			.context("drop database")?;
+
+		api_task
+			.await
+			.context("api panicked")?
+			.context("wait for api to shut down")?;
+
+		eprintln!("[{test_id}] destroying database container");
+
+		database_container.rm().await;
+
+		eprintln!("[{test_id}] done");
+
+		Ok(())
 	}
 
 	pub fn url<P>(&self, path: P) -> Url
@@ -172,7 +290,7 @@ fn setup() {
 	drop(dotenvy::dotenv());
 }
 
-#[crate::test]
+#[crate::integration_test]
 async fn hello_world(ctx: &Context) {
 	let response = ctx
 		.http_client
