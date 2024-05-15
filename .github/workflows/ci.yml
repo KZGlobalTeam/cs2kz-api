@@ -40,3 +40,14 @@ jobs:
       - run: |
           cargo doc --all-features --document-private-items --no-deps
           cargo run --package spec-generator -- --check api-spec.json
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: moonrepo/setup-rust@v1
+      - name: Run tests for Workspace
+        env:
+          STEAM_WEB_API_KEY: ${{ secrets.STEAM_WEB_API_KEY }}
+        run: cargo test --workspace --all-features -- --nocapture
