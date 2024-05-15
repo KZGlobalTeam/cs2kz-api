@@ -5,7 +5,7 @@
 
 // Everything in here should be self-explanatory, and doc comments would end up as descriptions in
 // the OpenAPI spec, which we don't want.
-#![allow(clippy::missing_docs_in_private_items)]
+#![allow(missing_docs, clippy::missing_docs_in_private_items)]
 
 use std::collections::BTreeMap;
 
@@ -17,9 +17,9 @@ use utoipa::openapi::schema::Schema;
 use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
 use utoipa::{IntoResponses, ToSchema};
 
-// General purpose response body for pagination.
-//
-// It includes the total amount of results that can be requested, as well as the current payload.
+/// General purpose response body for pagination.
+///
+/// It includes the total amount of results that can be requested, as well as the current payload.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct PaginationResponse<T>
 where
@@ -77,34 +77,35 @@ impl IntoResponse for NoContent {
 	}
 }
 
-#[derive(Debug, Serialize, IntoResponses)]
+#[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
 #[response(status = 303)]
 pub struct SeeOther;
 
-#[derive(Debug, Serialize, IntoResponses)]
+#[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
 #[response(status = 400)]
 pub struct BadRequest;
 
-#[derive(Debug, Serialize, IntoResponses)]
+#[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
 #[response(status = 401)]
 pub struct Unauthorized;
 
-#[derive(Debug, Serialize, IntoResponses)]
+#[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
 #[response(status = 409)]
 pub struct Conflict;
 
-#[derive(Debug, Serialize, IntoResponses)]
+#[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
 #[response(status = 422)]
 pub struct UnprocessableEntity;
 
-#[derive(Debug, Serialize, IntoResponses)]
+#[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
 #[response(status = 500)]
 pub struct InternalServerError;
 
-#[derive(Debug, Serialize, IntoResponses)]
+#[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
 #[response(status = 502)]
 pub struct BadGateway;
 
+#[derive(Debug, Clone, Copy)]
 pub struct Object;
 
 impl<'s> ToSchema<'s> for Object {

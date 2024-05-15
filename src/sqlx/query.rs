@@ -2,7 +2,7 @@
 
 use std::fmt::Display;
 
-use derive_more::{Deref, DerefMut};
+use derive_more::{Debug, Deref, DerefMut};
 use sqlx::{MySql, QueryBuilder, Transaction};
 
 use crate::openapi::parameters::{Limit, Offset, SortingOrder};
@@ -45,11 +45,12 @@ impl QueryBuilderExt for QueryBuilder<'_, MySql> {
 ///
 /// This can be used transparently like a [`QueryBuilder`], but also has extra methods.
 /// See [`FilteredQuery::filter()`] for more details.
-#[derive(Deref, DerefMut)]
+#[derive(Debug, Deref, DerefMut)]
 pub struct FilteredQuery<'q> {
 	/// The underlying query builder.
 	#[deref]
 	#[deref_mut]
+	#[debug(skip)]
 	query: QueryBuilder<'q, MySql>,
 
 	/// The current state of the filter.
@@ -131,11 +132,12 @@ impl<'q> FilteredQuery<'q> {
 ///
 /// This can be used transparently like a [`QueryBuilder`], but also has extra methods.
 /// See [`UpdateQuery::set()`] for more details.
-#[derive(Deref, DerefMut)]
+#[derive(Debug, Deref, DerefMut)]
 pub struct UpdateQuery<'q> {
 	/// The underlying query builder.
 	#[deref]
 	#[deref_mut]
+	#[debug(skip)]
 	query: QueryBuilder<'q, MySql>,
 
 	/// The current delimiter state.

@@ -37,17 +37,17 @@ mod test;
 #[doc(inline)]
 pub(crate) use cs2kz_api_macros::integration_test;
 
-mod openapi;
-mod middleware;
-mod authentication;
-mod authorization;
-mod sqlx;
-mod steam;
-mod serde;
-mod time;
-mod make_id;
-mod bitflags;
-mod kz;
+pub mod openapi;
+pub mod middleware;
+pub mod authentication;
+pub mod authorization;
+pub mod sqlx;
+pub mod steam;
+pub mod serde;
+pub mod time;
+pub mod make_id;
+pub mod bitflags;
+pub mod kz;
 
 pub mod players;
 pub mod maps;

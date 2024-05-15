@@ -27,7 +27,9 @@
 //! [`middleware::auth::layer()`]: crate::middleware::auth::layer
 //! [`session_auth!()`]: crate::middleware::auth::session_auth
 //! [`cookie`]: Session::cookie
-//! [`authorization`]: crate::auth::authorization
+//! [`authorization`]: crate::authorization
+
+#![allow(rustdoc::private_intra_doc_links)]
 
 use std::marker::PhantomData;
 

@@ -49,6 +49,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "General purpose response body for pagination.\n\nIt includes the total amount of results that can be requested, as well as the current payload.",
                   "required": [
                     "total",
                     "results"
@@ -511,6 +512,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "General purpose response body for pagination.\n\nIt includes the total amount of results that can be requested, as well as the current payload.",
                   "required": [
                     "total",
                     "results"
@@ -937,6 +939,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "General purpose response body for pagination.\n\nIt includes the total amount of results that can be requested, as well as the current payload.",
                   "required": [
                     "total",
                     "results"
@@ -1428,6 +1431,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "General purpose response body for pagination.\n\nIt includes the total amount of results that can be requested, as well as the current payload.",
                   "required": [
                     "total",
                     "results"
@@ -1994,6 +1998,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "General purpose response body for pagination.\n\nIt includes the total amount of results that can be requested, as well as the current payload.",
                   "required": [
                     "total",
                     "results"
@@ -2665,6 +2670,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "General purpose response body for pagination.\n\nIt includes the total amount of results that can be requested, as well as the current payload.",
                   "required": [
                     "total",
                     "results"
@@ -3293,9 +3299,9 @@
         "operationId": "get",
         "parameters": [
           {
-            "name": "roles",
+            "name": "permissions",
             "in": "query",
-            "description": "Filter by roles.",
+            "description": "Filter by permissions.",
             "required": false,
             "schema": {
               "type": "array",
@@ -3330,6 +3336,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "General purpose response body for pagination.\n\nIt includes the total amount of results that can be requested, as well as the current payload.",
                   "required": [
                     "total",
                     "results"
@@ -3349,7 +3356,7 @@
                         "required": [
                           "name",
                           "steam_id",
-                          "roles"
+                          "permissions"
                         ],
                         "properties": {
                           "name": {
@@ -3359,12 +3366,12 @@
                           "steam_id": {
                             "$ref": "#/components/schemas/SteamID"
                           },
-                          "roles": {
+                          "permissions": {
                             "type": "array",
                             "items": {
                               "type": "string"
                             },
-                            "description": "The admin's roles.",
+                            "description": "The admin's permissions.",
                             "example": [
                               "bans",
                               "servers"
@@ -3443,7 +3450,7 @@
                   "required": [
                     "name",
                     "steam_id",
-                    "roles"
+                    "permissions"
                   ],
                   "properties": {
                     "name": {
@@ -3453,12 +3460,12 @@
                     "steam_id": {
                       "$ref": "#/components/schemas/SteamID"
                     },
-                    "roles": {
+                    "permissions": {
                       "type": "array",
                       "items": {
                         "type": "string"
                       },
-                      "description": "The admin's roles.",
+                      "description": "The admin's permissions.",
                       "example": [
                         "bans",
                         "servers"
@@ -3591,6 +3598,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "description": "General purpose response body for pagination.\n\nIt includes the total amount of results that can be requested, as well as the current payload.",
                   "required": [
                     "total",
                     "results"
@@ -3721,7 +3729,7 @@
         "required": [
           "name",
           "steam_id",
-          "roles"
+          "permissions"
         ],
         "properties": {
           "name": {
@@ -3731,12 +3739,12 @@
           "steam_id": {
             "$ref": "#/components/schemas/SteamID"
           },
-          "roles": {
+          "permissions": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "The admin's roles.",
+            "description": "The admin's permissions.",
             "example": [
               "bans",
               "servers"
@@ -3748,15 +3756,15 @@
         "type": "object",
         "description": "Request body for updating admins.",
         "required": [
-          "roles"
+          "permissions"
         ],
         "properties": {
-          "roles": {
+          "permissions": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "New roles for the admin.",
+            "description": "New permissions for the admin.",
             "example": [
               "bans",
               "servers"

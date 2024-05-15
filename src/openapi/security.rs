@@ -7,6 +7,7 @@ use utoipa::Modify;
 use crate::authentication;
 
 /// Shim for implementing [`Modify`].
+#[derive(Debug, Clone, Copy)]
 pub struct Security;
 
 impl Modify for Security {

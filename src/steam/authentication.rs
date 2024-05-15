@@ -46,7 +46,7 @@ impl LoginForm {
 	/// This is also used for verifying Steam's callback requests.
 	const LOGIN_URL: &'static str = "https://steamcommunity.com/openid/login";
 
-	/// Creates a new [`SteamLoginForm`] that will redirect back to the given `realm`.
+	/// Creates a new [`LoginForm`] that will redirect back to the given `realm`.
 	pub fn new(realm: Url) -> Self {
 		let return_to = realm.join(Self::RETURN_ROUTE).expect("this is valid");
 
