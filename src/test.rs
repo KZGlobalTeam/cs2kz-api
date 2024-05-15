@@ -287,7 +287,11 @@ fn setup() {
 			.init();
 	}
 
-	drop(dotenvy::dotenv());
+	for path in [".env.example", ".env", ".env.docker.example", ".env.docker"] {
+		if let Err(err) = dotenvy::from_filename(path) {
+			eprintln!("WARNING: Failed to load `{path}`: {err}");
+		}
+	}
 }
 
 #[crate::integration_test]
