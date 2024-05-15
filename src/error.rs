@@ -240,6 +240,7 @@ impl Error {
 }
 
 impl IntoResponse for Error {
+	#[allow(clippy::indexing_slicing)]
 	fn into_response(self) -> Response {
 		let Self {
 			status,
@@ -257,7 +258,7 @@ impl IntoResponse for Error {
 			.as_deref()
 			.filter(|_| cfg!(not(feature = "production")))
 		{
-			*json.get_mut("debug_info").expect("this cannot fail") = format!("{source:?}").into();
+			json["debug_info"] = format!("{source:?}").into();
 		}
 
 		(self.status, Json(json)).into_response()
