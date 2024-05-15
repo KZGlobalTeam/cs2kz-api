@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\tSELECT\n\t\t\t  id `id: ServerID`\n\t\t\tFROM\n\t\t\t  Servers\n\t\t\tWHERE\n\t\t\t  id = ?\n\t\t\t  AND owner_id = ?\n\t\t\t",
+  "query": "\n\t\t\tSELECT\n\t\t\t  id\n\t\t\tFROM\n\t\t\t  Servers\n\t\t\tWHERE\n\t\t\t  id = ?\n\t\t\t  AND owner_id = ?\n\t\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id: ServerID",
+        "name": "id",
         "type_info": {
           "type": "Short",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
@@ -21,5 +21,5 @@
       false
     ]
   },
-  "hash": "e62ffdd14e760f92e6f3bb38c0db8b41eac6ecd61a42bf24158b9de636f587f0"
+  "hash": "05e9cff7c9dae2be27d589a738914e21fe27a73e205ddffb6e4a35a8937f689f"
 }

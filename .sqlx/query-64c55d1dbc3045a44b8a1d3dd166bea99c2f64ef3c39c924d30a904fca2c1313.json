@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\tSELECT\n\t\t\t  name,\n\t\t\t  COALESCE((expires_on < NOW()), FALSE) `is_expired!: bool`\n\t\t\tFROM\n\t\t\t  Credentials\n\t\t\tWHERE\n\t\t\t  token = ?\n\t\t\t",
+  "query": "\n\t\t\tSELECT\n\t\t\t  name,\n\t\t\t  COALESCE((expires_on < NOW()), FALSE) `is_expired!: bool`\n\t\t\tFROM\n\t\t\t  Credentials\n\t\t\tWHERE\n\t\t\t  `key` = ?\n\t\t\t",
   "describe": {
     "columns": [
       {
@@ -32,5 +32,5 @@
       true
     ]
   },
-  "hash": "2f89df9c046a85bd7d52dba0b355b390cbfeacbb1b80d9635d811beba0bda2c0"
+  "hash": "64c55d1dbc3045a44b8a1d3dd166bea99c2f64ef3c39c924d30a904fca2c1313"
 }

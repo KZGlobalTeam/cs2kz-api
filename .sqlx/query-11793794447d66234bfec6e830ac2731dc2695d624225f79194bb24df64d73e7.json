@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\tSELECT\n\t\t\t  s.id `id: ID`,\n\t\t\t  p.id `user_id: SteamID`,\n\t\t\t  p.role_flags `role_flags: RoleFlags`\n\t\t\tFROM\n\t\t\t  LoginSessions s\n\t\t\t  JOIN Players p ON p.id = s.player_id\n\t\t\tWHERE\n\t\t\t  s.id = ?\n\t\t\t  AND s.expires_on > NOW()\n\t\t\tORDER BY\n\t\t\t  expires_on DESC\n\t\t\t",
+  "query": "\n\t\t\tSELECT\n\t\t\t  s.id `id: SessionID`,\n\t\t\t  p.id `user_id: SteamID`,\n\t\t\t  p.permissions `permissions: Permissions`\n\t\t\tFROM\n\t\t\t  LoginSessions s\n\t\t\t  JOIN Players p ON p.id = s.player_id\n\t\t\tWHERE\n\t\t\t  s.id = ?\n\t\t\t  AND s.expires_on > NOW()\n\t\t\tORDER BY\n\t\t\t  expires_on DESC\n\t\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id: ID",
+        "name": "id: SessionID",
         "type_info": {
           "type": "String",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | BINARY | NO_DEFAULT_VALUE",
@@ -25,7 +25,7 @@
       },
       {
         "ordinal": 2,
-        "name": "role_flags: RoleFlags",
+        "name": "permissions: Permissions",
         "type_info": {
           "type": "LongLong",
           "flags": "NOT_NULL | UNSIGNED",
@@ -43,5 +43,5 @@
       false
     ]
   },
-  "hash": "69a4b1e4485359610f4a66a3e9ab3dc1e2e81a7c0952e033636037243662eb59"
+  "hash": "11793794447d66234bfec6e830ac2731dc2695d624225f79194bb24df64d73e7"
 }

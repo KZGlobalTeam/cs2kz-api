@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\tSELECT\n\t\t  id `id: SteamID`,\n\t\t  name,\n\t\t  role_flags `role_flags: RoleFlags`\n\t\tFROM\n\t\t  Players\n\t\tWHERE\n\t\t  id = ?\n\t\t",
+  "query": "\n\t\tSELECT\n\t\t  id `id: SteamID`,\n\t\t  name,\n\t\t  permissions `permissions: Permissions`\n\t\tFROM\n\t\t  Players\n\t\tWHERE\n\t\t  id = ?\n\t\t",
   "describe": {
     "columns": [
       {
@@ -25,7 +25,7 @@
       },
       {
         "ordinal": 2,
-        "name": "role_flags: RoleFlags",
+        "name": "permissions: Permissions",
         "type_info": {
           "type": "LongLong",
           "flags": "NOT_NULL | UNSIGNED",
@@ -43,5 +43,5 @@
       false
     ]
   },
-  "hash": "01639544dfbd84cc1d3b8e1b66db72002b4582028bb3c5ae8ff79bfd3f4109f8"
+  "hash": "38ac6e5b45e30bd6cf8e955b1f13e5e5651730456ba8ee3843fcfb0646d94583"
 }
