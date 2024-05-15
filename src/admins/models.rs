@@ -5,7 +5,7 @@ use derive_more::Debug;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::auth::RoleFlags;
+use crate::authorization::Permissions;
 
 /// A player with special privileges.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -16,17 +16,17 @@ pub struct Admin {
 	/// The admin's SteamID.
 	pub steam_id: SteamID,
 
-	/// The admin's roles.
-	#[debug("{roles:?} ({roles})")]
+	/// The admin's permissions.
+	#[debug("{permissions:?} ({permissions})")]
 	#[schema(value_type = Vec<String>, example = json!(["bans", "servers"]))]
-	pub roles: RoleFlags,
+	pub permissions: Permissions,
 }
 
 /// Request body for updating admins.
 #[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
 pub struct AdminUpdate {
-	/// New roles for the admin.
-	#[debug("{roles}")]
+	/// New permissions for the admin.
+	#[debug("{permissions}")]
 	#[schema(value_type = Vec<String>, example = json!(["bans", "servers"]))]
-	pub roles: RoleFlags,
+	pub permissions: Permissions,
 }

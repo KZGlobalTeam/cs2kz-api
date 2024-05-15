@@ -6,10 +6,10 @@ use cs2kz::SteamID;
 use tracing::trace;
 
 use crate::admins::{Admin, AdminUpdate};
-use crate::auth::{self, RoleFlags};
+use crate::authorization::{self, Permissions};
 use crate::openapi::responses;
 use crate::openapi::responses::NoContent;
-use crate::{Error, Result, State};
+use crate::{authentication, Error, Result, State};
 
 /// Fetch a specific admin by their SteamID.
 #[tracing::instrument(level = "debug", skip(state))]
@@ -31,7 +31,7 @@ pub async fn get(state: &State, Path(steam_id): Path<SteamID>) -> Result<Json<Ad
 		SELECT
 		  id `id: SteamID`,
 		  name,
-		  role_flags `role_flags: RoleFlags`
+		  permissions `permissions: Permissions`
 		FROM
 		  Players
 		WHERE
@@ -44,7 +44,7 @@ pub async fn get(state: &State, Path(steam_id): Path<SteamID>) -> Result<Json<Ad
 	.map(|row| Admin {
 		name: row.name,
 		steam_id: row.id,
-		roles: row.role_flags,
+		permissions: row.permissions,
 	})
 	.ok_or_else(|| Error::no_content())?;
 
@@ -72,9 +72,9 @@ pub async fn get(state: &State, Path(steam_id): Path<SteamID>) -> Result<Json<Ad
 )]
 pub async fn put(
 	state: &State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::ADMIN.value() }>>,
+	session: authentication::Session<authorization::HasPermissions<{ Permissions::ADMIN.value() }>>,
 	Path(steam_id): Path<SteamID>,
-	Json(AdminUpdate { roles }): Json<AdminUpdate>,
+	Json(AdminUpdate { permissions }): Json<AdminUpdate>,
 ) -> Result<NoContent> {
 	let mut transaction = state.transaction().await?;
 
@@ -83,11 +83,11 @@ pub async fn put(
 		UPDATE
 		  Players
 		SET
-		  role_flags = ?
+		  permissions = ?
 		WHERE
 		  id = ?
 		"#,
-		roles,
+		permissions,
 		steam_id,
 	}
 	.execute(transaction.as_mut())
@@ -99,7 +99,7 @@ pub async fn put(
 
 	transaction.commit().await?;
 
-	trace!(%steam_id, ?roles, "updated admin");
+	trace!(%steam_id, ?permissions, "updated admin");
 
 	Ok(NoContent)
 }

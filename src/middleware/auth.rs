@@ -1,26 +1,26 @@
 //! Authentication / Authorization middleware using the [`Session`] extractor.
 //!
-//! [`Session`]: crate::auth::Session
+//! [`Session`]: crate::authentication::Session
 
 use axum::extract::Request;
 use axum::middleware::Next;
 use axum::response::Response;
 
-use crate::auth::{self, AuthorizeSession};
-use crate::Result;
+use crate::authentication;
+use crate::authorization::AuthorizeSession;
 
 /// Authenticates the incoming request and extends its session.
-pub async fn layer<Authorization>(
-	session: auth::Session<Authorization>,
+pub async fn layer<A>(
+	session: authentication::Session<A>,
 	mut request: Request,
 	next: Next,
-) -> Result<(auth::Session<Authorization>, Response)>
+) -> (authentication::Session<A>, Response)
 where
-	Authorization: AuthorizeSession,
+	A: AuthorizeSession,
 {
 	request.extensions_mut().insert(session.clone());
 
-	Ok((session, next.run(request).await))
+	(session, next.run(request).await)
 }
 
 /// macro

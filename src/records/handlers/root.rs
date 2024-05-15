@@ -8,7 +8,7 @@ use serde::Deserialize;
 use tracing::trace;
 use utoipa::{IntoParams, ToSchema};
 
-use crate::auth::Jwt;
+use crate::authentication::{self, Jwt};
 use crate::kz::StyleFlags;
 use crate::maps::FilterID;
 use crate::openapi::parameters::{Limit, Offset, SortingOrder};
@@ -16,7 +16,7 @@ use crate::openapi::responses;
 use crate::openapi::responses::{Created, PaginationResponse};
 use crate::records::{queries, CreatedRecord, NewRecord, Record};
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, Error, Result, State};
+use crate::{Error, Result, State};
 
 /// Query parameters for `GET /records`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -220,7 +220,7 @@ pub async fn post(
 	state: &State,
 	Jwt {
 		payload: server, ..
-	}: Jwt<auth::Server>,
+	}: Jwt<authentication::Server>,
 	Json(NewRecord {
 		player_id,
 		mode,

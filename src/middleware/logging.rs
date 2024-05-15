@@ -23,6 +23,7 @@ pub(crate) use layer;
 #[doc(hidden)]
 pub(crate) fn make_span_with(request: &Request) -> tracing::Span {
 	tracing::trace_span! {
+		target: "cs2kz_api::logs",
 		"request",
 		request.id = %Uuid::new_v4(),
 		request.method = %request.method(),

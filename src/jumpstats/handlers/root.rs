@@ -8,13 +8,13 @@ use serde::Deserialize;
 use tracing::trace;
 use utoipa::IntoParams;
 
-use crate::auth::Jwt;
+use crate::authentication::{self, Jwt};
 use crate::jumpstats::{queries, CreatedJumpstat, Jumpstat, NewJumpstat};
 use crate::openapi::parameters::{Limit, Offset};
 use crate::openapi::responses;
 use crate::openapi::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, Error, Result, State};
+use crate::{Error, Result, State};
 
 /// Query parameters for `GET /jumpstats`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -155,7 +155,7 @@ pub async fn post(
 	state: &State,
 	Jwt {
 		payload: server, ..
-	}: Jwt<auth::Server>,
+	}: Jwt<authentication::Server>,
 	Json(NewJumpstat {
 		jump_type,
 		mode,

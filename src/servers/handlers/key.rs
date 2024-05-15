@@ -7,11 +7,12 @@ use axum::Json;
 use tracing::info;
 use uuid::Uuid;
 
-use crate::auth::{Jwt, RoleFlags};
+use crate::authentication::{self, Jwt};
+use crate::authorization::Permissions;
 use crate::openapi::responses::{self, Created, NoContent};
 use crate::plugin::PluginVersionID;
 use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse, ServerID};
-use crate::{auth, Error, Result, State};
+use crate::{authorization, Error, Result, State};
 
 /// Generate a temporary authentication key for a CS2 server.
 ///
@@ -25,7 +26,7 @@ use crate::{auth, Error, Result, State};
   path = "/servers/key",
   tag = "Servers",
   responses(
-    responses::Created<Jwt<auth::Server>>,
+    responses::Created<Jwt<authentication::Server>>,
     responses::BadRequest,
     responses::Unauthorized,
     responses::UnprocessableEntity,
@@ -56,12 +57,12 @@ pub async fn generate_temp(
 	}
 	.fetch_optional(transaction.as_mut())
 	.await?
-	.map(|row| (row.server_id, row.plugin_version_id))
-	.map(|(server_id, plugin_version_id)| auth::Server::new(server_id, plugin_version_id))
+	.map(|row| authentication::Server::new(row.server_id, row.plugin_version_id))
 	.ok_or_else(|| Error::invalid_refresh_key())?;
 
+	let jwt = Jwt::new(&server, Duration::from_secs(60 * 15));
 	let access_key = state
-		.encode_jwt(&server, Duration::from_secs(60 * 15))
+		.encode_jwt(jwt)
 		.map(|access_key| RefreshKeyResponse { access_key })?;
 
 	transaction.commit().await?;
@@ -91,7 +92,7 @@ pub async fn generate_temp(
 )]
 pub async fn put_perma(
 	state: &State,
-	session: auth::Session<auth::AdminOrServerOwner>,
+	session: authentication::Session<authorization::IsServerAdminOrOwner>,
 	Path(server_id): Path<ServerID>,
 ) -> Result<Created<Json<RefreshKey>>> {
 	let mut transaction = state.transaction().await?;
@@ -144,7 +145,9 @@ pub async fn put_perma(
 )]
 pub async fn delete_perma(
 	state: &State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.value() }>>,
+	session: authentication::Session<
+		authorization::HasPermissions<{ Permissions::SERVERS.value() }>,
+	>,
 	Path(server_id): Path<ServerID>,
 ) -> Result<NoContent> {
 	let mut transaction = state.transaction().await?;
@@ -181,7 +184,7 @@ mod tests {
 	use reqwest::header;
 	use uuid::Uuid;
 
-	use crate::auth;
+	use crate::authentication;
 	use crate::plugin::PluginVersionID;
 	use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse, ServerID};
 
@@ -221,7 +224,7 @@ mod tests {
 		assert_eq!(response.status(), 201);
 
 		let RefreshKeyResponse { access_key } = response.json().await?;
-		let server_info = ctx.decode_jwt::<auth::Server>(&access_key)?;
+		let server_info = ctx.decode_jwt::<authentication::Server>(&access_key)?;
 
 		assert_eq!(server_info.id(), server.id);
 		assert_eq!(server_info.plugin_version_id(), server.plugin_version_id);

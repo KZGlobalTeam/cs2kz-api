@@ -1,5 +1,6 @@
 //! Handlers for the `/auth` routes.
 
+use authentication::Session;
 use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::response::Redirect;
@@ -9,9 +10,8 @@ use tracing::debug;
 use url::Url;
 use utoipa::IntoParams;
 
-use crate::auth::{Session, SteamLoginForm, SteamLoginResponse};
 use crate::openapi::responses;
-use crate::{steam, Result, State};
+use crate::{authentication, steam, Result, State};
 
 /// Query parameters for logging in with Steam.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -41,7 +41,7 @@ pub async fn login(
 	state: &State,
 	Query(LoginParams { redirect_to }): Query<LoginParams>,
 ) -> Redirect {
-	SteamLoginForm::new(state.config.public_url.clone()).redirect_to(&redirect_to)
+	steam::authentication::LoginForm::new(state.config.public_url.clone()).redirect_to(&redirect_to)
 }
 
 /// Query parameters for logging out.
@@ -97,7 +97,7 @@ pub async fn logout(
   get,
   path = "/auth/callback",
   tag = "Auth",
-  params(SteamLoginResponse),
+  params(steam::authentication::LoginResponse),
   responses(
     responses::Ok<()>,
     responses::NoContent,
@@ -108,7 +108,7 @@ pub async fn logout(
 pub async fn callback(
 	state: &'static State,
 	cookies: CookieJar,
-	login: SteamLoginResponse,
+	login: steam::authentication::LoginResponse,
 	user: steam::User,
 ) -> Result<(CookieJar, Redirect)> {
 	let transaction = state.transaction().await?;

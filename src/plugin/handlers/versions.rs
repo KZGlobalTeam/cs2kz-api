@@ -7,12 +7,13 @@ use sqlx::QueryBuilder;
 use tracing::debug;
 use utoipa::IntoParams;
 
+use crate::authentication::ApiKey;
 use crate::openapi::parameters::{Limit, Offset};
 use crate::openapi::responses;
 use crate::openapi::responses::{Created, PaginationResponse};
 use crate::plugin::{CreatedPluginVersion, NewPluginVersion, PluginVersion, PluginVersionID};
 use crate::sqlx::{query, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, Error, Result, State};
+use crate::{Error, Result, State};
 
 /// Query parameters for `GET /plugin`.
 #[derive(Debug, Clone, Copy, Deserialize, IntoParams)]
@@ -90,12 +91,16 @@ pub async fn get(
 )]
 pub async fn post(
 	state: &State,
-	auth::Key(key): auth::Key,
+	api_key: ApiKey,
 	Json(NewPluginVersion {
 		semver,
 		git_revision,
 	}): Json<NewPluginVersion>,
 ) -> Result<Created<Json<CreatedPluginVersion>>> {
+	if api_key.name() != "plugin_versions" {
+		return Err(Error::key_invalid());
+	}
+
 	let mut transaction = state.transaction().await?;
 
 	let latest_version = sqlx::query! {

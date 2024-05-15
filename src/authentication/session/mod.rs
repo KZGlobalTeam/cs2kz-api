@@ -39,19 +39,22 @@ use axum_extra::extract::cookie::Cookie;
 use cs2kz::SteamID;
 use derive_more::{Debug, From, Into};
 use sqlx::{MySql, Transaction};
-use time::{Duration, OffsetDateTime};
+use time::OffsetDateTime;
 use tracing::{debug, trace};
 use uuid::Uuid;
 
-use super::{AuthorizeSession, User};
-use crate::auth::{self, RoleFlags};
+use crate::authentication::User;
+use crate::authorization::{self, AuthorizeSession, Permissions};
 use crate::sqlx::SqlErrorExt;
 use crate::{Error, Result, State};
 
 mod id;
 
 #[doc(inline)]
-pub use id::ID;
+pub use id::SessionID;
+
+/// The name of the cookie holding the session's ID in the user's browser.
+pub const COOKIE_NAME: &str = "kz-auth";
 
 /// An authenticated session.
 ///
@@ -63,12 +66,12 @@ pub use id::ID;
 /// [extractor]: axum::extract
 #[must_use]
 #[derive(Debug, Into)]
-pub struct Session<Authorization = auth::None> {
+pub struct Session<A = authorization::None> {
 	/// The session ID.
-	id: ID,
+	id: SessionID,
 
 	/// The user associated with this session.
-	#[debug("{} ({})", user.steam_id(), user.role_flags())]
+	#[debug("{} ({})", user.steam_id(), user.permissions())]
 	user: User,
 
 	/// The cookie that was extracted / will be sent.
@@ -78,7 +81,24 @@ pub struct Session<Authorization = auth::None> {
 
 	/// Marker for encoding the authorization method in the session's type.
 	#[debug(skip)]
-	_authorization: PhantomData<Authorization>,
+	_authorization: PhantomData<A>,
+}
+
+impl<A> Session<A> {
+	/// Returns the session ID.
+	pub const fn id(&self) -> SessionID {
+		self.id
+	}
+
+	/// Returns the logged-in user.
+	pub const fn user(&self) -> User {
+		self.user
+	}
+
+	/// Returns the expiration date for a new [Session].
+	fn expires_on() -> OffsetDateTime {
+		OffsetDateTime::now_utc() + time::Duration::WEEK
+	}
 }
 
 impl Session {
@@ -92,8 +112,8 @@ impl Session {
 		config: &'static crate::Config,
 		mut transaction: Transaction<'_, MySql>,
 	) -> Result<Self> {
-		let session_id = ID::new();
-		let expires_on = Self::expiration_date();
+		let session_id = SessionID::new();
+		let expires_on = Self::expires_on();
 
 		sqlx::query! {
 			r#"
@@ -119,7 +139,7 @@ impl Session {
 		let user = sqlx::query! {
 			r#"
 			SELECT
-			  role_flags `role_flags: RoleFlags`
+			  permissions `permissions: Permissions`
 			FROM
 			  Players
 			WHERE
@@ -129,14 +149,14 @@ impl Session {
 		}
 		.fetch_optional(transaction.as_mut())
 		.await?
-		.map(|row| User::new(user_id, row.role_flags))
+		.map(|row| User::new(user_id, row.permissions))
 		.ok_or_else(|| Error::unknown("SteamID"))?;
 
 		transaction.commit().await?;
 
 		debug!(%session_id, %user_id, "created session");
 
-		let cookie = Cookie::build((Self::COOKIE_NAME, session_id.to_string()))
+		let cookie = Cookie::build((COOKIE_NAME, session_id.to_string()))
 			.domain(config.cookie_domain.clone())
 			.path("/")
 			.secure(cfg!(feature = "production"))
@@ -153,28 +173,10 @@ impl Session {
 	}
 }
 
-impl<Authorization> Session<Authorization>
+impl<A> Session<A>
 where
-	Authorization: AuthorizeSession,
+	A: AuthorizeSession,
 {
-	/// The name of the cookie holding the session's ID in the user's browser.
-	pub const COOKIE_NAME: &'static str = "kz-auth";
-
-	/// Returns this session's ID.
-	pub const fn id(&self) -> ID {
-		self.id
-	}
-
-	/// Returns the user associated with this session.
-	pub const fn user(&self) -> User {
-		self.user
-	}
-
-	/// Returns the default expiration date for any session.
-	fn expiration_date() -> OffsetDateTime {
-		OffsetDateTime::now_utc() + Duration::WEEK
-	}
-
 	/// Invalidates the given session.
 	///
 	/// This invovles both updating the database record as well as the stored cookie.
@@ -221,9 +223,9 @@ where
 }
 
 #[async_trait]
-impl<Authorization> FromRequestParts<&'static State> for Session<Authorization>
+impl<A> FromRequestParts<&'static State> for Session<A>
 where
-	Authorization: AuthorizeSession,
+	A: AuthorizeSession,
 {
 	type Rejection = Error;
 
@@ -247,7 +249,7 @@ where
 				let name = cookie.name();
 				let value = cookie.value();
 
-				if name != Self::COOKIE_NAME {
+				if name != COOKIE_NAME {
 					return None;
 				}
 
@@ -271,9 +273,9 @@ where
 		let session = sqlx::query! {
 			r#"
 			SELECT
-			  s.id `id: ID`,
+			  s.id `id: SessionID`,
 			  p.id `user_id: SteamID`,
-			  p.role_flags `role_flags: RoleFlags`
+			  p.permissions `permissions: Permissions`
 			FROM
 			  LoginSessions s
 			  JOIN Players p ON p.id = s.player_id
@@ -291,7 +293,7 @@ where
 
 		trace!(%session.id, "fetched session");
 
-		let expires_on = Self::expiration_date();
+		let expires_on = Self::expires_on();
 
 		cookie.set_path("/");
 		cookie.set_secure(cfg!(feature = "production"));
@@ -317,12 +319,12 @@ where
 
 		let session = Self {
 			id: session.id,
-			user: User::new(session.user_id, session.role_flags),
+			user: User::new(session.user_id, session.permissions),
 			cookie,
 			_authorization: PhantomData,
 		};
 
-		Authorization::authorize(&session.user, request, &mut transaction).await?;
+		A::authorize_session(&session.user, request, &mut transaction).await?;
 
 		transaction.commit().await?;
 
@@ -330,7 +332,7 @@ where
 	}
 }
 
-impl<Authorization> IntoResponseParts for Session<Authorization> {
+impl<A> IntoResponseParts for Session<A> {
 	type Error = Error;
 
 	fn into_response_parts(self, mut response: ResponseParts) -> Result<ResponseParts> {
@@ -346,7 +348,7 @@ impl<Authorization> IntoResponseParts for Session<Authorization> {
 	}
 }
 
-impl<Authorization> Clone for Session<Authorization> {
+impl<A> Clone for Session<A> {
 	fn clone(&self) -> Self {
 		Self {
 			id: self.id,

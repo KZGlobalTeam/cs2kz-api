@@ -4,10 +4,10 @@ use axum::http::Method;
 use axum::routing::{get, patch, put};
 use axum::Router;
 
-use crate::auth::RoleFlags;
+use crate::authorization::Permissions;
 use crate::middleware::auth::session_auth;
 use crate::middleware::cors;
-use crate::{auth, State};
+use crate::{authorization, State};
 
 mod models;
 
@@ -22,7 +22,10 @@ pub mod handlers;
 
 /// Returns a router with routes for `/maps`.
 pub fn router(state: &'static State) -> Router {
-	let auth = session_auth!(auth::HasRoles<{ RoleFlags::MAPS.value() }>, state);
+	let auth = session_auth!(
+		authorization::HasPermissions<{ Permissions::MAPS.value() }>,
+		state
+	);
 
 	let root = Router::new()
 		.route("/", get(handlers::root::get))

@@ -100,7 +100,7 @@ VALUES
   ("ladderhop");
 
 INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `role_flags`)
+  `Players` (`id`, `name`, `ip_address`, `permissions`)
 VALUES
   (
     76561198282622073,
@@ -110,7 +110,7 @@ VALUES
   );
 
 INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `role_flags`)
+  `Players` (`id`, `name`, `ip_address`, `permissions`)
 VALUES
   (
     76561198118681904,
@@ -120,7 +120,7 @@ VALUES
   );
 
 INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `role_flags`)
+  `Players` (`id`, `name`, `ip_address`, `permissions`)
 VALUES
   (
     76561198165203332,
@@ -130,7 +130,7 @@ VALUES
   );
 
 INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `role_flags`)
+  `Players` (`id`, `name`, `ip_address`, `permissions`)
 VALUES
   (
     76561198003275951,
@@ -140,7 +140,7 @@ VALUES
   );
 
 INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `role_flags`)
+  `Players` (`id`, `name`, `ip_address`, `permissions`)
 VALUES
   (
     76561197989817982,
@@ -150,7 +150,7 @@ VALUES
   );
 
 INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `role_flags`)
+  `Players` (`id`, `name`, `ip_address`, `permissions`)
 VALUES
   (
     76561199067702427,
@@ -160,7 +160,7 @@ VALUES
   );
 
 INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `role_flags`)
+  `Players` (`id`, `name`, `ip_address`, `permissions`)
 VALUES
   (
     76561198201492663,

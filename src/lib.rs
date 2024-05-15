@@ -39,6 +39,8 @@ pub(crate) use cs2kz_api_macros::test;
 
 mod openapi;
 mod middleware;
+mod authentication;
+mod authorization;
 mod sqlx;
 mod steam;
 mod serde;
@@ -54,7 +56,6 @@ pub mod jumpstats;
 pub mod records;
 pub mod bans;
 pub mod game_sessions;
-pub mod auth;
 pub mod admins;
 pub mod plugin;
 
@@ -109,9 +110,9 @@ pub mod plugin;
 
     game_sessions::handlers::by_id::get,
 
-    auth::handlers::login,
-    auth::handlers::logout,
-    auth::handlers::callback,
+    authentication::handlers::login,
+    authentication::handlers::logout,
+    authentication::handlers::callback,
 
     admins::handlers::root::get,
     admins::handlers::by_id::get,
@@ -284,7 +285,7 @@ impl API {
 			.nest("/records", records::router(state))
 			.nest("/bans", bans::router(state))
 			.nest("/sessions", game_sessions::router(state))
-			.nest("/auth", auth::router(state))
+			.nest("/auth", authentication::router(state))
 			.nest("/admins", admins::router(state))
 			.nest("/plugin", plugin::router(state))
 			.layer(middleware::logging::layer!())

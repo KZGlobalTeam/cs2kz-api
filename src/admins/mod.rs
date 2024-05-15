@@ -1,19 +1,18 @@
 //! Everything related to "admins".
 //!
-//! "Admins" in this case means users with some special permissions.
-//! These permissions are assigned in the form of [roles], which can be managed using the
-//! endpoints in this module.
+//! "Admins" in this case means users with some special [permissions].
+//! These permissions can be managed using the endpoints in this module.
 //!
-//! [roles]: crate::auth::RoleFlags
+//! [permissions]: crate::authorization::Permissions
 
 use axum::http::Method;
 use axum::routing::{get, put};
 use axum::Router;
 
-use crate::auth::RoleFlags;
+use crate::authorization::Permissions;
 use crate::middleware::auth::session_auth;
 use crate::middleware::cors;
-use crate::{auth, State};
+use crate::{authorization, State};
 
 mod models;
 
@@ -24,7 +23,10 @@ pub mod handlers;
 
 /// Returns a router with routes for `/admins`.
 pub fn router(state: &'static State) -> Router {
-	let auth = session_auth!(auth::HasRoles<{ RoleFlags::ADMIN.value() }>, state);
+	let auth = session_auth!(
+		authorization::HasPermissions<{ Permissions::ADMIN.value() }>,
+		state
+	);
 
 	let root = Router::new()
 		.route("/", get(handlers::root::get))

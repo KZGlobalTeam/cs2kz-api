@@ -7,14 +7,15 @@ use sqlx::types::Json as SqlJson;
 use sqlx::{MySql, QueryBuilder};
 use tracing::trace;
 
-use crate::auth::{self, Jwt, RoleFlags};
+use crate::authentication::Jwt;
+use crate::authorization::Permissions;
 use crate::game_sessions::{CourseSessionID, GameSessionID};
 use crate::maps::CourseID;
 use crate::openapi::responses::{self, NoContent};
 use crate::players::{queries, CourseSession, FullPlayer, PlayerUpdate};
 use crate::servers::ServerID;
 use crate::sqlx::SqlErrorExt;
-use crate::{Error, Result, State};
+use crate::{authentication, authorization, Error, Result, State};
 
 /// Fetch a specific player.
 ///
@@ -35,7 +36,9 @@ use crate::{Error, Result, State};
 )]
 pub async fn get(
 	state: &State,
-	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>>,
+	session: Option<
+		authentication::Session<authorization::HasPermissions<{ Permissions::BANS.value() }>>,
+	>,
 	Path(player): Path<PlayerIdentifier>,
 ) -> Result<Json<FullPlayer>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
@@ -88,7 +91,7 @@ pub async fn patch(
 	state: &State,
 	Jwt {
 		payload: server, ..
-	}: Jwt<auth::Server>,
+	}: Jwt<authentication::Server>,
 	Path(steam_id): Path<SteamID>,
 	Json(PlayerUpdate {
 		name,

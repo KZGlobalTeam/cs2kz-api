@@ -14,28 +14,28 @@ use uuid::Uuid;
 #[derive(Debug, Display, Clone, Copy, PartialEq, Eq, Into)]
 #[debug("*****")]
 #[display("{_0}")]
-pub struct ID(Uuid);
+pub struct SessionID(Uuid);
 
-impl ID {
+impl SessionID {
 	/// Generates a new random session ID.
 	pub fn new() -> Self {
 		Self(Uuid::new_v4())
 	}
 }
 
-impl sqlx::Type<MySql> for ID {
+impl sqlx::Type<MySql> for SessionID {
 	fn type_info() -> <MySql as sqlx::Database>::TypeInfo {
 		<Hyphenated as sqlx::Type<MySql>>::type_info()
 	}
 }
 
-impl<'q> sqlx::Encode<'q, MySql> for ID {
+impl<'q> sqlx::Encode<'q, MySql> for SessionID {
 	fn encode_by_ref(&self, buf: &mut <MySql as HasArguments<'q>>::ArgumentBuffer) -> IsNull {
 		self.0.as_hyphenated().encode_by_ref(buf)
 	}
 }
 
-impl<'r> sqlx::Decode<'r, MySql> for ID {
+impl<'r> sqlx::Decode<'r, MySql> for SessionID {
 	fn decode(value: <MySql as HasValueRef<'r>>::ValueRef) -> Result<Self, BoxDynError> {
 		<Hyphenated as sqlx::Decode<'r, MySql>>::decode(value)
 			.map(Uuid::from)

@@ -1,87 +1,23 @@
-//! Types related to authentication.
+//! Authentication with the Steam API via OpenID.
 
 use axum::async_trait;
-use axum::extract::{FromRequestParts, Query};
+use axum::extract::FromRequestParts;
 use axum::http::request;
 use axum::response::Redirect;
+use axum_extra::extract::Query;
 use cs2kz::SteamID;
-use derive_more::Debug;
 use reqwest::{header, Response};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use url::Url;
-use utoipa::{IntoParams, ToSchema};
+use utoipa::IntoParams;
 
-use super::RoleFlags;
-use crate::plugin::PluginVersionID;
-use crate::servers::ServerID;
 use crate::{Error, Result, State};
-
-/// An authenticated server.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
-pub struct Server {
-	/// The server's ID.
-	id: ServerID,
-
-	/// The CS2KZ version ID the server is currently running on.
-	plugin_version_id: PluginVersionID,
-}
-
-impl Server {
-	/// Creates a new [`Server`].
-	pub const fn new(id: ServerID, plugin_version_id: PluginVersionID) -> Self {
-		Self {
-			id,
-			plugin_version_id,
-		}
-	}
-
-	/// The server's ID.
-	pub const fn id(&self) -> ServerID {
-		self.id
-	}
-
-	/// The CS2KZ version ID the server is currently running on.
-	pub const fn plugin_version_id(&self) -> PluginVersionID {
-		self.plugin_version_id
-	}
-}
-
-/// An authenticated user.
-#[derive(Debug, Clone, Copy)]
-pub struct User {
-	/// The user's SteamID.
-	steam_id: SteamID,
-
-	/// The user's roles as a bitfield.
-	#[debug("{role_flags:?} ({role_flags})")]
-	role_flags: RoleFlags,
-}
-
-impl User {
-	/// Creates a new [`User`].
-	pub const fn new(steam_id: SteamID, role_flags: RoleFlags) -> Self {
-		Self {
-			steam_id,
-			role_flags,
-		}
-	}
-
-	/// The user's SteamID.
-	pub const fn steam_id(&self) -> SteamID {
-		self.steam_id
-	}
-
-	/// The user's roles as a bitfield.
-	pub const fn role_flags(&self) -> RoleFlags {
-		self.role_flags
-	}
-}
 
 /// Form used for logging a user into Steam.
 #[derive(Debug, Serialize)]
 #[allow(clippy::missing_docs_in_private_items)]
-pub struct SteamLoginForm {
+pub struct LoginForm {
 	#[serde(rename = "openid.ns")]
 	namespace: &'static str,
 
@@ -101,7 +37,7 @@ pub struct SteamLoginForm {
 	return_to: Url,
 }
 
-impl SteamLoginForm {
+impl LoginForm {
 	/// The route to which a user should be redirected back to by Steam after logging in.
 	const RETURN_ROUTE: &'static str = "/auth/callback";
 
@@ -145,10 +81,10 @@ impl SteamLoginForm {
 /// The payload sent by Steam after a user logged in.
 #[derive(Debug, Serialize, Deserialize, IntoParams)]
 #[allow(clippy::missing_docs_in_private_items)]
-pub struct SteamLoginResponse {
+pub struct LoginResponse {
 	/// The URL we should redirect the user back to after we verified their request.
 	///
-	/// This is injected by [`SteamLoginForm::redirect_to()`].
+	/// This is injected by [`LoginForm::redirect_to()`].
 	#[serde(skip_serializing)]
 	pub redirect_to: Url,
 
@@ -186,7 +122,7 @@ pub struct SteamLoginResponse {
 	sig: String,
 }
 
-impl SteamLoginResponse {
+impl LoginResponse {
 	/// Extracts the user's SteamID.
 	pub fn steam_id(&self) -> SteamID {
 		self.claimed_id
@@ -206,7 +142,7 @@ impl SteamLoginResponse {
 		})?;
 
 		let response = http_client
-			.post(SteamLoginForm::LOGIN_URL)
+			.post(LoginForm::LOGIN_URL)
 			.header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
 			.body(payload)
 			.send()
@@ -233,7 +169,7 @@ impl SteamLoginResponse {
 }
 
 #[async_trait]
-impl FromRequestParts<&'static State> for SteamLoginResponse {
+impl FromRequestParts<&'static State> for LoginResponse {
 	type Rejection = Error;
 
 	async fn from_request_parts(

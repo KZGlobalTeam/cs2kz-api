@@ -9,14 +9,15 @@ use time::OffsetDateTime;
 use tracing::{trace, warn};
 use utoipa::IntoParams;
 
-use crate::auth::{Jwt, RoleFlags};
+use crate::authentication::Jwt;
+use crate::authorization::Permissions;
 use crate::bans::{queries, Ban, BanReason, CreatedBan, NewBan};
 use crate::openapi::parameters::{Limit, Offset};
 use crate::openapi::responses;
 use crate::openapi::responses::{Created, PaginationResponse};
 use crate::plugin::PluginVersionID;
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, Error, Result, State};
+use crate::{authentication, authorization, Error, Result, State};
 
 /// Query parameters for `GET /bans`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -158,8 +159,10 @@ pub async fn get(
 )]
 pub async fn post(
 	state: &State,
-	server: Option<Jwt<auth::Server>>,
-	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>>,
+	server: Option<Jwt<authentication::Server>>,
+	session: Option<
+		authentication::Session<authorization::HasPermissions<{ Permissions::BANS.value() }>>,
+	>,
 	Json(NewBan {
 		player_id,
 		player_ip,

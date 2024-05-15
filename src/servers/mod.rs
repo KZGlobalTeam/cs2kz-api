@@ -4,10 +4,10 @@ use axum::http::Method;
 use axum::routing::{delete, get, patch, post, put};
 use axum::Router;
 
-use crate::auth::RoleFlags;
+use crate::authorization::Permissions;
 use crate::middleware::auth::session_auth;
 use crate::middleware::cors;
-use crate::{auth, State};
+use crate::{authorization, State};
 
 mod models;
 
@@ -22,8 +22,11 @@ pub mod handlers;
 
 /// Returns a router with routes for `/servers`.
 pub fn router(state: &'static State) -> Router {
-	let is_admin = session_auth!(auth::HasRoles<{ RoleFlags::SERVERS.value() }>, state);
-	let is_admin_or_owner = session_auth!(auth::AdminOrServerOwner, state);
+	let is_admin = session_auth!(
+		authorization::HasPermissions<{ Permissions::SERVERS.value() }>,
+		state
+	);
+	let is_admin_or_owner = session_auth!(authorization::IsServerAdminOrOwner, state);
 
 	let root = Router::new()
 		.route("/", get(handlers::root::get))

@@ -10,7 +10,7 @@ use sqlx::{MySql, QueryBuilder};
 use tracing::{debug, info};
 
 use super::root::create_mappers;
-use crate::auth::RoleFlags;
+use crate::authorization::{self, Permissions};
 use crate::maps::handlers::root::insert_course_mappers;
 use crate::maps::{
 	queries, CourseID, CourseUpdate, FilterID, FilterUpdate, FullMap, MapID, MapUpdate,
@@ -19,7 +19,7 @@ use crate::openapi::responses;
 use crate::openapi::responses::NoContent;
 use crate::sqlx::UpdateQuery;
 use crate::steam::workshop::{self, WorkshopID};
-use crate::{auth, Error, Result, State};
+use crate::{authentication, Error, Result, State};
 
 /// Fetch a single map.
 #[tracing::instrument(level = "debug", skip(state))]
@@ -85,7 +85,7 @@ pub async fn get(state: &State, Path(map): Path<MapIdentifier>) -> Result<Json<F
 )]
 pub async fn patch(
 	state: &State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.value() }>>,
+	session: authentication::Session<authorization::HasPermissions<{ Permissions::MAPS.value() }>>,
 	Path(map_id): Path<MapID>,
 	Json(MapUpdate {
 		description,

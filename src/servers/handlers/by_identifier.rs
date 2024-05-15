@@ -10,7 +10,7 @@ use crate::openapi::responses;
 use crate::openapi::responses::NoContent;
 use crate::servers::{queries, Server, ServerID, ServerUpdate};
 use crate::sqlx::UpdateQuery;
-use crate::{auth, Error, Result, State};
+use crate::{authentication, authorization, Error, Result, State};
 
 /// Fetch a specific server.
 #[tracing::instrument(level = "debug", skip(state))]
@@ -67,7 +67,7 @@ pub async fn get(state: &State, Path(server): Path<ServerIdentifier>) -> Result<
 )]
 pub async fn patch(
 	state: &State,
-	session: auth::Session<auth::AdminOrServerOwner>,
+	session: authentication::Session<authorization::IsServerAdminOrOwner>,
 	Path(server_id): Path<ServerID>,
 	Json(ServerUpdate {
 		name,

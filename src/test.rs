@@ -9,7 +9,7 @@ use tokio::sync::oneshot;
 use url::Url;
 use uuid::Uuid;
 
-use crate::auth::{self, Jwt};
+use crate::authentication::{self, Jwt};
 use crate::plugin::PluginVersionID;
 use crate::servers::ServerID;
 
@@ -120,13 +120,13 @@ impl Context {
 	}
 
 	pub fn auth_server(&self, expires_after: Duration) -> Result<String, jwt::errors::Error> {
-		let server = auth::Server::new(ServerID(1), PluginVersionID(1));
+		let server = authentication::Server::new(ServerID(1), PluginVersionID(1));
 
 		self.encode_jwt(&server, expires_after)
 	}
 
-	pub async fn auth_session(&self, steam_id: SteamID) -> crate::Result<auth::Session> {
-		auth::Session::create(steam_id, self.config, self.database.begin().await?).await
+	pub async fn auth_session(&self, steam_id: SteamID) -> crate::Result<authentication::Session> {
+		authentication::Session::create(steam_id, self.config, self.database.begin().await?).await
 	}
 
 	pub fn encode_jwt<T>(

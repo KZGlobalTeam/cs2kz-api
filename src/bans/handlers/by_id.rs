@@ -5,12 +5,12 @@ use axum::Json;
 use sqlx::{MySqlExecutor, QueryBuilder};
 use tracing::info;
 
-use crate::auth::RoleFlags;
+use crate::authorization::{self, Permissions};
 use crate::bans::{queries, Ban, BanID, BanUpdate, CreatedUnban, NewUnban, UnbanID};
 use crate::openapi::responses;
 use crate::openapi::responses::{Created, NoContent};
 use crate::sqlx::UpdateQuery;
-use crate::{auth, Error, Result, State};
+use crate::{authentication, Error, Result, State};
 
 /// Fetch a specific ban by its ID.
 #[tracing::instrument(level = "debug", skip(state))]
@@ -61,7 +61,7 @@ pub async fn get(state: &State, Path(ban_id): Path<BanID>) -> Result<Json<Ban>> 
 )]
 pub async fn patch(
 	state: &State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>,
+	session: authentication::Session<authorization::HasPermissions<{ Permissions::BANS.value() }>>,
 	Path(ban_id): Path<BanID>,
 	Json(BanUpdate { reason, expires_on }): Json<BanUpdate>,
 ) -> Result<NoContent> {
@@ -118,7 +118,7 @@ pub async fn patch(
 )]
 pub async fn delete(
 	state: &State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>,
+	session: authentication::Session<authorization::HasPermissions<{ Permissions::BANS.value() }>>,
 	Path(ban_id): Path<BanID>,
 	Json(NewUnban { reason }): Json<NewUnban>,
 ) -> Result<Created<Json<CreatedUnban>>> {

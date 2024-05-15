@@ -11,13 +11,13 @@ use tracing::debug;
 use utoipa::IntoParams;
 use uuid::Uuid;
 
-use crate::auth::RoleFlags;
+use crate::authorization::{self, Permissions};
 use crate::openapi::parameters::{Limit, Offset};
 use crate::openapi::responses;
 use crate::openapi::responses::{Created, PaginationResponse};
 use crate::servers::{queries, CreatedServer, NewServer, Server, ServerID};
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
-use crate::{auth, Error, Result, State};
+use crate::{authentication, Error, Result, State};
 
 /// Query parameters for `GET /servers`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -140,7 +140,9 @@ pub async fn get(
 )]
 pub async fn post(
 	state: &State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::SERVERS.value() }>>,
+	session: authentication::Session<
+		authorization::HasPermissions<{ Permissions::SERVERS.value() }>,
+	>,
 	Json(NewServer {
 		name,
 		ip_address,

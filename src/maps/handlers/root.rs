@@ -12,14 +12,14 @@ use sqlx::{MySql, QueryBuilder};
 use tracing::{info, warn};
 use utoipa::IntoParams;
 
-use crate::auth::RoleFlags;
+use crate::authorization::Permissions;
 use crate::maps::{queries, CourseID, CreatedMap, FullMap, MapID, NewCourse, NewFilter, NewMap};
 use crate::openapi::parameters::{Limit, Offset};
 use crate::openapi::responses;
 use crate::openapi::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, FilteredQuery, SqlErrorExt};
 use crate::steam::workshop::{self, WorkshopID};
-use crate::{auth, Error, Result, State};
+use crate::{authentication, authorization, Error, Result, State};
 
 /// Query parameters for `GET /maps`.
 #[derive(Debug, Deserialize, IntoParams)]
@@ -146,7 +146,7 @@ pub async fn get(
 )]
 pub async fn put(
 	state: &State,
-	session: auth::Session<auth::HasRoles<{ RoleFlags::MAPS.value() }>>,
+	session: authentication::Session<authorization::HasPermissions<{ Permissions::MAPS.value() }>>,
 	Json(NewMap {
 		workshop_id,
 		description,

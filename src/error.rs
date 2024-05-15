@@ -19,7 +19,7 @@ use serde_json::json;
 use thiserror::Error;
 use tracing::{debug, error};
 
-use crate::auth::RoleFlags;
+use crate::authorization::Permissions;
 use crate::bans::UnbanID;
 use crate::maps::{CourseID, FilterID, MapID};
 
@@ -202,11 +202,11 @@ impl Error {
 		Self::new(StatusCode::UNAUTHORIZED).with_message("invalid session ID")
 	}
 
-	/// A user tried to make an authenticated request but didn't have the required roles.
+	/// A user tried to make an authenticated request but didn't have the required permissions.
 	#[track_caller]
-	pub(crate) fn missing_roles(roles: RoleFlags) -> Self {
+	pub(crate) fn insufficient_permissions(permissions: Permissions) -> Self {
 		Self::new(StatusCode::UNAUTHORIZED).with_message(format_args!(
-			"you are missing the required roles to perform this action ({roles})"
+			"you are missing the required roles to perform this action ({permissions})"
 		))
 	}
 

@@ -4,7 +4,6 @@
 
 use std::convert::Infallible;
 use std::result::Result as StdResult;
-use std::time::Duration;
 
 use axum::async_trait;
 use axum::extract::FromRequestParts;
@@ -15,7 +14,7 @@ use serde::Serialize;
 use sqlx::pool::PoolOptions;
 use sqlx::{MySql, Pool, Transaction};
 
-use crate::auth::Jwt;
+use crate::authentication::Jwt;
 use crate::{Error, Result};
 
 /// The main application state.
@@ -71,11 +70,11 @@ impl State {
 	}
 
 	/// Encodes the given `payload` in a JWT that will expire after a given amount of time.
-	pub fn encode_jwt<T>(&self, payload: &T, expires_after: Duration) -> Result<String>
+	pub fn encode_jwt<T>(&self, jwt: Jwt<T>) -> Result<String>
 	where
 		T: Serialize,
 	{
-		self.jwt_state.encode(payload, expires_after)
+		self.jwt_state.encode(jwt)
 	}
 
 	/// Decodes the given `jwt` into some type `T`.
@@ -132,16 +131,11 @@ impl JwtState {
 	}
 
 	/// Encodes the given `payload` in a JWT that will expire after a given amount of time.
-	fn encode<T>(&self, payload: &T, expires_after: Duration) -> Result<String>
+	fn encode<T>(&self, jwt: Jwt<T>) -> Result<String>
 	where
 		T: Serialize,
 	{
-		jwt::encode(
-			&self.jwt_header,
-			&Jwt::new(payload, expires_after),
-			&self.jwt_encoding_key,
-		)
-		.map_err(|err| Error::from(err))
+		jwt::encode(&self.jwt_header, &jwt, &self.jwt_encoding_key).map_err(|err| Error::from(err))
 	}
 
 	/// Decodes the given `jwt` into some type `T`.

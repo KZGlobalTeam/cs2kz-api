@@ -8,12 +8,13 @@ use sqlx::QueryBuilder;
 use tracing::info;
 use utoipa::IntoParams;
 
-use crate::auth::{self, Jwt, RoleFlags};
+use crate::authentication::Jwt;
+use crate::authorization::Permissions;
 use crate::openapi::parameters::{Limit, Offset};
 use crate::openapi::responses::{self, Created, PaginationResponse};
 use crate::players::{queries, FullPlayer, NewPlayer};
 use crate::sqlx::{query, QueryBuilderExt, SqlErrorExt};
-use crate::{Error, Result, State};
+use crate::{authentication, authorization, Error, Result, State};
 
 /// Query parameters for `GET /players`.
 #[derive(Debug, Clone, Copy, Deserialize, IntoParams)]
@@ -46,7 +47,9 @@ pub struct GetParams {
 )]
 pub async fn get(
 	state: &State,
-	session: Option<auth::Session<auth::HasRoles<{ RoleFlags::BANS.value() }>>>,
+	session: Option<
+		authentication::Session<authorization::HasPermissions<{ Permissions::BANS.value() }>>,
+	>,
 	Query(GetParams { limit, offset }): Query<GetParams>,
 ) -> Result<Json<PaginationResponse<FullPlayer>>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
@@ -101,7 +104,9 @@ pub async fn get(
 )]
 pub async fn post(
 	state: &State,
-	server: Jwt<auth::Server>,
+	Jwt {
+		payload: server, ..
+	}: Jwt<authentication::Server>,
 	Json(NewPlayer {
 		name,
 		steam_id,

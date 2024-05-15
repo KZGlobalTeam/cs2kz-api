@@ -4,7 +4,7 @@ use utoipa::openapi::security::{ApiKey, ApiKeyValue, Http, HttpAuthScheme, Secur
 use utoipa::openapi::OpenApi;
 use utoipa::Modify;
 
-use crate::auth;
+use crate::authentication;
 
 /// Shim for implementing [`Modify`].
 pub struct Security;
@@ -19,7 +19,7 @@ impl Modify for Security {
 		let cs_server_jwt = SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer));
 		let api_key = SecurityScheme::Http(Http::new(HttpAuthScheme::Bearer));
 		let sessions = SecurityScheme::ApiKey(ApiKey::Cookie(ApiKeyValue::new(
-			auth::Session::<auth::None>::COOKIE_NAME,
+			authentication::session::COOKIE_NAME,
 		)));
 
 		components.add_security_schemes_from_iter([

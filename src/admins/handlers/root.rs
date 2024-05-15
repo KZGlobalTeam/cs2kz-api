@@ -3,12 +3,11 @@
 use axum::Json;
 use axum_extra::extract::Query;
 use cs2kz::SteamID;
-use futures::TryStreamExt;
 use serde::Deserialize;
 use utoipa::IntoParams;
 
 use crate::admins::Admin;
-use crate::auth::RoleFlags;
+use crate::authorization::Permissions;
 use crate::openapi::parameters::{Limit, Offset};
 use crate::openapi::responses;
 use crate::openapi::responses::PaginationResponse;
@@ -18,10 +17,10 @@ use crate::{Error, Result, State};
 /// Query parameters for `GET /admins`.
 #[derive(Debug, Clone, Copy, Deserialize, IntoParams)]
 pub struct GetParams {
-	/// Filter by roles.
+	/// Filter by permissions.
 	#[param(value_type = Vec<String>)]
 	#[serde(default)]
-	roles: RoleFlags,
+	permissions: Permissions,
 
 	/// Limit the number of returned results.
 	#[serde(default)]
@@ -49,39 +48,34 @@ pub struct GetParams {
 pub async fn get(
 	state: &State,
 	Query(GetParams {
-		roles,
+		permissions,
 		limit,
 		offset,
 	}): Query<GetParams>,
 ) -> Result<Json<PaginationResponse<Admin>>> {
 	let mut transaction = state.transaction().await?;
 
-	let admins = sqlx::query! {
+	let admins = sqlx::query_as! {
+		Admin,
 		r#"
 		SELECT SQL_CALC_FOUND_ROWS
-		  id `id: SteamID`,
+		  id `steam_id: SteamID`,
 		  name,
-		  role_flags `role_flags: RoleFlags`
+		  permissions `permissions: Permissions`
 		FROM
 		  Players
 		WHERE
-		  role_flags > 0
-		  AND (role_flags & ?) = ?
+		  permissions > 0
+		  AND (permissions & ?) = ?
 		LIMIT
 		  ? OFFSET ?
 		"#,
-		roles,
-		roles,
+		permissions,
+		permissions,
 		limit.0,
 		offset.0,
 	}
-	.fetch(transaction.as_mut())
-	.map_ok(|row| Admin {
-		name: row.name,
-		steam_id: row.id,
-		roles: row.role_flags,
-	})
-	.try_collect::<Vec<_>>()
+	.fetch_all(transaction.as_mut())
 	.await?;
 
 	if admins.is_empty() {
