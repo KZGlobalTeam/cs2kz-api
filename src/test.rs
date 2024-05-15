@@ -106,6 +106,18 @@ impl Context {
 		let test_id = Uuid::now_v7();
 
 		eprintln!("[{test_id}] setting up");
+		eprintln!("[{test_id}] loading config");
+
+		let config = Config::new()
+			.map(Box::new)
+			.map(Box::leak)
+			.context("load config")?;
+
+		let port = thread_rng().gen_range(5000..=50000);
+
+		config.addr.set_port(port);
+		config.public_url.set_port(Some(port)).unwrap();
+
 		eprintln!("[{test_id}] starting database container");
 
 		let database_container = Mariadb::default().start().await;
@@ -116,15 +128,6 @@ impl Context {
 			Host::Ipv6(ip) => IpAddr::V6(ip),
 		};
 		let database_port = database_container.get_host_port_ipv4(3306).await;
-
-		let config = Config::new()
-			.map(Box::new)
-			.map(Box::leak)
-			.context("load config")?;
-		let port = thread_rng().gen_range(5000..=50000);
-
-		config.addr.set_port(port);
-		config.public_url.set_port(Some(port)).unwrap();
 
 		config.database_url.set_username("root").unwrap();
 		config.database_url.set_password(None).unwrap();
