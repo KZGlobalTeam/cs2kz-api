@@ -1,4 +1,4 @@
 { pkgs ? import <nixpkgs> {} }:
-  pkgs.mkShell {
+pkgs.mkShell {
   nativeBuildInputs = with pkgs; [ mariadb_110 sqlx-cli just ];
 }
