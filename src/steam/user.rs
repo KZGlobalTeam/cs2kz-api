@@ -16,7 +16,7 @@ use utoipa::ToSchema;
 use crate::{Error, Result, State};
 
 /// Steam WebAPI URL for fetching information about players.
-const API_URL: &str = "http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002";
+const API_URL: &str = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002";
 
 /// The cookie name used to store the user information.
 const COOKIE_NAME: &str = "kz-player";
@@ -67,7 +67,20 @@ impl User {
 			Error::internal_server_error("failed to parse url").with_source(err)
 		})?;
 
-		let user = http_client.get(url).send().await?.json::<Self>().await?;
+		let response = http_client.get(url).send().await?;
+
+		if let Err(error) = response.error_for_status_ref() {
+			let error = Error::bad_gateway("failed to fetch user information from Steam")
+				.with_source(error);
+
+			let response_body = response.text().await.ok();
+
+			error!(?error, ?response_body, "failed to fetch steam user");
+
+			return Err(error);
+		}
+
+		let user = response.json::<Self>().await?;
 
 		Ok(user)
 	}

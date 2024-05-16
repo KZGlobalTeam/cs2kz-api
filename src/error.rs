@@ -237,6 +237,12 @@ impl Error {
 	pub(crate) fn key_expired() -> Self {
 		Self::new(StatusCode::UNAUTHORIZED).with_message("key has expired")
 	}
+
+	/// An external API call failed.
+	#[track_caller]
+	pub(crate) fn bad_gateway(message: impl Display) -> Self {
+		Self::new(StatusCode::BAD_GATEWAY).with_message(message)
+	}
 }
 
 impl IntoResponse for Error {
