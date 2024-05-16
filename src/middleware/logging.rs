@@ -51,7 +51,7 @@ pub(crate) fn on_failure(
 ) {
 	match failure {
 		ServerErrorsFailureClass::Error(error) => {
-			warn!(target: "audit_log", %error, "request handler failed");
+			warn!(target: "audit_log", ?error, "request handler failed");
 		}
 		ServerErrorsFailureClass::StatusCode(code) if code.is_server_error() => {
 			error!(target: "audit_log", %code, "request handler failed");

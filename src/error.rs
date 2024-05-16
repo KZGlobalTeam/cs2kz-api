@@ -246,10 +246,10 @@ impl IntoResponse for Error {
 			status,
 			message,
 			location,
-			..
+			source,
 		} = &self;
 
-		debug!(%location, %status, ?message, "error occurred in request handler");
+		debug!(%location, %status, ?message, ?source, "error occurred in request handler");
 
 		let mut json = json!({ "message": self.to_string() });
 
