@@ -17,16 +17,8 @@ pub static SELECT: &str = r#"
 	  f.tier course_tier,
 	  s.name server_name,
 	  s.id server_id,
+	  r.bhops,
 	  r.perfs,
-	  r.bhops_tick0,
-	  r.bhops_tick1,
-	  r.bhops_tick2,
-	  r.bhops_tick3,
-	  r.bhops_tick4,
-	  r.bhops_tick5,
-	  r.bhops_tick6,
-	  r.bhops_tick7,
-	  r.bhops_tick8,
 	  r.created_on
 	FROM
 	  Records r

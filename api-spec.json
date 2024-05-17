@@ -3865,76 +3865,20 @@
         "type": "object",
         "description": "Bhop statistics over a certain time period.",
         "required": [
-          "perfs",
-          "tick0",
-          "tick1",
-          "tick2",
-          "tick3",
-          "tick4",
-          "tick5",
-          "tick6",
-          "tick7",
-          "tick8"
+          "bhops",
+          "perfs"
         ],
         "properties": {
+          "bhops": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "The amount of Bhops.",
+            "minimum": 0
+          },
           "perfs": {
             "type": "integer",
             "format": "uint16",
             "description": "The amount of perfect Bhops.",
-            "minimum": 0
-          },
-          "tick0": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The amount of scrolls at the exact same tick the player hit the ground.",
-            "minimum": 0
-          },
-          "tick1": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The amount of scrolls 1 tick after the player hit the ground.",
-            "minimum": 0
-          },
-          "tick2": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The amount of scrolls 2 ticks after the player hit the ground.",
-            "minimum": 0
-          },
-          "tick3": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The amount of scrolls 3 ticks after the player hit the ground.",
-            "minimum": 0
-          },
-          "tick4": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The amount of scrolls 4 ticks after the player hit the ground.",
-            "minimum": 0
-          },
-          "tick5": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The amount of scrolls 5 ticks after the player hit the ground.",
-            "minimum": 0
-          },
-          "tick6": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The amount of scrolls 6 ticks after the player hit the ground.",
-            "minimum": 0
-          },
-          "tick7": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The amount of scrolls 7 ticks after the player hit the ground.",
-            "minimum": 0
-          },
-          "tick8": {
-            "type": "integer",
-            "format": "uint16",
-            "description": "The amount of scrolls 8 ticks after the player hit the ground.",
             "minimum": 0
           }
         }

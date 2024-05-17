@@ -136,35 +136,19 @@ pub async fn patch(
 		    time_active,
 		    time_spectating,
 		    time_afk,
-		    perfs,
-		    bhops_tick0,
-		    bhops_tick1,
-		    bhops_tick2,
-		    bhops_tick3,
-		    bhops_tick4,
-		    bhops_tick5,
-		    bhops_tick6,
-		    bhops_tick7,
-		    bhops_tick8
+		    bhops,
+		    perfs
 		  )
 		VALUES
-		  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		  (?, ?, ?, ?, ?, ?, ?)
 		"#,
 		steam_id,
 		server.id(),
 		session.time_spent.active.as_secs(),
 		session.time_spent.spectating.as_secs(),
 		session.time_spent.afk.as_secs(),
+		session.bhop_stats.bhops,
 		session.bhop_stats.perfs,
-		session.bhop_stats.tick0,
-		session.bhop_stats.tick1,
-		session.bhop_stats.tick2,
-		session.bhop_stats.tick3,
-		session.bhop_stats.tick4,
-		session.bhop_stats.tick5,
-		session.bhop_stats.tick6,
-		session.bhop_stats.tick7,
-		session.bhop_stats.tick8,
 	}
 	.execute(transaction.as_mut())
 	.await
@@ -221,19 +205,11 @@ async fn insert_course_session(
 		    playtime,
 		    started_runs,
 		    finished_runs,
-		    perfs,
-		    bhops_tick0,
-		    bhops_tick1,
-		    bhops_tick2,
-		    bhops_tick3,
-		    bhops_tick4,
-		    bhops_tick5,
-		    bhops_tick6,
-		    bhops_tick7,
-		    bhops_tick8
+		    bhops,
+		    perfs
 		  )
 		VALUES
-		  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		  (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		"#,
 		steam_id,
 		course_id,
@@ -242,16 +218,8 @@ async fn insert_course_session(
 		playtime.as_secs(),
 		started_runs,
 		finished_runs,
+		bhop_stats.bhops,
 		bhop_stats.perfs,
-		bhop_stats.tick0,
-		bhop_stats.tick1,
-		bhop_stats.tick2,
-		bhop_stats.tick3,
-		bhop_stats.tick4,
-		bhop_stats.tick5,
-		bhop_stats.tick6,
-		bhop_stats.tick7,
-		bhop_stats.tick8,
 	}
 	.execute(transaction.as_mut())
 	.await
@@ -330,16 +298,8 @@ mod tests {
 					afk: Duration::from_secs(0).into(),
 				},
 				bhop_stats: BhopStats {
+					bhops: 13847,
 					perfs: 6237,
-					tick0: 1195,
-					tick1: 2787,
-					tick2: 2002,
-					tick3: 9782,
-					tick4: 2454,
-					tick5: 5859,
-					tick6: 1782,
-					tick7: 1355,
-					tick8: 2365,
 				},
 				course_sessions: BTreeMap::new(),
 			},

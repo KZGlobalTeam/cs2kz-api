@@ -262,21 +262,13 @@ pub async fn post(
 		    time,
 		    player_id,
 		    server_id,
+		    bhops,
 		    perfs,
-		    bhops_tick0,
-		    bhops_tick1,
-		    bhops_tick2,
-		    bhops_tick3,
-		    bhops_tick4,
-		    bhops_tick5,
-		    bhops_tick6,
-		    bhops_tick7,
-		    bhops_tick8,
 		    legitimacy,
 		    plugin_version_id
 		  )
 		VALUES
-		  (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+		  (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
 		"#,
 		filter_id,
 		styles.iter().copied().collect::<StyleFlags>(),
@@ -284,16 +276,8 @@ pub async fn post(
 		time.as_secs_f64(),
 		player_id,
 		server.id(),
+		bhop_stats.bhops,
 		bhop_stats.perfs,
-		bhop_stats.tick0,
-		bhop_stats.tick1,
-		bhop_stats.tick2,
-		bhop_stats.tick3,
-		bhop_stats.tick4,
-		bhop_stats.tick5,
-		bhop_stats.tick6,
-		bhop_stats.tick7,
-		bhop_stats.tick8,
 		server.plugin_version_id(),
 	}
 	.execute(transaction.as_mut())

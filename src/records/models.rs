@@ -79,44 +79,11 @@ impl FromRow<'_, MySqlRow> for Record {
 /// Bhop statistics over a certain time period.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct BhopStats {
+	/// The amount of Bhops.
+	pub bhops: u16,
+
 	/// The amount of perfect Bhops.
 	pub perfs: u16,
-
-	/// The amount of scrolls at the exact same tick the player hit the ground.
-	#[sqlx(rename = "bhops_tick0")]
-	pub tick0: u16,
-
-	/// The amount of scrolls 1 tick after the player hit the ground.
-	#[sqlx(rename = "bhops_tick1")]
-	pub tick1: u16,
-
-	/// The amount of scrolls 2 ticks after the player hit the ground.
-	#[sqlx(rename = "bhops_tick2")]
-	pub tick2: u16,
-
-	/// The amount of scrolls 3 ticks after the player hit the ground.
-	#[sqlx(rename = "bhops_tick3")]
-	pub tick3: u16,
-
-	/// The amount of scrolls 4 ticks after the player hit the ground.
-	#[sqlx(rename = "bhops_tick4")]
-	pub tick4: u16,
-
-	/// The amount of scrolls 5 ticks after the player hit the ground.
-	#[sqlx(rename = "bhops_tick5")]
-	pub tick5: u16,
-
-	/// The amount of scrolls 6 ticks after the player hit the ground.
-	#[sqlx(rename = "bhops_tick6")]
-	pub tick6: u16,
-
-	/// The amount of scrolls 7 ticks after the player hit the ground.
-	#[sqlx(rename = "bhops_tick7")]
-	pub tick7: u16,
-
-	/// The amount of scrolls 8 ticks after the player hit the ground.
-	#[sqlx(rename = "bhops_tick8")]
-	pub tick8: u16,
 }
 
 /// Request body for submitting new records.

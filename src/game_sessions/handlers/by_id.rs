@@ -36,16 +36,8 @@ pub async fn get(
 		  s.time_active,
 		  s.time_spectating,
 		  s.time_afk,
+		  s.bhops,
 		  s.perfs,
-		  s.bhops_tick0,
-		  s.bhops_tick1,
-		  s.bhops_tick2,
-		  s.bhops_tick3,
-		  s.bhops_tick4,
-		  s.bhops_tick5,
-		  s.bhops_tick6,
-		  s.bhops_tick7,
-		  s.bhops_tick8,
 		  s.created_on
 		FROM
 		  GameSessions s
