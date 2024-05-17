@@ -145,16 +145,18 @@ CREATE TABLE IF NOT EXISTS `Jumpstats` (
   `airtime` FLOAT4 NOT NULL,
   `player_id` INT8 UNSIGNED NOT NULL,
   `server_id` INT2 UNSIGNED NOT NULL,
-  `legitimacy` INT1 UNSIGNED NOT NULL,
   `plugin_version_id` INT2 UNSIGNED NOT NULL,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`mode_id`) REFERENCES `Modes` (`id`),
   FOREIGN KEY (`player_id`) REFERENCES `Players` (`id`),
   FOREIGN KEY (`server_id`) REFERENCES `Servers` (`id`),
-  FOREIGN KEY (`plugin_version_id`) REFERENCES `PluginVersions` (`id`),
-  CONSTRAINT `valid_legitimacy` CHECK(`legitimacy` BETWEEN 0 AND 2)
+  FOREIGN KEY (`plugin_version_id`) REFERENCES `PluginVersions` (`id`)
 );
+
+CREATE TABLE IF NOT EXISTS `SuspiciousJumpstats` LIKE `Jumpstats`;
+
+CREATE TABLE IF NOT EXISTS `CheatedJumpstats` LIKE `Jumpstats`;
 
 CREATE TABLE IF NOT EXISTS `Records` (
   `id` INT8 UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -166,16 +168,20 @@ CREATE TABLE IF NOT EXISTS `Records` (
   `server_id` INT2 UNSIGNED NOT NULL,
   `bhops` INT2 UNSIGNED NOT NULL,
   `perfs` INT2 UNSIGNED NOT NULL,
-  `legitimacy` INT1 UNSIGNED NOT NULL,
   `plugin_version_id` INT2 UNSIGNED NOT NULL,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   FOREIGN KEY (`filter_id`) REFERENCES `CourseFilters` (`id`),
   FOREIGN KEY (`player_id`) REFERENCES `Players` (`id`),
   FOREIGN KEY (`server_id`) REFERENCES `Servers` (`id`),
-  FOREIGN KEY (`plugin_version_id`) REFERENCES `PluginVersions` (`id`),
-  CONSTRAINT `valid_legitimacy` CHECK(`legitimacy` BETWEEN 0 AND 2)
+  FOREIGN KEY (`plugin_version_id`) REFERENCES `PluginVersions` (`id`)
 );
+
+CREATE TABLE IF NOT EXISTS `SuspiciousRecords` LIKE `Records`;
+
+CREATE TABLE IF NOT EXISTS `CheatedRecords` LIKE `Records`;
+
+CREATE TABLE IF NOT EXISTS `WipedRecords` LIKE `Records`;
 
 CREATE TABLE IF NOT EXISTS `Bans` (
   `id` INT8 UNSIGNED NOT NULL AUTO_INCREMENT,

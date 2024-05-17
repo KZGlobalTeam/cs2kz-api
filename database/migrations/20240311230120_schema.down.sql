@@ -8,7 +8,17 @@ DROP TABLE IF EXISTS `Unbans`;
 
 DROP TABLE IF EXISTS `Bans`;
 
+DROP TABLE IF EXISTS `WipedRecords`;
+
+DROP TABLE IF EXISTS `CheatedRecords`;
+
+DROP TABLE IF EXISTS `SuspiciousRecords`;
+
 DROP TABLE IF EXISTS `Records`;
+
+DROP TABLE IF EXISTS `CheatedJumpstats`;
+
+DROP TABLE IF EXISTS `SuspiciousJumpstats`;
 
 DROP TABLE IF EXISTS `Jumpstats`;
 
@@ -32,6 +42,6 @@ DROP TABLE IF EXISTS `Styles`;
 
 DROP TABLE IF EXISTS `Modes`;
 
-DROP TABLE IF EXISTS `PluginVersions`;
+DROP TABLE IF EXISTS `Credentials`;
 
-DROP TABLE IF EXISTS `Logs`;
+DROP TABLE IF EXISTS `PluginVersions`;

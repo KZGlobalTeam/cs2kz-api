@@ -264,11 +264,10 @@ pub async fn post(
 		    server_id,
 		    bhops,
 		    perfs,
-		    legitimacy,
 		    plugin_version_id
 		  )
 		VALUES
-		  (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+		  (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		"#,
 		filter_id,
 		styles.iter().copied().collect::<StyleFlags>(),

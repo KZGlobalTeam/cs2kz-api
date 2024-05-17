@@ -198,7 +198,6 @@ pub async fn post(
 		    airtime,
 		    player_id,
 		    server_id,
-		    legitimacy,
 		    plugin_version_id
 		  )
 		VALUES
@@ -220,7 +219,6 @@ pub async fn post(
 		    ?,
 		    ?,
 		    ?,
-		    0,
 		    ?
 		  )
 		"#,
