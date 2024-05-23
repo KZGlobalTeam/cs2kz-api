@@ -83,7 +83,7 @@ features = [
 ]
 
 [dependencies.utoipa-swagger-ui]
-version = "6.0.0"
+version = "7.1.0"
 features = ["axum"]
 
 [dependencies.tracing]
