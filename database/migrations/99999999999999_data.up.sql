@@ -27,47 +27,7 @@ VALUES
 INSERT INTO
   `Styles` (`name`)
 VALUES
-  ("backwards");
-
-INSERT INTO
-  `Styles` (`name`)
-VALUES
-  ("sideways");
-
-INSERT INTO
-  `Styles` (`name`)
-VALUES
-  ("half_sideways");
-
-INSERT INTO
-  `Styles` (`name`)
-VALUES
-  ("w_only");
-
-INSERT INTO
-  `Styles` (`name`)
-VALUES
-  ("low_gravity");
-
-INSERT INTO
-  `Styles` (`name`)
-VALUES
-  ("high_gravity");
-
-INSERT INTO
-  `Styles` (`name`)
-VALUES
-  ("no_prestrafe");
-
-INSERT INTO
-  `Styles` (`name`)
-VALUES
-  ("negev");
-
-INSERT INTO
-  `Styles` (`name`)
-VALUES
-  ("ice");
+  ("auto_bhop");
 
 INSERT INTO
   `JumpTypes` (`name`)
@@ -106,7 +66,7 @@ VALUES
     76561198282622073,
     "AlphaKeks",
     "127.0.0.1",
-    (0b10000000000000010000000100000001)
+    (0 b10000000000000010000000100000001)
   );
 
 INSERT INTO
@@ -116,7 +76,7 @@ VALUES
     76561198118681904,
     "zer0.k",
     "127.0.0.1",
-    (0b10000000000000010000000100000001)
+    (0 b10000000000000010000000100000001)
   );
 
 INSERT INTO
@@ -126,7 +86,7 @@ VALUES
     76561198165203332,
     "GameChaos",
     "127.0.0.1",
-    (0b10000000000000010000000100000001)
+    (0 b10000000000000010000000100000001)
   );
 
 INSERT INTO
@@ -136,7 +96,7 @@ VALUES
     76561198003275951,
     "Sikari",
     "127.0.0.1",
-    (0b10000000000000010000000100000001)
+    (0 b10000000000000010000000100000001)
   );
 
 INSERT INTO
@@ -146,7 +106,7 @@ VALUES
     76561197989817982,
     "DanZay",
     "127.0.0.1",
-    (0b10000000000000010000000100000001)
+    (0 b10000000000000010000000100000001)
   );
 
 INSERT INTO
@@ -156,7 +116,7 @@ VALUES
     76561199067702427,
     "Reeed",
     "127.0.0.1",
-    (0b10000000000000010000000100000001)
+    (0 b10000000000000010000000100000001)
   );
 
 INSERT INTO
@@ -166,7 +126,7 @@ VALUES
     76561198201492663,
     "makis",
     "127.0.0.1",
-    (0b10000000000000010000000100000001)
+    (0 b10000000000000010000000100000001)
   );
 
 INSERT INTO
@@ -219,7 +179,7 @@ INSERT INTO
     `ranked_status`
   )
 VALUES
-  (1, 1, true, 3, 1);
+  (1, 1, TRUE, 3, 1);
 
 INSERT INTO
   `CourseFilters` (
@@ -241,7 +201,7 @@ INSERT INTO
     `ranked_status`
   )
 VALUES
-  (1, 2, true, 2, 1);
+  (1, 2, TRUE, 2, 1);
 
 INSERT INTO
   `CourseFilters` (
