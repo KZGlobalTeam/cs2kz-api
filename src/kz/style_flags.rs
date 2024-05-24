@@ -10,7 +10,7 @@ crate::bitflags! {
 	/// See [`cs2kz::Style`].
 	pub StyleFlags as u32 {
 		NORMAL = { 1 << 0, "normal" };
-		BACKWARDS = { 1 << 1, "auto_bhop" };
+		AUTO_BHOP = { 1 << 1, "auto_bhop" };
 	}
 
 	iter: StyleFlagsIter
