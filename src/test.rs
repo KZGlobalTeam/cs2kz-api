@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use std::net::{IpAddr, Ipv4Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::time::Duration;
 
 use anyhow::Context as _;
@@ -20,7 +20,7 @@ use uuid::Uuid;
 use crate::authentication::{self, Jwt};
 use crate::plugin::PluginVersionID;
 use crate::servers::ServerID;
-use crate::{Config, API};
+use crate::{steam, Config, API};
 
 /// Wrapper over std's `assert!()` macro that uses [`anyhow::ensure!()`] instead.
 macro_rules! assert {
@@ -247,7 +247,15 @@ impl Context {
 	}
 
 	pub async fn auth_session(&self, steam_id: SteamID) -> crate::Result<authentication::Session> {
-		authentication::Session::create(steam_id, self.config, self.database.begin().await?).await
+		let user = steam::User::invalid(steam_id);
+
+		authentication::Session::create(
+			&user,
+			Ipv6Addr::LOCALHOST,
+			self.config,
+			self.database.begin().await?,
+		)
+		.await
 	}
 
 	pub fn encode_jwt<T>(

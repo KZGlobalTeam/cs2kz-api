@@ -1,11 +1,13 @@
 #![doc = include_str!("../README.md")]
 
 use std::future::Future;
+use std::net::SocketAddr;
 
 use anyhow::Context;
-use axum::routing::{get, IntoMakeService};
+use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
+use axum::extract::ConnectInfo;
 use axum::serve::Serve;
-use axum::Router;
+use axum::{routing, Router};
 use itertools::Itertools;
 use tokio::net::TcpListener;
 use tokio::signal;
@@ -58,6 +60,12 @@ pub mod bans;
 pub mod game_sessions;
 pub mod admins;
 pub mod plugin;
+
+/// This is nasty.
+type Server = Serve<
+	IntoMakeServiceWithConnectInfo<Router, SocketAddr>,
+	axum::middleware::AddExtension<Router, ConnectInfo<SocketAddr>>,
+>;
 
 #[derive(Debug, Clone, Copy, OpenApi)]
 #[openapi(
@@ -242,8 +250,8 @@ impl API {
 			.context("run http server")
 	}
 
-	/// Creates a hyper server that will serve the API.
-	async fn server(config: Config) -> anyhow::Result<Serve<IntoMakeService<Router>, Router>> {
+	/// Creates an axum server that will serve the API.
+	async fn server(config: Config) -> anyhow::Result<Server> {
 		info!(target: "audit_log", ?config, "API starting up");
 
 		let tcp_listener = TcpListener::bind(config.addr)
@@ -277,7 +285,7 @@ impl API {
 			.for_each(|route| debug!("registering route: {route}"));
 
 		let api_service = Router::new()
-			.route("/", get(|| async { "(͡ ͡° ͜ つ ͡͡°)" }))
+			.route("/", routing::get(|| async { "(͡ ͡° ͜ つ ͡͡°)" }))
 			.nest("/players", players::router(state))
 			.nest("/maps", maps::router(state))
 			.nest("/servers", servers::router(state))
@@ -290,7 +298,7 @@ impl API {
 			.nest("/plugin", plugin::router(state))
 			.layer(middleware::logging::layer!())
 			.merge(SwaggerUi::new("/docs/swagger-ui").url("/docs/openapi.json", openapi))
-			.into_make_service();
+			.into_make_service_with_connect_info::<SocketAddr>();
 
 		let address = tcp_listener.local_addr().context("get tcp addr")?;
 

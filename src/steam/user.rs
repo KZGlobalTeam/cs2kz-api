@@ -85,6 +85,22 @@ impl User {
 		Ok(user)
 	}
 
+	/// Creates an "invalid" steam user for testing purposes.
+	#[cfg(test)]
+	pub fn invalid(steam_id: SteamID) -> Self {
+		let url = Url::parse("https://cs2kz.org").unwrap();
+
+		Self {
+			steam_id,
+			steam_id64: steam_id.as_u64().to_string(),
+			username: String::from("schnose"),
+			realname: None,
+			country: None,
+			profile_url: url.clone(),
+			avatar_url: url,
+		}
+	}
+
 	/// Creates a [`Cookie`] containing this [`User`] as a JSON value.
 	pub fn to_cookie<'c>(&self, config: &'c crate::Config) -> Cookie<'c> {
 		let json = serde_json::to_string(self).expect("this is valid json");

@@ -1,7 +1,9 @@
 //! Handlers for the `/auth` routes.
 
+use std::net::{IpAddr, SocketAddr};
+
 use authentication::Session;
-use axum::extract::Query;
+use axum::extract::{ConnectInfo, Query};
 use axum::http::StatusCode;
 use axum::response::Redirect;
 use axum_extra::extract::CookieJar;
@@ -107,12 +109,17 @@ pub async fn logout(
 )]
 pub async fn callback(
 	state: &'static State,
+	req_addr: ConnectInfo<SocketAddr>,
 	cookies: CookieJar,
 	login: steam::authentication::LoginResponse,
 	user: steam::User,
 ) -> Result<(CookieJar, Redirect)> {
 	let transaction = state.transaction().await?;
-	let session = Session::create(user.steam_id, &state.config, transaction).await?;
+	let user_ip = match req_addr.ip() {
+		IpAddr::V4(ip) => ip.to_ipv6_mapped(),
+		IpAddr::V6(ip) => ip,
+	};
+	let session = Session::create(&user, user_ip, &state.config, transaction).await?;
 	let user_cookie = user.to_cookie(&state.config);
 	let cookies = cookies.add(session).add(user_cookie);
 	let redirect = Redirect::to(login.redirect_to.as_str());

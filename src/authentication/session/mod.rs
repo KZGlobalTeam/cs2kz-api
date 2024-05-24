@@ -32,6 +32,7 @@
 #![allow(rustdoc::private_intra_doc_links)]
 
 use std::marker::PhantomData;
+use std::net::Ipv6Addr;
 
 use axum::extract::FromRequestParts;
 use axum::http::{header, request};
@@ -42,13 +43,13 @@ use cs2kz::SteamID;
 use derive_more::{Debug, From, Into};
 use sqlx::{MySql, Transaction};
 use time::OffsetDateTime;
-use tracing::{debug, trace};
+use tracing::{debug, error, trace};
 use uuid::Uuid;
 
 use crate::authentication::User;
 use crate::authorization::{self, AuthorizeSession, Permissions};
 use crate::sqlx::SqlErrorExt;
-use crate::{Error, Result, State};
+use crate::{steam, Error, Result, State};
 
 mod id;
 
@@ -110,12 +111,44 @@ impl Session {
 	/// The returned value of this function should be returned from a handler / middleware so a
 	/// cookie can be sent to the user's browser.
 	pub async fn create(
-		user_id: SteamID,
+		steam_user: &steam::User,
+		user_ip: Ipv6Addr,
 		config: &'static crate::Config,
 		mut transaction: Transaction<'_, MySql>,
 	) -> Result<Self> {
 		let session_id = SessionID::new();
 		let expires_on = Self::expires_on();
+
+		let user_exists = sqlx::query! {
+			r#"
+			SELECT
+			  id
+			FROM
+			  Players
+			WHERE
+			  id = ?
+			"#,
+			steam_user.steam_id,
+		}
+		.fetch_optional(transaction.as_mut())
+		.await?
+		.is_some();
+
+		if !user_exists {
+			sqlx::query! {
+				r#"
+				INSERT INTO
+				  Players (id, name, ip_address)
+				VALUES
+				  (?, ?, ?)
+				"#,
+				steam_user.steam_id,
+				steam_user.username,
+				user_ip.to_string(),
+			}
+			.execute(transaction.as_mut())
+			.await?;
+		}
 
 		sqlx::query! {
 			r#"
@@ -125,14 +158,16 @@ impl Session {
 			  (?, ?, ?)
 			"#,
 			session_id,
-			user_id,
+			steam_user.steam_id,
 			expires_on,
 		}
 		.execute(transaction.as_mut())
 		.await
 		.map_err(|err| {
 			if err.is_fk_violation_of("player_id") {
-				Error::unknown("player").with_source(err)
+				// This should be impossible because of the check above
+				error!(target: "audit_log", %err);
+				Error::internal_server_error("database error").with_source(err)
 			} else {
 				Error::from(err)
 			}
@@ -147,16 +182,21 @@ impl Session {
 			WHERE
 			  id = ?
 			"#,
-			user_id,
+			steam_user.steam_id,
 		}
 		.fetch_optional(transaction.as_mut())
 		.await?
-		.map(|row| User::new(user_id, row.permissions))
+		.map(|row| User::new(steam_user.steam_id, row.permissions))
 		.ok_or_else(|| Error::unknown("SteamID"))?;
 
 		transaction.commit().await?;
 
-		debug!(%session_id, %user_id, "created session");
+		debug! {
+			%session_id,
+			user.id = %user.steam_id(),
+			user.name = %steam_user.username,
+			"created session",
+		};
 
 		let cookie = Cookie::build((COOKIE_NAME, session_id.to_string()))
 			.domain(config.cookie_domain.clone())
