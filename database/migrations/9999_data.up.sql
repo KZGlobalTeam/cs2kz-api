@@ -1,5 +1,3 @@
-BEGIN;
-
 INSERT INTO
   `PluginVersions` (`semver`, `git_revision`, `created_on`)
 VALUES
@@ -66,153 +64,8 @@ VALUES
     76561198282622073,
     "AlphaKeks",
     "127.0.0.1",
-    (0 b10000000000000010000000100000001)
+    (0b10000000000000010000000100000001)
   );
-
-INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `permissions`)
-VALUES
-  (
-    76561198118681904,
-    "zer0.k",
-    "127.0.0.1",
-    (0 b10000000000000010000000100000001)
-  );
-
-INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `permissions`)
-VALUES
-  (
-    76561198165203332,
-    "GameChaos",
-    "127.0.0.1",
-    (0 b10000000000000010000000100000001)
-  );
-
-INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `permissions`)
-VALUES
-  (
-    76561198003275951,
-    "Sikari",
-    "127.0.0.1",
-    (0 b10000000000000010000000100000001)
-  );
-
-INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `permissions`)
-VALUES
-  (
-    76561197989817982,
-    "DanZay",
-    "127.0.0.1",
-    (0 b10000000000000010000000100000001)
-  );
-
-INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `permissions`)
-VALUES
-  (
-    76561199067702427,
-    "Reeed",
-    "127.0.0.1",
-    (0 b10000000000000010000000100000001)
-  );
-
-INSERT INTO
-  `Players` (`id`, `name`, `ip_address`, `permissions`)
-VALUES
-  (
-    76561198201492663,
-    "makis",
-    "127.0.0.1",
-    (0 b10000000000000010000000100000001)
-  );
-
-INSERT INTO
-  `Players` (`id`, `name`, `ip_address`)
-VALUES
-  (
-    76561198260657129,
-    "ReDMooN",
-    "127.0.0.1"
-  );
-
-INSERT INTO
-  `Maps` (
-    `name`,
-    `description`,
-    `global_status`,
-    `workshop_id`,
-    `checksum`
-  )
-VALUES
-  (
-    "kz_grotto",
-    "launders approved",
-    1,
-    3121168339,
-    3429798845
-  );
-
-INSERT INTO
-  `Mappers` (`map_id`, `player_id`)
-VALUES
-  (1, 76561198260657129);
-
-INSERT INTO
-  `Courses` (`name`, `map_id`)
-VALUES
-  ("not main", 1);
-
-INSERT INTO
-  `CourseMappers` (`course_id`, `player_id`)
-VALUES
-  (1, 76561198260657129);
-
-INSERT INTO
-  `CourseFilters` (
-    `course_id`,
-    `mode_id`,
-    `teleports`,
-    `tier`,
-    `ranked_status`
-  )
-VALUES
-  (1, 1, TRUE, 3, 1);
-
-INSERT INTO
-  `CourseFilters` (
-    `course_id`,
-    `mode_id`,
-    `teleports`,
-    `tier`,
-    `ranked_status`
-  )
-VALUES
-  (1, 1, false, 4, 1);
-
-INSERT INTO
-  `CourseFilters` (
-    `course_id`,
-    `mode_id`,
-    `teleports`,
-    `tier`,
-    `ranked_status`
-  )
-VALUES
-  (1, 2, TRUE, 2, 1);
-
-INSERT INTO
-  `CourseFilters` (
-    `course_id`,
-    `mode_id`,
-    `teleports`,
-    `tier`,
-    `ranked_status`
-  )
-VALUES
-  (1, 2, false, 3, 1);
 
 INSERT INTO
   `Servers` (
@@ -230,5 +83,3 @@ VALUES
     76561198282622073,
     "a107320d-ad7e-40f5-98e5-aa0e15171bc0"
   );
-
-COMMIT;

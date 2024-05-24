@@ -1,5 +1,3 @@
-BEGIN;
-
 DELETE FROM
   `Servers`
 WHERE
@@ -19,7 +17,7 @@ END IF;
 DELETE FROM
   `Players`
 WHERE
-  `id` IN (158416176, 322356345);
+  `id` = 76561198282622073;
 
 DELETE FROM
   `JumpTypes`
@@ -40,7 +38,7 @@ END IF;
 DELETE FROM
   `Styles`
 WHERE
-  `id` <= 10;
+  `id` <= 2;
 
 IF (
   SELECT
@@ -84,5 +82,3 @@ ALTER TABLE
   `PluginVersions` AUTO_INCREMENT = 1;
 
 END IF;
-
-COMMIT;
