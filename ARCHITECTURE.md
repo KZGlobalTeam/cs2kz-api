@@ -22,7 +22,7 @@ directories include:
 * `.env.*` files - environment variables that are loaded at runtime
    * you should copy both of them and remove the `.example` suffix
    * `.docker` is only used by the API while running inside a docker container
-* [`docker-compose.yml`](./docker-compose.yml) - docker setup for the database & API
+* [`compose.yml`](./compose.yml) - docker setup for the database & API
 * [`Dockerfile`](./Dockerfile) - [Dockerfile](https://docs.docker.com/reference/dockerfile)
   for the API container
 
