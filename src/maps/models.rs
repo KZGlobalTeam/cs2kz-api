@@ -96,7 +96,7 @@ impl FullMap {
 		I: IntoIterator<Item = Self>,
 	{
 		maps.into_iter()
-			.group_by(|map| map.id)
+			.chunk_by(|map| map.id)
 			.into_iter()
 			.filter_map(|(_, maps)| maps.reduce(Self::reduce))
 			.take(limit)

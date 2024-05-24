@@ -146,7 +146,7 @@ version = "1.0.0-beta.6"
 features = ["from", "into", "debug", "display", "deref", "deref_mut"]
 
 [dependencies.itertools]
-version = "0.12"
+version = "0.13"
 
 [dependencies.crc32fast]
 version = "1"
