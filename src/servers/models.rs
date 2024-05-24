@@ -1,6 +1,6 @@
 //! Types used for describing CS2 servers.
 
-use std::net::{Ipv4Addr, SocketAddrV4};
+use std::net::IpAddr;
 
 use chrono::{DateTime, Utc};
 use cs2kz::SteamID;
@@ -26,9 +26,12 @@ pub struct Server {
 	/// The server's name.
 	pub name: String,
 
-	/// The server's IP address and port.
+	/// The server's host.
 	#[schema(value_type = String)]
-	pub ip_address: SocketAddrV4,
+	pub host: url::Host,
+
+	/// The server's port.
+	pub port: u16,
 
 	/// The server's owner.
 	pub owner: Player,
@@ -42,19 +45,15 @@ impl FromRow<'_, MySqlRow> for Server {
 		Ok(Self {
 			id: row.try_get("id")?,
 			name: row.try_get("name")?,
-			ip_address: {
-				let ip = row
-					.try_get::<&str, _>("ip_address")?
-					.parse::<Ipv4Addr>()
-					.map_err(|err| sqlx::Error::ColumnDecode {
-						index: String::from("ip_address"),
-						source: Box::new(err),
-					})?;
-
-				let port = row.try_get("port")?;
-
-				SocketAddrV4::new(ip, port)
+			host: {
+				let raw_host = row.try_get::<&str, _>("host")?;
+				match raw_host.parse::<IpAddr>() {
+					Ok(IpAddr::V4(ip)) => url::Host::Ipv4(ip),
+					Ok(IpAddr::V6(ip)) => url::Host::Ipv6(ip),
+					Err(_) => url::Host::Domain(raw_host.to_owned()),
+				}
 			},
+			port: row.try_get("port")?,
 			owner: Player {
 				name: row.try_get("owner_name")?,
 				steam_id: row.try_get("owner_id")?,
@@ -70,9 +69,12 @@ pub struct NewServer {
 	/// The server's name.
 	pub name: String,
 
-	/// The server's IP address and port.
+	/// The server's host.
 	#[schema(value_type = String)]
-	pub ip_address: SocketAddrV4,
+	pub host: url::Host,
+
+	/// The server's port.
+	pub port: u16,
 
 	/// The SteamID of the player who owns this server.
 	#[debug("{owned_by}")]
@@ -95,8 +97,12 @@ pub struct ServerUpdate {
 	/// A new name.
 	pub name: Option<String>,
 
-	/// A new IP address and port.
-	pub ip_address: Option<SocketAddrV4>,
+	/// A new host.
+	#[schema(value_type = Option<String>)]
+	pub host: Option<url::Host>,
+
+	/// A new port.
+	pub port: Option<u16>,
 
 	/// A new owner.
 	pub owned_by: Option<SteamID>,

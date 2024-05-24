@@ -5,7 +5,7 @@ pub static SELECT: &str = r#"
 	SELECT SQL_CALC_FOUND_ROWS
 	  s.id,
 	  s.name,
-	  s.ip_address,
+	  s.host,
 	  s.port,
 	  p.name owner_name,
 	  p.id owner_id,

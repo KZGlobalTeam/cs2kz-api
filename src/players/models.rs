@@ -1,13 +1,12 @@
 //! Types used for describing players.
 
 use std::collections::{BTreeMap, HashSet};
-use std::net::Ipv4Addr;
+use std::net::Ipv6Addr;
 
 use cs2kz::{Mode, SteamID};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value as JsonValue;
-use sqlx::mysql::MySqlRow;
-use sqlx::{FromRow, Row};
+use sqlx::FromRow;
 use utoipa::ToSchema;
 
 use crate::game_sessions::TimeSpent;
@@ -28,39 +27,22 @@ pub struct Player {
 }
 
 /// A KZ player.
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct FullPlayer {
 	/// The player's name.
 	pub name: String,
 
 	/// The player's SteamID.
+	#[sqlx(rename = "id")]
 	pub steam_id: SteamID,
 
 	/// The player's IP address.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[schema(value_type = Option<String>)]
-	pub ip_address: Option<Ipv4Addr>,
+	pub ip_address: Option<Ipv6Addr>,
 
 	/// Whether the player is currently banned.
 	pub is_banned: bool,
-}
-
-impl FromRow<'_, MySqlRow> for FullPlayer {
-	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
-		Ok(Self {
-			name: row.try_get("name")?,
-			steam_id: row.try_get("id")?,
-			ip_address: row
-				.try_get::<&str, _>("ip_address")?
-				.parse::<Ipv4Addr>()
-				.map_err(|err| sqlx::Error::ColumnDecode {
-					index: String::from("ip_address"),
-					source: Box::new(err),
-				})
-				.map(Some)?,
-			is_banned: row.try_get("is_banned")?,
-		})
-	}
 }
 
 /// Request body for registering new players.
@@ -74,7 +56,7 @@ pub struct NewPlayer {
 
 	/// The player's IP address.
 	#[schema(value_type = String)]
-	pub ip_address: Ipv4Addr,
+	pub ip_address: Ipv6Addr,
 }
 
 /// Request body for updating players.
@@ -85,7 +67,7 @@ pub struct PlayerUpdate {
 
 	/// The player's IP address.
 	#[schema(value_type = String)]
-	pub ip_address: Ipv4Addr,
+	pub ip_address: Ipv6Addr,
 
 	/// Data about the player's game session.
 	pub session: Session,

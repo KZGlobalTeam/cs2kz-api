@@ -866,9 +866,9 @@
             }
           },
           {
-            "name": "ip_address",
+            "name": "host",
             "in": "query",
-            "description": "Filter by IP address.",
+            "description": "Filter by host.",
             "required": false,
             "schema": {
               "type": "string",
@@ -957,7 +957,8 @@
                         "required": [
                           "id",
                           "name",
-                          "ip_address",
+                          "host",
+                          "port",
                           "owner",
                           "created_on"
                         ],
@@ -969,9 +970,15 @@
                             "type": "string",
                             "description": "The server's name."
                           },
-                          "ip_address": {
+                          "host": {
                             "type": "string",
-                            "description": "The server's IP address and port."
+                            "description": "The server's host."
+                          },
+                          "port": {
+                            "type": "integer",
+                            "format": "uint16",
+                            "description": "The server's port.",
+                            "minimum": 0
                           },
                           "owner": {
                             "$ref": "#/components/schemas/Player"
@@ -1087,7 +1094,8 @@
                   "required": [
                     "id",
                     "name",
-                    "ip_address",
+                    "host",
+                    "port",
                     "owner",
                     "created_on"
                   ],
@@ -1099,9 +1107,15 @@
                       "type": "string",
                       "description": "The server's name."
                     },
-                    "ip_address": {
+                    "host": {
                       "type": "string",
-                      "description": "The server's IP address and port."
+                      "description": "The server's host."
+                    },
+                    "port": {
+                      "type": "integer",
+                      "format": "uint16",
+                      "description": "The server's port.",
+                      "minimum": 0
                     },
                     "owner": {
                       "$ref": "#/components/schemas/Player"
@@ -4885,7 +4899,8 @@
         "description": "Request body for approving new servers.",
         "required": [
           "name",
-          "ip_address",
+          "host",
+          "port",
           "owned_by"
         ],
         "properties": {
@@ -4893,9 +4908,15 @@
             "type": "string",
             "description": "The server's name."
           },
-          "ip_address": {
+          "host": {
             "type": "string",
-            "description": "The server's IP address and port."
+            "description": "The server's host."
+          },
+          "port": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "The server's port.",
+            "minimum": 0
           },
           "owned_by": {
             "$ref": "#/components/schemas/SteamID"
@@ -5166,7 +5187,8 @@
         "required": [
           "id",
           "name",
-          "ip_address",
+          "host",
+          "port",
           "owner",
           "created_on"
         ],
@@ -5178,9 +5200,15 @@
             "type": "string",
             "description": "The server's name."
           },
-          "ip_address": {
+          "host": {
             "type": "string",
-            "description": "The server's IP address and port."
+            "description": "The server's host."
+          },
+          "port": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "The server's port.",
+            "minimum": 0
           },
           "owner": {
             "$ref": "#/components/schemas/Player"
@@ -5254,13 +5282,17 @@
             "description": "A new name.",
             "nullable": true
           },
-          "ip_address": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SocketAddrV4"
-              }
-            ],
+          "host": {
+            "type": "string",
+            "description": "A new host.",
             "nullable": true
+          },
+          "port": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "A new port.",
+            "nullable": true,
+            "minimum": 0
           },
           "owned_by": {
             "allOf": [

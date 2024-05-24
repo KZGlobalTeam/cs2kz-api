@@ -1,16 +1,16 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT ip_address FROM Players WHERE id = ?",
+  "query": "\n\t\t\tSELECT\n\t\t\t  ip_address `ip: IpAddr`\n\t\t\tFROM\n\t\t\t  Players\n\t\t\tWHERE\n\t\t\t  id = ?\n\t\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "ip_address",
+        "name": "ip: IpAddr",
         "type_info": {
           "type": "String",
           "flags": "NOT_NULL | UNSIGNED | BINARY | NO_DEFAULT_VALUE",
           "char_set": 224,
-          "max_size": 60
+          "max_size": 156
         }
       }
     ],
@@ -21,5 +21,5 @@
       false
     ]
   },
-  "hash": "fa751eb1b64a5abf12dcb5fc02b3849c11a1a2e79f558acb44dad7489cc0016e"
+  "hash": "3846a28d3e348bb0cf58f1348afc125e87d7d2530340e47412b2db918120ebde"
 }

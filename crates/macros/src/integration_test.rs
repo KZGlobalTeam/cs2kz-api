@@ -63,7 +63,7 @@ pub fn expand(TestArgs { queries }: TestArgs, test_function: ItemFn) -> syn::Res
 				.context("test cleanup")?;
 
 			if let Err(e) = result {
-				::anyhow::bail!("test {test_id} failed");
+				::anyhow::bail!("test {test_id} failed: {e:#?}");
 			}
 
 			Ok(())

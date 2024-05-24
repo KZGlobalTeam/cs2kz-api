@@ -122,7 +122,7 @@ CREATE TABLE IF NOT EXISTS `Servers` (
   PRIMARY KEY (`id`),
   FOREIGN KEY (`owner_id`) REFERENCES `Players` (`id`),
   UNIQUE (`name`),
-  UNIQUE (`ip_address`, `port`),
+  UNIQUE (`host`, `port`),
   UNIQUE (`refresh_key`)
 );
 

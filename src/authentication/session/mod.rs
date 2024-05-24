@@ -144,7 +144,7 @@ impl Session {
 				"#,
 				steam_user.steam_id,
 				steam_user.username,
-				user_ip.to_string(),
+				user_ip,
 			}
 			.execute(transaction.as_mut())
 			.await?;

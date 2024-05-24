@@ -1,7 +1,5 @@
 //! Handlers for the `/servers` route.
 
-use std::net::Ipv4Addr;
-
 use axum::extract::Query;
 use axum::Json;
 use chrono::{DateTime, Utc};
@@ -25,9 +23,9 @@ pub struct GetParams {
 	/// Filter by name.
 	name: Option<String>,
 
-	/// Filter by IP address.
+	/// Filter by host.
 	#[param(value_type = Option<String>)]
-	ip_address: Option<Ipv4Addr>,
+	host: Option<url::Host>,
 
 	/// Filter by server owner.
 	owned_by: Option<PlayerIdentifier>,
@@ -68,7 +66,7 @@ pub async fn get(
 	state: &State,
 	Query(GetParams {
 		name,
-		ip_address,
+		host,
 		owned_by,
 		created_after,
 		created_before,
@@ -83,8 +81,8 @@ pub async fn get(
 		query.filter(" s.name LIKE ", format!("%{name}%"));
 	}
 
-	if let Some(ip_address) = ip_address {
-		query.filter(" s.ip_address = ", ip_address.to_string());
+	if let Some(host) = host {
+		query.filter(" s.host = ", host.to_string());
 	}
 
 	if let Some(player) = owned_by {
@@ -145,7 +143,8 @@ pub async fn post(
 	>,
 	Json(NewServer {
 		name,
-		ip_address,
+		host,
+		port,
 		owned_by,
 	}): Json<NewServer>,
 ) -> Result<Created<Json<CreatedServer>>> {
@@ -154,13 +153,13 @@ pub async fn post(
 	let server_id = sqlx::query! {
 		r#"
 		INSERT INTO
-		  Servers (name, ip_address, port, owner_id, refresh_key)
+		  Servers (name, host, port, owner_id, refresh_key)
 		VALUES
 		  (?, ?, ?, ?, ?)
 		"#,
 		name,
-		ip_address.ip().to_string(),
-		ip_address.port(),
+		host.to_string(),
+		port,
 		owned_by,
 		refresh_key,
 	}
@@ -190,7 +189,7 @@ pub async fn post(
 
 #[cfg(test)]
 mod tests {
-	use std::net::{Ipv4Addr, SocketAddrV4};
+	use std::net::Ipv6Addr;
 
 	use axum_extra::extract::cookie::Cookie;
 	use cs2kz::SteamID;
@@ -220,7 +219,8 @@ mod tests {
 		let alphakeks = SteamID::from_u64(76561198282622073_u64).unwrap();
 		let server = NewServer {
 			name: String::from("very cool server"),
-			ip_address: SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), 69),
+			host: url::Host::Ipv6(Ipv6Addr::UNSPECIFIED),
+			port: 69,
 			owned_by: alphakeks,
 		};
 

@@ -71,11 +71,12 @@ pub async fn patch(
 	Path(server_id): Path<ServerID>,
 	Json(ServerUpdate {
 		name,
-		ip_address,
+		host,
+		port,
 		owned_by,
 	}): Json<ServerUpdate>,
 ) -> Result<NoContent> {
-	if name.is_none() && ip_address.is_none() && owned_by.is_none() {
+	if name.is_none() && host.is_none() && port.is_none() && owned_by.is_none() {
 		return Ok(NoContent);
 	}
 
@@ -86,10 +87,12 @@ pub async fn patch(
 		query.set("name", name);
 	}
 
-	if let Some(ip_address) = ip_address {
-		query
-			.set("ip_address", ip_address.ip().to_string())
-			.set("port", ip_address.port());
+	if let Some(host) = host {
+		query.set("host", host.to_string());
+	}
+
+	if let Some(port) = port {
+		query.set("port", port);
 	}
 
 	if let Some(steam_id) = owned_by {
@@ -139,7 +142,8 @@ mod tests {
 	async fn update_server(ctx: &Context) {
 		let update = ServerUpdate {
 			name: Some(String::from("Church of Schnose")),
-			ip_address: None,
+			host: None,
+			port: None,
 			owned_by: None,
 		};
 

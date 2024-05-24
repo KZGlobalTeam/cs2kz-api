@@ -70,7 +70,7 @@ VALUES
 INSERT INTO
   `Servers` (
     `name`,
-    `ip_address`,
+    `host`,
     `port`,
     `owner_id`,
     `refresh_key`

@@ -1,6 +1,6 @@
 //! Types used for describing bans and related concepts.
 
-use std::net::Ipv4Addr;
+use std::net::IpAddr;
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
@@ -183,7 +183,7 @@ pub struct NewBan {
 
 	/// The player's IP address.
 	#[schema(value_type = Option<String>)]
-	pub player_ip: Option<Ipv4Addr>,
+	pub player_ip: Option<IpAddr>,
 
 	/// The ban reason.
 	pub reason: BanReason,

@@ -114,7 +114,7 @@ pub async fn patch(
 		  id = ?
 		"#,
 		name,
-		ip_address.to_string(),
+		ip_address,
 		SqlJson(&preferences),
 		steam_id,
 	}
@@ -249,7 +249,7 @@ async fn insert_course_session(
 #[cfg(test)]
 mod tests {
 	use std::collections::BTreeMap;
-	use std::net::Ipv4Addr;
+	use std::net::Ipv6Addr;
 	use std::time::Duration;
 
 	use serde_json::{json, Value as JsonValue};
@@ -290,7 +290,7 @@ mod tests {
 
 		let update = PlayerUpdate {
 			name: new_name.clone(),
-			ip_address: Ipv4Addr::new(0, 0, 0, 0),
+			ip_address: Ipv6Addr::UNSPECIFIED,
 			session: Session {
 				time_spent: TimeSpent {
 					active: Duration::from_secs(6942).into(),

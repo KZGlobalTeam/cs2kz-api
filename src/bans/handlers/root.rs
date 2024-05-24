@@ -1,5 +1,7 @@
 //! Handlers for the `/bans` route.
 
+use std::net::IpAddr;
+
 use axum::extract::Query;
 use axum::Json;
 use chrono::{DateTime, Utc};
@@ -215,11 +217,21 @@ pub async fn post(
 	}
 
 	let player_ip = match player_ip {
-		Some(ip) => ip.to_string(),
-		None => sqlx::query_scalar!("SELECT ip_address FROM Players WHERE id = ?", player_id)
-			.fetch_optional(transaction.as_mut())
-			.await?
-			.ok_or_else(|| Error::unknown("player"))?,
+		Some(ip) => ip,
+		None => sqlx::query_scalar! {
+			r#"
+			SELECT
+			  ip_address `ip: IpAddr`
+			FROM
+			  Players
+			WHERE
+			  id = ?
+			"#,
+			player_id,
+		}
+		.fetch_optional(transaction.as_mut())
+		.await?
+		.ok_or_else(|| Error::unknown("player"))?,
 	};
 
 	let plugin_version_id = if let Some(id) = server.map(|server| server.plugin_version_id()) {
