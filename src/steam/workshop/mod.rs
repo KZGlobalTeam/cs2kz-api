@@ -3,13 +3,9 @@
 use crate::make_id;
 
 mod map_info;
-
-#[doc(inline)]
 pub use map_info::fetch_map_name;
 
 mod map_file;
-
-#[doc(inline)]
 pub use map_file::MapFile;
 
 /// URL for fetching map information from Steam's API.

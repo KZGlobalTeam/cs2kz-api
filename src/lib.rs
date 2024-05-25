@@ -18,25 +18,18 @@ use utoipa_swagger_ui::SwaggerUi;
 use self::openapi::security::Security;
 
 mod error;
-
-#[doc(inline)]
 pub use error::{Error, Result};
 
 mod config;
-
-#[doc(inline)]
 pub use config::Config;
 
 mod state;
-
-#[doc(inline)]
 pub(crate) use state::State;
 
 #[cfg(test)]
 mod test;
 
 #[cfg(test)]
-#[doc(inline)]
 pub(crate) use cs2kz_api_macros::integration_test;
 
 pub mod openapi;

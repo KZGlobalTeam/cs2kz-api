@@ -7,8 +7,6 @@ use crate::middleware::cors;
 use crate::State;
 
 mod models;
-
-#[doc(inline)]
 pub use models::{CourseSession, FullPlayer, NewPlayer, Player, PlayerUpdate, Session};
 
 mod queries;

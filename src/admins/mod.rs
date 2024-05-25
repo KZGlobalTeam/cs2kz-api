@@ -15,8 +15,6 @@ use crate::middleware::cors;
 use crate::{authorization, State};
 
 mod models;
-
-#[doc(inline)]
 pub use models::{Admin, AdminUpdate};
 
 pub mod handlers;

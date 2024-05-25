@@ -52,8 +52,6 @@ use crate::sqlx::SqlErrorExt;
 use crate::{steam, Error, Result, State};
 
 mod id;
-
-#[doc(inline)]
 pub use id::SessionID;
 
 /// The name of the cookie holding the session's ID in the user's browser.

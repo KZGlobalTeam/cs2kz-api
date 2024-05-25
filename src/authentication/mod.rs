@@ -7,28 +7,18 @@ use crate::middleware::cors;
 use crate::State;
 
 mod jwt;
-
-#[doc(inline)]
 pub use jwt::Jwt;
 
 pub mod session;
-
-#[doc(inline)]
 pub use session::Session;
 
 pub mod api_key;
-
-#[doc(inline)]
 pub use api_key::ApiKey;
 
 mod user;
-
-#[doc(inline)]
 pub use user::User;
 
 mod server;
-
-#[doc(inline)]
 pub use server::Server;
 
 pub mod handlers;

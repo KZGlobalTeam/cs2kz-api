@@ -7,8 +7,6 @@ use crate::middleware::cors;
 use crate::State;
 
 mod models;
-
-#[doc(inline)]
 pub use models::{CreatedPluginVersion, NewPluginVersion, PluginVersion, PluginVersionID};
 
 pub mod handlers;

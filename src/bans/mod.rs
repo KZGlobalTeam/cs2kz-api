@@ -10,8 +10,6 @@ use crate::middleware::cors;
 use crate::{authorization, State};
 
 mod models;
-
-#[doc(inline)]
 pub use models::{
 	Ban, BanID, BanReason, BanUpdate, CreatedBan, CreatedUnban, NewBan, NewUnban, Unban, UnbanID,
 };
