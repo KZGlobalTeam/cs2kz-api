@@ -1,3 +1,5 @@
+[![Dependency Status](https://deps.rs/repo/github/kzglobalteam/cs2kz-api/status.svg)](https://deps.rs/repo/github/kzglobalteam/cs2kz-api)
+
 # CS2KZ API
 
 This is the backend for CS2KZ that is responsible for storing records, maps,
