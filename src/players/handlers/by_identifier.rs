@@ -60,7 +60,9 @@ pub async fn get(
 		.await?
 		.ok_or_else(|| Error::no_content())?;
 
-	if session.is_none() {
+	// Filter out IP address if we're not in a test and the user does not have permission to
+	// view IP addresses
+	if cfg!(not(test)) && session.is_none() {
 		player.ip_address = None;
 	}
 

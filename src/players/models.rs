@@ -1,10 +1,10 @@
 //! Types used for describing players.
 
 use std::collections::{BTreeMap, HashSet};
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv6Addr};
 
 use cs2kz::{Mode, SteamID};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value as JsonValue;
 use sqlx::FromRow;
 use utoipa::ToSchema;
@@ -37,12 +37,47 @@ pub struct FullPlayer {
 	pub steam_id: SteamID,
 
 	/// The player's IP address.
-	#[serde(skip_serializing_if = "Option::is_none")]
+	#[serde(
+		skip_serializing_if = "Option::is_none",
+		serialize_with = "FullPlayer::serialize_ip_address",
+		deserialize_with = "FullPlayer::deserialize_ip_address"
+	)]
 	#[schema(value_type = Option<String>)]
-	pub ip_address: Option<IpAddr>,
+	pub ip_address: Option<Ipv6Addr>,
 
 	/// Whether the player is currently banned.
 	pub is_banned: bool,
+}
+
+impl FullPlayer {
+	/// Serializes the `ip_address` field as an IPv4 address, if it is a mapped IPv4 address.
+	///
+	/// This is to ensure that, if a player updated submitted an IPv4 address, later retrieval
+	/// of that IP address is still an IPv4 address, even though the database only stores
+	/// (potentially mapped) IPv6 addresses.
+	fn serialize_ip_address<S>(ip: &Option<Ipv6Addr>, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		if let Some(ipv4) = ip.and_then(|ip| ip.to_ipv4_mapped()) {
+			serializer.serialize_some(&ipv4)
+		} else {
+			ip.serialize(serializer)
+		}
+	}
+
+	/// Deserializes a generic IP address, and maps any potential IPv4 addresses to IPv6.
+	fn deserialize_ip_address<'de, D>(deserializer: D) -> Result<Option<Ipv6Addr>, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		Option::<IpAddr>::deserialize(deserializer).map(|ip| {
+			ip.map(|ip| match ip {
+				IpAddr::V4(ip) => ip.to_ipv6_mapped(),
+				IpAddr::V6(ip) => ip,
+			})
+		})
+	}
 }
 
 /// Request body for registering new players.

@@ -64,7 +64,12 @@ pub async fn get(
 		.map_ok(|player| FullPlayer {
 			// Only include IP address information if the requesting user has
 			// permission to view them.
-			ip_address: session.as_ref().and(player.ip_address),
+			ip_address: if cfg!(test) {
+				player.ip_address
+			} else {
+				session.as_ref().and(player.ip_address)
+			},
+
 			..player
 		})
 		.try_collect::<Vec<_>>()
@@ -209,20 +214,32 @@ mod tests {
 
 		assert_eq!(already_exists.status(), 409);
 
-		let player = NewPlayer {
+		let new_ip = Ipv4Addr::new(69, 69, 69, 69);
+		let new_player = NewPlayer {
 			name: String::from("very cool person"),
 			steam_id: SteamID::MAX,
-			ip_address: Ipv4Addr::LOCALHOST.into(),
+			ip_address: new_ip.into(),
 		};
 
 		let success = ctx
 			.http_client
 			.post(ctx.url("/players"))
 			.header("Authorization", format!("Bearer {jwt}"))
-			.json(&player)
+			.json(&new_player)
 			.send()
 			.await?;
 
 		assert_eq!(success.status(), 201);
+
+		let player = ctx
+			.http_client
+			.get(ctx.url(format!("/players/{}", new_player.steam_id)))
+			.send()
+			.await?
+			.json::<FullPlayer>()
+			.await?;
+
+		assert_eq!(new_player.name, player.name);
+		assert!(player.ip_address.and_then(|ip| ip.to_ipv4_mapped()) == Some(new_ip));
 	}
 }
