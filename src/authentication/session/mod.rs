@@ -32,7 +32,7 @@
 #![allow(rustdoc::private_intra_doc_links)]
 
 use std::marker::PhantomData;
-use std::net::Ipv6Addr;
+use std::net::IpAddr;
 
 use axum::extract::FromRequestParts;
 use axum::http::{header, request};
@@ -110,7 +110,7 @@ impl Session {
 	/// cookie can be sent to the user's browser.
 	pub async fn create(
 		steam_user: &steam::User,
-		user_ip: Ipv6Addr,
+		user_ip: IpAddr,
 		config: &'static crate::Config,
 		mut transaction: Transaction<'_, MySql>,
 	) -> Result<Self> {

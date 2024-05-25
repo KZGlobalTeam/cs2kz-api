@@ -249,7 +249,7 @@ async fn insert_course_session(
 #[cfg(test)]
 mod tests {
 	use std::collections::BTreeMap;
-	use std::net::Ipv6Addr;
+	use std::net::{IpAddr, Ipv4Addr};
 	use std::time::Duration;
 
 	use serde_json::{json, Value as JsonValue};
@@ -287,10 +287,11 @@ mod tests {
 
 		let player = response.json::<FullPlayer>().await?;
 		let new_name = player.name.chars().rev().collect::<String>();
+		let new_ip = Ipv4Addr::new(69, 69, 69, 69).into();
 
 		let update = PlayerUpdate {
 			name: new_name.clone(),
-			ip_address: Ipv6Addr::UNSPECIFIED,
+			ip_address: new_ip,
 			session: Session {
 				time_spent: TimeSpent {
 					active: Duration::from_secs(6942).into(),
@@ -318,6 +319,35 @@ mod tests {
 			.await?;
 
 		assert_eq!(response.status(), 204);
+
+		let actual_ip = sqlx::query_scalar! {
+			r#"
+			SELECT
+			  ip_address `ip: IpAddr`
+			FROM
+			  Players
+			WHERE
+			  id = ?
+			"#,
+			player.steam_id,
+		}
+		.fetch_one(&ctx.database)
+		.await?;
+
+		match (new_ip, actual_ip) {
+			(IpAddr::V4(new), IpAddr::V4(actual)) => {
+				assert_eq!(new, actual);
+			}
+			(IpAddr::V6(new), IpAddr::V6(actual)) => {
+				assert_eq!(new, actual);
+			}
+			(IpAddr::V4(new), IpAddr::V6(actual)) => {
+				assert_eq!(new.to_ipv6_mapped(), actual);
+			}
+			(IpAddr::V6(new), IpAddr::V4(actual)) => {
+				assert_eq!(new, actual.to_ipv6_mapped());
+			}
+		}
 
 		let url = ctx.url(format_args!("/players/{}", player.steam_id));
 		let response = ctx.http_client.get(url).send().await?;

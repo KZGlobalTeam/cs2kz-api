@@ -251,7 +251,7 @@ impl Context {
 
 		authentication::Session::create(
 			&user,
-			Ipv6Addr::LOCALHOST,
+			Ipv6Addr::LOCALHOST.into(),
 			self.config,
 			self.database.begin().await?,
 		)

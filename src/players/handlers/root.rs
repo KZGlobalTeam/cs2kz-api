@@ -141,7 +141,7 @@ pub async fn post(
 
 #[cfg(test)]
 mod tests {
-	use std::net::Ipv6Addr;
+	use std::net::{Ipv4Addr, Ipv6Addr};
 	use std::time::Duration;
 
 	use cs2kz::SteamID;
@@ -171,7 +171,7 @@ mod tests {
 		let player = NewPlayer {
 			name: String::from("AlphaKeks"),
 			steam_id: SteamID::from_u64(76561198282622073_u64).unwrap(),
-			ip_address: Ipv6Addr::LOCALHOST,
+			ip_address: Ipv6Addr::LOCALHOST.into(),
 		};
 
 		let missing_auth_header = ctx
@@ -212,7 +212,7 @@ mod tests {
 		let player = NewPlayer {
 			name: String::from("very cool person"),
 			steam_id: SteamID::MAX,
-			ip_address: Ipv6Addr::LOCALHOST,
+			ip_address: Ipv4Addr::LOCALHOST.into(),
 		};
 
 		let success = ctx

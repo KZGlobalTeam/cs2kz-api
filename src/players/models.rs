@@ -1,7 +1,7 @@
 //! Types used for describing players.
 
 use std::collections::{BTreeMap, HashSet};
-use std::net::Ipv6Addr;
+use std::net::IpAddr;
 
 use cs2kz::{Mode, SteamID};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -39,7 +39,7 @@ pub struct FullPlayer {
 	/// The player's IP address.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	#[schema(value_type = Option<String>)]
-	pub ip_address: Option<Ipv6Addr>,
+	pub ip_address: Option<IpAddr>,
 
 	/// Whether the player is currently banned.
 	pub is_banned: bool,
@@ -56,7 +56,7 @@ pub struct NewPlayer {
 
 	/// The player's IP address.
 	#[schema(value_type = String)]
-	pub ip_address: Ipv6Addr,
+	pub ip_address: IpAddr,
 }
 
 /// Request body for updating players.
@@ -67,7 +67,7 @@ pub struct PlayerUpdate {
 
 	/// The player's IP address.
 	#[schema(value_type = String)]
-	pub ip_address: Ipv6Addr,
+	pub ip_address: IpAddr,
 
 	/// Data about the player's game session.
 	pub session: Session,
