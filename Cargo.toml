@@ -32,7 +32,7 @@ workspace = true
 version = "0.15"
 
 [dependencies.tokio]
-version = "1"
+version = "1.37.0"
 features = ["rt-multi-thread", "macros", "signal", "process"]
 
 [dependencies.axum]
@@ -120,7 +120,7 @@ version = "1"
 version = "0.7"
 
 [dependencies.chrono]
-version = "0.4"
+version = "0.4.20"
 default-features = false
 features = ["std", "clock", "serde"]
 
