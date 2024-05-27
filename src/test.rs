@@ -120,14 +120,27 @@ impl Context {
 
 		eprintln!("[{test_id}] starting database container");
 
-		let database_container = Mariadb::default().start().await;
-		let database_ip = match database_container.get_host().await {
+		let database_container = Mariadb::default()
+			.start()
+			.await
+			.with_context(|| format!("[{test_id}] start mariadb container"))?;
+
+		let database_host = database_container
+			.get_host()
+			.await
+			.with_context(|| format!("[{test_id}] get mariadb container host"))?;
+
+		let database_ip = match database_host {
 			Host::Domain(domain) if domain == "localhost" => IpAddr::V4(Ipv4Addr::LOCALHOST),
 			Host::Domain(domain) => anyhow::bail!("cannot use domain for database url ({domain})"),
 			Host::Ipv4(ip) => IpAddr::V4(ip),
 			Host::Ipv6(ip) => IpAddr::V6(ip),
 		};
-		let database_port = database_container.get_host_port_ipv4(3306).await;
+
+		let database_port = database_container
+			.get_host_port_ipv4(3306)
+			.await
+			.with_context(|| format!("[{test_id}] get mariadb container port"))?;
 
 		config.database_url.set_username("root").unwrap();
 		config.database_url.set_password(None).unwrap();
@@ -223,7 +236,10 @@ impl Context {
 
 		eprintln!("[{test_id}] destroying database container");
 
-		database_container.rm().await;
+		database_container
+			.rm()
+			.await
+			.with_context(|| format!("[{test_id}] destroy mariadb container"))?;
 
 		eprintln!("[{test_id}] done");
 
