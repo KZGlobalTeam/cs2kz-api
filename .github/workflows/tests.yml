@@ -16,6 +16,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+env:
+  STEAM_WEB_API_KEY: ${{ secrets.STEAM_WEB_API_KEY }}
+
 jobs:
   test:
     name: test suite
@@ -28,6 +31,4 @@ jobs:
       - name: cargo generate-lockfile
         run: cargo generate-lockfile
       - name: cargo test --locked
-        env:
-          STEAM_WEB_API_KEY: ${{ secrets.STEAM_WEB_API_KEY }}
         run: cargo test --workspace --locked --all-features --all-targets -- --nocapture
