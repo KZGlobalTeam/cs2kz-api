@@ -25,7 +25,7 @@ pub(crate) fn make_span_with(request: &Request) -> tracing::Span {
 	tracing::trace_span! {
 		target: "cs2kz_api::logs",
 		"request",
-		request.id = %Uuid::new_v4(),
+		request.id = %Uuid::now_v7(),
 		request.method = %request.method(),
 		request.path = format_args!("`{}`", request.uri()),
 		request.version = ?request.version(),
