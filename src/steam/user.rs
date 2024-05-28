@@ -63,21 +63,20 @@ impl User {
 			("steamids", steam_id.as_u64().to_string()),
 		])
 		.map_err(|err| {
-			error!(target: "audit_log", %err, "failed to parse url");
-			Error::internal_server_error("failed to parse url").with_source(err)
+			let msg = "failed to parse url";
+			error!(target: "audit_log", %err, "{msg}");
+			Error::logic(msg).context(err)
 		})?;
 
 		let response = http_client.get(url).send().await?;
 
 		if let Err(error) = response.error_for_status_ref() {
-			let error = Error::bad_gateway("failed to fetch user information from Steam")
-				.with_source(error);
-
+			let error = Error::external_api_call(error);
 			let response_body = response.text().await.ok();
 
 			error!(?error, ?response_body, "failed to fetch steam user");
 
-			return Err(error);
+			return Err(error.context(format!("response body: {response_body:?}")));
 		}
 
 		let user = response.json::<Self>().await?;

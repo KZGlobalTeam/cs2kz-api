@@ -137,8 +137,9 @@ impl LoginResponse {
 		self.mode = String::from("check_authentication");
 
 		let payload = serde_urlencoded::to_string(&self).map_err(|err| {
-			debug!(%err, "invalid steam login payload");
-			Error::unauthorized().with_source(err)
+			let msg = "invalid steam login payload";
+			debug!(%err, "{msg}");
+			Error::unauthorized().context(msg).context(err)
 		})?;
 
 		let response = http_client
@@ -179,13 +180,15 @@ impl FromRequestParts<&'static State> for LoginResponse {
 		let Query(mut login) = Query::<Self>::from_request_parts(parts, &())
 			.await
 			.map_err(|err| {
-				debug!(%err, "missing steam login payload");
-				Error::unauthorized().with_source(err)
+				let msg = "missing steam login payload";
+				debug!(%err, "{msg}");
+				Error::unauthorized().context(msg).context(err)
 			})?;
 
 		let steam_id = login.verify(&state.http_client).await.map_err(|err| {
-			debug!(%err, "login request did not come from steam");
-			Error::unauthorized().with_source(err)
+			let msg = "login request did not come from steam";
+			debug!(%err, "{msg}");
+			Error::unauthorized().context(msg).context(err)
 		})?;
 
 		parts.extensions.insert(steam_id);

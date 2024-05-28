@@ -156,7 +156,7 @@ pub async fn patch(
 	.await
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
-			Error::unknown("player").with_source(err)
+			Error::unknown("player").context(err)
 		} else {
 			Error::from(err)
 		}
@@ -227,9 +227,9 @@ async fn insert_course_session(
 	.await
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
-			Error::unknown("player").with_source(err)
+			Error::unknown("player").context(err)
 		} else if err.is_fk_violation_of("course_id") {
-			Error::unknown("course").with_source(err)
+			Error::unknown("course").context(err)
 		} else {
 			Error::from(err)
 		}

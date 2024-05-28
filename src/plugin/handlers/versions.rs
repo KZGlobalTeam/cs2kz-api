@@ -8,6 +8,7 @@ use tracing::debug;
 use utoipa::IntoParams;
 
 use crate::authentication::ApiKey;
+use crate::make_id::IntoID;
 use crate::openapi::parameters::{Limit, Offset};
 use crate::openapi::responses;
 use crate::openapi::responses::{Created, PaginationResponse};
@@ -98,7 +99,7 @@ pub async fn post(
 	}): Json<NewPluginVersion>,
 ) -> Result<Created<Json<CreatedPluginVersion>>> {
 	if api_key.name() != "plugin_versions" {
-		return Err(Error::key_invalid());
+		return Err(Error::invalid_api_key().context(format!("actual key was {api_key:?}")));
 	}
 
 	let mut transaction = state.transaction().await?;
@@ -119,10 +120,12 @@ pub async fn post(
 	.await?
 	.map(|row| row.semver.parse::<semver::Version>())
 	.transpose()
-	.map_err(|err| Error::internal_server_error("invalid semver in database").with_source(err))?;
+	.map_err(|err| Error::logic("invalid semver in database").context(err))?;
 
 	if let Some(version) = latest_version.filter(|version| version >= &semver) {
-		return Err(Error::invalid_semver(&version));
+		return Err(Error::invalid("plugin version").context(format!(
+			"version is `{semver}` while latest version is `{version}`"
+		)));
 	}
 
 	let plugin_version_id = sqlx::query! {
@@ -139,15 +142,13 @@ pub async fn post(
 	.await
 	.map_err(|err| {
 		if err.is_duplicate_entry() {
-			Error::invalid_plugin_rev()
+			Error::already_exists("plugin version").context(err)
 		} else {
 			Error::from(err)
 		}
 	})?
 	.last_insert_id()
-	.try_into()
-	.map(PluginVersionID)
-	.map_err(Error::invalid_id_column)?;
+	.into_id::<PluginVersionID>()?;
 
 	transaction.commit().await?;
 

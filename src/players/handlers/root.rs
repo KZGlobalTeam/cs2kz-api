@@ -133,7 +133,7 @@ pub async fn post(
 	.await
 	.map_err(|err| {
 		if err.is_duplicate_entry() {
-			Error::already_exists("player").with_source(err)
+			Error::already_exists("player").context(err)
 		} else {
 			Error::from(err)
 		}

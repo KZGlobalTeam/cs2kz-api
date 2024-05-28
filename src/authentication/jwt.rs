@@ -79,10 +79,12 @@ where
 		state: &&'static State,
 	) -> Result<Self> {
 		let header = TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state).await?;
-		let jwt = state.decode_jwt::<T>(header.token())?;
+		let jwt = state
+			.decode_jwt::<T>(header.token())
+			.map_err(|err| Error::invalid_cs2_refresh_key().context(err))?;
 
 		if jwt.has_expired() {
-			return Err(Error::expired_access_key());
+			return Err(Error::expired_cs2_access_key());
 		}
 
 		trace!(target: "audit_log", token = %header.token(), "authenticated jwt");

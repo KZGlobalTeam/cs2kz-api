@@ -43,7 +43,7 @@ use cs2kz::SteamID;
 use derive_more::{Debug, From, Into};
 use sqlx::{MySql, Transaction};
 use time::OffsetDateTime;
-use tracing::{debug, error, trace};
+use tracing::{debug, trace};
 use uuid::Uuid;
 
 use crate::authentication::User;
@@ -164,8 +164,12 @@ impl Session {
 		.map_err(|err| {
 			if err.is_fk_violation_of("player_id") {
 				// This should be impossible because of the check above
-				error!(target: "audit_log", %err);
-				Error::internal_server_error("database error").with_source(err)
+				Error::logic("player fk violation even though we created the player")
+					.context(err)
+					.context(format!(
+						"steam_id: {}, name: {}",
+						steam_user.steam_id, steam_user.username,
+					))
 			} else {
 				Error::from(err)
 			}

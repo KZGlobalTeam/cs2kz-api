@@ -207,7 +207,7 @@ async fn update_name_and_checksum(
 		workshop::fetch_map_name(workshop_id, http_client),
 		workshop::MapFile::download(workshop_id, config).and_then(|map| async move {
 			map.checksum().await.map_err(|err| {
-				Error::internal_server_error("failed to compute map checksum").with_source(err)
+				Error::checksum(err).context(format!("map_id: {map_id}, workshop_id: {workshop_id}"))
 			})
 		}),
 	}?;
@@ -310,7 +310,7 @@ where
 		if valid_course_ids.remove(&id) {
 			(id, Ok(update))
 		} else {
-			(id, Err(Error::course_does_not_belong_to_map(id, map_id)))
+			(id, Err(Error::mismatching_map_course(id, map_id)))
 		}
 	});
 
@@ -454,10 +454,7 @@ where
 		if valid_filter_ids.remove(&id) {
 			(id, Ok(update))
 		} else {
-			(
-				id,
-				Err(Error::filter_does_not_belong_to_course(id, course_id)),
-			)
+			(id, Err(Error::mismatching_course_filter(id, course_id)))
 		}
 	});
 

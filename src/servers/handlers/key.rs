@@ -58,7 +58,7 @@ pub async fn generate_temp(
 	.fetch_optional(transaction.as_mut())
 	.await?
 	.map(|row| authentication::Server::new(row.server_id, row.plugin_version_id))
-	.ok_or_else(|| Error::invalid_refresh_key())?;
+	.ok_or_else(|| Error::invalid_cs2_refresh_key())?;
 
 	let jwt = Jwt::new(&server, Duration::from_secs(60 * 15));
 	let access_key = state

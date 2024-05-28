@@ -10,6 +10,7 @@ use utoipa::IntoParams;
 use uuid::Uuid;
 
 use crate::authorization::{self, Permissions};
+use crate::make_id::IntoID;
 use crate::openapi::parameters::{Limit, Offset};
 use crate::openapi::responses;
 use crate::openapi::responses::{Created, PaginationResponse};
@@ -167,15 +168,13 @@ pub async fn post(
 	.await
 	.map_err(|err| {
 		if err.is_fk_violation_of("owner_id") {
-			Error::unknown("owner").with_source(err)
+			Error::unknown("owner").context(err)
 		} else {
 			Error::from(err)
 		}
 	})?
 	.last_insert_id()
-	.try_into()
-	.map(ServerID)
-	.map_err(Error::invalid_id_column)?;
+	.into_id::<ServerID>()?;
 
 	transaction.commit().await?;
 

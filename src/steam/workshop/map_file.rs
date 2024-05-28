@@ -23,12 +23,12 @@ impl MapFile {
 		let out_dir = config
 			.workshop_artifacts_path
 			.as_deref()
-			.ok_or_else(|| Error::internal_server_error("missing workshop asset directory"))?;
+			.ok_or_else(|| Error::missing_workshop_asset_dir())?;
 
 		let depot_downloader_path = config
 			.depot_downloader_path
 			.as_deref()
-			.ok_or_else(|| Error::internal_server_error("missing `DepotDownloader`"))?;
+			.ok_or_else(|| Error::missing_depot_downloader())?;
 
 		let output = Command::new(depot_downloader_path)
 			.args(["-app", "730", "-pubfile"])
@@ -38,13 +38,13 @@ impl MapFile {
 			.spawn()
 			.map_err(|err| {
 				error!(target: "audit_log", %err, "failed to run DepotDownloader");
-				Error::internal_server_error("failed to download workshop map").with_source(err)
+				Error::depot_downloader(err)
 			})?
 			.wait_with_output()
 			.await
 			.map_err(|err| {
 				error!(target: "audit_log", %err, "failed to run DepotDownloader");
-				Error::internal_server_error("failed to download workshop map").with_source(err)
+				Error::depot_downloader(err)
 			})?;
 
 		let mut stdout = io::stdout();
@@ -56,15 +56,19 @@ impl MapFile {
 
 		if !output.status.success() {
 			error!(target: "audit_log", ?output, "DepotDownloader did not exit successfully");
-			return Err(Error::internal_server_error(
+			return Err(Error::depot_downloader(io::Error::new(
+				io::ErrorKind::Other,
 				"DepotDownloader did not exit successfully",
-			));
+			)));
 		}
 
 		let filepath = out_dir.join(format!("{workshop_id}.vpk"));
 		let file = File::open(&filepath).await.map_err(|err| {
-			error!(target: "audit_log", %err, ?filepath, "failed to open map file");
-			Error::internal_server_error("failed to load workshop map").with_source(err)
+			let msg = "failed to open map file";
+			error!(target: "audit_log", %err, ?filepath, "{msg}");
+			Error::open_map_file(err)
+				.context(msg)
+				.context(format!("path: `{filepath:?}`"))
 		})?;
 
 		Ok(Self { file })

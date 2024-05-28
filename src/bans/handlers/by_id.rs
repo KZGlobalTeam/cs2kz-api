@@ -72,7 +72,7 @@ pub async fn patch(
 	let mut transaction = state.transaction().await?;
 
 	if let Some(unban_id) = is_already_unbanned(ban_id, transaction.as_mut()).await? {
-		return Err(Error::ban_already_reverted(unban_id));
+		return Err(Error::ban_already_reverted(ban_id, unban_id));
 	}
 
 	let mut query = UpdateQuery::new("Bans");
@@ -125,7 +125,7 @@ pub async fn delete(
 	let mut transaction = state.transaction().await?;
 
 	if let Some(unban_id) = is_already_unbanned(ban_id, transaction.as_mut()).await? {
-		return Err(Error::ban_already_reverted(unban_id));
+		return Err(Error::ban_already_reverted(ban_id, unban_id));
 	}
 
 	let query_result = sqlx::query! {

@@ -13,6 +13,7 @@ use tracing::{info, warn};
 use utoipa::IntoParams;
 
 use crate::authorization::Permissions;
+use crate::make_id::IntoID;
 use crate::maps::{queries, CourseID, CreatedMap, FullMap, MapID, NewCourse, NewFilter, NewMap};
 use crate::openapi::parameters::{Limit, Offset};
 use crate::openapi::responses;
@@ -159,7 +160,7 @@ pub async fn put(
 		workshop::fetch_map_name(workshop_id, &state.http_client),
 		workshop::MapFile::download(workshop_id, &state.config).and_then(|map| async move {
 			map.checksum().await.map_err(|err| {
-				Error::internal_server_error("failed to compute map checksum").with_source(err)
+				Error::checksum(err).context(format!("workshop_id: {workshop_id}"))
 			})
 		}),
 	}?;
@@ -239,9 +240,7 @@ async fn create_map(
 	.execute(transaction.as_mut())
 	.await?
 	.last_insert_id()
-	.try_into()
-	.map(MapID)
-	.map_err(Error::invalid_id_column)?;
+	.into_id::<MapID>()?;
 
 	info!(target: "audit_log", id = %map_id, %name, "created new map");
 
@@ -266,7 +265,7 @@ pub(super) async fn create_mappers(
 		.await
 		.map_err(|err| {
 			if err.is_fk_violation_of("player_id") {
-				Error::unknown("mapper").with_source(err)
+				Error::unknown("mapper").context(err)
 			} else {
 				Error::from(err)
 			}
@@ -338,7 +337,7 @@ pub(super) async fn insert_course_mappers(
 		.await
 		.map_err(|err| {
 			if err.is_fk_violation_of("player_id") {
-				Error::unknown("mapper").with_source(err)
+				Error::unknown("mapper").context(err)
 			} else {
 				Error::from(err)
 			}

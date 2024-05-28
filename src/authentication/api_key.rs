@@ -55,7 +55,7 @@ impl FromRequestParts<&'static State> for ApiKey {
 			.await?
 			.token()
 			.parse::<Uuid>()
-			.map_err(Error::key_must_be_uuid)?;
+			.map_err(|err| Error::invalid_api_key().context(err))?;
 
 		let api_key = sqlx::query! {
 			r#"
@@ -72,13 +72,13 @@ impl FromRequestParts<&'static State> for ApiKey {
 		.fetch_optional(&state.database)
 		.await?
 		.map(|row| match row.is_expired {
-			true => Err(Error::key_expired()),
+			true => Err(Error::expired_api_key()),
 			false => Ok(ApiKey {
 				key,
 				name: row.name,
 			}),
 		})
-		.ok_or_else(|| Error::key_invalid())??;
+		.ok_or_else(|| Error::invalid_api_key())??;
 
 		debug!(?api_key, "authenticated API key");
 

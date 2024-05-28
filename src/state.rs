@@ -118,8 +118,13 @@ impl JwtState {
 	/// Creates a new [`JwtState`].
 	fn new(config: &crate::Config) -> Result<Self> {
 		let jwt_header = jwt::Header::default();
-		let jwt_encoding_key = jwt::EncodingKey::from_base64_secret(&config.jwt_secret)?;
-		let jwt_decoding_key = jwt::DecodingKey::from_base64_secret(&config.jwt_secret)?;
+
+		let jwt_encoding_key = jwt::EncodingKey::from_base64_secret(&config.jwt_secret)
+			.map_err(|err| Error::encode_jwt(err))?;
+
+		let jwt_decoding_key = jwt::DecodingKey::from_base64_secret(&config.jwt_secret)
+			.map_err(|err| Error::encode_jwt(err))?;
+
 		let jwt_validation = jwt::Validation::default();
 
 		Ok(Self {
@@ -135,7 +140,8 @@ impl JwtState {
 	where
 		T: Serialize,
 	{
-		jwt::encode(&self.jwt_header, &jwt, &self.jwt_encoding_key).map_err(|err| Error::from(err))
+		jwt::encode(&self.jwt_header, &jwt, &self.jwt_encoding_key)
+			.map_err(|err| Error::encode_jwt(err))
 	}
 
 	/// Decodes the given `jwt` into some type `T`.
@@ -145,6 +151,6 @@ impl JwtState {
 	{
 		jwt::decode(jwt, &self.jwt_decoding_key, &self.jwt_validation)
 			.map(|jwt| jwt.claims)
-			.map_err(|err| Error::from(err))
+			.map_err(|err| Error::invalid("jwt").context(err))
 	}
 }
