@@ -159,9 +159,11 @@ enum ErrorKind {
 	Reqwest(#[from] reqwest::Error),
 
 	#[error("missing workshop asset directory")]
+	#[cfg(not(feature = "production"))]
 	MissingWorkshopAssetDirectory,
 
 	#[error("missing `DepotDownloader` binary")]
+	#[cfg(not(feature = "production"))]
 	MissingDepotDownloader,
 
 	#[error("failed to run `DepotDownloader`")]
@@ -191,11 +193,11 @@ enum ErrorKind {
 #[derive(Debug, Display)]
 #[display("'{}' at {}:{}:{}", context, location.file(), location.line(), location.column())]
 struct Attachment {
-	/// The source location of where this context was attached.
-	location: Location<'static>,
-
 	/// The context itself.
 	context: BoxedError,
+
+	/// The source location of where this context was attached.
+	location: Location<'static>,
 }
 
 impl Attachment {
@@ -206,8 +208,8 @@ impl Attachment {
 		C: Into<BoxedError>,
 	{
 		Self {
-			location: *Location::caller(),
 			context: context.into(),
+			location: *Location::caller(),
 		}
 	}
 }
@@ -387,10 +389,10 @@ impl Error {
 	///
 	/// Where we store it is configured through an environment variable, which is allowed to
 	/// not exist (for local testing purposes).
-	// TODO: should we just force the env variables to exist when running in production?
 	///
 	/// [map]: crate::steam::workshop::MapFile
 	#[track_caller]
+	#[cfg(not(feature = "production"))]
 	pub(crate) fn missing_workshop_asset_dir() -> Self {
 		Self::new(ErrorKind::MissingWorkshopAssetDirectory)
 	}
@@ -399,11 +401,11 @@ impl Error {
 	///
 	/// The path to its executable is configured through environment variables, which is
 	/// allowed to not exist (for local testing purposes).
-	// TODO: should we just force the env variables to exist when running in production?
 	///
 	/// [map]: crate::steam::workshop::MapFile
 	/// [DepotDownloader]: https://github.com/SteamRE/DepotDownloader
 	#[track_caller]
+	#[cfg(not(feature = "production"))]
 	pub(crate) fn missing_depot_downloader() -> Self {
 		Self::new(ErrorKind::MissingDepotDownloader)
 	}
@@ -508,11 +510,15 @@ impl IntoResponse for Error {
 			| E::Database(_)
 			| E::Jwt(_)
 			| E::Reqwest(_)
-			| E::MissingWorkshopAssetDirectory
-			| E::MissingDepotDownloader
 			| E::DepotDownloader(_)
 			| E::OpenMapFile(_)
 			| E::Checksum(_) => StatusCode::INTERNAL_SERVER_ERROR,
+
+			#[cfg(not(feature = "production"))]
+			E::MissingWorkshopAssetDirectory | E::MissingDepotDownloader => {
+				StatusCode::INTERNAL_SERVER_ERROR
+			}
+
 			E::ExternalApiCall(_) => StatusCode::BAD_GATEWAY,
 			E::Path(ref rej) => rej.status(),
 		};

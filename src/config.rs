@@ -36,10 +36,20 @@ pub struct Config {
 	pub steam_api_key: String,
 
 	/// Path to the directory storing Steam Workshop artifacts.
+	#[cfg(not(feature = "production"))]
 	pub workshop_artifacts_path: Option<PathBuf>,
 
+	/// Path to the directory storing Steam Workshop artifacts.
+	#[cfg(feature = "production")]
+	pub workshop_artifacts_path: PathBuf,
+
 	/// Path to the `DepotDownloader` executable.
+	#[cfg(not(feature = "production"))]
 	pub depot_downloader_path: Option<PathBuf>,
+
+	/// Path to the `DepotDownloader` executable.
+	#[cfg(feature = "production")]
+	pub depot_downloader_path: PathBuf,
 
 	/// Base64-encoded JWT secret.
 	#[debug("*****")]
@@ -56,8 +66,19 @@ impl Config {
 		let public_url = parse_from_env("KZ_API_PUBLIC_URL")?;
 		let cookie_domain = parse_from_env("KZ_API_COOKIE_DOMAIN")?;
 		let steam_api_key = parse_from_env("STEAM_WEB_API_KEY")?;
+
+		#[cfg(not(feature = "production"))]
 		let workshop_artifacts_path = parse_from_env_opt("KZ_API_WORKSHOP_PATH")?;
+
+		#[cfg(feature = "production")]
+		let workshop_artifacts_path = parse_from_env("KZ_API_WORKSHOP_PATH")?;
+
+		#[cfg(not(feature = "production"))]
 		let depot_downloader_path = parse_from_env_opt("DEPOT_DOWNLOADER_PATH")?;
+
+		#[cfg(feature = "production")]
+		let depot_downloader_path = parse_from_env("DEPOT_DOWNLOADER_PATH")?;
+
 		let jwt_secret = parse_from_env("KZ_API_JWT_SECRET")?;
 
 		Ok(Self {
@@ -90,6 +111,7 @@ where
 
 /// Parses an environment variable into an `Option<T>`, returning `None` if the variable is not
 /// set or empty.
+#[cfg(not(feature = "production"))]
 fn parse_from_env_opt<T>(var: &str) -> anyhow::Result<Option<T>>
 where
 	T: FromStr,

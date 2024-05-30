@@ -20,15 +20,23 @@ pub struct MapFile {
 impl MapFile {
 	/// Download this map from the workshop and return a handle to it.
 	pub async fn download(workshop_id: WorkshopID, config: &Config) -> Result<Self> {
+		#[cfg(not(feature = "production"))]
 		let out_dir = config
 			.workshop_artifacts_path
 			.as_deref()
 			.ok_or_else(|| Error::missing_workshop_asset_dir())?;
 
+		#[cfg(feature = "production")]
+		let out_dir = &config.workshop_artifacts_path;
+
+		#[cfg(not(feature = "production"))]
 		let depot_downloader_path = config
 			.depot_downloader_path
 			.as_deref()
 			.ok_or_else(|| Error::missing_depot_downloader())?;
+
+		#[cfg(feature = "production")]
+		let depot_downloader_path = &config.depot_downloader_path;
 
 		let output = Command::new(depot_downloader_path)
 			.args(["-app", "730", "-pubfile"])
