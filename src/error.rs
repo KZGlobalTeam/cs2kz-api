@@ -470,7 +470,6 @@ impl Error {
 			}
 		}
 
-		// self.attachments.push(Attachment::new(ctx));
 		self
 	}
 }
