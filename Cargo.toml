@@ -32,7 +32,7 @@ workspace = true
 version = "0.15"
 
 [dependencies.tokio]
-version = "1.37.0"
+version = "1.38.0"
 features = ["rt-multi-thread", "macros", "signal", "process"]
 
 [dependencies.axum]
