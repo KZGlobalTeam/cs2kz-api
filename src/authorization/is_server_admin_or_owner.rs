@@ -8,7 +8,7 @@ use sqlx::{MySql, Transaction};
 use super::AuthorizeSession;
 use crate::authorization::{self, Permissions};
 use crate::servers::ServerID;
-use crate::{authentication, Error};
+use crate::{authentication, Error, Result};
 
 /// Ensures the requesting user is either an admin with the `SERVERS` permissions, or the owner of
 /// the server they are making a request for.
@@ -20,7 +20,7 @@ impl AuthorizeSession for IsServerAdminOrOwner {
 		user: &authentication::User,
 		req: &mut request::Parts,
 		transaction: &mut Transaction<'static, MySql>,
-	) -> crate::Result<()> {
+	) -> Result<()> {
 		if authorization::HasPermissions::<{ Permissions::SERVERS.value() }>::authorize_session(
 			user,
 			req,

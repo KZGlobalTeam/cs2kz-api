@@ -1,7 +1,5 @@
 //! Steam Users.
 
-use std::result::Result as StdResult;
-
 use axum::async_trait;
 use axum::extract::FromRequestParts;
 use axum::http::request;
@@ -116,7 +114,7 @@ impl User {
 
 impl<'de> Deserialize<'de> for User {
 	#[allow(clippy::missing_docs_in_private_items)]
-	fn deserialize<D>(deserializer: D) -> StdResult<Self, D::Error>
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
 		D: Deserializer<'de>,
 	{

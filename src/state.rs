@@ -3,7 +3,6 @@
 //! This is initialized once on startup, and then passed around the application by axum.
 
 use std::convert::Infallible;
-use std::result::Result as StdResult;
 
 use axum::async_trait;
 use axum::extract::FromRequestParts;
@@ -93,7 +92,7 @@ impl FromRequestParts<&'static State> for &'static State {
 	async fn from_request_parts(
 		_parts: &mut request::Parts,
 		state: &&'static State,
-	) -> StdResult<Self, Self::Rejection> {
+	) -> Result<Self, Self::Rejection> {
 		Ok(state)
 	}
 }

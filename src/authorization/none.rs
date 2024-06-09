@@ -4,7 +4,7 @@ use axum::http::request;
 use sqlx::{MySql, Transaction};
 
 use super::AuthorizeSession;
-use crate::authentication;
+use crate::{authentication, Result};
 
 /// No authorization.
 #[derive(Debug, Clone, Copy)]
@@ -15,7 +15,7 @@ impl AuthorizeSession for None {
 		_user: &authentication::User,
 		_req: &mut request::Parts,
 		_transaction: &mut Transaction<'static, MySql>,
-	) -> crate::Result<()> {
+	) -> Result<()> {
 		Ok(())
 	}
 }

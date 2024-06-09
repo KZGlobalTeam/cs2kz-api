@@ -14,7 +14,7 @@ use uuid::Uuid;
 use super::Jwt;
 use crate::plugin::PluginVersionID;
 use crate::servers::ServerID;
-use crate::State;
+use crate::{Result, State};
 
 /// An authenticated CS2 server.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
@@ -105,7 +105,7 @@ pub struct Token(String);
 
 impl Token {
 	/// Generate a new [`Token`] for the given `server`.
-	pub fn new(server: &Server, state: &State) -> crate::Result<Self> {
+	pub fn new(server: &Server, state: &State) -> Result<Self> {
 		let expires_after = Duration::from_secs(60 * 15);
 		let jwt = Jwt::new(server, expires_after);
 		let jwt = state.encode_jwt(jwt)?;

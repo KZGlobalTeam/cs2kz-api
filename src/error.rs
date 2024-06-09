@@ -5,7 +5,6 @@
 //!
 //! [`Error`]: struct@Error
 
-use std::error::Error as StdError;
 use std::fmt::{self, Formatter};
 use std::io;
 use std::panic::Location;
@@ -27,7 +26,7 @@ use crate::make_id::ConvertIDError;
 use crate::maps::{CourseID, FilterID, MapID};
 
 /// Convenience type alias, because this type is long.
-type BoxedError = Box<dyn StdError + Send + Sync + 'static>;
+type BoxedError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 /// Convenient type alias to use for fallible functions.
 ///
@@ -35,7 +34,7 @@ type BoxedError = Box<dyn StdError + Send + Sync + 'static>;
 /// out 500 times is not desirable.
 ///
 /// [`Error`]: struct@Error
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// The main error type used in this crate.
 ///
@@ -587,7 +586,7 @@ impl From<PathRejection> for Error {
 
 impl<E> From<ConvertIDError<E>> for Error
 where
-	E: StdError + Send + Sync + 'static,
+	E: std::error::Error + Send + Sync + 'static,
 {
 	#[track_caller]
 	fn from(error: ConvertIDError<E>) -> Self {

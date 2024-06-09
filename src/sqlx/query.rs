@@ -6,10 +6,11 @@ use derive_more::{Debug, Deref, DerefMut};
 use sqlx::{MySql, QueryBuilder, Transaction};
 
 use crate::openapi::parameters::{Limit, Offset, SortingOrder};
+use crate::Result;
 
 /// Returns the total amount of rows that _could_ have been fetched from a query containing
 /// `LIMIT`. This only works for queries containing `SQL_CALC_FOUND_ROWS`.
-pub async fn total_rows(transaction: &mut Transaction<'_, MySql>) -> crate::Result<u64> {
+pub async fn total_rows(transaction: &mut Transaction<'_, MySql>) -> Result<u64> {
 	let total = sqlx::query_scalar!("SELECT FOUND_ROWS() as total")
 		.fetch_one(transaction.as_mut())
 		.await?

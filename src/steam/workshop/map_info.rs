@@ -1,7 +1,5 @@
 //! Everything related to Workshop Maps.
 
-use std::result::Result as StdResult;
-
 use reqwest::header;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value as JsonValue;
@@ -48,7 +46,7 @@ struct MapInfo {
 
 impl<'de> Deserialize<'de> for MapInfo {
 	#[allow(clippy::missing_docs_in_private_items)]
-	fn deserialize<D>(deserializer: D) -> StdResult<Self, D::Error>
+	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 	where
 		D: Deserializer<'de>,
 	{

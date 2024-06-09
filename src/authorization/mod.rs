@@ -5,7 +5,7 @@ use std::future::Future;
 use axum::http::request;
 use sqlx::{MySql, Transaction};
 
-use crate::authentication;
+use crate::{authentication, Result};
 
 mod permissions;
 pub use permissions::Permissions;
@@ -28,5 +28,5 @@ pub trait AuthorizeSession: Send + Sync + 'static {
 		user: &authentication::User,
 		req: &mut request::Parts,
 		transaction: &mut Transaction<'static, MySql>,
-	) -> impl Future<Output = crate::Result<()>> + Send;
+	) -> impl Future<Output = Result<()>> + Send;
 }

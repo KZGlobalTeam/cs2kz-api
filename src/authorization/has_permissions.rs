@@ -5,7 +5,7 @@ use sqlx::{MySql, Transaction};
 
 use super::AuthorizeSession;
 use crate::authorization::Permissions;
-use crate::{authentication, Error};
+use crate::{authentication, Error, Result};
 
 /// Ensure the user has _at least_ `PERMS`.
 #[derive(Debug, Clone, Copy)]
@@ -16,7 +16,7 @@ impl<const PERMS: u32> AuthorizeSession for HasPermissions<PERMS> {
 		user: &authentication::User,
 		_req: &mut request::Parts,
 		_transaction: &mut Transaction<'static, MySql>,
-	) -> crate::Result<()> {
+	) -> Result<()> {
 		let permissions = Permissions::new(PERMS);
 
 		if user.permissions().contains(permissions) {

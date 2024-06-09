@@ -20,7 +20,7 @@ use uuid::Uuid;
 use crate::authentication::{self, Jwt};
 use crate::plugin::PluginVersionID;
 use crate::servers::ServerID;
-use crate::{steam, Config, API};
+use crate::{steam, Config, Result, API};
 
 /// Wrapper over std's `assert!()` macro that uses [`anyhow::ensure!()`] instead.
 macro_rules! assert {
@@ -262,7 +262,7 @@ impl Context {
 		self.encode_jwt(&server, expires_after)
 	}
 
-	pub async fn auth_session(&self, steam_id: SteamID) -> crate::Result<authentication::Session> {
+	pub async fn auth_session(&self, steam_id: SteamID) -> Result<authentication::Session> {
 		let user = steam::User::invalid(steam_id);
 
 		authentication::Session::create(
