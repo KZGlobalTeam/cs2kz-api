@@ -20,7 +20,7 @@ use uuid::Uuid;
 use crate::authentication::{self, Jwt};
 use crate::plugin::PluginVersionID;
 use crate::servers::ServerID;
-use crate::{steam, Config, Result, API};
+use crate::{steam, Config, Result};
 
 /// Wrapper over std's `assert!()` macro that uses [`anyhow::ensure!()`] instead.
 macro_rules! assert {
@@ -176,7 +176,7 @@ impl Context {
 		let (shutdown, shutdown_rx) = oneshot::channel();
 		let api_task = task::spawn(async move {
 			eprintln!("[{test_id}] spawning API task");
-			API::run_until(config.clone(), async move {
+			crate::run_until(config.clone(), async move {
 				_ = shutdown_rx.await;
 			})
 			.await

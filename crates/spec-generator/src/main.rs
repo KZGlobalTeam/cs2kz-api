@@ -1,9 +1,9 @@
+use std::fs;
 use std::path::PathBuf;
-use std::{fs, process};
+use std::process::ExitCode;
 
 use anyhow::Context;
 use clap::Parser;
-use cs2kz_api::API;
 use similar::TextDiff;
 
 #[derive(Parser)]
@@ -16,27 +16,23 @@ struct Args {
 	check: Option<PathBuf>,
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<ExitCode> {
 	let args = Args::parse();
-	let spec = API::spec();
+	let spec = cs2kz_api::openapi::Spec::new().as_json();
 
 	let Some(path) = args.check else {
 		print!("{spec}");
-		return Ok(());
+		return Ok(ExitCode::SUCCESS);
 	};
 
 	let file = fs::read_to_string(&path).with_context(|| format!("read {path:?}"))?;
-	let diff = TextDiff::from_lines(&file, &spec);
-	let mut has_diff = false;
+	let exit_code = TextDiff::from_lines(&file, &spec)
+		.unified_diff()
+		.iter_hunks()
+		.fold(ExitCode::SUCCESS, |_, hunk| {
+			eprintln!("{hunk}");
+			ExitCode::FAILURE
+		});
 
-	for hunk in diff.unified_diff().iter_hunks() {
-		eprintln!("{hunk}");
-		has_diff = true;
-	}
-
-	if has_diff {
-		process::exit(1);
-	}
-
-	Ok(())
+	Ok(exit_code)
 }

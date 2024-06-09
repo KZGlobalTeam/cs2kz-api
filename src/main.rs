@@ -1,7 +1,6 @@
 //! The entrypoint for the API.
 
 use anyhow::Context;
-use cs2kz_api::API;
 use sqlx::{Connection, MySqlConnection};
 
 mod logging;
@@ -25,7 +24,7 @@ async fn main() -> anyhow::Result<()> {
 
 	drop(connection);
 
-	API::run(config).await.context("run API")?;
+	cs2kz_api::run(config).await.context("run API")?;
 
 	Ok(())
 }
