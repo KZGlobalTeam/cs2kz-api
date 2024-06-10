@@ -4,7 +4,6 @@ use axum::extract::Query;
 use axum::Json;
 use serde::Deserialize;
 use sqlx::QueryBuilder;
-use tracing::debug;
 use utoipa::IntoParams;
 
 use crate::authentication::ApiKey;
@@ -29,7 +28,7 @@ pub struct GetParams {
 }
 
 /// Fetch cs2kz plugin versions.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/plugin/versions",
@@ -74,7 +73,7 @@ pub async fn get(
 /// Create a new cs2kz plugin version.
 ///
 /// This endpoint is intended to be used by GitHub CI for new releases.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
   path = "/plugin/versions",
@@ -123,6 +122,13 @@ pub async fn post(
 	.map_err(|err| Error::logic("invalid semver in database").context(err))?;
 
 	if let Some(version) = latest_version.filter(|version| version >= &semver) {
+		tracing::warn! {
+			target: "cs2kz_api::audit_log",
+			latest = %version,
+			actual = %semver,
+			"submitted outdated plugin version",
+		};
+
 		return Err(Error::invalid("plugin version").context(format!(
 			"version is `{semver}` while latest version is `{version}`"
 		)));
@@ -152,7 +158,13 @@ pub async fn post(
 
 	transaction.commit().await?;
 
-	debug!(id = %plugin_version_id, %semver, %git_revision, "created new plugin version");
+	tracing::debug! {
+		target: "cs2kz_api::audit_log",
+		id = %plugin_version_id,
+		%semver,
+		%git_revision,
+		"created new plugin version",
+	};
 
 	Ok(Created(Json(CreatedPluginVersion { plugin_version_id })))
 }

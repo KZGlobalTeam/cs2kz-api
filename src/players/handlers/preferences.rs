@@ -13,7 +13,7 @@ use crate::{Error, Result, State};
 /// Fetch in-game preference settings for a specific player.
 ///
 /// This is used by CS2 servers for keeping settings in sync across multiple servers.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/players/{player}/preferences",

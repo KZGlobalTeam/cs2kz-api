@@ -4,7 +4,6 @@ use derive_more::Debug;
 use tokio::fs::File;
 use tokio::io::{self, AsyncReadExt, AsyncWriteExt};
 use tokio::process::Command;
-use tracing::error;
 
 use crate::steam::workshop::WorkshopID;
 use crate::{Config, Error, Result};
@@ -19,6 +18,9 @@ pub struct MapFile {
 
 impl MapFile {
 	/// Download this map from the workshop and return a handle to it.
+	#[tracing::instrument(level = "debug", skip(config), fields(
+		file.path = tracing::field::Empty
+	))]
 	pub async fn download(workshop_id: WorkshopID, config: &Config) -> Result<Self> {
 		#[cfg(not(feature = "production"))]
 		let out_dir = config
@@ -44,26 +46,23 @@ impl MapFile {
 			.arg("-dir")
 			.arg(out_dir)
 			.spawn()
-			.map_err(|err| {
-				error!(target: "audit_log", %err, "failed to run DepotDownloader");
-				Error::depot_downloader(err)
-			})?
+			.map_err(|err| Error::depot_downloader(err))?
 			.wait_with_output()
 			.await
-			.map_err(|err| {
-				error!(target: "audit_log", %err, "failed to run DepotDownloader");
-				Error::depot_downloader(err)
-			})?;
+			.map_err(|err| Error::depot_downloader(err))?;
 
 		let mut stdout = io::stdout();
 		let mut stderr = io::stderr();
 
-		if let Err(err) = tokio::try_join!(stdout.flush(), stderr.flush()) {
-			error!(target: "audit_log", %err, "failed to flush stdout/stderr");
+		if let Err(error) = tokio::try_join!(stdout.flush(), stderr.flush()) {
+			tracing::error! {
+				target: "cs2kz_api::audit_log",
+				%error,
+				"failed to flush stdout/stderr",
+			};
 		}
 
 		if !output.status.success() {
-			error!(target: "audit_log", ?output, "DepotDownloader did not exit successfully");
 			return Err(Error::depot_downloader(io::Error::new(
 				io::ErrorKind::Other,
 				"DepotDownloader did not exit successfully",
@@ -71,11 +70,12 @@ impl MapFile {
 		}
 
 		let filepath = out_dir.join(format!("{workshop_id}.vpk"));
+
+		tracing::Span::current().record("file.path", format_args!("{filepath:?}"));
+
 		let file = File::open(&filepath).await.map_err(|err| {
-			let msg = "failed to open map file";
-			error!(target: "audit_log", %err, ?filepath, "{msg}");
 			Error::open_map_file(err)
-				.context(msg)
+				.context("failed to open map file")
 				.context(format!("path: `{filepath:?}`"))
 		})?;
 
@@ -87,14 +87,13 @@ impl MapFile {
 	/// # Panics
 	///
 	/// This function will panic if the filesize exceeds `usize::MAX` bytes.
+	#[tracing::instrument(level = "debug", skip(self), ret)]
 	pub async fn checksum(mut self) -> io::Result<u32> {
 		let metadata = self.file.metadata().await?;
 		let filesize = usize::try_from(metadata.len()).expect("64-bit platform");
 		let mut buf = Vec::with_capacity(filesize);
 
-		self.file.read_to_end(&mut buf).await.inspect_err(|err| {
-			error!(target: "audit_log", %err, "failed to read map file");
-		})?;
+		self.file.read_to_end(&mut buf).await?;
 
 		Ok(crc32fast::hash(&buf))
 	}

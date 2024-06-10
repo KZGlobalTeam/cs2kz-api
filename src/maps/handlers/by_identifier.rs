@@ -7,7 +7,6 @@ use axum::Json;
 use cs2kz::{GlobalStatus, MapIdentifier, SteamID};
 use futures::TryFutureExt;
 use sqlx::{MySql, QueryBuilder};
-use tracing::{debug, info};
 
 use super::root::create_mappers;
 use crate::authorization::{self, Permissions};
@@ -22,7 +21,7 @@ use crate::steam::workshop::{self, WorkshopID};
 use crate::{authentication, Error, Result, State};
 
 /// Fetch a single map.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/maps/{map}",
@@ -67,14 +66,14 @@ pub async fn get(state: &State, Path(map): Path<MapIdentifier>) -> Result<Json<F
 /// This endpoint is used for non-breaking changes, i.e. changes that do not change the
 /// **gameplay** of a map in a backwards-incompatible way. This could include the map's name,
 /// filters, mappers, etc.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   patch,
   path = "/maps/{map_id}",
   tag = "Maps",
   security(("Browser Session" = ["maps"])),
   params(("map_id" = u16, Path, description = "The map's ID")),
-  responses(//
+  responses(
     responses::NoContent,
     responses::BadRequest,
     responses::Unauthorized,
@@ -133,7 +132,7 @@ pub async fn patch(
 
 	transaction.commit().await?;
 
-	info!(%map_id, "updated map");
+	tracing::info!(target: "cs2kz_api::audit_log", %map_id, "updated map");
 
 	Ok(NoContent)
 }
@@ -172,7 +171,7 @@ async fn update_details(
 		return Err(Error::unknown("map ID"));
 	}
 
-	debug!(target: "audit_log", %map_id, "updated map details");
+	tracing::debug!(target: "cs2kz_api::audit_log", %map_id, "updated map details");
 
 	Ok(())
 }
@@ -233,7 +232,7 @@ async fn update_name_and_checksum(
 		return Err(Error::unknown("map ID"));
 	}
 
-	debug!(target: "audit_log", %map_id, "updated workshop details");
+	tracing::debug!(target: "cs2kz_api::audit_log", %map_id, "updated workshop details");
 
 	Ok(())
 }
@@ -275,7 +274,7 @@ async fn delete_mappers(
 		return Err(Error::must_have_mappers());
 	}
 
-	debug!(target: "audit_log", %map_id, ?mappers, "deleted mappers");
+	tracing::debug!(target: "cs2kz_api::audit_log", %map_id, ?mappers, "deleted mappers");
 
 	Ok(())
 }
@@ -324,7 +323,12 @@ where
 
 	updated_course_ids.sort_unstable();
 
-	debug!(target: "audit_log", %map_id, ?updated_course_ids, "updated courses");
+	tracing::debug! {
+		target: "cs2kz_api::audit_log",
+		%map_id,
+		?updated_course_ids,
+		"updated courses",
+	};
 
 	Ok(())
 }
@@ -418,7 +422,12 @@ async fn delete_course_mappers(
 		return Err(Error::must_have_mappers());
 	}
 
-	debug!(target: "audit_log", %course_id, ?mappers, "deleted course mappers");
+	tracing::debug! {
+		target: "cs2kz_api::audit_log",
+		%course_id,
+		?mappers,
+		"deleted course mappers",
+	};
 
 	Ok(())
 }
@@ -468,11 +477,11 @@ where
 
 	updated_filter_ids.sort_unstable();
 
-	debug! {
-		target: "audit_log",
+	tracing::debug! {
+		target: "cs2kz_api::audit_log",
 		%map_id,
-		course.id = %course_id,
-		course.updated_filters = ?updated_filter_ids,
+		%course_id,
+		?updated_filter_ids,
 		"updated filters",
 	};
 
@@ -509,6 +518,12 @@ async fn update_filter(
 
 	query.push(" WHERE id = ").push_bind(filter_id);
 	query.build().execute(transaction.as_mut()).await?;
+
+	tracing::debug! {
+		target: "cs2kz_api::audit_log",
+		%filter_id,
+		"updated course filter",
+	};
 
 	Ok(Some(filter_id))
 }

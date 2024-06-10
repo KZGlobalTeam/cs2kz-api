@@ -5,7 +5,6 @@ use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::PlayerIdentifier;
 use serde::Deserialize;
-use tracing::debug;
 use utoipa::IntoParams;
 use uuid::Uuid;
 
@@ -50,7 +49,7 @@ pub struct GetParams {
 ///
 /// Servers returned by this endpoint are officially approved CS2 servers that you can play on to
 /// submit records.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/servers",
@@ -122,7 +121,7 @@ pub async fn get(
 }
 
 /// Create (approve) a new CS2 server.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
   path = "/servers",
@@ -178,7 +177,12 @@ pub async fn post(
 
 	transaction.commit().await?;
 
-	debug!(id = %server_id, %refresh_key, session.user = ?session.user(), "created new server");
+	tracing::debug! {
+		target: "cs2kz_api::audit_log",
+		id = %server_id,
+		%refresh_key,
+		"created new server",
+	};
 
 	Ok(Created(Json(CreatedServer {
 		server_id,

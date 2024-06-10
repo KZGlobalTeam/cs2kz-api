@@ -26,22 +26,33 @@ where
 }
 
 /// Checks if an incoming request came from localhost, ignoring the port.
+#[tracing::instrument(level = "debug", name = "middleware::cors", skip(_request))]
 fn is_localhost(origin: &HeaderValue, _request: &request::Parts) -> bool {
+	/// Logs a debug message and returns `false` from this function.
+	macro_rules! reject {
+		($($reason:tt)*) => {
+			tracing::debug!("rejecting request because {}", $($reason)*);
+			return false;
+		};
+	}
+
 	let Ok(origin) = origin.to_str() else {
-		return false;
+		reject!("origin is not utf-8");
 	};
 
 	let Ok(origin) = Url::parse(origin) else {
-		return false;
+		reject!("origin is not a URL");
 	};
 
 	if !matches!(origin.scheme(), "http" | "https") {
-		return false;
+		reject!("origin URL is not http(s)");
 	}
 
 	if !matches!(origin.host_str(), Some("127.0.0.1" | "localhost")) {
-		return false;
+		reject!("origin host is not localhost");
 	}
+
+	tracing::debug!("allowing request from localhost");
 
 	true
 }

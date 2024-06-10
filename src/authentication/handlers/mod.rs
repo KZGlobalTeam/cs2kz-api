@@ -8,7 +8,6 @@ use axum::http::StatusCode;
 use axum::response::Redirect;
 use axum_extra::extract::CookieJar;
 use serde::Deserialize;
-use tracing::debug;
 use url::Url;
 use utoipa::IntoParams;
 
@@ -27,7 +26,7 @@ pub struct LoginParams {
 /// This will redirect to Steam, and after you login, you will be sent back to `/auth/callback`,
 /// and then to whatever the `redirect_to` query parameter is set to. A cookie with a session ID
 /// will be inserted.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/auth/login",
@@ -59,7 +58,7 @@ pub struct LogoutParams {
 /// This will invalidate your current session and delete your cookie.
 /// If you wish to invalidate all other existing sessions as well, set
 /// `invalidate_all_sessions=true`.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/auth/logout",
@@ -88,13 +87,13 @@ pub async fn logout(
 
 	transaction.commit().await?;
 
-	debug!(steam_id = %session.user().steam_id(), "user logged out");
+	tracing::debug!("user logged out");
 
 	Ok((session, StatusCode::OK))
 }
 
 /// The callback endpoint that will be hit by Steam after a successful login.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/auth/callback",
@@ -119,6 +118,8 @@ pub async fn callback(
 	let user_cookie = user.to_cookie(&state.config);
 	let cookies = cookies.add(session).add(user_cookie);
 	let redirect = Redirect::to(login.redirect_to.as_str());
+
+	tracing::debug!("user logged in");
 
 	Ok((cookies, redirect))
 }

@@ -9,7 +9,7 @@ use crate::sqlx::FetchID;
 use crate::{steam, Result, State};
 
 /// Fetch Steam profile information about a specific player.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/players/{player}/steam",

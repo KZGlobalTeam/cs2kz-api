@@ -22,6 +22,7 @@ use crate::{Error, Result};
 #[derive(Debug)]
 pub struct State {
 	/// The API configuration.
+	#[debug(skip)]
 	pub config: crate::Config,
 
 	/// Connection pool to the backing database.
@@ -46,6 +47,14 @@ impl State {
 
 	/// Creates a new [`State`] object.
 	pub async fn new(config: crate::Config) -> Result<Self> {
+		tracing::debug!(?config, "initializing global state");
+		tracing::debug! {
+			url = %config.database_url,
+			min_connections = Self::MIN_DB_CONNECTIONS,
+			max_connections = Self::MAX_DB_CONNECTIONS,
+			"establishing database connection",
+		};
+
 		let database = PoolOptions::new()
 			.min_connections(Self::MIN_DB_CONNECTIONS)
 			.max_connections(Self::MAX_DB_CONNECTIONS)

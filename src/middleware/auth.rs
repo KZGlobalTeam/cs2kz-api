@@ -10,6 +10,7 @@ use crate::authentication;
 use crate::authorization::AuthorizeSession;
 
 /// Authenticates the incoming request and extends its session.
+#[tracing::instrument(level = "debug", name = "middleware::auth", skip(request, next))]
 pub async fn layer<A>(
 	session: authentication::Session<A>,
 	mut request: Request,
@@ -18,12 +19,13 @@ pub async fn layer<A>(
 where
 	A: AuthorizeSession,
 {
+	tracing::debug!("inserting session into request extensions");
 	request.extensions_mut().insert(session.clone());
 
 	(session, next.run(request).await)
 }
 
-/// macro
+/// Helper macro for creating auth middleware.
 macro_rules! session_auth {
 	($authorization:ty, $state:expr) => {
 		|| {

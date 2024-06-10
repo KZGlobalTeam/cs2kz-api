@@ -9,7 +9,7 @@ use crate::records::{queries, Record, RecordID};
 use crate::{Error, Result, State};
 
 /// Fetch a specific record by its ID.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/records/{record_id}",

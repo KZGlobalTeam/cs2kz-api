@@ -9,12 +9,13 @@ use cs2kz::{GlobalStatus, SteamID};
 use futures::TryFutureExt;
 use serde::Deserialize;
 use sqlx::{MySql, QueryBuilder};
-use tracing::{info, warn};
 use utoipa::IntoParams;
 
 use crate::authorization::Permissions;
 use crate::make_id::IntoID;
-use crate::maps::{queries, CourseID, CreatedMap, FullMap, MapID, NewCourse, NewFilter, NewMap};
+use crate::maps::{
+	queries, CourseID, CreatedMap, FilterID, FullMap, MapID, NewCourse, NewFilter, NewMap,
+};
 use crate::openapi::parameters::{Limit, Offset};
 use crate::openapi::responses;
 use crate::openapi::responses::{Created, PaginationResponse};
@@ -53,7 +54,7 @@ pub struct GetParams {
 ///
 /// Any maps returned by this endpoint are currently, or have been previously, accepted into the
 /// global map pool.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/maps",
@@ -130,7 +131,7 @@ pub async fn get(
 /// Create / update a map.
 ///
 /// This is used whenever a new map is approved, or an existing map receives breaking changes.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   put,
   path = "/maps",
@@ -211,10 +212,19 @@ async fn create_map(
 	match deglobal_old_result.rows_affected() {
 		0 => {}
 		1 => {
-			info!(target: "audit_log", %name, "degloballed old version of map");
+			tracing::info! {
+				target: "cs2kz_api::audit_log",
+				%name,
+				"degloballed old version of map",
+			};
 		}
 		amount => {
-			warn!(target: "audit_log", %name, %amount, "degloballed multiple versions of map");
+			tracing::warn! {
+				target: "cs2kz_api::audit_log",
+				%name,
+				%amount,
+				"degloballed multiple versions of map",
+			};
 		}
 	}
 
@@ -242,7 +252,7 @@ async fn create_map(
 	.last_insert_id()
 	.into_id::<MapID>()?;
 
-	info!(target: "audit_log", id = %map_id, %name, "created new map");
+	tracing::debug!(target: "cs2kz_api::audit_log", %map_id, "created map");
 
 	Ok(map_id)
 }
@@ -271,7 +281,7 @@ pub(super) async fn create_mappers(
 			}
 		})?;
 
-	info!(target: "audit_log", %map_id, ?mappers, "inserted mappers");
+	tracing::debug!(target: "cs2kz_api::audit_log", %map_id, ?mappers, "created mappers");
 
 	Ok(())
 }
@@ -281,7 +291,7 @@ async fn create_courses(
 	map_id: MapID,
 	courses: &[NewCourse],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<()> {
+) -> Result<Vec<CourseID>> {
 	let mut query = QueryBuilder::new("INSERT INTO Courses (name, description, map_id)");
 
 	query.push_values(courses, |mut query, course| {
@@ -292,8 +302,6 @@ async fn create_courses(
 	});
 
 	query.build().execute(transaction.as_mut()).await?;
-
-	info!(target: "audit_log", %map_id, ?courses, "inserted courses");
 
 	let course_ids = sqlx::query_scalar! {
 		r#"
@@ -311,12 +319,14 @@ async fn create_courses(
 	.fetch_all(transaction.as_mut())
 	.await?;
 
-	for (course_id, course) in iter::zip(course_ids, courses) {
+	for (&course_id, course) in iter::zip(&course_ids, courses) {
 		insert_course_mappers(course_id, &course.mappers, transaction).await?;
 		insert_course_filters(course_id, &course.filters, transaction).await?;
 	}
 
-	Ok(())
+	tracing::debug!(target: "cs2kz_api::audit_log", %map_id, ?course_ids, "created courses");
+
+	Ok(course_ids)
 }
 
 /// Inserts mappers for a specific course into the database.
@@ -343,7 +353,7 @@ pub(super) async fn insert_course_mappers(
 			}
 		})?;
 
-	info!(target: "audit_log", %course_id, ?mappers, "inserted course mappers");
+	tracing::debug!(target: "cs2kz_api::audit_log", %course_id, ?mappers, "created course mappers");
 
 	Ok(())
 }
@@ -353,7 +363,7 @@ async fn insert_course_filters(
 	course_id: CourseID,
 	filters: &[NewFilter; 4],
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<()> {
+) -> Result<Vec<FilterID>> {
 	let mut query = QueryBuilder::new(
 		r#"
 		INSERT INTO
@@ -380,7 +390,28 @@ async fn insert_course_filters(
 
 	query.build().execute(transaction.as_mut()).await?;
 
-	info!(target: "audit_log", %course_id, ?filters, "inserted course filters");
+	let filter_ids = sqlx::query_scalar! {
+		r#"
+		SELECT
+		  id `id: FilterID`
+		FROM
+		  CourseFilters
+		WHERE
+		  id >= (
+		    SELECT
+		      LAST_INSERT_ID()
+		  )
+		"#,
+	}
+	.fetch_all(transaction.as_mut())
+	.await?;
 
-	Ok(())
+	tracing::debug! {
+		target: "cs2kz_api::audit_log",
+		%course_id,
+		?filter_ids,
+		"created course filters",
+	};
+
+	Ok(filter_ids)
 }

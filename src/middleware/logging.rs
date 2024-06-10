@@ -5,7 +5,6 @@ use std::time::Duration;
 use axum::extract::Request;
 use axum::response::Response;
 use tower_http::classify::ServerErrorsFailureClass;
-use tracing::{debug, error, warn};
 use uuid::Uuid;
 
 /// A tower layer that will log HTTP requests & responses.
@@ -22,12 +21,12 @@ pub(crate) use layer;
 
 #[doc(hidden)]
 pub(crate) fn make_span_with(request: &Request) -> tracing::Span {
-	tracing::trace_span! {
-		target: "cs2kz_api::logs",
+	tracing::info_span! {
+		target: "cs2kz_api::requests",
 		"request",
 		request.id = %Uuid::now_v7(),
 		request.method = %request.method(),
-		request.path = format_args!("`{}`", request.uri()),
+		request.path = %request.uri(),
 		request.version = ?request.version(),
 		request.headers = ?request.headers(),
 		response.status = tracing::field::Empty,
@@ -51,14 +50,16 @@ pub(crate) fn on_failure(
 ) {
 	match failure {
 		ServerErrorsFailureClass::Error(error) => {
-			warn!(target: "audit_log", ?error, "request handler failed");
+			tracing::error!(target: "cs2kz_api::audit_log", %error, "error occurred during request");
 		}
-		ServerErrorsFailureClass::StatusCode(code) if code.is_server_error() => {
-			error!(target: "audit_log", %code, "request handler failed");
+		ServerErrorsFailureClass::StatusCode(status) if status.is_server_error() => {
+			tracing::error!(target: "cs2kz_api::audit_log", %status, "error occurred during request");
 		}
-		ServerErrorsFailureClass::StatusCode(code) if code.is_client_error() => {
-			debug!(target: "audit_log", %code, "request handler failed");
+		ServerErrorsFailureClass::StatusCode(status) if status.is_client_error() => {
+			tracing::debug!(target: "cs2kz_api::audit_log", %status, "error occurred during request");
 		}
-		ServerErrorsFailureClass::StatusCode(_) => {}
+		ServerErrorsFailureClass::StatusCode(status) => {
+			tracing::warn!(target: "cs2kz_api::audit_log", %status, "error occurred during request");
+		}
 	}
 }

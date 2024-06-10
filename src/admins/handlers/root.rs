@@ -32,7 +32,7 @@ pub struct GetParams {
 }
 
 /// Fetch admins (players with permissions).
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/admins",

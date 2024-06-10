@@ -3,7 +3,6 @@
 use axum::extract::Path;
 use axum::Json;
 use cs2kz::SteamID;
-use tracing::trace;
 
 use crate::admins::{Admin, AdminUpdate};
 use crate::authorization::{self, Permissions};
@@ -12,7 +11,7 @@ use crate::openapi::responses::NoContent;
 use crate::{authentication, Error, Result, State};
 
 /// Fetch a specific admin by their SteamID.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/admins/{steam_id}",
@@ -54,7 +53,7 @@ pub async fn get(state: &State, Path(steam_id): Path<SteamID>) -> Result<Json<Ad
 /// Create / update an admin's permissions.
 ///
 /// This will completely replace their previous set of permissions!
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   put,
   path = "/admins/{steam_id}",
@@ -99,7 +98,7 @@ pub async fn put(
 
 	transaction.commit().await?;
 
-	trace!(%steam_id, ?permissions, "updated admin");
+	tracing::trace!(target: "cs2kz_api::audit_log", %steam_id, ?permissions, "updated admin");
 
 	Ok(NoContent)
 }

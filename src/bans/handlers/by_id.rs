@@ -3,7 +3,6 @@
 use axum::extract::Path;
 use axum::Json;
 use sqlx::{MySqlExecutor, QueryBuilder};
-use tracing::info;
 
 use crate::authorization::{self, Permissions};
 use crate::bans::{queries, Ban, BanID, BanUpdate, CreatedUnban, NewUnban, UnbanID};
@@ -13,7 +12,7 @@ use crate::sqlx::UpdateQuery;
 use crate::{authentication, Error, Result, State};
 
 /// Fetch a specific ban by its ID.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/bans/{ban_id}",
@@ -43,7 +42,7 @@ pub async fn get(state: &State, Path(ban_id): Path<BanID>) -> Result<Json<Ban>> 
 /// Update a ban's details.
 ///
 /// Note that this is **not** used for _reverting_ bans. Use `DELETE /bans/{ban_id}` for that.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   patch,
   path = "/bans/{ban_id}",
@@ -95,13 +94,13 @@ pub async fn patch(
 
 	transaction.commit().await?;
 
-	info!(target: "audit_log", %ban_id, "updated ban");
+	tracing::info!(target: "cs2kz_api::audit_log", %ban_id, "updated ban");
 
 	Ok(NoContent)
 }
 
 /// Revert a ban.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   delete,
   path = "/bans/{ban_id}",
@@ -146,7 +145,7 @@ pub async fn delete(
 		return Err(Error::unknown("ban ID"));
 	}
 
-	info!(target: "audit_log", %ban_id, "reverted ban");
+	tracing::info!(target: "cs2kz_api::audit_log", %ban_id, "reverted ban");
 
 	let unban_id = sqlx::query! {
 		r#"
@@ -166,7 +165,7 @@ pub async fn delete(
 
 	transaction.commit().await?;
 
-	info!(target: "audit_log", %ban_id, %unban_id, "created unban");
+	tracing::info!(target: "cs2kz_api::audit_log", %ban_id, %unban_id, "created unban");
 
 	Ok(Created(Json(CreatedUnban { unban_id })))
 }

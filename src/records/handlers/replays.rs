@@ -7,7 +7,7 @@ use crate::openapi::responses;
 use crate::records::RecordID;
 
 /// Fetch the replay file for a specific record.
-#[tracing::instrument(level = "debug")]
+#[tracing::instrument]
 #[utoipa::path(
   get,
   path = "/records/{record_id}/replay",

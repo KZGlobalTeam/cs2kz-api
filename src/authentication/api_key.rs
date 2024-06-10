@@ -7,7 +7,6 @@ use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::Authorization;
 use axum_extra::TypedHeader;
 use derive_more::{Debug, Display, Into};
-use tracing::debug;
 use uuid::Uuid;
 
 use crate::{Error, Result, State};
@@ -27,14 +26,24 @@ pub struct ApiKey {
 
 impl ApiKey {
 	/// Generate a new [`ApiKey`].
+	#[tracing::instrument(level = "debug", name = "auth::api_key::new", skip_all, fields(
+		name = tracing::field::Empty,
+		value = tracing::field::Empty,
+	))]
 	pub fn new<S>(name: S) -> Self
 	where
 		S: Into<String>,
 	{
-		Self {
-			key: Uuid::new_v4(),
-			name: name.into(),
-		}
+		let key = Uuid::new_v4();
+		let name = name.into();
+
+		tracing::Span::current()
+			.record("name", &name)
+			.record("value", format_args!("{key}"));
+
+		tracing::debug!("generated API key");
+
+		Self { key, name }
 	}
 
 	/// Returns the name of this key.
@@ -47,6 +56,13 @@ impl ApiKey {
 impl FromRequestParts<&'static State> for ApiKey {
 	type Rejection = Error;
 
+	#[tracing::instrument(
+		level = "debug",
+		name = "auth::api_key::from_request_parts",
+		skip_all,
+		fields(name = tracing::field::Empty, value = tracing::field::Empty),
+		err(level = "debug"),
+	)]
 	async fn from_request_parts(
 		parts: &mut request::Parts,
 		state: &&'static State,
@@ -80,7 +96,11 @@ impl FromRequestParts<&'static State> for ApiKey {
 		})
 		.ok_or_else(|| Error::invalid_api_key())??;
 
-		debug!(?api_key, "authenticated API key");
+		tracing::Span::current()
+			.record("name", api_key.name())
+			.record("value", format_args!("{}", api_key.key));
+
+		tracing::debug!("authenticated API key");
 
 		Ok(api_key)
 	}

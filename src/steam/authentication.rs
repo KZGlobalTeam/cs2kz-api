@@ -6,9 +6,8 @@ use axum::http::request;
 use axum::response::Redirect;
 use axum_extra::extract::Query;
 use cs2kz::SteamID;
-use reqwest::{header, Response};
+use reqwest::Response;
 use serde::{Deserialize, Serialize};
-use tracing::debug;
 use url::Url;
 use utoipa::IntoParams;
 
@@ -47,8 +46,14 @@ impl LoginForm {
 	const LOGIN_URL: &'static str = "https://steamcommunity.com/openid/login";
 
 	/// Creates a new [`LoginForm`] that will redirect back to the given `realm`.
+	#[tracing::instrument(level = "debug", name = "auth::steam::login_form", fields(
+		realm = %realm,
+		return_to = tracing::field::Empty
+	))]
 	pub fn new(realm: Url) -> Self {
 		let return_to = realm.join(Self::RETURN_ROUTE).expect("this is valid");
+
+		tracing::Span::current().record("return_to", format_args!("{return_to}"));
 
 		Self {
 			namespace: "http://specs.openid.net/auth/2.0",
@@ -62,6 +67,7 @@ impl LoginForm {
 
 	/// Create a [`Redirect`] to Steam, which will redirect back to `redirect_to` after the
 	/// login process is complete.
+	#[tracing::instrument(level = "debug", name = "auth::steam::redirect", skip(self))]
 	pub fn redirect_to(mut self, redirect_to: &Url) -> Redirect {
 		self.return_to
 			.query_pairs_mut()
@@ -133,19 +139,15 @@ impl LoginResponse {
 	}
 
 	/// Verifies this payload by making an API request to Steam.
+	#[tracing::instrument(level = "debug", skip_all, ret, fields(
+		redirect_to = %self.redirect_to
+	))]
 	pub async fn verify(&mut self, http_client: &reqwest::Client) -> Result<SteamID> {
 		self.mode = String::from("check_authentication");
 
-		let payload = serde_urlencoded::to_string(&self).map_err(|err| {
-			let msg = "invalid steam login payload";
-			debug!(%err, "{msg}");
-			Error::unauthorized().context(msg).context(err)
-		})?;
-
 		let response = http_client
 			.post(LoginForm::LOGIN_URL)
-			.header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
-			.body(payload)
+			.form(self)
 			.send()
 			.await
 			.and_then(Response::error_for_status)?
@@ -157,15 +159,13 @@ impl LoginResponse {
 			.rfind(|&line| line == "is_valid:true")
 			.is_none()
 		{
-			debug!(%response, "steam login invalid");
+			tracing::debug!(%response, "steam login invalid");
 			return Err(Error::unauthorized());
 		}
 
-		let steam_id = self.steam_id();
+		tracing::debug!("user logged in");
 
-		debug!(%steam_id, redirect_to = %self.redirect_to, "user logged in");
-
-		Ok(steam_id)
+		Ok(self.steam_id())
 	}
 }
 
@@ -173,6 +173,13 @@ impl LoginResponse {
 impl FromRequestParts<&'static State> for LoginResponse {
 	type Rejection = Error;
 
+	#[tracing::instrument(
+		level = "debug",
+		name = "auth::steam::from_request_parts",
+		skip_all,
+		fields(steam_id = tracing::field::Empty),
+		err(level = "debug"),
+	)]
 	async fn from_request_parts(
 		parts: &mut request::Parts,
 		state: &&'static State,
@@ -180,16 +187,18 @@ impl FromRequestParts<&'static State> for LoginResponse {
 		let Query(mut login) = Query::<Self>::from_request_parts(parts, &())
 			.await
 			.map_err(|err| {
-				let msg = "missing steam login payload";
-				debug!(%err, "{msg}");
-				Error::unauthorized().context(msg).context(err)
+				Error::unauthorized()
+					.context("missing steam login payload")
+					.context(err)
 			})?;
 
 		let steam_id = login.verify(&state.http_client).await.map_err(|err| {
-			let msg = "login request did not come from steam";
-			debug!(%err, "{msg}");
-			Error::unauthorized().context(msg).context(err)
+			Error::unauthorized()
+				.context("login request did not come from steam")
+				.context(err)
 		})?;
+
+		tracing::Span::current().record("steam_id", format_args!("{steam_id}"));
 
 		parts.extensions.insert(steam_id);
 

@@ -9,7 +9,7 @@ use crate::openapi::responses;
 use crate::{Error, Result, State};
 
 /// Fetch a specific jumpstat by its ID.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/jumpstats/{jumpstat_id}",

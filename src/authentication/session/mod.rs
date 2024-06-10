@@ -43,7 +43,6 @@ use cs2kz::SteamID;
 use derive_more::{Debug, From, Into};
 use sqlx::{MySql, Transaction};
 use time::OffsetDateTime;
-use tracing::{debug, trace};
 use uuid::Uuid;
 
 use crate::authentication::User;
@@ -108,6 +107,13 @@ impl Session {
 	/// This will create a new session for the given user in the database.
 	/// The returned value of this function should be returned from a handler / middleware so a
 	/// cookie can be sent to the user's browser.
+	#[tracing::instrument(level = "debug", name = "auth::session::login", skip_all, fields(
+		user.steam_id = %steam_user.steam_id,
+		user.username = %steam_user.username,
+		user.ip_address = %user_ip,
+		session.id = tracing::field::Empty,
+		session.expires_on = tracing::field::Empty,
+	))]
 	pub async fn create(
 		steam_user: &steam::User,
 		user_ip: IpAddr,
@@ -116,6 +122,12 @@ impl Session {
 	) -> Result<Self> {
 		let session_id = SessionID::new();
 		let expires_on = Self::expires_on();
+
+		tracing::Span::current()
+			.record("session.id", format_args!("{session_id}"))
+			.record("session.expires_on", format_args!("{expires_on}"));
+
+		tracing::debug!("generating new session");
 
 		let user_exists = sqlx::query! {
 			r#"
@@ -133,6 +145,8 @@ impl Session {
 		.is_some();
 
 		if !user_exists {
+			tracing::debug!("user does not exist; inserting default values");
+
 			sqlx::query! {
 				r#"
 				INSERT INTO
@@ -193,12 +207,7 @@ impl Session {
 
 		transaction.commit().await?;
 
-		debug! {
-			%session_id,
-			user.id = %user.steam_id(),
-			user.name = %steam_user.username,
-			"created session",
-		};
+		tracing::debug!("created session");
 
 		let cookie = Cookie::build((COOKIE_NAME, session_id.to_string()))
 			.domain(config.cookie_domain.clone())
@@ -226,6 +235,7 @@ where
 	/// This invovles both updating the database record as well as the stored cookie.
 	/// To propagate the change to the user, `self` must be returned from a handler /
 	/// middleware.
+	#[tracing::instrument(level = "debug", name = "auth::session::logout", skip(database))]
 	pub async fn invalidate(
 		&mut self,
 		invalidate_all: bool,
@@ -255,12 +265,13 @@ where
 		self.cookie.set_expires(OffsetDateTime::now_utc());
 
 		let steam_id = self.user.steam_id();
-
-		if invalidate_all {
-			debug!(user.id = %steam_id, "invalidated all sessions for user");
+		let message = if invalidate_all {
+			"invalidated all sessions for user"
 		} else {
-			debug!(session.id = %self.id, user.id = %steam_id, "invalidated session for user");
-		}
+			"invalidated session for user"
+		};
+
+		tracing::debug!(user.id = %steam_id, "{message}");
 
 		Ok(())
 	}
@@ -273,12 +284,19 @@ where
 {
 	type Rejection = Error;
 
+	#[tracing::instrument(
+		level = "debug",
+		name = "auth::session::from_request_parts",
+		skip_all,
+		fields(session.id = tracing::field::Empty, session.user.id = tracing::field::Empty),
+		err(level = "debug"),
+	)]
 	async fn from_request_parts(
 		request: &mut request::Parts,
 		state: &&'static State,
 	) -> Result<Self> {
 		if let Some(session) = request.extensions.remove::<Self>() {
-			trace!(%session.id, "extracted cached session");
+			tracing::debug!(%session.id, "extracting cached session");
 			return Ok(session);
 		}
 
@@ -299,11 +317,11 @@ where
 
 				value
 					.parse::<Uuid>()
-					.inspect_err(|err| {
-						debug! {
+					.inspect_err(|error| {
+						tracing::warn! {
 							cookie.name = %name,
 							cookie.value = %value,
-							%err,
+							%error,
 							"found cookie but failed to parse value",
 						}
 					})
@@ -312,7 +330,13 @@ where
 			})
 			.ok_or_else(|| Error::missing_session_id())?;
 
+		let current_span = tracing::Span::current();
+
+		current_span.record("session.id", format_args!("{session_id}"));
+
 		let mut transaction = state.transaction().await?;
+
+		tracing::debug!("fetching session from database");
 
 		let session = sqlx::query! {
 			r#"
@@ -335,9 +359,11 @@ where
 		.await?
 		.ok_or_else(|| Error::invalid_session_id())?;
 
-		trace!(%session.id, "fetched session");
+		current_span.record("session.user.id", format_args!("{}", session.user_id));
 
 		let expires_on = Self::expires_on();
+
+		tracing::debug!(until = %expires_on, "extending session");
 
 		cookie.set_path("/");
 		cookie.set_secure(cfg!(feature = "production"));
@@ -359,7 +385,7 @@ where
 		.execute(transaction.as_mut())
 		.await?;
 
-		trace!(%session.id, until = %expires_on, "extended session");
+		tracing::debug!("successfully authenticated session");
 
 		let session = Self {
 			id: session.id,
@@ -368,9 +394,16 @@ where
 			_authorization: PhantomData,
 		};
 
+		tracing::debug! {
+			method = std::any::type_name::<A>().split("::").last().unwrap(),
+			"authorizing session",
+		};
+
 		A::authorize_session(&session.user, request, &mut transaction).await?;
 
 		transaction.commit().await?;
+
+		tracing::debug!("extracted session");
 
 		Ok(session)
 	}
@@ -379,12 +412,21 @@ where
 impl<A> IntoResponseParts for Session<A> {
 	type Error = Error;
 
+	#[tracing::instrument(
+		level = "debug",
+		name = "auth::session::into_response_parts",
+		skip_all,
+		fields(cookie = tracing::field::Empty),
+	)]
 	fn into_response_parts(self, mut response: ResponseParts) -> Result<ResponseParts> {
 		let cookie = Cookie::from(self)
 			.encoded()
 			.to_string()
 			.parse::<http::HeaderValue>()
 			.expect("valid cookie");
+
+		tracing::Span::current().record("cookie", format_args!("{cookie:?}"));
+		tracing::debug!("inserting cookie into response headers");
 
 		response.headers_mut().insert(header::SET_COOKIE, cookie);
 

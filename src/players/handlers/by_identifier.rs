@@ -5,7 +5,6 @@ use axum::Json;
 use cs2kz::{PlayerIdentifier, SteamID};
 use sqlx::types::Json as SqlJson;
 use sqlx::{MySql, QueryBuilder};
-use tracing::trace;
 
 use crate::authentication::Jwt;
 use crate::authorization::Permissions;
@@ -21,7 +20,7 @@ use crate::{authentication, authorization, Error, Result, State};
 ///
 /// If you send a cookie that shows you're "logged in", and you happen to have permissions for
 /// managing bans, the response will include the player's IP address.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/players/{player}",
@@ -73,7 +72,7 @@ pub async fn get(
 ///
 /// This endpoint will be hit periodically by CS2 servers whenever a map changes, or a player
 /// disconnects.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   patch,
   path = "/players/{steam_id}",
@@ -127,7 +126,7 @@ pub async fn patch(
 		return Err(Error::unknown("SteamID"));
 	}
 
-	trace!(target: "audit_log", %steam_id, "updated player");
+	tracing::trace!(target: "cs2kz_api::audit_log", "updated player");
 
 	let session_id: GameSessionID = sqlx::query! {
 		r#"
@@ -164,18 +163,24 @@ pub async fn patch(
 	.last_insert_id()
 	.into();
 
-	trace!(target: "audit_log", %steam_id, session.id = %session_id, "created game session");
+	tracing::trace!(target: "cs2kz_api::audit_log", %session_id, "created game session");
+
+	let mut course_session_ids = Vec::with_capacity(session.course_sessions.len());
 
 	for (course_id, course_session) in session.course_sessions {
-		insert_course_session(
-			steam_id,
-			server.id(),
-			course_id,
-			course_session,
-			&mut transaction,
-		)
-		.await?;
+		course_session_ids.push(
+			insert_course_session(
+				steam_id,
+				server.id(),
+				course_id,
+				course_session,
+				&mut transaction,
+			)
+			.await?,
+		);
 	}
+
+	tracing::trace!(target: "cs2kz_api::audit_log", ?course_session_ids, "created course sessions");
 
 	transaction.commit().await?;
 
@@ -217,7 +222,7 @@ async fn insert_course_session(
 		course_id,
 		mode,
 		server_id,
-		playtime.as_secs(),
+		playtime,
 		started_runs,
 		finished_runs,
 		bhop_stats.bhops,
@@ -237,11 +242,10 @@ async fn insert_course_session(
 	.last_insert_id()
 	.into();
 
-	trace! {
-		target: "audit_log",
-		%steam_id,
-		course.id = %course_id,
-		session.id = %session_id,
+	tracing::trace! {
+		target: "cs2kz_api::audit_log",
+		%course_id,
+		%session_id,
 		"created course session",
 	};
 

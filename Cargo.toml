@@ -38,7 +38,7 @@ features = ["rt-multi-thread", "macros", "signal", "process"]
 [dependencies.axum]
 version = "0.7"
 default-features = false
-features = ["http1", "http2", "json", "macros", "tokio", "query"]
+features = ["http1", "http2", "tracing", "json", "macros", "tokio", "query"]
 
 [dependencies.axum-extra]
 version = "0.9"

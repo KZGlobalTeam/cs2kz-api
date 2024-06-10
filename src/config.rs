@@ -24,11 +24,11 @@ pub struct Config {
 	pub database_url: Url,
 
 	/// The public URL of the API (`api.cs2kz.org`).
-	#[debug("{}", database_url.as_str())]
+	#[debug("{}", public_url.as_str())]
 	pub public_url: Url,
 
 	/// The `Domain` value to be used in cookies (`.cs2kz.org`).
-	#[debug("{}", database_url.as_str())]
+	#[debug("{cookie_domain}")]
 	pub cookie_domain: String,
 
 	/// Steam WebAPI key.
@@ -59,6 +59,8 @@ pub struct Config {
 impl Config {
 	/// Creates a new [`Config`] object by reading from the environment.
 	pub fn new() -> anyhow::Result<Self> {
+		tracing::debug!("loading configuration from environment");
+
 		let ip_addr = parse_from_env("KZ_API_IP")?;
 		let port = parse_from_env("KZ_API_PORT")?;
 		let addr = SocketAddr::new(ip_addr, port);

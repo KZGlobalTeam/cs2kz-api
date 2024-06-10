@@ -7,7 +7,7 @@ use crate::jumpstats::JumpstatID;
 use crate::openapi::responses;
 
 /// Fetch the replay file for a specific jumpstat.
-#[tracing::instrument(level = "debug")]
+#[tracing::instrument]
 #[utoipa::path(
   get,
   path = "/jumpstats/{jumpstat_id}/replay",

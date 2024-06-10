@@ -4,7 +4,6 @@ use axum::extract::Path;
 use axum::Json;
 use cs2kz::ServerIdentifier;
 use sqlx::QueryBuilder;
-use tracing::info;
 
 use crate::openapi::responses;
 use crate::openapi::responses::NoContent;
@@ -13,7 +12,7 @@ use crate::sqlx::UpdateQuery;
 use crate::{authentication, authorization, Error, Result, State};
 
 /// Fetch a specific server.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/servers/{server}",
@@ -51,7 +50,7 @@ pub async fn get(state: &State, Path(server): Path<ServerIdentifier>) -> Result<
 /// Update a server.
 ///
 /// This endpoint can be used by both admins and server owners.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   patch,
   path = "/servers/{server}",
@@ -109,7 +108,11 @@ pub async fn patch(
 
 	transaction.commit().await?;
 
-	info!(target: "audit_log", %server_id, session.user = ?session.user(), "updated server");
+	tracing::info! {
+		target: "cs2kz_api::audit_log",
+		%server_id,
+		"updated server",
+	};
 
 	Ok(NoContent)
 }

@@ -1,5 +1,8 @@
 #![doc = include_str!("../README.md")]
+// TODO: remove once https://github.com/tokio-rs/tracing/issues/2912 lands
+#![allow(clippy::blocks_in_conditions)]
 
+use std::fmt::Write;
 use std::future::Future;
 use std::net::SocketAddr;
 
@@ -10,7 +13,6 @@ use axum::serve::Serve;
 use axum::{routing, Router};
 use tokio::net::TcpListener;
 use tokio::signal;
-use tracing::{debug, info};
 
 mod error;
 pub use error::{Error, Result};
@@ -85,7 +87,7 @@ where
 
 /// Creates an axum server that will serve the API.
 async fn server(config: Config) -> anyhow::Result<Server> {
-	info!(target: "audit_log", ?config, "API starting up");
+	tracing::debug!(addr = %config.addr, "establishing TCP connection");
 
 	let tcp_listener = TcpListener::bind(config.addr)
 		.await
@@ -101,10 +103,14 @@ async fn server(config: Config) -> anyhow::Result<Server> {
 		.context("initialize state")?;
 
 	let spec = openapi::Spec::new();
+	let mut routes_message = String::from("registering routes:\n");
 
 	for (path, methods) in spec.routes() {
-		debug!("registering route: {path} [{methods}]");
+		writeln!(&mut routes_message, "    • {path} => [{methods}]")?;
 	}
+
+	tracing::info!("{routes_message}");
+	tracing::debug!("initializing API service");
 
 	let api_service = Router::new()
 		.route("/", routing::get(|| async { "(͡ ͡° ͜ つ ͡͡°)" }))
@@ -122,22 +128,20 @@ async fn server(config: Config) -> anyhow::Result<Server> {
 		.merge(spec.swagger_ui())
 		.into_make_service_with_connect_info::<SocketAddr>();
 
-	let address = tcp_listener.local_addr().context("get tcp addr")?;
-
-	info! {
-		target: "audit_log",
-		%address,
-		prod = cfg!(feature = "production"),
-		"listening for requests",
-	};
+	let addr = tcp_listener.local_addr().context("get tcp addr")?;
+	tracing::info!(%addr, prod = cfg!(feature = "production"), "listening for requests");
 
 	Ok(axum::serve(tcp_listener, api_service))
 }
 
 /// Waits for and handles potential errors from SIGINT (ctrl+c) from the OS.
+#[tracing::instrument(name = "runtime::signals")]
 async fn sigint() {
-	match signal::ctrl_c().await {
-		Ok(()) => tracing::warn!(target: "audit_log", "received SIGINT; shutting down..."),
-		Err(err) => tracing::error!(target: "audit_log", "failed to receive SIGINT: {err}"),
+	let signal_result = signal::ctrl_c().await;
+
+	if let Err(err) = signal_result {
+		tracing::error!(target: "cs2kz_api::audit_log", "failed to receive SIGINT: {err}");
+	} else {
+		tracing::warn!(target: "cs2kz_api::audit_log", "received SIGINT; shutting down...");
 	}
 }

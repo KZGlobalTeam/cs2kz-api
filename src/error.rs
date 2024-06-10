@@ -18,7 +18,6 @@ use derive_more::Display;
 use itertools::Itertools;
 use serde_json::json;
 use thiserror::Error;
-use tracing::{debug, error};
 
 use crate::authorization::Permissions;
 use crate::bans::{BanID, UnbanID};
@@ -61,14 +60,7 @@ impl Display for Error {
 			attachments,
 		} = self;
 
-		write!(
-			f,
-			"[{}:{}:{}] {}",
-			location.file(),
-			location.line(),
-			location.column(),
-			kind
-		)?;
+		write!(f, "[{location}] {kind}")?;
 
 		if !attachments.is_empty() {
 			write!(f, ":")?;
@@ -190,7 +182,7 @@ enum ErrorKind {
 ///
 /// [`Error`]: struct@Error
 #[derive(Debug, Display)]
-#[display("'{}' at {}:{}:{}", context, location.file(), location.line(), location.column())]
+#[display("'{context}' at {location}")]
 struct Attachment {
 	/// The context itself.
 	context: BoxedError,
@@ -474,7 +466,6 @@ impl Error {
 }
 
 impl IntoResponse for Error {
-	#[allow(clippy::indexing_slicing)]
 	fn into_response(self) -> Response {
 		use ErrorKind as E;
 
@@ -521,17 +512,17 @@ impl IntoResponse for Error {
 			E::Path(ref rej) => rej.status(),
 		};
 
-		debug! {
+		tracing::debug! {
 			%location,
-			%status,
-			%message,
 			?kind,
 			?attachments,
-			"error occurred in request handler",
+			error_message = %message,
+			"returning error from request handler"
 		};
 
 		let mut json = json!({ "message": message });
 
+		#[allow(clippy::indexing_slicing)]
 		if !attachments.is_empty() {
 			json["debug_info"] = attachments
 				.iter()
@@ -551,7 +542,7 @@ impl From<sqlx::Error> for Error {
 		use sqlx::Error as E;
 
 		match error {
-			E::Configuration(_) | E::Tls(_) | E::AnyDriverError(_) | E::Migrate(_) => {
+			error @ (E::Configuration(_) | E::Tls(_) | E::AnyDriverError(_) | E::Migrate(_)) => {
 				unreachable!("these do not happen after initial setup ({error})");
 			}
 			error => Self::new(error),

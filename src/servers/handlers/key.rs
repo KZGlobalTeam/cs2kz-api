@@ -4,7 +4,6 @@ use std::time::Duration;
 
 use axum::extract::Path;
 use axum::Json;
-use tracing::info;
 use uuid::Uuid;
 
 use crate::authentication::{self, Jwt};
@@ -20,7 +19,7 @@ use crate::{authorization, Error, Result, State};
 /// access keys, which will then be included in any following requests.
 ///
 /// See `CS2 Servers` in `ARCHITECTURE.md` in the repository root for more details.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
   path = "/servers/key",
@@ -61,13 +60,17 @@ pub async fn generate_temp(
 	.ok_or_else(|| Error::invalid_cs2_refresh_key())?;
 
 	let jwt = Jwt::new(&server, Duration::from_secs(60 * 15));
-	let access_key = state
-		.encode_jwt(jwt)
-		.map(|access_key| RefreshKeyResponse { access_key })?;
+	let access_key = state.encode_jwt(jwt)?;
 
 	transaction.commit().await?;
 
-	Ok(Created(Json(access_key)))
+	tracing::debug! {
+		server_id = %server.id(),
+		%access_key,
+		"generated access key for server",
+	};
+
+	Ok(Created(Json(RefreshKeyResponse { access_key })))
 }
 
 /// Generate a new refresh key for a server.
@@ -76,14 +79,14 @@ pub async fn generate_temp(
 /// as those are JWTs with set expiration dates.
 ///
 /// This endpoint can be used by both admins and server owners.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   put,
   path = "/servers/{server_id}/key",
   tag = "Servers",
   security(("Browser Session" = ["servers"])),
   params(("server_id" = u16, Path, description = "The server's ID")),
-  responses(//
+  responses(
     responses::NoContent,
     responses::BadRequest,
     responses::Unauthorized,
@@ -118,7 +121,12 @@ pub async fn put_perma(
 
 	transaction.commit().await?;
 
-	info!(target: "audit_log", %server_id, %refresh_key, "generated new API key for server");
+	tracing::info! {
+		target: "cs2kz_api::audit_log",
+		%server_id,
+		%refresh_key,
+		"generated new API key for server",
+	};
 
 	Ok(Created(Json(RefreshKey { refresh_key })))
 }
@@ -129,14 +137,14 @@ pub async fn put_perma(
 /// generated access keys are not invalidated, and will expire naturally.
 ///
 /// This endpoint can only be hit by admins.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   delete,
   path = "/servers/{server_id}/key",
   tag = "Servers",
   security(("Browser Session" = ["servers"])),
   params(("server_id" = u16, Path, description = "The server's ID")),
-  responses(//
+  responses(
     responses::NoContent,
     responses::BadRequest,
     responses::Unauthorized,
@@ -172,7 +180,7 @@ pub async fn delete_perma(
 
 	transaction.commit().await?;
 
-	info!(target: "audit_log", %server_id, "deleted API key for server");
+	tracing::info!(target: "cs2kz_api::audit_log", %server_id, "deleted API key for server");
 
 	Ok(NoContent)
 }

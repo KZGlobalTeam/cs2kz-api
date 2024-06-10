@@ -1,7 +1,6 @@
 //! Everything related to logging.
 
 use anyhow::Context;
-use tracing::info;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -24,7 +23,11 @@ pub fn init() -> anyhow::Result<WorkerGuard> {
 
 	registry.init();
 
-	info!(target: "audit_log", dir = %log_dir.display(), "initialized logging");
+	tracing::info! {
+		target: "cs2kz_api::audit_log",
+		dir = %log_dir.display(),
+		"initialized logging",
+	};
 
 	Ok(guard)
 }

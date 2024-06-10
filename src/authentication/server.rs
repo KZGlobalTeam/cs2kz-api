@@ -60,6 +60,7 @@ pub struct Key(Uuid);
 
 impl Key {
 	/// Generates a new key.
+	#[tracing::instrument(level = "debug", name = "auth::server::key::new", ret)]
 	pub fn new() -> Self {
 		Self(Uuid::new_v4())
 	}
@@ -105,8 +106,22 @@ pub struct Token(String);
 
 impl Token {
 	/// Generate a new [`Token`] for the given `server`.
+	#[tracing::instrument(
+		level = "debug",
+		name = "auth::server::token::new",
+		skip_all,
+		ret,
+		fields(
+			server.id = %server.id(),
+			server.plugin_version_id = %server.plugin_version_id(),
+			expires_after = tracing::field::Empty,
+		),
+	)]
 	pub fn new(server: &Server, state: &State) -> Result<Self> {
 		let expires_after = Duration::from_secs(60 * 15);
+
+		tracing::Span::current().record("expires_after", format_args!("{expires_after:?}"));
+
 		let jwt = Jwt::new(server, expires_after);
 		let jwt = state.encode_jwt(jwt)?;
 

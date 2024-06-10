@@ -5,7 +5,6 @@ use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{CourseIdentifier, MapIdentifier, Mode, PlayerIdentifier, ServerIdentifier};
 use serde::Deserialize;
-use tracing::trace;
 use utoipa::{IntoParams, ToSchema};
 
 use crate::authentication::{self, Jwt};
@@ -84,7 +83,7 @@ pub enum SortRecordsBy {
 }
 
 /// Fetch records.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/records",
@@ -202,7 +201,7 @@ pub async fn get(
 /// Create a new record.
 ///
 /// This is used by CS2 servers to submit new records.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
   path = "/records",
@@ -293,7 +292,7 @@ pub async fn post(
 
 	transaction.commit().await?;
 
-	trace!(%record_id, "inserted record");
+	tracing::trace!(%record_id, "created record");
 
 	Ok(Created(Json(CreatedRecord { record_id })))
 }

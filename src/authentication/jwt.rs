@@ -6,6 +6,7 @@
 //! [JWTs]: https://jwt.io/introduction/
 //! [extractor]: axum::extract
 
+use std::panic::Location;
 use std::time::Duration;
 
 use axum::async_trait;
@@ -18,7 +19,6 @@ use chrono::{DateTime, Utc};
 use derive_more::{Debug, Deref, DerefMut};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
-use tracing::trace;
 use utoipa::openapi::schema::Schema;
 use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
 use utoipa::ToSchema;
@@ -42,6 +42,13 @@ pub struct Jwt<T> {
 
 impl<T> Jwt<T> {
 	/// Creates a new [`Jwt<T>`] which will expire after a certain amount of time.
+	#[track_caller]
+	#[tracing::instrument(
+		level = "debug",
+		name = "authentication::jwt::new",
+		skip(payload),
+		fields(location = %Location::caller()),
+	)]
 	pub fn new(payload: T, expires_after: Duration) -> Self {
 		Self {
 			payload,
@@ -74,6 +81,13 @@ where
 {
 	type Rejection = Error;
 
+	#[tracing::instrument(
+		level = "debug",
+		name = "auth::jwt::from_request_parts",
+		skip_all,
+		fields(token = tracing::field::Empty),
+		err(level = "debug"),
+	)]
 	async fn from_request_parts(
 		parts: &mut request::Parts,
 		state: &&'static State,
@@ -87,7 +101,8 @@ where
 			return Err(Error::expired_cs2_access_key());
 		}
 
-		trace!(target: "audit_log", token = %header.token(), "authenticated jwt");
+		tracing::Span::current().record("token", header.token());
+		tracing::debug!("authenticated JWT");
 
 		Ok(jwt)
 	}

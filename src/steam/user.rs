@@ -7,7 +7,6 @@ use axum_extra::extract::cookie::Cookie;
 use cs2kz::SteamID;
 use derive_more::Debug;
 use serde::{Deserialize, Deserializer, Serialize};
-use tracing::error;
 use url::Url;
 use utoipa::ToSchema;
 
@@ -51,6 +50,7 @@ pub struct User {
 
 impl User {
 	/// Fetch this user from Steam's API.
+	#[tracing::instrument(level = "debug", skip(http_client, config))]
 	pub async fn fetch(
 		steam_id: SteamID,
 		http_client: &reqwest::Client,
@@ -60,11 +60,7 @@ impl User {
 			("key", config.steam_api_key.clone()),
 			("steamids", steam_id.as_u64().to_string()),
 		])
-		.map_err(|err| {
-			let msg = "failed to parse url";
-			error!(target: "audit_log", %err, "{msg}");
-			Error::logic(msg).context(err)
-		})?;
+		.map_err(|err| Error::logic("failed to parse url").context(err))?;
 
 		let response = http_client.get(url).send().await?;
 
@@ -72,7 +68,7 @@ impl User {
 			let error = Error::external_api_call(error);
 			let response_body = response.text().await.ok();
 
-			error!(?error, ?response_body, "failed to fetch steam user");
+			tracing::error!(?error, ?response_body, "failed to fetch steam user");
 
 			return Err(error.context(format!("response body: {response_body:?}")));
 		}
@@ -156,6 +152,13 @@ impl<'de> Deserialize<'de> for User {
 impl FromRequestParts<&'static State> for User {
 	type Rejection = Error;
 
+	#[tracing::instrument(
+		level = "debug",
+		name = "steam::user::from_request_parts",
+		skip_all,
+		fields(steam_id = tracing::field::Empty),
+		err(level = "debug"),
+	)]
 	async fn from_request_parts(
 		parts: &mut request::Parts,
 		state: &&'static State,
@@ -165,6 +168,9 @@ impl FromRequestParts<&'static State> for User {
 			.get::<SteamID>()
 			.copied()
 			.expect("`SteamLoginResponse` extractor should have inserted this");
+
+		tracing::Span::current().record("steam_id", format_args!("{steam_id}"));
+		tracing::debug!("fetching user from steam");
 
 		Self::fetch(steam_id, &state.http_client, &state.config).await
 	}

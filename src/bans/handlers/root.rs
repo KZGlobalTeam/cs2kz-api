@@ -8,7 +8,6 @@ use chrono::{DateTime, Utc};
 use cs2kz::{PlayerIdentifier, ServerIdentifier};
 use serde::Deserialize;
 use time::OffsetDateTime;
-use tracing::{trace, warn};
 use utoipa::IntoParams;
 
 use crate::authentication::Jwt;
@@ -61,7 +60,7 @@ pub struct GetParams {
 ///
 /// These are bans that might have expired / have been reverted. If that's the case, they will also
 /// include the according "unban" entry.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/bans",
@@ -144,7 +143,7 @@ pub async fn get(
 /// Ban a player.
 ///
 /// This endpoint can be used by both CS2 servers and admins.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
   path = "/bans",
@@ -178,8 +177,8 @@ pub async fn post(
 			return Err(Error::unauthorized());
 		}
 		(Some(server), Some(session)) => {
-			warn! {
-				target: "audit_log",
+			tracing::warn! {
+				target: "cs2kz_api::audit_log",
 				?server,
 				?session,
 				"request authenticated both as server and session",
@@ -294,7 +293,15 @@ pub async fn post(
 
 	transaction.commit().await?;
 
-	trace!(%ban_id, %player_id, ?reason, ?server, ?admin, "created ban");
+	tracing::trace! {
+		target: "cs2kz_api::audit_log",
+		%ban_id,
+		%player_id,
+		?reason,
+		?server,
+		?admin,
+		"created ban",
+	};
 
 	Ok(Created(Json(CreatedBan { ban_id })))
 }

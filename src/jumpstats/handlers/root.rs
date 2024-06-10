@@ -5,7 +5,6 @@ use axum::Json;
 use chrono::{DateTime, Utc};
 use cs2kz::{JumpType, Mode, PlayerIdentifier, ServerIdentifier};
 use serde::Deserialize;
-use tracing::trace;
 use utoipa::IntoParams;
 
 use crate::authentication::{self, Jwt};
@@ -51,7 +50,7 @@ pub struct GetParams {
 }
 
 /// Fetch jumpstats.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/jumpstats",
@@ -135,7 +134,7 @@ pub async fn get(
 }
 
 /// Create a new jumpstat.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
   path = "/jumpstats",
@@ -255,7 +254,7 @@ pub async fn post(
 
 	transaction.commit().await?;
 
-	trace!(%jumpstat_id, "created jumpstat");
+	tracing::trace!(%jumpstat_id, "created jumpstat");
 
 	Ok(Created(Json(CreatedJumpstat { jumpstat_id })))
 }

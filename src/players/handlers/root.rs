@@ -5,7 +5,6 @@ use axum::Json;
 use futures::TryStreamExt;
 use serde::Deserialize;
 use sqlx::QueryBuilder;
-use tracing::info;
 use utoipa::IntoParams;
 
 use crate::authentication::Jwt;
@@ -32,7 +31,7 @@ pub struct GetParams {
 ///
 /// If you send a cookie that shows you're "logged in", and you happen to have permissions for
 /// managing bans, the response will include IP addresses.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/players",
@@ -92,7 +91,7 @@ pub async fn get(
 /// Register a new player.
 ///
 /// This endpoint will be hit by CS2 servers whenever an unknown player joins.
-#[tracing::instrument(level = "debug", skip(state))]
+#[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
   path = "/players",
@@ -139,7 +138,7 @@ pub async fn post(
 		}
 	})?;
 
-	info!(target: "audit_log", %name, %steam_id, "registered new player");
+	tracing::info!(target: "cs2kz_api::audit_log", "registered new player");
 
 	Ok(Created(()))
 }

@@ -8,7 +8,7 @@ use crate::openapi::responses;
 use crate::records::Record;
 
 /// Fetch "personal best" records.
-#[tracing::instrument(level = "debug")]
+#[tracing::instrument]
 #[utoipa::path(
   get,
   path = "/records/top",

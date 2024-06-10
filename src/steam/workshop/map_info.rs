@@ -1,6 +1,5 @@
 //! Everything related to Workshop Maps.
 
-use reqwest::header;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -8,6 +7,7 @@ use crate::steam::workshop::{WorkshopID, API_URL};
 use crate::{Error, Result};
 
 /// Fetches the name of the map with the given `workshop_id`.
+#[tracing::instrument(level = "debug", skip(http_client), ret)]
 pub async fn fetch_map_name(
 	workshop_id: WorkshopID,
 	http_client: &reqwest::Client,
@@ -18,13 +18,9 @@ pub async fn fetch_map_name(
 		workshop_id: WorkshopID,
 	}
 
-	let query_params =
-		serde_urlencoded::to_string(Params { workshop_id }).expect("valid query params");
-
 	let response = http_client
 		.post(API_URL)
-		.header(header::CONTENT_TYPE, "application/x-www-form-urlencoded")
-		.body(query_params)
+		.form(&Params { workshop_id })
 		.send()
 		.await?;
 
