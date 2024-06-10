@@ -211,21 +211,17 @@ async fn create_map(
 
 	match deglobal_old_result.rows_affected() {
 		0 => {}
-		1 => {
-			tracing::info! {
-				target: "cs2kz_api::audit_log",
-				%name,
-				"degloballed old version of map",
-			};
-		}
-		amount => {
-			tracing::warn! {
-				target: "cs2kz_api::audit_log",
-				%name,
-				%amount,
-				"degloballed multiple versions of map",
-			};
-		}
+		1 => tracing::info! {
+			target: "cs2kz_api::audit_log",
+			%name,
+			"degloballed old version of map",
+		},
+		amount => tracing::warn! {
+			target: "cs2kz_api::audit_log",
+			%name,
+			%amount,
+			"degloballed multiple versions of map",
+		},
 	}
 
 	let map_id = sqlx::query! {

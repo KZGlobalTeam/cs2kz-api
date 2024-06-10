@@ -88,8 +88,9 @@ pub async fn patch(
 
 	let query_result = query.build().execute(transaction.as_mut()).await?;
 
-	if query_result.rows_affected() == 0 {
-		return Err(Error::unknown("ban ID"));
+	match query_result.rows_affected() {
+		0 => return Err(Error::unknown("ban ID")),
+		n => assert_eq!(n, 1, "updated more than 1 ban"),
 	}
 
 	transaction.commit().await?;
@@ -141,8 +142,9 @@ pub async fn delete(
 	.execute(transaction.as_mut())
 	.await?;
 
-	if query_result.rows_affected() == 0 {
-		return Err(Error::unknown("ban ID"));
+	match query_result.rows_affected() {
+		0 => return Err(Error::unknown("ban ID")),
+		n => assert_eq!(n, 1, "updated more than 1  ban"),
 	}
 
 	tracing::info!(target: "cs2kz_api::audit_log", %ban_id, "reverted ban");

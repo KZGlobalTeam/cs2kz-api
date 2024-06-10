@@ -122,8 +122,9 @@ pub async fn patch(
 	.execute(transaction.as_mut())
 	.await?;
 
-	if query_result.rows_affected() == 0 {
-		return Err(Error::unknown("SteamID"));
+	match query_result.rows_affected() {
+		0 => return Err(Error::unknown("SteamID")),
+		n => assert_eq!(n, 1, "updated more than 1 player"),
 	}
 
 	tracing::trace!(target: "cs2kz_api::audit_log", "updated player");

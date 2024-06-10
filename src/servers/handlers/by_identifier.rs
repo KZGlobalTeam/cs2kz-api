@@ -102,8 +102,9 @@ pub async fn patch(
 
 	let query_result = query.build().execute(transaction.as_mut()).await?;
 
-	if query_result.rows_affected() == 0 {
-		return Err(Error::unknown("server ID"));
+	match query_result.rows_affected() {
+		0 => return Err(Error::unknown("server ID")),
+		n => assert_eq!(n, 1, "updated more than 1 server"),
 	}
 
 	transaction.commit().await?;

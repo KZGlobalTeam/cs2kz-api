@@ -167,8 +167,9 @@ async fn update_details(
 
 	let query_result = query.build().execute(transaction.as_mut()).await?;
 
-	if query_result.rows_affected() == 0 {
-		return Err(Error::unknown("map ID"));
+	match query_result.rows_affected() {
+		0 => return Err(Error::unknown("map ID")),
+		n => assert_eq!(n, 1, "updated more than 1 map"),
 	}
 
 	tracing::debug!(target: "cs2kz_api::audit_log", %map_id, "updated map details");
@@ -228,8 +229,9 @@ async fn update_name_and_checksum(
 	.execute(transaction.as_mut())
 	.await?;
 
-	if query_result.rows_affected() == 0 {
-		return Err(Error::unknown("map ID"));
+	match query_result.rows_affected() {
+		0 => return Err(Error::unknown("map ID")),
+		n => assert_eq!(n, 1, "updated more than 1 map"),
 	}
 
 	tracing::debug!(target: "cs2kz_api::audit_log", %map_id, "updated workshop details");
