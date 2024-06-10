@@ -101,7 +101,7 @@ features = ["ansi", "env-filter"]
 version = "0.2"
 
 [dependencies.console-subscriber]
-version = "0.2"
+version = "0.3"
 optional = true
 
 [dependencies.reqwest]
