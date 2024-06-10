@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t  id `id: FilterID`\n\t\tFROM\n\t\t  CourseFilters\n\t\tWHERE\n\t\t  id >= (\n\t\t    SELECT\n\t\t      LAST_INSERT_ID()\n\t\t  )\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: FilterID",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "char_set": 63,
+          "max_size": 5
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e33e5b8899fc56eb9b53a51b9876b79da34f12b80bc186b4f3d47b3ac7300597"
+}

@@ -110,7 +110,7 @@ pub struct ServerUpdate {
 
 /// Request body for generating JWTs.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct RefreshKeyRequest {
+pub struct AccessKeyRequest {
 	/// The server's permanent refresh key.
 	pub refresh_key: Uuid,
 
@@ -121,7 +121,7 @@ pub struct RefreshKeyRequest {
 
 /// Response body for generating JWTs.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
-pub struct RefreshKeyResponse {
+pub struct AccessKeyResponse {
 	/// The JWT.
 	pub access_key: String,
 }

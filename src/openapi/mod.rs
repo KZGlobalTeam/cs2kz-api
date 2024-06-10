@@ -121,7 +121,7 @@ pub mod security;
       crate::servers::NewServer,
       crate::servers::CreatedServer,
       crate::servers::ServerUpdate,
-      crate::servers::RefreshKeyRequest,
+      crate::servers::AccessKeyRequest,
       crate::servers::RefreshKey,
       crate::servers::ServerInfo,
 

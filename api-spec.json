@@ -1198,7 +1198,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshKeyRequest"
+                "$ref": "#/components/schemas/AccessKeyRequest"
               }
             }
           },
@@ -3718,6 +3718,25 @@
   },
   "components": {
     "schemas": {
+      "AccessKeyRequest": {
+        "type": "object",
+        "description": "Request body for generating JWTs.",
+        "required": [
+          "refresh_key",
+          "plugin_version"
+        ],
+        "properties": {
+          "refresh_key": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The server's permanent refresh key."
+          },
+          "plugin_version": {
+            "type": "string",
+            "description": "The CS2KZ version the server is currently running."
+          }
+        }
+      },
       "Admin": {
         "type": "object",
         "description": "A player with special privileges.",
@@ -5154,25 +5173,6 @@
             "type": "string",
             "format": "uuid",
             "description": "The refresh key."
-          }
-        }
-      },
-      "RefreshKeyRequest": {
-        "type": "object",
-        "description": "Request body for generating JWTs.",
-        "required": [
-          "refresh_key",
-          "plugin_version"
-        ],
-        "properties": {
-          "refresh_key": {
-            "type": "string",
-            "format": "uuid",
-            "description": "The server's permanent refresh key."
-          },
-          "plugin_version": {
-            "type": "string",
-            "description": "The CS2KZ version the server is currently running."
           }
         }
       },

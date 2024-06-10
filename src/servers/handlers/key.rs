@@ -10,7 +10,7 @@ use crate::authentication::{self, Jwt};
 use crate::authorization::Permissions;
 use crate::openapi::responses::{self, Created, NoContent};
 use crate::plugin::PluginVersionID;
-use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse, ServerID};
+use crate::servers::{AccessKeyRequest, AccessKeyResponse, RefreshKey, ServerID};
 use crate::{authorization, Error, Result, State};
 
 /// Generate a temporary authentication key for a CS2 server.
@@ -34,11 +34,11 @@ use crate::{authorization, Error, Result, State};
 )]
 pub async fn generate_temp(
 	state: &State,
-	Json(RefreshKeyRequest {
+	Json(AccessKeyRequest {
 		refresh_key,
 		plugin_version,
-	}): Json<RefreshKeyRequest>,
-) -> Result<Created<Json<RefreshKeyResponse>>> {
+	}): Json<AccessKeyRequest>,
+) -> Result<Created<Json<AccessKeyResponse>>> {
 	let mut transaction = state.transaction().await?;
 
 	let server = sqlx::query! {
@@ -70,7 +70,7 @@ pub async fn generate_temp(
 		"generated access key for server",
 	};
 
-	Ok(Created(Json(RefreshKeyResponse { access_key })))
+	Ok(Created(Json(AccessKeyResponse { access_key })))
 }
 
 /// Generate a new refresh key for a server.
@@ -196,7 +196,7 @@ mod tests {
 
 	use crate::authentication;
 	use crate::plugin::PluginVersionID;
-	use crate::servers::{RefreshKey, RefreshKeyRequest, RefreshKeyResponse, ServerID};
+	use crate::servers::{AccessKeyRequest, AccessKeyResponse, RefreshKey, ServerID};
 
 	#[crate::integration_test]
 	async fn generate_temp(ctx: &Context) {
@@ -219,7 +219,7 @@ mod tests {
 		.fetch_one(&ctx.database)
 		.await?;
 
-		let refresh_key = RefreshKeyRequest {
+		let refresh_key = AccessKeyRequest {
 			refresh_key: server.refresh_key.into(),
 			plugin_version: server.semver.parse()?,
 		};
@@ -233,7 +233,7 @@ mod tests {
 
 		assert_eq!(response.status(), 201);
 
-		let RefreshKeyResponse { access_key } = response.json().await?;
+		let AccessKeyResponse { access_key } = response.json().await?;
 		let server_info = ctx.decode_jwt::<authentication::Server>(&access_key)?;
 
 		assert_eq!(server_info.id(), server.id);
