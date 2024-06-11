@@ -31,7 +31,7 @@ impl AuthorizeSession for IsServerAdminOrOwner {
 	async fn authorize_session(
 		user: &authentication::User,
 		req: &mut request::Parts,
-		transaction: &mut Transaction<'static, MySql>,
+		transaction: &mut Transaction<'_, MySql>,
 	) -> Result<()> {
 		let current_span = tracing::Span::current();
 

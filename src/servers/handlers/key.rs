@@ -33,7 +33,7 @@ use crate::{authorization, Error, Result, State};
   ),
 )]
 pub async fn generate_temp(
-	state: &State,
+	state: State,
 	Json(AccessKeyRequest {
 		refresh_key,
 		plugin_version,
@@ -94,7 +94,7 @@ pub async fn generate_temp(
   ),
 )]
 pub async fn put_perma(
-	state: &State,
+	state: State,
 	session: authentication::Session<authorization::IsServerAdminOrOwner>,
 	Path(server_id): Path<ServerID>,
 ) -> Result<Created<Json<RefreshKey>>> {
@@ -153,7 +153,7 @@ pub async fn put_perma(
   ),
 )]
 pub async fn delete_perma(
-	state: &State,
+	state: State,
 	session: authentication::Session<
 		authorization::HasPermissions<{ Permissions::SERVERS.value() }>,
 	>,

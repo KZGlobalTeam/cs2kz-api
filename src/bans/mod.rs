@@ -18,10 +18,10 @@ mod queries;
 pub mod handlers;
 
 /// Returns a router with routes for `/bans`.
-pub fn router(state: &'static State) -> Router {
+pub fn router(state: State) -> Router {
 	let auth = session_auth!(
 		authorization::HasPermissions<{ Permissions::BANS.value() }>,
-		state
+		state.clone(),
 	);
 
 	let root = Router::new()
@@ -29,7 +29,7 @@ pub fn router(state: &'static State) -> Router {
 		.route_layer(cors::permissive())
 		.route("/", post(handlers::root::post))
 		.route_layer(cors::dashboard([Method::POST]))
-		.with_state(state);
+		.with_state(state.clone());
 
 	let by_id = Router::new()
 		.route("/:id", get(handlers::by_id::get))
@@ -37,7 +37,7 @@ pub fn router(state: &'static State) -> Router {
 		.route("/:id", patch(handlers::by_id::patch).route_layer(auth()))
 		.route("/:id", delete(handlers::by_id::delete).route_layer(auth()))
 		.route_layer(cors::dashboard([Method::PATCH, Method::DELETE]))
-		.with_state(state);
+		.with_state(state.clone());
 
 	root.merge(by_id)
 }

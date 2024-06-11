@@ -63,7 +63,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: &State,
+	state: State,
 	Query(GetParams {
 		name,
 		host,
@@ -137,7 +137,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: &State,
+	state: State,
 	session: authentication::Session<
 		authorization::HasPermissions<{ Permissions::SERVERS.value() }>,
 	>,

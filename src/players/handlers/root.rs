@@ -45,7 +45,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: &State,
+	state: State,
 	session: Option<
 		authentication::Session<authorization::HasPermissions<{ Permissions::BANS.value() }>>,
 	>,
@@ -107,7 +107,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: &State,
+	state: State,
 	Jwt {
 		payload: server, ..
 	}: Jwt<authentication::Server>,

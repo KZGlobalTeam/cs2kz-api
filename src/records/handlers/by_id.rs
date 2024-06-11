@@ -22,7 +22,7 @@ use crate::{Error, Result, State};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(state: &State, Path(record_id): Path<RecordID>) -> Result<Json<Record>> {
+pub async fn get(state: State, Path(record_id): Path<RecordID>) -> Result<Json<Record>> {
 	let mut query = QueryBuilder::new(queries::SELECT);
 
 	query.push(" WHERE r.id = ").push_bind(record_id);

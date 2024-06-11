@@ -13,22 +13,22 @@ mod queries;
 pub mod handlers;
 
 /// Returns a router with routes for `/jumpstats`.
-pub fn router(state: &'static State) -> Router {
+pub fn router(state: State) -> Router {
 	let root = Router::new()
 		.route("/", get(handlers::root::get))
 		.route_layer(cors::permissive())
 		.route("/", post(handlers::root::post))
-		.with_state(state);
+		.with_state(state.clone());
 
 	let by_id = Router::new()
 		.route("/:id", get(handlers::by_id::get))
 		.route_layer(cors::permissive())
-		.with_state(state);
+		.with_state(state.clone());
 
 	let replay = Router::new()
 		.route("/:id/replay", get(handlers::replays::get))
 		.route_layer(cors::permissive())
-		.with_state(state);
+		.with_state(state.clone());
 
 	root.merge(by_id).merge(replay)
 }

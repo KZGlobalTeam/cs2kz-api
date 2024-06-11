@@ -42,7 +42,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: &State,
+	state: State,
 	Query(GetParams { limit, offset }): Query<GetParams>,
 ) -> Result<Json<PaginationResponse<PluginVersion>>> {
 	let mut query = QueryBuilder::new("SELECT SQL_CALC_FOUND_ROWS * FROM PluginVersions");
@@ -90,7 +90,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: &State,
+	state: State,
 	api_key: ApiKey,
 	Json(NewPluginVersion {
 		semver,

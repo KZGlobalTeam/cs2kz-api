@@ -27,6 +27,6 @@ pub trait AuthorizeSession: Send + Sync + 'static {
 	fn authorize_session(
 		user: &authentication::User,
 		req: &mut request::Parts,
-		transaction: &mut Transaction<'static, MySql>,
+		transaction: &mut Transaction<'_, MySql>,
 	) -> impl Future<Output = Result<()>> + Send;
 }

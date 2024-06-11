@@ -117,7 +117,7 @@ impl Session {
 	pub async fn create(
 		steam_user: &steam::User,
 		user_ip: IpAddr,
-		config: &'static crate::Config,
+		config: &crate::Config,
 		mut transaction: Transaction<'_, MySql>,
 	) -> Result<Self> {
 		let session_id = SessionID::new();
@@ -278,7 +278,7 @@ where
 }
 
 #[async_trait]
-impl<A> FromRequestParts<&'static State> for Session<A>
+impl<A> FromRequestParts<State> for Session<A>
 where
 	A: AuthorizeSession,
 {
@@ -291,10 +291,7 @@ where
 		fields(session.id = tracing::field::Empty, session.user.id = tracing::field::Empty),
 		err(level = "debug"),
 	)]
-	async fn from_request_parts(
-		request: &mut request::Parts,
-		state: &&'static State,
-	) -> Result<Self> {
+	async fn from_request_parts(request: &mut request::Parts, state: &State) -> Result<Self> {
 		if let Some(session) = request.extensions.remove::<Self>() {
 			tracing::debug!(%session.id, "extracting cached session");
 			return Ok(session);

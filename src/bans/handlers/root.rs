@@ -74,7 +74,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: &State,
+	state: State,
 	Query(GetParams {
 		player,
 		server,
@@ -159,7 +159,7 @@ pub async fn get(
   ),
 )]
 pub async fn post(
-	state: &State,
+	state: State,
 	server: Option<Jwt<authentication::Server>>,
 	session: Option<
 		authentication::Session<authorization::HasPermissions<{ Permissions::BANS.value() }>>,

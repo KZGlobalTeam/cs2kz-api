@@ -19,10 +19,10 @@ mod queries;
 pub mod handlers;
 
 /// Returns a router with routes for `/maps`.
-pub fn router(state: &'static State) -> Router {
+pub fn router(state: State) -> Router {
 	let auth = session_auth!(
 		authorization::HasPermissions<{ Permissions::MAPS.value() }>,
-		state
+		state.clone(),
 	);
 
 	let root = Router::new()
@@ -30,7 +30,7 @@ pub fn router(state: &'static State) -> Router {
 		.route_layer(cors::permissive())
 		.route("/", put(handlers::root::put).route_layer(auth()))
 		.route_layer(cors::dashboard([Method::PUT]))
-		.with_state(state);
+		.with_state(state.clone());
 
 	let by_identifier = Router::new()
 		.route("/:map", get(handlers::by_identifier::get))
@@ -40,7 +40,7 @@ pub fn router(state: &'static State) -> Router {
 			patch(handlers::by_identifier::patch).route_layer(auth()),
 		)
 		.route_layer(cors::dashboard([Method::PATCH]))
-		.with_state(state);
+		.with_state(state.clone());
 
 	root.merge(by_identifier)
 }

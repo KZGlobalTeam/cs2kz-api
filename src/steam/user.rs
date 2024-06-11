@@ -95,7 +95,7 @@ impl User {
 	}
 
 	/// Creates a [`Cookie`] containing this [`User`] as a JSON value.
-	pub fn to_cookie<'c>(&self, config: &'c crate::Config) -> Cookie<'c> {
+	pub fn to_cookie(&self, config: &crate::Config) -> Cookie<'static> {
 		let json = serde_json::to_string(self).expect("this is valid json");
 
 		Cookie::build((COOKIE_NAME, json))
@@ -149,7 +149,7 @@ impl<'de> Deserialize<'de> for User {
 }
 
 #[async_trait]
-impl FromRequestParts<&'static State> for User {
+impl FromRequestParts<State> for User {
 	type Rejection = Error;
 
 	#[tracing::instrument(
@@ -159,10 +159,7 @@ impl FromRequestParts<&'static State> for User {
 		fields(steam_id = tracing::field::Empty),
 		err(level = "debug"),
 	)]
-	async fn from_request_parts(
-		parts: &mut request::Parts,
-		state: &&'static State,
-	) -> Result<Self> {
+	async fn from_request_parts(parts: &mut request::Parts, state: &State) -> Result<Self> {
 		let steam_id = parts
 			.extensions
 			.get::<SteamID>()

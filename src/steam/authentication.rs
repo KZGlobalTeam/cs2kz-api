@@ -170,7 +170,7 @@ impl LoginResponse {
 }
 
 #[async_trait]
-impl FromRequestParts<&'static State> for LoginResponse {
+impl FromRequestParts<State> for LoginResponse {
 	type Rejection = Error;
 
 	#[tracing::instrument(
@@ -180,10 +180,7 @@ impl FromRequestParts<&'static State> for LoginResponse {
 		fields(steam_id = tracing::field::Empty),
 		err(level = "debug"),
 	)]
-	async fn from_request_parts(
-		parts: &mut request::Parts,
-		state: &&'static State,
-	) -> Result<Self> {
+	async fn from_request_parts(parts: &mut request::Parts, state: &State) -> Result<Self> {
 		let Query(mut login) = Query::<Self>::from_request_parts(parts, &())
 			.await
 			.map_err(|err| {

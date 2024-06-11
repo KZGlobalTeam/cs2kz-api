@@ -3,6 +3,7 @@
 //! This is initialized once on startup, and then passed around the application by axum.
 
 use std::convert::Infallible;
+use std::sync::Arc;
 
 use axum::async_trait;
 use axum::extract::FromRequestParts;
@@ -19,11 +20,11 @@ use crate::{Error, Result};
 /// The main application state.
 ///
 /// A `'static` reference to this is passed around the application.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct State {
 	/// The API configuration.
 	#[debug(skip)]
-	pub config: crate::Config,
+	pub config: Arc<crate::Config>,
 
 	/// Connection pool to the backing database.
 	#[debug(skip)]
@@ -35,7 +36,7 @@ pub struct State {
 
 	/// JWT related state.
 	#[debug(skip)]
-	jwt_state: JwtState,
+	jwt_state: Arc<JwtState>,
 }
 
 impl State {
@@ -55,6 +56,7 @@ impl State {
 			"establishing database connection",
 		};
 
+		let config = Arc::new(config);
 		let database = PoolOptions::new()
 			.min_connections(Self::MIN_DB_CONNECTIONS)
 			.max_connections(Self::MAX_DB_CONNECTIONS)
@@ -62,7 +64,7 @@ impl State {
 			.await?;
 
 		let http_client = reqwest::Client::new();
-		let jwt_state = JwtState::new(&config)?;
+		let jwt_state = JwtState::new(&config).map(Arc::new)?;
 
 		Ok(Self {
 			config,
@@ -95,14 +97,14 @@ impl State {
 }
 
 #[async_trait]
-impl FromRequestParts<&'static State> for &'static State {
+impl FromRequestParts<State> for State {
 	type Rejection = Infallible;
 
 	async fn from_request_parts(
 		_parts: &mut request::Parts,
-		state: &&'static State,
+		state: &State,
 	) -> Result<Self, Self::Rejection> {
-		Ok(state)
+		Ok(state.clone())
 	}
 }
 

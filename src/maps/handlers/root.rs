@@ -67,7 +67,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: &State,
+	state: State,
 	Query(GetParams {
 		name,
 		workshop_id,
@@ -147,7 +147,7 @@ pub async fn get(
   ),
 )]
 pub async fn put(
-	state: &State,
+	state: State,
 	session: authentication::Session<authorization::HasPermissions<{ Permissions::MAPS.value() }>>,
 	Json(NewMap {
 		workshop_id,

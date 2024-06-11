@@ -14,7 +14,7 @@ impl AuthorizeSession for None {
 	async fn authorize_session(
 		_user: &authentication::User,
 		_req: &mut request::Parts,
-		_transaction: &mut Transaction<'static, MySql>,
+		_transaction: &mut Transaction<'_, MySql>,
 	) -> Result<()> {
 		Ok(())
 	}

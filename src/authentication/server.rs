@@ -117,7 +117,7 @@ impl Token {
 			expires_after = tracing::field::Empty,
 		),
 	)]
-	pub fn new(server: &Server, state: &State) -> Result<Self> {
+	pub fn new(server: Server, state: State) -> Result<Self> {
 		let expires_after = Duration::from_secs(60 * 15);
 
 		tracing::Span::current().record("expires_after", format_args!("{expires_after:?}"));

@@ -75,7 +75,7 @@ impl<T> Jwt<T> {
 }
 
 #[async_trait]
-impl<T> FromRequestParts<&'static State> for Jwt<T>
+impl<T> FromRequestParts<State> for Jwt<T>
 where
 	T: DeserializeOwned,
 {
@@ -88,10 +88,7 @@ where
 		fields(token = tracing::field::Empty),
 		err(level = "debug"),
 	)]
-	async fn from_request_parts(
-		parts: &mut request::Parts,
-		state: &&'static State,
-	) -> Result<Self> {
+	async fn from_request_parts(parts: &mut request::Parts, state: &State) -> Result<Self> {
 		let header = TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state).await?;
 		let jwt = state
 			.decode_jwt::<T>(header.token())

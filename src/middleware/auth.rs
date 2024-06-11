@@ -27,7 +27,7 @@ where
 
 /// Helper macro for creating auth middleware.
 macro_rules! session_auth {
-	($authorization:ty, $state:expr) => {
+	($authorization:ty, $state:expr $(,)?) => {
 		|| {
 			::axum::middleware::from_fn_with_state(
 				$state,

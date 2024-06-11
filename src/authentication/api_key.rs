@@ -53,7 +53,7 @@ impl ApiKey {
 }
 
 #[async_trait]
-impl FromRequestParts<&'static State> for ApiKey {
+impl FromRequestParts<State> for ApiKey {
 	type Rejection = Error;
 
 	#[tracing::instrument(
@@ -63,10 +63,7 @@ impl FromRequestParts<&'static State> for ApiKey {
 		fields(name = tracing::field::Empty, value = tracing::field::Empty),
 		err(level = "debug"),
 	)]
-	async fn from_request_parts(
-		parts: &mut request::Parts,
-		state: &&'static State,
-	) -> Result<Self> {
+	async fn from_request_parts(parts: &mut request::Parts, state: &State) -> Result<Self> {
 		let key = TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
 			.await?
 			.token()

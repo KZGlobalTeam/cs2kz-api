@@ -22,7 +22,7 @@ use crate::{steam, Result, State};
     responses::InternalServerError,
   ),
 )]
-pub async fn get(state: &State, Path(player): Path<PlayerIdentifier>) -> Result<Json<steam::User>> {
+pub async fn get(state: State, Path(player): Path<PlayerIdentifier>) -> Result<Json<steam::User>> {
 	let steam_id = player.fetch_id(&state.database).await?;
 	let user = steam::User::fetch(steam_id, &state.http_client, &state.config).await?;
 

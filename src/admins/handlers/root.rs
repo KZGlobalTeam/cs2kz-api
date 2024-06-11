@@ -46,7 +46,7 @@ pub struct GetParams {
   ),
 )]
 pub async fn get(
-	state: &State,
+	state: State,
 	Query(GetParams {
 		permissions,
 		limit,

@@ -39,7 +39,7 @@ pub struct LoginParams {
   ),
 )]
 pub async fn login(
-	state: &State,
+	state: State,
 	Query(LoginParams { redirect_to }): Query<LoginParams>,
 ) -> Redirect {
 	steam::authentication::LoginForm::new(state.config.public_url.clone()).redirect_to(&redirect_to)
@@ -73,7 +73,7 @@ pub struct LogoutParams {
   ),
 )]
 pub async fn logout(
-	state: &State,
+	state: State,
 	mut session: Session,
 	Query(LogoutParams {
 		invalidate_all_sessions,
@@ -107,7 +107,7 @@ pub async fn logout(
   ),
 )]
 pub async fn callback(
-	state: &'static State,
+	state: State,
 	req_addr: ConnectInfo<SocketAddr>,
 	cookies: CookieJar,
 	login: steam::authentication::LoginResponse,

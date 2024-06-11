@@ -20,7 +20,7 @@ impl<const PERMS: u32> AuthorizeSession for HasPermissions<PERMS> {
 	async fn authorize_session(
 		user: &authentication::User,
 		_req: &mut request::Parts,
-		_transaction: &mut Transaction<'static, MySql>,
+		_transaction: &mut Transaction<'_, MySql>,
 	) -> Result<()> {
 		let required_permissions = Permissions::new(PERMS);
 

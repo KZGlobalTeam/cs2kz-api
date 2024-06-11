@@ -93,14 +93,7 @@ async fn server(config: Config) -> anyhow::Result<Server> {
 		.await
 		.context("bind tcp socket")?;
 
-	// NOTE: We intentionally **leak memory here**.
-	//       The application is not going to do anything after axum shuts down, so
-	//       there is no point in cleanup.
-	let state: &'static State = State::new(config)
-		.await
-		.map(Box::new)
-		.map(Box::leak)
-		.context("initialize state")?;
+	let state = State::new(config).await.context("initialize state")?;
 
 	let spec = openapi::Spec::new();
 	let mut routes_message = String::from("registering routes:\n");
@@ -114,16 +107,16 @@ async fn server(config: Config) -> anyhow::Result<Server> {
 
 	let api_service = Router::new()
 		.route("/", routing::get(|| async { "(͡ ͡° ͜ つ ͡͡°)" }))
-		.nest("/players", players::router(state))
-		.nest("/maps", maps::router(state))
-		.nest("/servers", servers::router(state))
-		.nest("/jumpstats", jumpstats::router(state))
-		.nest("/records", records::router(state))
-		.nest("/bans", bans::router(state))
-		.nest("/sessions", game_sessions::router(state))
-		.nest("/auth", authentication::router(state))
-		.nest("/admins", admins::router(state))
-		.nest("/plugin", plugin::router(state))
+		.nest("/players", players::router(state.clone()))
+		.nest("/maps", maps::router(state.clone()))
+		.nest("/servers", servers::router(state.clone()))
+		.nest("/jumpstats", jumpstats::router(state.clone()))
+		.nest("/records", records::router(state.clone()))
+		.nest("/bans", bans::router(state.clone()))
+		.nest("/sessions", game_sessions::router(state.clone()))
+		.nest("/auth", authentication::router(state.clone()))
+		.nest("/admins", admins::router(state.clone()))
+		.nest("/plugin", plugin::router(state.clone()))
 		.layer(middleware::logging::layer!())
 		.merge(spec.swagger_ui())
 		.into_make_service_with_connect_info::<SocketAddr>();
