@@ -167,12 +167,14 @@ impl Session {
 
 		let mut modes = HashSet::new();
 
-		for mode in course_sessions.values().map(|session| session.mode) {
-			if !modes.insert(mode) {
-				return Err(serde::de::Error::custom(format_args!(
-					"cannot submit duplicate course sessions stats for {mode}",
-				)));
-			}
+		if let Some(mode) = course_sessions
+			.values()
+			.map(|session| session.mode)
+			.find(|&mode| !modes.insert(mode))
+		{
+			return Err(serde::de::Error::custom(format_args!(
+				"cannot submit duplicate course sessions stats for {mode}",
+			)));
 		}
 
 		Ok(course_sessions)
