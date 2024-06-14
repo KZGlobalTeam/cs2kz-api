@@ -2,6 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use cs2kz::{Mode, SteamID, Style};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
@@ -62,8 +63,14 @@ impl FromRow<'_, MySqlRow> for Record {
 				.try_get("style_flags")
 				.map(StyleFlags::new)?
 				.into_iter()
-				.map(|style| style.parse::<Style>().expect("found invalid style in db"))
-				.collect(),
+				.map(str::parse::<Style>)
+				.map(|flags| {
+					flags.map_err(|err| sqlx::Error::ColumnDecode {
+						index: String::from("style_flags"),
+						source: Box::new(err),
+					})
+				})
+				.try_collect()?,
 			teleports: row.try_get("teleports")?,
 			time: row.try_get("time")?,
 			player: Player::from_row(row)?,
