@@ -1,8 +1,7 @@
 //! Everything related to KZ admins.
 
 use axum::http::Method;
-use axum::routing::{get, put};
-use axum::Router;
+use axum::{routing, Router};
 
 use crate::authorization::Permissions;
 use crate::middleware::auth::session_auth;
@@ -22,14 +21,17 @@ pub fn router(state: State) -> Router {
 	);
 
 	let root = Router::new()
-		.route("/", get(handlers::root::get))
+		.route("/", routing::get(handlers::root::get))
 		.route_layer(cors::permissive())
 		.with_state(state.clone());
 
 	let by_id = Router::new()
-		.route("/:id", get(handlers::by_id::get))
+		.route("/:id", routing::get(handlers::by_id::get))
 		.route_layer(cors::permissive())
-		.route("/:id", put(handlers::by_id::put).route_layer(auth()))
+		.route(
+			"/:id",
+			routing::put(handlers::by_id::put).route_layer(auth()),
+		)
 		.route_layer(cors::dashboard([Method::PUT]))
 		.with_state(state.clone());
 

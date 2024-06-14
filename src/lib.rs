@@ -100,8 +100,10 @@ async fn server(config: Config) -> anyhow::Result<Server> {
 		.await
 		.context("bind tcp socket")?;
 
-	let state = State::new(config).await.context("initialize state")?;
+	let addr = tcp_listener.local_addr().context("get tcp addr")?;
+	tracing::info!(%addr, prod = cfg!(feature = "production"), "listening for requests");
 
+	let state = State::new(config).await.context("initialize state")?;
 	let spec = openapi::Spec::new();
 	let mut routes_message = String::from("registering routes:\n");
 
@@ -127,9 +129,6 @@ async fn server(config: Config) -> anyhow::Result<Server> {
 		.layer(middleware::logging::layer!())
 		.merge(spec.swagger_ui())
 		.into_make_service_with_connect_info::<SocketAddr>();
-
-	let addr = tcp_listener.local_addr().context("get tcp addr")?;
-	tracing::info!(%addr, prod = cfg!(feature = "production"), "listening for requests");
 
 	Ok(axum::serve(tcp_listener, api_service))
 }

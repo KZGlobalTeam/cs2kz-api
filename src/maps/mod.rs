@@ -1,8 +1,7 @@
 //! Everything related to KZ maps.
 
 use axum::http::Method;
-use axum::routing::{get, patch, put};
-use axum::Router;
+use axum::{routing, Router};
 
 use crate::authorization::Permissions;
 use crate::middleware::auth::session_auth;
@@ -26,18 +25,18 @@ pub fn router(state: State) -> Router {
 	);
 
 	let root = Router::new()
-		.route("/", get(handlers::root::get))
+		.route("/", routing::get(handlers::root::get))
 		.route_layer(cors::permissive())
-		.route("/", put(handlers::root::put).route_layer(auth()))
+		.route("/", routing::put(handlers::root::put).route_layer(auth()))
 		.route_layer(cors::dashboard([Method::PUT]))
 		.with_state(state.clone());
 
 	let by_identifier = Router::new()
-		.route("/:map", get(handlers::by_identifier::get))
+		.route("/:map", routing::get(handlers::by_identifier::get))
 		.route_layer(cors::permissive())
 		.route(
 			"/:map",
-			patch(handlers::by_identifier::patch).route_layer(auth()),
+			routing::patch(handlers::by_identifier::patch).route_layer(auth()),
 		)
 		.route_layer(cors::dashboard([Method::PATCH]))
 		.with_state(state.clone());

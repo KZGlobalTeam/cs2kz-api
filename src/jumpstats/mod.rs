@@ -1,7 +1,6 @@
 //! Everything related to jumpstats.
 
-use axum::routing::{get, post};
-use axum::Router;
+use axum::{routing, Router};
 
 use crate::middleware::cors;
 use crate::State;
@@ -15,18 +14,18 @@ pub mod handlers;
 /// Returns an [`axum::Router`] for the `/jumpstats` routes.
 pub fn router(state: State) -> Router {
 	let root = Router::new()
-		.route("/", get(handlers::root::get))
+		.route("/", routing::get(handlers::root::get))
 		.route_layer(cors::permissive())
-		.route("/", post(handlers::root::post))
+		.route("/", routing::post(handlers::root::post))
 		.with_state(state.clone());
 
 	let by_id = Router::new()
-		.route("/:id", get(handlers::by_id::get))
+		.route("/:id", routing::get(handlers::by_id::get))
 		.route_layer(cors::permissive())
 		.with_state(state.clone());
 
 	let replay = Router::new()
-		.route("/:id/replay", get(handlers::replays::get))
+		.route("/:id/replay", routing::get(handlers::replays::get))
 		.route_layer(cors::permissive())
 		.with_state(state.clone());
 

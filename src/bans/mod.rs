@@ -1,8 +1,7 @@
 //! Everything related to KZ player bans.
 
 use axum::http::Method;
-use axum::routing::{delete, get, patch, post};
-use axum::Router;
+use axum::{routing, Router};
 
 use crate::authorization::Permissions;
 use crate::middleware::auth::session_auth;
@@ -25,17 +24,23 @@ pub fn router(state: State) -> Router {
 	);
 
 	let root = Router::new()
-		.route("/", get(handlers::root::get))
+		.route("/", routing::get(handlers::root::get))
 		.route_layer(cors::permissive())
-		.route("/", post(handlers::root::post))
+		.route("/", routing::post(handlers::root::post))
 		.route_layer(cors::dashboard([Method::POST]))
 		.with_state(state.clone());
 
 	let by_id = Router::new()
-		.route("/:id", get(handlers::by_id::get))
+		.route("/:id", routing::get(handlers::by_id::get))
 		.route_layer(cors::permissive())
-		.route("/:id", patch(handlers::by_id::patch).route_layer(auth()))
-		.route("/:id", delete(handlers::by_id::delete).route_layer(auth()))
+		.route(
+			"/:id",
+			routing::patch(handlers::by_id::patch).route_layer(auth()),
+		)
+		.route(
+			"/:id",
+			routing::delete(handlers::by_id::delete).route_layer(auth()),
+		)
 		.route_layer(cors::dashboard([Method::PATCH, Method::DELETE]))
 		.with_state(state.clone());
 
