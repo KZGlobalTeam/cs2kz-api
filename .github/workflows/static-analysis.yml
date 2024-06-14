@@ -43,7 +43,7 @@ jobs:
       - name: cargo clippy
         uses: giraffate/clippy-action@v1
         with:
-          clippy_flags: --workspace --all-features --tests -- -D warnings
+          clippy_flags: --workspace --all-features --no-deps --tests -- -D warnings
           reporter: 'github-pr-check'
           github_token: ${{ secrets.GITHUB_TOKEN }}
 

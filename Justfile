@@ -7,7 +7,7 @@ build *ARGS:
 	cargo build --workspace {{ARGS}}
 
 clippy *ARGS:
-	cargo clippy --workspace --all-features --tests {{ARGS}}
+	cargo clippy --workspace --all-features --no-deps --tests {{ARGS}}
 
 fmt *ARGS:
 	cargo +nightly fmt --all {{ARGS}}
