@@ -1,15 +1,19 @@
-//! CORS middlewares.
+//! [CORS] middleware.
+//!
+//! [CORS]: https://developer.mozilla.org/en-US/docs/Glossary/CORS
 
 use axum::http::{header, request, HeaderValue, Method};
 use tower_http::cors::{AllowMethods, AllowOrigin, CorsLayer};
 use url::Url;
 
-/// Creates a permissive CORS layer that allows `GET` requests.
+/// Creates a permissive CORS layer, allowing any origins or headers, but only GET requests.
 pub fn permissive() -> CorsLayer {
 	CorsLayer::permissive().allow_methods([Method::GET])
 }
 
-/// Creates a CORS layer that allows requests of the given `methods` from the dashboard.
+/// Creates a CORS layer for the [dashboard].
+///
+/// [dashboard]: https://github.com/kzglobalteam/cs2kz-api-dashboard
 pub fn dashboard<M>(methods: M) -> CorsLayer
 where
 	M: Into<AllowMethods>,
@@ -25,10 +29,10 @@ where
 		})
 }
 
-/// Checks if an incoming request came from localhost, ignoring the port.
+/// Checks if a request is coming from localhost.
 #[tracing::instrument(level = "debug", name = "middleware::cors", skip(_request))]
 fn is_localhost(origin: &HeaderValue, _request: &request::Parts) -> bool {
-	/// Logs a debug message and returns `false` from this function.
+	#[allow(clippy::missing_docs_in_private_items)]
 	macro_rules! reject {
 		($($reason:tt)*) => {
 			tracing::debug!("rejecting request because {}", $($reason)*);

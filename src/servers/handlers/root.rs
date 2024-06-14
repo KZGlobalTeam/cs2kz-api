@@ -1,4 +1,4 @@
-//! Handlers for the `/servers` route.
+//! HTTP handlers for the `/servers` routes.
 
 use axum::extract::Query;
 use axum::Json;
@@ -17,38 +17,37 @@ use crate::servers::{queries, CreatedServer, NewServer, Server, ServerID};
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{authentication, Error, Result, State};
 
-/// Query parameters for `GET /servers`.
+/// Query parameters for `/servers`.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetParams {
 	/// Filter by name.
 	name: Option<String>,
 
 	/// Filter by host.
+	///
+	/// This can either be a domain name, or an IP address.
 	#[param(value_type = Option<String>)]
 	host: Option<url::Host>,
 
 	/// Filter by server owner.
 	owned_by: Option<PlayerIdentifier>,
 
-	/// Filter by creation date.
+	/// Only include servers approved after this date.
 	created_after: Option<DateTime<Utc>>,
 
-	/// Filter by creation date.
+	/// Only include servers approved before this date.
 	created_before: Option<DateTime<Utc>>,
 
-	/// Limit the number of returned results.
+	/// Maximum number of results to return.
 	#[serde(default)]
 	limit: Limit,
 
-	/// Paginate by `offset` entries.
+	/// Pagination offset.
 	#[serde(default)]
 	offset: Offset,
 }
 
 /// Fetch servers.
-///
-/// Servers returned by this endpoint are officially approved CS2 servers that you can play on to
-/// submit records.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -59,7 +58,6 @@ pub struct GetParams {
     responses::Ok<PaginationResponse<Server>>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(
@@ -120,7 +118,7 @@ pub async fn get(
 	}))
 }
 
-/// Create (approve) a new CS2 server.
+/// Create a new server.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
@@ -133,7 +131,6 @@ pub async fn get(
     responses::BadRequest,
     responses::Unauthorized,
     responses::UnprocessableEntity,
-    responses::InternalServerError,
   ),
 )]
 pub async fn post(

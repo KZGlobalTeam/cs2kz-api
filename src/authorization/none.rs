@@ -1,4 +1,6 @@
 //! No authorization.
+//!
+//! This is the default authorization method.
 
 use axum::http::request;
 use sqlx::{MySql, Transaction};
@@ -6,7 +8,7 @@ use sqlx::{MySql, Transaction};
 use super::AuthorizeSession;
 use crate::{authentication, Result};
 
-/// No authorization.
+/// An authorization methods which always succeeds.
 #[derive(Debug, Clone, Copy)]
 pub struct None;
 

@@ -1,4 +1,4 @@
-//! Types used for describing players.
+//! Types for modeling KZ players.
 
 use std::collections::{BTreeMap, HashSet};
 use std::net::{IpAddr, Ipv6Addr};
@@ -14,7 +14,7 @@ use crate::maps::CourseID;
 use crate::records::BhopStats;
 use crate::time::Seconds;
 
-/// A KZ player.
+/// Basic information about a KZ player.
 #[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct Player {
 	/// The player's name.
@@ -26,7 +26,7 @@ pub struct Player {
 	pub steam_id: SteamID,
 }
 
-/// A KZ player.
+/// Detailed information about a KZ player.
 #[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct FullPlayer {
 	/// The player's name.
@@ -37,6 +37,8 @@ pub struct FullPlayer {
 	pub steam_id: SteamID,
 
 	/// The player's IP address.
+	///
+	/// This field is only included if the requesting user has `BANS` permissions.
 	#[serde(
 		skip_serializing_if = "Option::is_none",
 		serialize_with = "FullPlayer::serialize_ip_address",
@@ -45,16 +47,18 @@ pub struct FullPlayer {
 	#[schema(value_type = Option<String>)]
 	pub ip_address: Option<Ipv6Addr>,
 
-	/// Whether the player is currently banned.
+	/// Whether this player is currently banned.
 	pub is_banned: bool,
 }
 
 impl FullPlayer {
-	/// Serializes the `ip_address` field as an IPv4 address, if it is a mapped IPv4 address.
+	/// Serializes the [`ip_address`] field with respect to IP mapping.
 	///
-	/// This is to ensure that, if a player updated submitted an IPv4 address, later retrieval
-	/// of that IP address is still an IPv4 address, even though the database only stores
-	/// (potentially mapped) IPv6 addresses.
+	/// If a player is submitted with an IPv4 address, it will be mapped to an IPv6 address to
+	/// be stored in the database. When retrieving this IP address later, it should be mapped
+	/// back to IPv4.
+	///
+	/// [`ip_address`]: FullPlayer::ip_address
 	fn serialize_ip_address<S>(ip: &Option<Ipv6Addr>, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: Serializer,
@@ -66,7 +70,7 @@ impl FullPlayer {
 		}
 	}
 
-	/// Deserializes a generic IP address, and maps any potential IPv4 addresses to IPv6.
+	/// Deserializes an IP address and maps it to IPv6 if necessary.
 	fn deserialize_ip_address<'de, D>(deserializer: D) -> Result<Option<Ipv6Addr>, D::Error>
 	where
 		D: Deserializer<'de>,
@@ -80,7 +84,7 @@ impl FullPlayer {
 	}
 }
 
-/// Request body for registering new players.
+/// Request payload for creating a new player.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct NewPlayer {
 	/// The player's name.
@@ -94,7 +98,7 @@ pub struct NewPlayer {
 	pub ip_address: IpAddr,
 }
 
-/// Request body for updating players.
+/// Request payload for updating an existing player.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct PlayerUpdate {
 	/// The player's name.
@@ -104,42 +108,51 @@ pub struct PlayerUpdate {
 	#[schema(value_type = String)]
 	pub ip_address: IpAddr,
 
-	/// Data about the player's game session.
-	pub session: Session,
-
-	/// The player's current in-game preference settings.
+	/// The player's current in-game preferences.
 	pub preferences: JsonValue,
+
+	/// Game Session information.
+	pub session: Session,
 }
 
-/// Data about the player's game session.
+/// Game Session information.
 ///
-/// Whenever a server changes map or when a player disconnects, an update about that player is sent
-/// to the API. Between the moment when the player joined, and the moment the server decided to
-/// send a player update, a bunch of data is recorded and included in the request.
+/// A game session starts when a player joins a server, and ends either when they disconnect or
+/// when the map changes.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Session {
-	/// Statistics about how the player spent their time on the server.
+	/// Stats about how the player spent their time.
 	#[serde(flatten)]
 	pub time_spent: TimeSpent,
 
-	/// Bhop statistics about this session.
+	/// Stats about how many bhops were performed by the player, and how many of them were
+	/// perfect bhops.
 	pub bhop_stats: BhopStats,
 
-	/// More data grouped by course & mode.
+	/// Per-Course session information.
 	#[serde(deserialize_with = "Session::deserialize_course_sessions")]
 	pub course_sessions: BTreeMap<CourseID, CourseSession>,
 }
 
 impl Session {
-	/// Deserializes and validates submitted course sessions.
+	/// Deserializes course sessions and (partially) validates them.
+	///
+	/// This function ensures **logical invariants**, such as:
+	///    1. no session has more [finished runs] than [started runs]
+	///    2. there are no duplicates between modes
+	///
+	/// This function does **not** ensure that the map keys are valid, or belong to appropriate
+	/// courses. This validation has to be done in the handler because it requires database
+	/// access.
+	///
+	/// [finished runs]: CourseSession::finished_runs
+	/// [started runs]: CourseSession::started_runs
 	fn deserialize_course_sessions<'de, D>(
 		deserializer: D,
 	) -> Result<BTreeMap<CourseID, CourseSession>, D::Error>
 	where
 		D: Deserializer<'de>,
 	{
-		use serde::de;
-
 		let course_sessions = BTreeMap::<CourseID, CourseSession>::deserialize(deserializer)?;
 
 		if let Some(course_id) = course_sessions
@@ -147,7 +160,7 @@ impl Session {
 			.find(|(_, session)| session.finished_runs > session.started_runs)
 			.map(|(course_id, _)| course_id)
 		{
-			return Err(de::Error::custom(format_args!(
+			return Err(serde::de::Error::custom(format_args!(
 				"cannot have more finished runs than started runs for course {course_id}",
 			)));
 		}
@@ -156,7 +169,7 @@ impl Session {
 
 		for mode in course_sessions.values().map(|session| session.mode) {
 			if !modes.insert(mode) {
-				return Err(de::Error::custom(format_args!(
+				return Err(serde::de::Error::custom(format_args!(
 					"cannot submit duplicate course sessions stats for {mode}",
 				)));
 			}
@@ -166,21 +179,21 @@ impl Session {
 	}
 }
 
-/// Session data about a specific course.
+/// Session information tied to a specific course.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 pub struct CourseSession {
-	/// The mode the player was playing the course in.
+	/// The player's mode.
 	pub mode: Mode,
 
-	/// How much time the player spent on this course with a running timer.
+	/// The amount of seconds the player spent playing this course.
 	pub playtime: Seconds,
 
-	/// How many times the player left the start zone.
+	/// How many times the player has left the start zone of this course.
 	pub started_runs: u16,
 
-	/// How many times the player entered the end zone.
+	/// How many times the player has entered the end zone of this course.
 	pub finished_runs: u16,
 
-	/// Bhop statistics about this session.
+	/// Bhop statistics specific to this course.
 	pub bhop_stats: BhopStats,
 }

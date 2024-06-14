@@ -1,4 +1,4 @@
-//! Types used for describing maps and related concepts.
+//! Types for modeling KZ maps.
 
 use std::collections::{BTreeMap, HashSet};
 use std::iter;
@@ -20,9 +20,6 @@ make_id!(CourseID as u16);
 make_id!(FilterID as u16);
 
 /// A KZ map.
-///
-/// The only reason this is named `FullMap` instead of just `Map`, is because `utoipa` macros are
-/// stupid.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct FullMap {
 	/// The map's ID.
@@ -31,23 +28,23 @@ pub struct FullMap {
 	/// The map's name.
 	pub name: String,
 
-	/// The map's description.
+	/// Description of the map.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub description: Option<String>,
 
 	/// The map's global status.
 	pub global_status: GlobalStatus,
 
-	/// The map's workshop ID.
+	/// The map's Steam Workshop ID.
 	pub workshop_id: WorkshopID,
 
-	/// The map's checksum.
+	/// CRC32 checksum of the map's `.vpk` file.
 	pub checksum: u32,
 
-	/// List of players who have contributed to the creation of this map.
+	/// Players who contributed to the creation of this map.
 	pub mappers: Vec<Player>,
 
-	/// List of courses on this map.
+	/// The map's courses.
 	pub courses: Vec<Course>,
 
 	/// When this map was approved.
@@ -55,10 +52,10 @@ pub struct FullMap {
 }
 
 impl FullMap {
-	/// Combines two [`FullMap`]s into one, aggregating [mappers] and [courses].
+	/// Combines two maps by merging mappers and course information from `other` into `self`.
 	///
-	/// [mappers]: FullMap::mappers
-	/// [courses]: FullMap::courses
+	/// This function is used for aggregating database results; see `FullMap`'s [`FromRow`]
+	/// implementation for more details.
 	pub fn reduce(mut self, other: Self) -> Self {
 		assert_eq!(self.id, other.id, "merging two unrelated maps");
 
@@ -90,7 +87,8 @@ impl FullMap {
 		self
 	}
 
-	/// Groups maps by their ID and flattens them into unique entries.
+	/// Flatten database results by aggregating maps with equal IDs but different
+	/// mappers/courses into a list of maps with unique IDs.
 	pub fn flatten<I>(maps: I, limit: usize) -> Vec<Self>
 	where
 		I: IntoIterator<Item = Self>,
@@ -123,7 +121,7 @@ impl FromRow<'_, MySqlRow> for FullMap {
 	}
 }
 
-/// A map course.
+/// A KZ map course.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Course {
 	/// The course's ID.
@@ -133,11 +131,11 @@ pub struct Course {
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub name: Option<String>,
 
-	/// The course's description.
+	/// Description of the course.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub description: Option<String>,
 
-	/// List of players who have contributed to the creation of this course.
+	/// Players who contributed to the creation of this course.
 	pub mappers: Vec<Player>,
 
 	/// The course's filters.
@@ -172,10 +170,10 @@ pub struct Filter {
 	/// The filter's ID.
 	pub id: FilterID,
 
-	/// The mode this filter applies to.
+	/// The mode associated with this filter.
 	pub mode: Mode,
 
-	/// The "runtype" this filter applies to (whether teleports are used or not).
+	/// Whether this filter is for teleport runs.
 	pub teleports: bool,
 
 	/// The filter's tier.
@@ -184,44 +182,45 @@ pub struct Filter {
 	/// The filter's ranked status.
 	pub ranked_status: RankedStatus,
 
-	/// Extra notes about this filter.
+	/// Any additional notes.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub notes: Option<String>,
 }
 
-/// Request body for submitting new maps.
+/// Request payload for creating a new map.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewMap {
-	/// The map's workshop ID.
+	/// The map's Steam Workshop ID.
 	pub workshop_id: WorkshopID,
 
-	/// The map's description.
+	/// Description of the map.
 	#[serde(
 		default,
 		deserialize_with = "crate::serde::string::deserialize_empty_as_none"
 	)]
 	pub description: Option<String>,
 
-	/// The map's initial global status.
+	/// The map's global status.
 	pub global_status: GlobalStatus,
 
-	/// List of players who have contributed to the creation of this map.
+	/// List of SteamIDs of the players who contributed to the creation of this map.
 	#[serde(deserialize_with = "crate::serde::vec::deserialize_non_empty")]
 	pub mappers: Vec<SteamID>,
 
-	/// List of courses on this map.
+	/// The map's courses.
 	#[serde(deserialize_with = "NewMap::deserialize_courses")]
 	pub courses: Vec<NewCourse>,
 }
 
 impl NewMap {
-	/// Deserializes and validates submitted courses.
+	/// Deserializes courses and (partially) validates them.
+	///
+	/// This function ensures **logical invariants**, such as:
+	///    1. there are no duplicate course names
 	fn deserialize_courses<'de, D>(deserializer: D) -> Result<Vec<NewCourse>, D::Error>
 	where
 		D: Deserializer<'de>,
 	{
-		use serde::de;
-
 		use crate::serde::vec;
 
 		let courses: Vec<NewCourse> = vec::deserialize_non_empty(deserializer)?;
@@ -229,7 +228,7 @@ impl NewMap {
 
 		for name in courses.iter().filter_map(|course| course.name.as_deref()) {
 			if !names.insert(name) {
-				return Err(de::Error::custom(format_args!(
+				return Err(serde::de::Error::custom(format_args!(
 					"cannot submit duplicate course `{name}`",
 				)));
 			}
@@ -239,7 +238,7 @@ impl NewMap {
 	}
 }
 
-/// Request body for submitting new map courses.
+/// Request payload for creating a new course.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewCourse {
 	/// The course's name.
@@ -249,14 +248,14 @@ pub struct NewCourse {
 	)]
 	pub name: Option<String>,
 
-	/// The course's description.
+	/// Description of the course.
 	#[serde(
 		default,
 		deserialize_with = "crate::serde::string::deserialize_empty_as_none"
 	)]
 	pub description: Option<String>,
 
-	/// List of players who have contributed to the creation of this course.
+	/// List of SteamIDs of the players who contributed to the creation of this course.
 	#[serde(deserialize_with = "crate::serde::vec::deserialize_non_empty")]
 	pub mappers: Vec<SteamID>,
 
@@ -266,25 +265,20 @@ pub struct NewCourse {
 }
 
 impl NewCourse {
-	/// Deserializes and validates submitted course filters.
+	/// Deserializes filters and (partially) validates them.
 	///
-	/// This will enforce the following invariants:
-	///   - There are exactly 4 filters
-	///   - [`NewCourse::filters`] is sorted
-	///   - All 4 permutations of (mode, teleports) are covered
-	///   - Any filters with a tier higher than [`Tier::Death`] cannot also be marked as
-	///     [`RankedStatus::Ranked`]
+	/// This function ensures **logical invariants**, such as:
+	///    1. each of the 4 filters covers one of the 4 (mode, runtype) combinations
+	///    2. no filter has a tier above 8 and is marked as "ranked"
 	fn deserialize_filters<'de, D>(deserializer: D) -> Result<[NewFilter; 4], D::Error>
 	where
 		D: Deserializer<'de>,
 	{
-		use serde::de;
-
 		let mut filters = <[NewFilter; 4]>::deserialize(deserializer)?;
 
-		filters.sort_by_key(|filter| (filter.mode, filter.teleports));
+		filters.sort_unstable_by_key(|filter| (filter.mode, filter.teleports));
 
-		/// The expected set of filters.
+		#[allow(clippy::missing_docs_in_private_items)]
 		const EXPECTED: [(Mode, bool); 4] = [
 			(Mode::Vanilla, false),
 			(Mode::Vanilla, true),
@@ -294,7 +288,7 @@ impl NewCourse {
 
 		for (filter, expected) in iter::zip(&filters, EXPECTED) {
 			if (filter.mode, filter.teleports) != expected {
-				return Err(de::Error::custom(format_args!(
+				return Err(serde::de::Error::custom(format_args!(
 					"filter for ({}, {}) is missing",
 					filter.mode,
 					if filter.teleports { "TP" } else { "Pro" },
@@ -302,7 +296,7 @@ impl NewCourse {
 			}
 
 			if filter.tier > Tier::Death && filter.ranked_status == RankedStatus::Ranked {
-				return Err(de::Error::custom(format_args!(
+				return Err(serde::de::Error::custom(format_args!(
 					"tier `{}` is too high for a ranked filter",
 					filter.tier,
 				)));
@@ -313,13 +307,13 @@ impl NewCourse {
 	}
 }
 
-/// Request body for submitting new course filters.
+/// Request payload for creating a new course filter.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewFilter {
-	/// The mode this filter applies to.
+	/// The mode associated with this filter.
 	pub mode: Mode,
 
-	/// The "runtype" this filter applies to (whether teleports are used or not).
+	/// Whether this filter is for teleport runs.
 	pub teleports: bool,
 
 	/// The filter's tier.
@@ -328,7 +322,7 @@ pub struct NewFilter {
 	/// The filter's ranked status.
 	pub ranked_status: RankedStatus,
 
-	/// Extra notes about this filter.
+	/// Any additional notes.
 	#[serde(
 		default,
 		deserialize_with = "crate::serde::string::deserialize_empty_as_none"
@@ -336,14 +330,14 @@ pub struct NewFilter {
 	pub notes: Option<String>,
 }
 
-/// A newly created map.
+/// Response body for creating a new map.
 #[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct CreatedMap {
 	/// The map's ID.
 	pub map_id: MapID,
 }
 
-/// Request body for updating maps.
+/// Request payload for updating an existing map.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct MapUpdate {
 	/// A new description.
@@ -353,35 +347,31 @@ pub struct MapUpdate {
 	)]
 	pub description: Option<String>,
 
-	/// A new workshop ID.
-	///
-	/// Setting this parameter implies setting `check_steam=true` and has precedence over it.
+	/// A new Workshop ID.
 	pub workshop_id: Option<WorkshopID>,
 
 	/// A new global status.
 	pub global_status: Option<GlobalStatus>,
 
-	/// Whether to check steam for an updated name and checksum.
+	/// Whether to check the Workshop for a new name / checksum.
 	#[serde(default)]
 	pub check_steam: bool,
 
-	/// Players to be added as mappers of this map.
+	/// List of SteamIDs of players to add as mappers to this map.
 	#[serde(
 		default,
 		deserialize_with = "crate::serde::vec::deserialize_empty_as_none"
 	)]
 	pub added_mappers: Option<Vec<SteamID>>,
 
-	/// Players to be removed as mappers of this map.
+	/// List of SteamIDs of players to remove as mappers from this map.
 	#[serde(
 		default,
 		deserialize_with = "crate::serde::vec::deserialize_empty_as_none"
 	)]
 	pub removed_mappers: Option<Vec<SteamID>>,
 
-	/// Updates to courses on this map.
-	///
-	/// course ID -> update payload
+	/// Updates to this map's courses.
 	#[serde(
 		default,
 		deserialize_with = "crate::serde::btree_map::deserialize_empty_as_none"
@@ -397,7 +387,7 @@ pub struct MapUpdate {
 	pub course_updates: Option<BTreeMap<CourseID, CourseUpdate>>,
 }
 
-/// Request body for updating courses.
+/// Request payload for updating a map course.
 #[derive(Debug, Default, Deserialize, ToSchema)]
 pub struct CourseUpdate {
 	/// A new name.
@@ -414,21 +404,21 @@ pub struct CourseUpdate {
 	)]
 	pub description: Option<String>,
 
-	/// Players to be added as mappers of this course.
+	/// List of SteamIDs of players to add as mappers to this course.
 	#[serde(
 		default,
 		deserialize_with = "crate::serde::vec::deserialize_empty_as_none"
 	)]
 	pub added_mappers: Option<Vec<SteamID>>,
 
-	/// Players to be removed as mappers of this course.
+	/// List of SteamIDs of players to remove as mappers from this course.
 	#[serde(
 		default,
 		deserialize_with = "crate::serde::vec::deserialize_empty_as_none"
 	)]
 	pub removed_mappers: Option<Vec<SteamID>>,
 
-	/// Updates to any filters of this course.
+	/// Updates to this course's filters.
 	#[serde(
 		default,
 		deserialize_with = "crate::serde::btree_map::deserialize_empty_as_none"
@@ -444,7 +434,7 @@ pub struct CourseUpdate {
 	pub filter_updates: Option<BTreeMap<FilterID, FilterUpdate>>,
 }
 
-/// Request body for updating course filters.
+/// Request payload for updating a course filter.
 #[derive(Debug, Default, Deserialize, ToSchema)]
 pub struct FilterUpdate {
 	/// A new tier.
@@ -461,7 +451,7 @@ pub struct FilterUpdate {
 	pub notes: Option<String>,
 }
 
-/// Information about a map.
+/// Information about a KZ map.
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct MapInfo {
 	/// The map's ID.
@@ -473,7 +463,7 @@ pub struct MapInfo {
 	pub name: String,
 }
 
-/// Information about a course.
+/// Information about a KZ map course.
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct CourseInfo {
 	/// The course's ID.
@@ -485,7 +475,7 @@ pub struct CourseInfo {
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub name: Option<String>,
 
-	/// The course filter's tier.
+	/// The course's tier.
 	#[sqlx(rename = "course_tier")]
 	pub tier: Tier,
 }

@@ -1,4 +1,4 @@
-//! Handlers for the `/sessions/{session_id}` routes.
+//! HTTP handlers for the `/sessions/{session_id}` routes.
 
 use axum::extract::Path;
 use axum::Json;
@@ -7,7 +7,7 @@ use crate::game_sessions::{GameSession, GameSessionID};
 use crate::openapi::responses;
 use crate::{Error, Result, State};
 
-/// Fetch a specific game session by its ID.
+/// Fetch a specific session by its ID.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -18,7 +18,6 @@ use crate::{Error, Result, State};
     responses::Ok<()>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(state: State, Path(session_id): Path<GameSessionID>) -> Result<Json<GameSession>> {

@@ -1,4 +1,4 @@
-//! Handlers for the `/jumpstats` routes.
+//! HTTP handlers for the `/jumpstats` routes.
 
 pub mod root;
 pub mod by_id;

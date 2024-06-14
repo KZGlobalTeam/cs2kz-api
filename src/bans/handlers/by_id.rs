@@ -1,4 +1,4 @@
-//! Handlers for the `/bans/{ban_id}` route.
+//! HTTP handlers for the `/bans/{ban_id}` routes.
 
 use axum::extract::Path;
 use axum::Json;
@@ -22,7 +22,6 @@ use crate::{authentication, Error, Result, State};
     responses::Ok<Ban>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(state: State, Path(ban_id): Path<BanID>) -> Result<Json<Ban>> {
@@ -39,9 +38,7 @@ pub async fn get(state: State, Path(ban_id): Path<BanID>) -> Result<Json<Ban>> {
 	Ok(Json(ban))
 }
 
-/// Update a ban's details.
-///
-/// Note that this is **not** used for _reverting_ bans. Use `DELETE /bans/{ban_id}` for that.
+/// Update an existing ban.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   patch,
@@ -49,13 +46,12 @@ pub async fn get(state: State, Path(ban_id): Path<BanID>) -> Result<Json<Ban>> {
   tag = "Bans",
   security(("Browser Session" = ["bans"])),
   params(("ban_id" = u64, Path, description = "The ban's ID")),
-  responses(//
+  responses(
     responses::NoContent,
     responses::BadRequest,
     responses::Unauthorized,
     responses::Conflict,
     responses::UnprocessableEntity,
-    responses::InternalServerError,
   ),
 )]
 pub async fn patch(
@@ -113,7 +109,6 @@ pub async fn patch(
     responses::BadRequest,
     responses::Unauthorized,
     responses::Conflict,
-    responses::InternalServerError,
   ),
 )]
 pub async fn delete(
@@ -172,8 +167,7 @@ pub async fn delete(
 	Ok(Created(Json(CreatedUnban { unban_id })))
 }
 
-/// Checks if there is an unban associated with the given `ban_id` and returns the corresponding
-/// `ban_id`.
+/// Checks if a ban has already been reverted, and returns the corresponding [`UnbanID`].
 async fn is_already_unbanned(
 	ban_id: BanID,
 	executor: impl MySqlExecutor<'_>,

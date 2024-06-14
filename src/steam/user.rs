@@ -1,4 +1,4 @@
-//! Steam Users.
+//! Steam user information.
 
 use axum::async_trait;
 use axum::extract::FromRequestParts;
@@ -12,28 +12,25 @@ use utoipa::ToSchema;
 
 use crate::{Error, Result, State};
 
-/// Steam WebAPI URL for fetching information about players.
+/// Steam Web API URL for fetching user information.
 const API_URL: &str = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002";
 
-/// The cookie name used to store the user information.
+/// HTTP cookie name for storing a serialized [`User`].
 const COOKIE_NAME: &str = "kz-player";
 
-/// Information about a Steam user.
-///
-/// This will be serialized as JSON and put into a cookie so frontends can use it.
+/// A Steam user.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct User {
 	/// The user's SteamID.
 	pub steam_id: SteamID,
 
-	/// Also the user's SteamID, but encoded as a stringified 64-bit integer, because
-	/// JavaScript.
+	/// The user's SteamID in its stringified 64-bit format.
 	pub steam_id64: String,
 
 	/// The user's username.
 	pub username: String,
 
-	/// The user's "real" name.
+	/// The user's realname.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub realname: Option<String>,
 
@@ -41,23 +38,23 @@ pub struct User {
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub country: Option<String>,
 
-	/// URL to the user's profile.
+	/// URL to the user's Steam profile.
 	pub profile_url: Url,
 
-	/// URL to the user's avatar.
+	/// URL to the user's Steam avatar.
 	pub avatar_url: Url,
 }
 
 impl User {
-	/// Fetch this user from Steam's API.
-	#[tracing::instrument(level = "debug", skip(http_client, config))]
+	/// Fetches a user from Steam's API.
+	#[tracing::instrument(level = "debug", skip(http_client, api_config))]
 	pub async fn fetch(
 		steam_id: SteamID,
 		http_client: &reqwest::Client,
-		config: &crate::Config,
+		api_config: &crate::Config,
 	) -> Result<Self> {
 		let url = Url::parse_with_params(API_URL, [
-			("key", config.steam_api_key.clone()),
+			("key", api_config.steam_api_key.clone()),
 			("steamids", steam_id.as_u64().to_string()),
 		])
 		.map_err(|err| Error::logic("failed to parse url").context(err))?;
@@ -78,7 +75,7 @@ impl User {
 		Ok(user)
 	}
 
-	/// Creates an "invalid" steam user for testing purposes.
+	/// Generates a fake user for use in tests.
 	#[cfg(test)]
 	pub fn invalid(steam_id: SteamID) -> Self {
 		let url = Url::parse("https://cs2kz.org").unwrap();
@@ -94,12 +91,12 @@ impl User {
 		}
 	}
 
-	/// Creates a [`Cookie`] containing this [`User`] as a JSON value.
-	pub fn to_cookie(&self, config: &crate::Config) -> Cookie<'static> {
+	/// Serializes this user into an HTTP cookie.
+	pub fn to_cookie(&self, api_config: &crate::Config) -> Cookie<'static> {
 		let json = serde_json::to_string(self).expect("this is valid json");
 
 		Cookie::build((COOKIE_NAME, json))
-			.domain(config.cookie_domain.clone())
+			.domain(api_config.cookie_domain.clone())
 			.path("/")
 			.secure(cfg!(feature = "production"))
 			.http_only(false)

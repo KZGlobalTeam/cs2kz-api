@@ -1,9 +1,8 @@
-//! Everything for dealing with [JWTs].
+//! JWT authentication.
 //!
-//! The main attraction in this module is the [`Jwt<T>`] struct. It is responsible for encoding and
-//! decoding JWTs, and can act as an [extractor] in handlers.
+//! This module contains the [`Jwt`] type, which is used by [`State::encode_jwt()`] /
+//! [`State::decode_jwt()`], and can be used as an [extractor].
 //!
-//! [JWTs]: https://jwt.io/introduction/
 //! [extractor]: axum::extract
 
 use std::panic::Location;
@@ -25,23 +24,24 @@ use utoipa::ToSchema;
 
 use crate::{Error, Result, State};
 
-/// Helper struct for encoding / decoding JWTs.
+/// An extractor for JWTs.
 #[derive(Debug, Deref, DerefMut, Serialize, Deserialize)]
 pub struct Jwt<T> {
-	/// The payload.
+	/// The token payload.
 	#[serde(flatten)]
 	#[deref]
 	#[deref_mut]
 	#[debug("{payload:?}")]
 	pub payload: T,
 
-	/// The expiration date.
+	/// The token's expiration date, as a unix timestamp.
 	#[debug("{}", self.expires_on())]
 	exp: u64,
 }
 
 impl<T> Jwt<T> {
-	/// Creates a new [`Jwt<T>`] which will expire after a certain amount of time.
+	/// Creates a new JWT from the given `payload`, that will expire after the specified
+	/// duration.
 	#[track_caller]
 	#[tracing::instrument(
 		level = "debug",
@@ -56,19 +56,19 @@ impl<T> Jwt<T> {
 		}
 	}
 
-	/// Returns the expiration date for this JWT.
+	/// Returns a timestamp of when this JWT will expire.
 	pub fn expires_on(&self) -> DateTime<Utc> {
 		let secs = i64::try_from(self.exp).expect("invalid expiration date");
 
 		DateTime::from_timestamp(secs, 0).expect("invalid expiration date")
 	}
 
-	/// Checks whether this JWT has already expired.
+	/// Checks if this JWT has expired.
 	pub fn has_expired(&self) -> bool {
 		self.exp < jwt::get_current_timestamp()
 	}
 
-	/// Returns the wrapped payload.
+	/// Turns this JWT into its inner payload.
 	pub fn into_payload(self) -> T {
 		self.payload
 	}
@@ -92,10 +92,10 @@ where
 		let header = TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state).await?;
 		let jwt = state
 			.decode_jwt::<T>(header.token())
-			.map_err(|err| Error::invalid_cs2_refresh_key().context(err))?;
+			.map_err(|err| Error::invalid("token").context(err))?;
 
 		if jwt.has_expired() {
-			return Err(Error::expired_cs2_access_key());
+			return Err(Error::expired_key());
 		}
 
 		tracing::Span::current().record("token", header.token());

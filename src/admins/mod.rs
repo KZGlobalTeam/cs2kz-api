@@ -1,9 +1,4 @@
-//! Everything related to "admins".
-//!
-//! "Admins" in this case means users with some special [permissions].
-//! These permissions can be managed using the endpoints in this module.
-//!
-//! [permissions]: crate::authorization::Permissions
+//! Everything related to KZ admins.
 
 use axum::http::Method;
 use axum::routing::{get, put};
@@ -19,7 +14,7 @@ pub use models::{Admin, AdminUpdate};
 
 pub mod handlers;
 
-/// Returns a router with routes for `/admins`.
+/// Returns an [`axum::Router`] for the `/admins` routes.
 pub fn router(state: State) -> Router {
 	let auth = session_auth!(
 		authorization::HasPermissions<{ Permissions::ADMIN.value() }>,

@@ -1,4 +1,4 @@
-//! Everything related to in-game sessions.
+//! Everything related to KZ game sessions.
 
 use axum::routing::get;
 use axum::Router;
@@ -11,7 +11,7 @@ pub use models::{CourseSessionID, GameSession, GameSessionID, TimeSpent};
 
 pub mod handlers;
 
-/// Returns a router with routes for `/sessions`.
+/// Returns an [`axum::Router`] for the `/sessions` routes.
 pub fn router(state: State) -> Router {
 	Router::new()
 		.route("/:id", get(handlers::by_id::get))

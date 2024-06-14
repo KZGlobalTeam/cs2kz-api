@@ -1,4 +1,4 @@
-//! Logs saved to files.
+//! Tracing layer for logging to files.
 
 use std::path::PathBuf;
 use std::{env, fs};
@@ -11,13 +11,12 @@ use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::registry::LookupSpan;
 use tracing_subscriber::Layer;
 
-/// Creates a tracing layer for saving logs to files.
+/// Creates a tracing layer that will emit logs to files.
 ///
-/// # Returns
+/// The returned [`WorkerGuard`] must be kept alive so it can perform cleanup when the application
+/// shuts down.
 ///
-/// - the tracing layer
-/// - guard that has to be kept around until the end of the program; for proper cleanup
-/// - the path to the log directory
+/// The returned [`PathBuf`] is the directory storing the log files.
 pub fn layer<S>() -> anyhow::Result<(impl tracing_subscriber::Layer<S>, WorkerGuard, PathBuf)>
 where
 	S: tracing::Subscriber + for<'a> LookupSpan<'a>,

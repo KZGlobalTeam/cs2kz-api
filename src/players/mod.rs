@@ -1,4 +1,4 @@
-//! Everything related to players.
+//! Everything related to KZ players.
 
 use axum::routing::{get, patch, post};
 use axum::Router;
@@ -12,7 +12,7 @@ pub use models::{CourseSession, FullPlayer, NewPlayer, Player, PlayerUpdate, Ses
 mod queries;
 pub mod handlers;
 
-/// Returns a router with routes for `/players`.
+/// Returns an [`axum::Router`] for the `/players` routes.
 pub fn router(state: State) -> Router {
 	let root = Router::new()
 		.route("/", get(handlers::root::get))

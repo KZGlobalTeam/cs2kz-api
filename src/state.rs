@@ -1,6 +1,10 @@
-//! The API's main application state.
+//! The API's global application state.
 //!
-//! This is initialized once on startup, and then passed around the application by axum.
+//! A [`State`] instance is created on startup and then passed to axum so it can be accessed in
+//! handlers, [middleware], [extractors], etc.
+//!
+//! [middleware]: axum::middleware
+//! [extractors]: axum::extract
 
 use std::convert::Infallible;
 use std::sync::Arc;
@@ -17,46 +21,48 @@ use sqlx::{MySql, Pool, Transaction};
 use crate::authentication::Jwt;
 use crate::{Error, Result};
 
-/// The main application state.
-///
-/// A `'static` reference to this is passed around the application.
+/// The API's state.
 #[derive(Debug, Clone)]
 pub struct State {
-	/// The API configuration.
+	/// Runtime configuration.
 	#[debug(skip)]
 	pub config: Arc<crate::Config>,
 
-	/// Connection pool to the backing database.
+	/// Database connection pool.
 	#[debug(skip)]
 	pub database: Pool<MySql>,
 
-	/// HTTP client for making requests to external APIs.
+	/// An HTTP client for making requests to other APIs.
 	#[debug(skip)]
 	pub http_client: reqwest::Client,
 
-	/// JWT related state.
+	/// JWT state for encoding/decoding tokens.
 	#[debug(skip)]
 	jwt_state: Arc<JwtState>,
 }
 
 impl State {
-	/// The minimum amount of open database connections to keep in the connection pool.
+	/// The minimum number of [database pool] connections.
+	///
+	/// [database pool]: State::database
 	const MIN_DB_CONNECTIONS: u32 = if cfg!(production) { 200 } else { 20 };
 
-	/// The maximum amount of open database connections to keep in the connection pool.
+	/// The maximum number of [database pool] connections.
+	///
+	/// [database pool]: State::database
 	const MAX_DB_CONNECTIONS: u32 = if cfg!(production) { 256 } else { 50 };
 
-	/// Creates a new [`State`] object.
-	pub async fn new(config: crate::Config) -> Result<Self> {
-		tracing::debug!(?config, "initializing global state");
+	/// Creates a new [`State`].
+	pub async fn new(api_config: crate::Config) -> Result<Self> {
+		tracing::debug!(?api_config, "initializing application state");
 		tracing::debug! {
-			url = %config.database_url,
+			url = %api_config.database_url,
 			min_connections = Self::MIN_DB_CONNECTIONS,
 			max_connections = Self::MAX_DB_CONNECTIONS,
 			"establishing database connection",
 		};
 
-		let config = Arc::new(config);
+		let config = Arc::new(api_config);
 		let database = PoolOptions::new()
 			.min_connections(Self::MIN_DB_CONNECTIONS)
 			.max_connections(Self::MAX_DB_CONNECTIONS)
@@ -74,12 +80,15 @@ impl State {
 		})
 	}
 
-	/// Begins a new database transaction.
+	/// Begins a database transaction.
+	///
+	/// If the returned [`Transaction`] gets dropped without [`Transaction::commit()`] or
+	/// [`Transaction::rollback()`] being called, it will be rolled back.
 	pub async fn transaction(&self) -> Result<Transaction<'_, MySql>> {
 		self.database.begin().await.map_err(Error::from)
 	}
 
-	/// Encodes the given `payload` in a JWT that will expire after a given amount of time.
+	/// Encodes a JWT.
 	pub fn encode_jwt<T>(&self, jwt: Jwt<T>) -> Result<String>
 	where
 		T: Serialize,
@@ -87,7 +96,7 @@ impl State {
 		self.jwt_state.encode(jwt)
 	}
 
-	/// Decodes the given `jwt` into some type `T`.
+	/// Decodes a JWT.
 	pub fn decode_jwt<T>(&self, jwt: &str) -> Result<Jwt<T>>
 	where
 		T: DeserializeOwned,
@@ -108,31 +117,24 @@ impl FromRequestParts<State> for State {
 	}
 }
 
-/// JWT related state such as the secret key and algorithm information.
-#[allow(missing_debug_implementations)]
+/// JWT state for encoding/decoding tokens.
+#[allow(missing_debug_implementations, clippy::missing_docs_in_private_items)]
 struct JwtState {
-	/// Header data to use when signing JWTs.
 	jwt_header: jwt::Header,
-
-	/// Secret key to use when signing JWTs.
 	jwt_encoding_key: jwt::EncodingKey,
-
-	/// Secret key to use when validating JWTs.
 	jwt_decoding_key: jwt::DecodingKey,
-
-	/// Extra validation steps when validating JWTs.
 	jwt_validation: jwt::Validation,
 }
 
 impl JwtState {
 	/// Creates a new [`JwtState`].
-	fn new(config: &crate::Config) -> Result<Self> {
+	fn new(api_config: &crate::Config) -> Result<Self> {
 		let jwt_header = jwt::Header::default();
 
-		let jwt_encoding_key = jwt::EncodingKey::from_base64_secret(&config.jwt_secret)
+		let jwt_encoding_key = jwt::EncodingKey::from_base64_secret(&api_config.jwt_secret)
 			.map_err(|err| Error::encode_jwt(err))?;
 
-		let jwt_decoding_key = jwt::DecodingKey::from_base64_secret(&config.jwt_secret)
+		let jwt_decoding_key = jwt::DecodingKey::from_base64_secret(&api_config.jwt_secret)
 			.map_err(|err| Error::encode_jwt(err))?;
 
 		let jwt_validation = jwt::Validation::default();
@@ -145,7 +147,7 @@ impl JwtState {
 		})
 	}
 
-	/// Encodes the given `payload` in a JWT that will expire after a given amount of time.
+	/// Encodes a JWT.
 	fn encode<T>(&self, jwt: Jwt<T>) -> Result<String>
 	where
 		T: Serialize,
@@ -154,7 +156,7 @@ impl JwtState {
 			.map_err(|err| Error::encode_jwt(err))
 	}
 
-	/// Decodes the given `jwt` into some type `T`.
+	/// Decodes a JWT.
 	fn decode<T>(&self, jwt: &str) -> Result<Jwt<T>>
 	where
 		T: DeserializeOwned,

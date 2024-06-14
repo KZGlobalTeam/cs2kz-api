@@ -1,4 +1,4 @@
-//! Handlers for the `/maps` route.
+//! HTTP handlers for the `/maps` routes.
 
 use std::iter;
 
@@ -23,7 +23,7 @@ use crate::sqlx::{query, FilteredQuery, SqlErrorExt};
 use crate::steam::workshop::{self, WorkshopID};
 use crate::{authentication, authorization, Error, Result, State};
 
-/// Query parameters for `GET /maps`.
+/// Query parameters for `/maps`.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetParams {
 	/// Filter by name.
@@ -35,25 +35,22 @@ pub struct GetParams {
 	/// Filter by global status.
 	global_status: Option<GlobalStatus>,
 
-	/// Filter by creation date.
+	/// Only include maps approved after this date.
 	created_after: Option<DateTime<Utc>>,
 
-	/// Filter by creation date.
+	/// Only include maps approved before this date.
 	created_before: Option<DateTime<Utc>>,
 
-	/// Limit the number of returned results.
+	/// Maximum number of results to return.
 	#[serde(default)]
 	limit: Limit,
 
-	/// Paginate by `offset` entries.
+	/// Pagination offset.
 	#[serde(default)]
 	offset: Offset,
 }
 
 /// Fetch maps.
-///
-/// Any maps returned by this endpoint are currently, or have been previously, accepted into the
-/// global map pool.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -63,7 +60,6 @@ pub struct GetParams {
     responses::Ok<PaginationResponse<FullMap>>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(
@@ -102,7 +98,7 @@ pub async fn get(
 	}
 
 	// not entirely sure if this is correct?
-	if let offset @ 1.. = offset.0 {
+	if let offset @ 1.. = *offset {
 		query.filter(" m.id > ", offset);
 	}
 
@@ -128,9 +124,7 @@ pub async fn get(
 	}))
 }
 
-/// Create / update a map.
-///
-/// This is used whenever a new map is approved, or an existing map receives breaking changes.
+/// Create a new map.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   put,
@@ -143,7 +137,6 @@ pub async fn get(
     responses::BadRequest,
     responses::Unauthorized,
     responses::UnprocessableEntity,
-    responses::InternalServerError,
   ),
 )]
 pub async fn put(
@@ -186,7 +179,7 @@ pub async fn put(
 	Ok(Created(Json(CreatedMap { map_id })))
 }
 
-/// Inserts a new map into the database and returns its ID.
+/// Inserts a new map into the database and returns the generated [`MapID`].
 async fn create_map(
 	name: String,
 	description: Option<String>,
@@ -282,7 +275,7 @@ pub(super) async fn create_mappers(
 	Ok(())
 }
 
-/// Inserts map courses into the database.
+/// Inserts courses into the database and returns the generated [`CourseID`]s.
 async fn create_courses(
 	map_id: MapID,
 	courses: &[NewCourse],
@@ -325,7 +318,7 @@ async fn create_courses(
 	Ok(course_ids)
 }
 
-/// Inserts mappers for a specific course into the database.
+/// Inserts course mappers into the database.
 pub(super) async fn insert_course_mappers(
 	course_id: CourseID,
 	mappers: &[SteamID],
@@ -354,7 +347,7 @@ pub(super) async fn insert_course_mappers(
 	Ok(())
 }
 
-/// Inserts course filters for a specific course into the database.
+/// Inserts course filters into the database and returns the generated [`FilterID`]s.
 async fn insert_course_filters(
 	course_id: CourseID,
 	filters: &[NewFilter; 4],

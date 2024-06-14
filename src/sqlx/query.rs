@@ -1,4 +1,4 @@
-//! Utilities for SQL queries.
+//! Helpers for building SQL queries.
 
 use std::fmt::Display;
 
@@ -8,8 +8,9 @@ use sqlx::{MySql, QueryBuilder, Transaction};
 use crate::openapi::parameters::{Limit, Offset, SortingOrder};
 use crate::Result;
 
-/// Returns the total amount of rows that _could_ have been fetched from a query containing
-/// `LIMIT`. This only works for queries containing `SQL_CALC_FOUND_ROWS`.
+/// Returns the amount of **total** rows a query _could have_ returned, ignoring `LIMIT`.
+///
+/// NOTE: this only works if the query included `SQL_CALC_FOUND_ROWS`
 pub async fn total_rows(transaction: &mut Transaction<'_, MySql>) -> Result<u64> {
 	let total = sqlx::query_scalar!("SELECT FOUND_ROWS() as total")
 		.fetch_one(transaction.as_mut())
@@ -25,16 +26,16 @@ pub trait QueryBuilderExt {
 	/// Pushes `LIMIT` and `OFFSET` clauses into the query.
 	fn push_limits(&mut self, limit: Limit, offset: Offset) -> &mut Self;
 
-	/// Pushes an `ORDER BY` clause into the query.
+	/// Pushes an `ORDER BY` query into the query.
 	fn order_by(&mut self, order: SortingOrder, columns: impl Display) -> &mut Self;
 }
 
 impl QueryBuilderExt for QueryBuilder<'_, MySql> {
 	fn push_limits(&mut self, limit: Limit, offset: Offset) -> &mut Self {
 		self.push(" LIMIT ")
-			.push_bind(limit.0)
+			.push_bind(*limit)
 			.push(" OFFSET ")
-			.push_bind(offset.0)
+			.push_bind(*offset)
 	}
 
 	fn order_by(&mut self, order: SortingOrder, columns: impl Display) -> &mut Self {
@@ -42,23 +43,26 @@ impl QueryBuilderExt for QueryBuilder<'_, MySql> {
 	}
 }
 
-/// Query builder for inserting `WHERE` and `AND` clauses into a query.
+/// A query with `WHERE` / `AND` clauses.
 ///
-/// This can be used transparently like a [`QueryBuilder`], but also has extra methods.
-/// See [`FilteredQuery::filter()`] for more details.
+/// This is a simple wrapper around [`sqlx::QueryBuilder`] that provides a [`filter()`] method to
+/// push either `WHERE` or `AND` clauses into the query, depending on whether a `WHERE` clause has
+/// already been pushed.
+///
+/// [`filter()`]: FilteredQuery::filter
 #[derive(Debug, Deref, DerefMut)]
 pub struct FilteredQuery<'q> {
-	/// The underlying query builder.
+	/// The underlying query.
 	#[deref]
 	#[deref_mut]
 	#[debug(skip)]
 	query: QueryBuilder<'q, MySql>,
 
-	/// The current state of the filter.
+	/// The current filter state.
 	filter: Filter,
 }
 
-/// State machine for determining whether to insert `WHERE` or `AND` into a query.
+/// Query filter state.
 #[derive(Debug, Default, Clone, Copy)]
 enum Filter {
 	/// SQL `WHERE` clause.
@@ -70,7 +74,7 @@ enum Filter {
 }
 
 impl Filter {
-	/// The corresponding SQL for the current state.
+	/// Returns the corresponding SQL keyword for the current state.
 	const fn sql(&self) -> &'static str {
 		match self {
 			Self::Where => " WHERE ",
@@ -80,9 +84,7 @@ impl Filter {
 }
 
 impl<'q> FilteredQuery<'q> {
-	/// Creates a new [`FilteredQuery`] from a base `query`.
-	///
-	/// This is a wrapper over [`QueryBuilder::new()`].
+	/// Creates a new [`FilteredQuery`].
 	pub fn new<S>(query: S) -> Self
 	where
 		S: Into<String>,
@@ -93,12 +95,23 @@ impl<'q> FilteredQuery<'q> {
 		}
 	}
 
-	/// Filter by a specific `column` and compare it with a `value`.
+	/// Pushes a `WHERE` / `AND` clause into the query to filter by `column` and `value`.
 	///
-	/// This will insert `WHERE {column} {value}` into the query, which means the comparison
-	/// operator must be included in `column`.
+	/// # Example
 	///
-	/// `WHERE` / `AND` will be inserted appropriately.
+	/// ```rust,ignore
+	/// let mut query = FilteredQuery::new("SELECT * FROM table");
+	///
+	/// if condition1 {
+	///     query.filter("foo = ", bar);
+	/// }
+	///
+	/// if condition2 {
+	///     query.filter("baz > ", 69);
+	/// }
+	///
+	/// let result = query.build().fetch_all(&database).await?;
+	/// ```
 	pub fn filter<V>(&mut self, column: &str, value: V) -> &mut Self
 	where
 		V: sqlx::Type<MySql> + sqlx::Encode<'q, MySql> + Send + 'q,
@@ -112,8 +125,7 @@ impl<'q> FilteredQuery<'q> {
 		self
 	}
 
-	/// Similar to [`FilteredQuery::filter()`], but instead of comparing a column with a value,
-	/// an `IS NULL` / `IS NOT NULL` check is done instead.
+	/// Pushes a `WHERE` / `AND` clause into the query, checking if a column is (not) `NULL`.
 	pub fn filter_is_null(&mut self, column: &str, is_null: bool) -> &mut Self {
 		self.query
 			.push(self.filter.sql())
@@ -129,13 +141,16 @@ impl<'q> FilteredQuery<'q> {
 	}
 }
 
-/// Query builder for building `UPDATE` queries.
+/// An `UPDATE` query.
 ///
-/// This can be used transparently like a [`QueryBuilder`], but also has extra methods.
-/// See [`UpdateQuery::set()`] for more details.
+/// This is a simple wrapper around [`sqlx::QueryBuilder`] that provides a [`set()`] method to push
+/// either `SET x = y` or `, x = y` into the query, depending on whether the initial `SET` clause
+/// has already been pushed.
+///
+/// [`set()`]: UpdateQuery::set
 #[derive(Debug, Deref, DerefMut)]
 pub struct UpdateQuery<'q> {
-	/// The underlying query builder.
+	/// The underlying query.
 	#[deref]
 	#[deref_mut]
 	#[debug(skip)]
@@ -145,19 +160,19 @@ pub struct UpdateQuery<'q> {
 	delimiter: UpdateDelimiter,
 }
 
-/// State machine for determining whether to insert `SET` or `,` into a query.
+/// `UPDATE` query delimiter state.
 #[derive(Debug, Default, Clone, Copy)]
 enum UpdateDelimiter {
-	/// SQL `SET` clause.
+	/// SQL `SET` clause,
 	#[default]
 	Set,
 
-	/// A literal `,`.
+	/// A `,`.
 	Comma,
 }
 
 impl UpdateDelimiter {
-	/// The corresponding SQL for the current state.
+	/// Returns the corresponding SQL keyword for the current state.
 	const fn sql(&self) -> &'static str {
 		match self {
 			Self::Set => " SET ",
@@ -167,9 +182,7 @@ impl UpdateDelimiter {
 }
 
 impl<'q> UpdateQuery<'q> {
-	/// Creates a new [`UpdateQuery`] for updating the given `table`.
-	///
-	/// This is a wrapper over [`QueryBuilder::new()`] with a base query of `UPDATE {table}`.
+	/// Creates a new [`UpdateQuery`] for the given `table`.
 	pub fn new<S>(table: S) -> Self
 	where
 		S: AsRef<str>,
@@ -183,9 +196,23 @@ impl<'q> UpdateQuery<'q> {
 		}
 	}
 
-	/// Set a specific `column` to some `value`.
+	/// Pushes a `SET x = y` / `, x = y` clause into the query.
 	///
-	/// This will insert `SET {column} = {value}` / `, {column} = {value}` into the query.
+	/// # Example
+	///
+	/// ```rust,ignore
+	/// let mut query = UpdateQuery::new("table");
+	///
+	/// if condition1 {
+	///     query.set("foo", bar);
+	/// }
+	///
+	/// if condition2 {
+	///     query.set("baz", 69);
+	/// }
+	///
+	/// let result = query.build().execute(&database).await?;
+	/// ```
 	pub fn set<V>(&mut self, column: &str, value: V) -> &mut Self
 	where
 		V: sqlx::Type<MySql> + sqlx::Encode<'q, MySql> + Send + 'q,

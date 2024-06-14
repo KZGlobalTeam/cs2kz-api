@@ -1,4 +1,7 @@
-//! Middleware for logging HTTP requests & responses.
+//! Logging middleware.
+//!
+//! Every incoming request and outgoing response is logged using a
+//! [`tower_http::trace::TraceLayer`].
 
 use std::time::Duration;
 
@@ -7,7 +10,8 @@ use axum::response::Response;
 use tower_http::classify::ServerErrorsFailureClass;
 use uuid::Uuid;
 
-/// A tower layer that will log HTTP requests & responses.
+/// Creates a logging middleware.
+// NOTE: this is a macro because this type cannot be spelled out in code
 macro_rules! layer {
 	() => {
 		tower_http::trace::TraceLayer::new_for_http()

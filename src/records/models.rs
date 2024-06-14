@@ -1,4 +1,4 @@
-//! Types used for describing records ("runs") and related concepts.
+//! Types for modeling KZ records.
 
 use chrono::{DateTime, Utc};
 use cs2kz::{Mode, SteamID, Style};
@@ -16,40 +16,40 @@ use crate::time::Seconds;
 
 make_id!(RecordID as u64);
 
-/// A record (or "run").
+/// A KZ record.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Record {
-	/// The record's ID:
+	/// The record's ID.
 	pub id: RecordID,
 
-	/// The mode this run was performed in.
+	/// The mode the record was performed in.
 	pub mode: Mode,
 
-	/// The style(s) this run was performed in.
+	/// The styles that were used.
 	pub styles: Vec<Style>,
 
-	/// The amount of teleports used during this run.
+	/// The amount of teleports used.
 	pub teleports: u16,
 
-	/// The time it took to complete this run.
+	/// The time in seconds.
 	pub time: Seconds,
 
-	/// The player who performed this run.
+	/// The player who performed the record.
 	pub player: Player,
 
-	/// The map this run was performed on.
+	/// The map the record was performed on.
 	pub map: MapInfo,
 
-	/// The course this run was performed on.
+	/// The course the record was performed on.
 	pub course: CourseInfo,
 
-	/// The server this run was performed on.
+	/// The server the record was performed on.
 	pub server: ServerInfo,
 
-	/// Bhop statistics about this run.
+	/// Bhop statistics.
 	pub bhop_stats: BhopStats,
 
-	/// When this run was submitted.
+	/// When this record was submitted.
 	pub created_on: DateTime<Utc>,
 }
 
@@ -76,42 +76,42 @@ impl FromRow<'_, MySqlRow> for Record {
 	}
 }
 
-/// Bhop statistics over a certain time period.
+/// Bhop statistics.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct BhopStats {
-	/// The amount of Bhops.
+	/// The amount of bhops.
 	pub bhops: u16,
 
-	/// The amount of perfect Bhops.
+	/// The amount of perfect bhops.
 	pub perfs: u16,
 }
 
-/// Request body for submitting new records.
+/// Request payload for creating a new record.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewRecord {
-	/// The SteamID of the player who performed this run.
+	/// The SteamID of the player who performed the record.
 	pub player_id: SteamID,
 
-	/// The mode this run was performed in.
+	/// The mode the record was performed in.
 	pub mode: Mode,
 
-	/// The style(s) this run was performed in.
+	/// The styles that were used.
 	pub styles: Vec<Style>,
 
-	/// The ID of the course this run was performed on.
+	/// ID of the course the record was performed on.
 	pub course_id: CourseID,
 
-	/// The amount of teleports used during this run.
+	/// The amount of teleports used.
 	pub teleports: u16,
 
-	/// The time it took to complete this run.
+	/// The time in seconds.
 	pub time: Seconds,
 
-	/// Bhop statistics about this run.
+	/// Bhop statistics.
 	pub bhop_stats: BhopStats,
 }
 
-/// A newly created record.
+/// Response body for creating a new record.
 #[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct CreatedRecord {
 	/// The record's ID.

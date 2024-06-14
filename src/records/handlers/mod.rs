@@ -1,4 +1,4 @@
-//! Handlers for the `/records` routes.
+//! HTTP handlers for the `/records` routes.
 
 pub mod root;
 pub mod top;

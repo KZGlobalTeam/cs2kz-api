@@ -1,4 +1,4 @@
-//! Handlers for the `/servers/key` route.
+//! HTTP handlers for the `/servers/key` routes.
 
 use std::time::Duration;
 
@@ -13,12 +13,9 @@ use crate::plugin::PluginVersionID;
 use crate::servers::{AccessKeyRequest, AccessKeyResponse, RefreshKey, ServerID};
 use crate::{authorization, Error, Result, State};
 
-/// Generate a temporary authentication key for a CS2 server.
+/// Generate a temporary access token using a CS2 server's API key.
 ///
-/// CS2 servers will use this endpoint together with their refresh key, to generate temporary
-/// access keys, which will then be included in any following requests.
-///
-/// See `CS2 Servers` in `ARCHITECTURE.md` in the repository root for more details.
+/// This endpoint is for CS2 servers. They will generate a new access token every ~30min.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
@@ -29,7 +26,6 @@ use crate::{authorization, Error, Result, State};
     responses::BadRequest,
     responses::Unauthorized,
     responses::UnprocessableEntity,
-    responses::InternalServerError,
   ),
 )]
 pub async fn generate_temp(
@@ -57,7 +53,7 @@ pub async fn generate_temp(
 	.fetch_optional(transaction.as_mut())
 	.await?
 	.map(|row| authentication::Server::new(row.server_id, row.plugin_version_id))
-	.ok_or_else(|| Error::invalid_cs2_refresh_key())?;
+	.ok_or_else(|| Error::invalid("token"))?;
 
 	let jwt = Jwt::new(&server, Duration::from_secs(60 * 15));
 	let access_key = state.encode_jwt(jwt)?;
@@ -73,12 +69,7 @@ pub async fn generate_temp(
 	Ok(Created(Json(AccessKeyResponse { access_key })))
 }
 
-/// Generate a new refresh key for a server.
-///
-/// It will immediately invalidate the old **refresh** key, but cannot invalidate **access** keys,
-/// as those are JWTs with set expiration dates.
-///
-/// This endpoint can be used by both admins and server owners.
+/// Generate a new API key for a server, invalidating the old one.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   put,
@@ -90,7 +81,6 @@ pub async fn generate_temp(
     responses::NoContent,
     responses::BadRequest,
     responses::Unauthorized,
-    responses::InternalServerError,
   ),
 )]
 pub async fn put_perma(
@@ -132,12 +122,7 @@ pub async fn put_perma(
 	Ok(Created(Json(RefreshKey { refresh_key })))
 }
 
-/// Delete a server's refresh key.
-///
-/// This can be used to effectively "de-global" server. Keep in mind though, that any previously
-/// generated access keys are not invalidated, and will expire naturally.
-///
-/// This endpoint can only be hit by admins.
+/// Delete a server's API key, preventing them from generating new JWTs.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   delete,
@@ -149,7 +134,6 @@ pub async fn put_perma(
     responses::NoContent,
     responses::BadRequest,
     responses::Unauthorized,
-    responses::InternalServerError,
   ),
 )]
 pub async fn delete_perma(

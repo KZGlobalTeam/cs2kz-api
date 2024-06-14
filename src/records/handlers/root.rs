@@ -1,4 +1,4 @@
-//! Handlers for the `/records` route.
+//! HTTP handlers for the `/records` routes.
 
 use axum::extract::Query;
 use axum::Json;
@@ -17,18 +17,18 @@ use crate::records::{queries, CreatedRecord, NewRecord, Record};
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{Error, Result, State};
 
-/// Query parameters for `GET /records`.
+/// Query parameters for `/records`.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetParams {
 	/// Filter by mode.
 	mode: Option<Mode>,
 
-	/// Filter by style(s).
+	/// Filter by styles.
 	#[param(value_type = Vec<String>)]
 	#[serde(default)]
 	styles: StyleFlags,
 
-	/// Filter by whether teleports where used.
+	/// Filter by whether teleports were used.
 	teleports: Option<bool>,
 
 	/// Filter by player.
@@ -43,34 +43,30 @@ pub struct GetParams {
 	/// Filter by server.
 	server: Option<ServerIdentifier>,
 
-	/// Filter by creation date.
+	/// Only include records submitted after this date.
 	created_after: Option<DateTime<Utc>>,
 
-	/// Filter by creation date.
+	/// Only include records submitted before this date.
 	created_before: Option<DateTime<Utc>>,
 
-	/// Sort by a specific property.
-	///
-	/// Defaults to "date".
+	/// Which field to sort the results by.
 	#[serde(default)]
 	sort_by: SortRecordsBy,
 
-	/// Decide the sorting order.
-	///
-	/// Defaults to "ascending".
+	/// Which order to sort the results in.
 	#[serde(default)]
 	sort_order: SortingOrder,
 
-	/// Limit the number of returned results.
+	/// Maximum number of results to return.
 	#[serde(default)]
 	limit: Limit,
 
-	/// Paginate by `offset` entries.
+	/// Pagination offset.
 	#[serde(default)]
 	offset: Offset,
 }
 
-/// Sort records.
+/// Fields to sort records by.
 #[derive(Debug, Default, Clone, Copy, Deserialize, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum SortRecordsBy {
@@ -93,7 +89,6 @@ pub enum SortRecordsBy {
     responses::Ok<PaginationResponse<Record>>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(
@@ -199,8 +194,6 @@ pub async fn get(
 }
 
 /// Create a new record.
-///
-/// This is used by CS2 servers to submit new records.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
@@ -212,7 +205,6 @@ pub async fn get(
     responses::Created<CreatedRecord>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn post(

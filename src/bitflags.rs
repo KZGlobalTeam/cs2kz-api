@@ -1,8 +1,10 @@
-//! Helper macro for creating "bitflag" types.
+//! Helper macro for creating bitflag-like types.
 
 use thiserror::Error;
 
-/// Creates an integer wrapper that can be used for "flags".
+/// Creates types and methods for "bitflag" types.
+///
+/// See usages of this macro for examples.
 #[macro_export]
 macro_rules! bitflags {
 	(
@@ -24,18 +26,17 @@ macro_rules! bitflags {
 		#[allow(dead_code)]
 		impl $name {
 			#[doc = concat!("Create a new [`", stringify!($name), "`].")]
-			///
-			/// This will discard any invalid bits.
 			pub const fn new(value: $repr) -> Self {
 				Self(value & Self::ALL.0)
 			}
 
-			/// Get the underlying integer value.
+			/// Returns the underlying integer value.
 			pub const fn value(self) -> $repr {
 				self.0
 			}
 
-			/// Get the name of the flag, if `self` only contains 1 flag.
+			/// If `self` currently has 1 bit set, this function will return the name
+			/// of that bit.
 			pub const fn name(self) -> Option<&'static str> {
 				match self {
 					$(
@@ -45,12 +46,12 @@ macro_rules! bitflags {
 				}
 			}
 
-			/// Check if `other` is a subset of `self`.
+			/// Checks if `other` is a subset of `self`.
 			pub const fn contains(self, other: Self) -> bool {
 				(self.0 & other.0) == other.0
 			}
 
-			/// The 0-value.
+			/// The all-zeroes bit pattern.
 			pub const NONE: Self = Self(0);
 
 			$(
@@ -220,8 +221,7 @@ macro_rules! bitflags {
 	};
 }
 
-/// Indicates a failure when parsing the string representation of a flag created with
-/// [`bitflags!()`].
+/// An error for parsing strings into bitflags.
 #[derive(Debug, Error)]
 #[error("unknown flag `{0}`")]
 pub struct UnknownFlag(pub String);

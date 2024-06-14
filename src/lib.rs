@@ -9,7 +9,6 @@ use std::net::SocketAddr;
 use anyhow::Context;
 use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 use axum::extract::ConnectInfo;
-use axum::serve::Serve;
 use axum::{routing, Router};
 use tokio::net::TcpListener;
 use tokio::signal;
@@ -51,13 +50,16 @@ pub mod game_sessions;
 pub mod admins;
 pub mod plugin;
 
-/// This is nasty.
-type Server = Serve<
+#[allow(clippy::missing_docs_in_private_items)]
+type Server = axum::serve::Serve<
 	IntoMakeServiceWithConnectInfo<Router, SocketAddr>,
 	axum::middleware::AddExtension<Router, ConnectInfo<SocketAddr>>,
 >;
 
 /// Run the API.
+///
+/// This function will not exit until a SIGINT signal is received.
+/// If you want to supply a custom signal for graceful shutdown, use [`run_until()`] instead.
 pub async fn run(config: Config) -> anyhow::Result<()> {
 	server(config)
 		.await
@@ -67,7 +69,10 @@ pub async fn run(config: Config) -> anyhow::Result<()> {
 		.context("run http server")
 }
 
-/// Run the API, until the given `until` future completes.
+/// Run the API until a given future completes.
+///
+/// This function is the same as [`run()`], except that it also waits for the provided `until`
+/// future, and shuts down the server when that future resolves.
 pub async fn run_until<Until>(config: Config, until: Until) -> anyhow::Result<()>
 where
 	Until: Future<Output = ()> + Send + 'static,
@@ -85,7 +90,9 @@ where
 		.context("run http server")
 }
 
-/// Creates an axum server that will serve the API.
+/// Runs the necessary setup for the API and returns a future that will run the server when polled.
+///
+/// See [`run()`] and [`run_until()`].
 async fn server(config: Config) -> anyhow::Result<Server> {
 	tracing::debug!(addr = %config.addr, "establishing TCP connection");
 
@@ -127,7 +134,7 @@ async fn server(config: Config) -> anyhow::Result<Server> {
 	Ok(axum::serve(tcp_listener, api_service))
 }
 
-/// Waits for and handles potential errors from SIGINT (ctrl+c) from the OS.
+/// Waits for a SIGINT signal from the operating system.
 #[tracing::instrument(name = "runtime::signals")]
 async fn sigint() {
 	let signal_result = signal::ctrl_c().await;

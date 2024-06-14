@@ -1,4 +1,4 @@
-//! Handlers for the `/auth` routes.
+//! HTTP handlers for the `/auth` routes.
 
 use std::net::SocketAddr;
 
@@ -14,18 +14,17 @@ use utoipa::IntoParams;
 use crate::openapi::responses;
 use crate::{authentication, steam, Result, State};
 
-/// Query parameters for logging in with Steam.
+/// Query parameters for the login endpoint.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct LoginParams {
-	/// Where the user wants to be redirected to after the login process is done.
+	/// URL to redirect the user back to after a successful login.
 	redirect_to: Url,
 }
 
-/// Log in with Steam.
+/// Login with Steam.
 ///
-/// This will redirect to Steam, and after you login, you will be sent back to `/auth/callback`,
-/// and then to whatever the `redirect_to` query parameter is set to. A cookie with a session ID
-/// will be inserted.
+/// This will redirect the user to Steam, where they can login. A session for them will be created
+/// and they're redirected back to `redirect_to`.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -35,29 +34,27 @@ pub struct LoginParams {
   responses(//
     responses::SeeOther,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn login(
 	state: State,
 	Query(LoginParams { redirect_to }): Query<LoginParams>,
 ) -> Redirect {
-	steam::authentication::LoginForm::new(state.config.public_url.clone()).redirect_to(&redirect_to)
+	authentication::steam::LoginForm::new(state.config.public_url.clone()).redirect_to(&redirect_to)
 }
 
-/// Query parameters for logging out.
+/// Query parameters for the logout endpoint.
 #[derive(Debug, Clone, Copy, Deserialize, IntoParams)]
 pub struct LogoutParams {
-	/// Whether *all* previous sessions should be invalidated.
+	/// Whether to invalidate all (still valid) sessions of this user.
 	#[serde(default)]
 	invalidate_all_sessions: bool,
 }
 
-/// Log out again.
+/// Logout again.
 ///
-/// This will invalidate your current session and delete your cookie.
-/// If you wish to invalidate all other existing sessions as well, set
-/// `invalidate_all_sessions=true`.
+/// This will invalidate your current session, and potentially every other session as well (if
+/// `invalidate_all_sessions=true` is specified).
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -65,11 +62,10 @@ pub struct LogoutParams {
   tag = "Auth",
   security(("Browser Session" = [])),
   params(LogoutParams),
-  responses(//
+  responses(
     responses::SeeOther,
     responses::BadRequest,
     responses::Unauthorized,
-    responses::InternalServerError,
   ),
 )]
 pub async fn logout(
@@ -92,25 +88,26 @@ pub async fn logout(
 	Ok((session, StatusCode::OK))
 }
 
-/// The callback endpoint that will be hit by Steam after a successful login.
+/// The endpoint hit by Steam after a successful login.
+///
+/// This should not be used directly, and trying to do so will lead to errors.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
   path = "/auth/callback",
   tag = "Auth",
-  params(steam::authentication::LoginResponse),
+  params(authentication::steam::LoginResponse),
   responses(
     responses::Ok<()>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn callback(
 	state: State,
 	req_addr: ConnectInfo<SocketAddr>,
 	cookies: CookieJar,
-	login: steam::authentication::LoginResponse,
+	login: authentication::steam::LoginResponse,
 	user: steam::User,
 ) -> Result<(CookieJar, Redirect)> {
 	let transaction = state.transaction().await?;

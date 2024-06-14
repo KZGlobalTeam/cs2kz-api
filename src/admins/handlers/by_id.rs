@@ -1,4 +1,4 @@
-//! Handlers for the `/admins/{steam_id}` route.
+//! HTTP handlers for the `/admins/{steam_id}` routes.
 
 use axum::extract::Path;
 use axum::Json;
@@ -21,7 +21,6 @@ use crate::{authentication, Error, Result, State};
     responses::Ok<Admin>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(state: State, Path(steam_id): Path<SteamID>) -> Result<Json<Admin>> {
@@ -50,9 +49,9 @@ pub async fn get(state: State, Path(steam_id): Path<SteamID>) -> Result<Json<Adm
 	Ok(Json(admin))
 }
 
-/// Create / update an admin's permissions.
+/// Create/Update an admin.
 ///
-/// This will completely replace their previous set of permissions!
+/// This endpoint is idempotent!
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   put,
@@ -66,7 +65,6 @@ pub async fn get(state: State, Path(steam_id): Path<SteamID>) -> Result<Json<Adm
     responses::BadRequest,
     responses::Unauthorized,
     responses::UnprocessableEntity,
-    responses::InternalServerError,
   ),
 )]
 pub async fn put(

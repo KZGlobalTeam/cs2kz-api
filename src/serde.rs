@@ -1,10 +1,10 @@
-//! Helpers for [`serde`].
+//! Custom [`serde`] functions.
 
-/// [`serde`] helpers for [`String`].
+#![allow(missing_docs)]
+
 pub mod string {
 	use serde::{Deserialize, Deserializer};
 
-	/// Deserializes a `String`, but treats empty arrays as `None`.
 	pub fn deserialize_empty_as_none<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 	where
 		D: Deserializer<'de>,
@@ -21,11 +21,9 @@ pub mod string {
 	}
 }
 
-/// [`serde`] helpers for [`Vec<T>`].
 pub mod vec {
 	use serde::{de, Deserialize, Deserializer};
 
-	/// Deserialize a `Vec<T>` that is non-empty.
 	pub fn deserialize_non_empty<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
 	where
 		D: Deserializer<'de>,
@@ -40,7 +38,6 @@ pub mod vec {
 		Ok(vec)
 	}
 
-	/// Deserializes a `Vec<T>`, but treats empty arrays as `None`.
 	pub fn deserialize_empty_as_none<'de, D, T>(deserializer: D) -> Result<Option<Vec<T>>, D::Error>
 	where
 		D: Deserializer<'de>,
@@ -58,15 +55,11 @@ pub mod vec {
 	}
 }
 
-/// [`serde`] helpers for [`BTreeMap<K, V>`].
-///
-/// [`BTreeMap<K, V>`]: std::collections::BTreeMap
 pub mod btree_map {
 	use std::collections::BTreeMap;
 
 	use serde::{Deserialize, Deserializer};
 
-	/// Deserializes a `BTreeMap<K, V>`, but treats empty arrays as `None`.
 	pub fn deserialize_empty_as_none<'de, D, K, V>(
 		deserializer: D,
 	) -> Result<Option<BTreeMap<K, V>>, D::Error>
@@ -87,14 +80,10 @@ pub mod btree_map {
 	}
 }
 
-/// [`serde`] helpers for [`semver::Version`].
-///
-/// [`semver::Version`]: ::semver::Version
 pub mod semver {
 	use semver::Version;
 	use serde::{de, Deserialize, Deserializer};
 
-	/// Deserializes plugin version names submitted by GitHub actions.
 	pub fn deserialize_plugin_version<'de, D>(deserializer: D) -> Result<Version, D::Error>
 	where
 		D: Deserializer<'de>,

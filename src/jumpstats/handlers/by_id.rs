@@ -1,4 +1,4 @@
-//! Handlers for the `/jumpstats/{jumpstat_id}` route.
+//! HTTP handlers for the `/jumpstats/{jumpstat_id}` routes.
 
 use axum::extract::Path;
 use axum::Json;
@@ -19,7 +19,6 @@ use crate::{Error, Result, State};
     responses::Ok<Jumpstat>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(state: State, Path(jumpstat_id): Path<JumpstatID>) -> Result<Json<Jumpstat>> {

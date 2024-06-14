@@ -1,4 +1,4 @@
-//! Everything related to bans.
+//! Everything related to KZ player bans.
 
 use axum::http::Method;
 use axum::routing::{delete, get, patch, post};
@@ -17,7 +17,7 @@ pub use models::{
 mod queries;
 pub mod handlers;
 
-/// Returns a router with routes for `/bans`.
+/// Returns an [`axum::Router`] for the `/bans` routes.
 pub fn router(state: State) -> Router {
 	let auth = session_auth!(
 		authorization::HasPermissions<{ Permissions::BANS.value() }>,

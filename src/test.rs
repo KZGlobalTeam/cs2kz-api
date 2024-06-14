@@ -1,3 +1,5 @@
+//! Utilities for unit & integration tests.
+
 use std::fmt::Display;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::time::Duration;
@@ -22,7 +24,7 @@ use crate::plugin::PluginVersionID;
 use crate::servers::ServerID;
 use crate::{steam, Config, Result};
 
-/// Wrapper over std's `assert!()` macro that uses [`anyhow::ensure!()`] instead.
+/// Replacement for the builtin [`assert!()`] macro that uses [`anyhow::ensure!()`] instead.
 macro_rules! assert {
 	($($t:tt)*) => {
 		::anyhow::ensure!($($t)*)
@@ -31,7 +33,7 @@ macro_rules! assert {
 
 pub(crate) use assert;
 
-/// Wrapper over std's `assert_eq!()` macro that uses [`anyhow::ensure!()`] instead.
+/// Replacement for the builtin [`assert_eq!()`] macro that uses [`anyhow::ensure!()`] instead.
 macro_rules! assert_eq {
 	($left:expr, $right:expr $(,)?) => {
 		if $left != $right {
@@ -45,7 +47,7 @@ macro_rules! assert_eq {
 
 pub(crate) use assert_eq;
 
-/// Wrapper over std's `assert_ne!()` macro that uses [`anyhow::ensure!()`] instead.
+/// Replacement for the builtin [`assert_ne!()`] macro that uses [`anyhow::ensure!()`] instead.
 macro_rules! assert_ne {
 	($left:expr, $right:expr $(,)?) => {
 		if $left == $right {
@@ -59,48 +61,42 @@ macro_rules! assert_ne {
 
 pub(crate) use assert_ne;
 
-/// Test "context" to take care of setup & cleanup for integration tests.
+/// Test context.
 ///
-/// Every test will get its own database and API instance. This struct takes care of creating the
-/// database and running migrations
+/// An instance of this struct is passed to every integration test.
+#[allow(clippy::missing_docs_in_private_items)]
 pub(crate) struct Context {
+	/// The test's ID.
 	pub test_id: Uuid,
 
-	/// API configuration.
-	pub config: &'static crate::Config,
+	/// The configuration to pass to this test's API instance.
+	pub api_config: crate::Config,
 
-	/// An HTTP client for making requests.
+	/// An HTTP client for making API requests.
 	pub http_client: reqwest::Client,
 
-	/// A database connection.
+	/// Database connection pool.
 	pub database: Pool<MySql>,
 
-	/// A shutdown signal to have the API shutdown cleanly.
+	/// Shutdown signal to gracefully shutdown the API at the end of a test.
 	shutdown: oneshot::Sender<()>,
 
-	/// Handle to the API's background task.
+	/// The [`tokio::task`] running the API.
 	api_task: task::JoinHandle<anyhow::Result<()>>,
 
-	/// Database container handle.
+	/// Handle to a docker container running a database exclusively for this test.
 	database_container: ContainerAsync<Mariadb>,
 
-	/// Header data to use when signing JWTs.
 	jwt_header: jwt::Header,
-
-	/// Secret key to use when signing JWTs.
 	jwt_encoding_key: jwt::EncodingKey,
-
-	/// Secret key to use when validating JWTs.
 	jwt_decoding_key: jwt::DecodingKey,
-
-	/// Extra validation steps when validating JWTs.
 	jwt_validation: jwt::Validation,
 }
 
 impl Context {
-	/// Create a new test context.
+	/// Creates a new [`Context`].
 	///
-	/// This is called in macro code and so should not be invoked manually.
+	/// This is used by macro code and should not be called manually.
 	#[doc(hidden)]
 	pub async fn new() -> anyhow::Result<Self> {
 		let test_id = Uuid::now_v7();
@@ -108,11 +104,7 @@ impl Context {
 		eprintln!("[{test_id}] setting up");
 		eprintln!("[{test_id}] loading config");
 
-		let config = Config::new()
-			.map(Box::new)
-			.map(Box::leak)
-			.context("load config")?;
-
+		let mut config = Config::new().context("load config")?;
 		let port = thread_rng().gen_range(5000..=50000);
 
 		config.addr.set_port(port);
@@ -147,7 +139,6 @@ impl Context {
 		config.database_url.set_ip_host(database_ip).unwrap();
 		config.database_url.set_port(Some(database_port)).unwrap();
 
-		let config: &'static Config = config;
 		let http_client = reqwest::Client::new();
 		let jwt_header = jwt::Header::default();
 		let jwt_encoding_key = jwt::EncodingKey::from_base64_secret(&config.jwt_secret)?;
@@ -174,15 +165,14 @@ impl Context {
 			.context("run migrations")?;
 
 		let (shutdown, shutdown_rx) = oneshot::channel();
-		let api_task = task::spawn(async move {
+		let api_task = task::spawn({
 			eprintln!("[{test_id}] spawning API task");
-			crate::run_until(config.clone(), async move {
-				_ = shutdown_rx.await;
-			})
-			.await
-			.context("run api")?;
 
-			anyhow::Ok(())
+			let fut = crate::run_until(config.clone(), async move {
+				_ = shutdown_rx.await;
+			});
+
+			async move { fut.await.context("run api") }
 		});
 
 		// let the API start up
@@ -192,7 +182,7 @@ impl Context {
 
 		Ok(Context {
 			test_id,
-			config,
+			api_config: config,
 			http_client,
 			database,
 			shutdown,
@@ -205,14 +195,14 @@ impl Context {
 		})
 	}
 
-	/// Run cleanup logic after a test.
+	/// Performs cleanup after a successful test.
 	///
-	/// This is called in macro code and so should not be invoked manually.
+	/// This is used by macro code and should not be called manually.
 	#[doc(hidden)]
 	pub async fn cleanup(self) -> anyhow::Result<()> {
 		let Self {
 			test_id,
-			config,
+			api_config: config,
 			shutdown,
 			api_task,
 			database_container,
@@ -246,34 +236,38 @@ impl Context {
 		Ok(())
 	}
 
+	/// Generates a URL for the given `path` that can be used to make an API request.
 	pub fn url<P>(&self, path: P) -> Url
 	where
 		P: Display,
 	{
-		self.config
+		self.api_config
 			.public_url
 			.join(&format!("{path}"))
 			.expect("invalid url path")
 	}
 
+	/// Generates a JWT for a fake CS2 server.
 	pub fn auth_server(&self, expires_after: Duration) -> Result<String, jwt::errors::Error> {
 		let server = authentication::Server::new(ServerID(1), PluginVersionID(1));
 
 		self.encode_jwt(&server, expires_after)
 	}
 
+	/// Generates a fake session for the player with the given `steam_id`.
 	pub async fn auth_session(&self, steam_id: SteamID) -> Result<authentication::Session> {
 		let user = steam::User::invalid(steam_id);
 
 		authentication::Session::create(
 			&user,
 			Ipv6Addr::LOCALHOST.into(),
-			self.config,
+			&self.api_config,
 			self.database.begin().await?,
 		)
 		.await
 	}
 
+	/// Encodes a JWT.
 	pub fn encode_jwt<T>(
 		&self,
 		payload: &T,
@@ -289,6 +283,7 @@ impl Context {
 		)
 	}
 
+	/// Decodes a JWT.
 	pub fn decode_jwt<T>(&self, jwt: &str) -> Result<Jwt<T>, jwt::errors::Error>
 	where
 		T: DeserializeOwned,
@@ -297,6 +292,7 @@ impl Context {
 	}
 }
 
+/// This function runs before every test to set up things like logging.
 #[ctor::ctor]
 fn setup() {
 	use std::{env, io};
@@ -325,7 +321,7 @@ fn setup() {
 async fn hello_world(ctx: &Context) {
 	let response = ctx
 		.http_client
-		.get(ctx.config.public_url.as_str())
+		.get(ctx.api_config.public_url.as_str())
 		.send()
 		.await?;
 

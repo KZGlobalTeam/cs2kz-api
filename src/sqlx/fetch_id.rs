@@ -1,4 +1,4 @@
-//! Utility trait for fetching IDs of various things from the database.
+//! Extension trait to fetch IDs from the database.
 
 use std::future::Future;
 
@@ -9,11 +9,10 @@ use crate::maps::{CourseID, MapID};
 use crate::servers::ServerID;
 use crate::{Error, Result};
 
-/// Helper trait for querying IDs from the database.
-///
-/// This is mainly intended for the `*Identifier` types from the [`cs2kz`] crate.
+/// An extension trait for "ID or name" types, that will fetch an ID from the database by looking
+/// up a name, if necessary.
 pub trait FetchID {
-	/// The ID that should be fetched.
+	/// The ID type.
 	type ID;
 
 	/// Fetches an ID from the database if necessary.

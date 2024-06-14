@@ -1,4 +1,4 @@
-//! Everything related to logging.
+//! Log-capturing facilities.
 
 use anyhow::Context;
 use tracing_appender::non_blocking::WorkerGuard;
@@ -8,7 +8,10 @@ use tracing_subscriber::util::SubscriberInitExt;
 mod stderr;
 mod files;
 
-/// Initializes the global tracing subscriber.
+/// Initializes [`tracing-subscriber`].
+///
+/// NOTE: the returned [`WorkerGuard`] will perform cleanup for the tracing layer that emits logs
+///       to files, which means it has to stay alive until the program exits!
 pub fn init() -> anyhow::Result<WorkerGuard> {
 	let (files_layer, guard, log_dir) = files::layer().context("files layer")?;
 	let registry = tracing_subscriber::registry()

@@ -12,7 +12,7 @@ pub use models::{CreatedJumpstat, Jumpstat, JumpstatID, NewJumpstat};
 mod queries;
 pub mod handlers;
 
-/// Returns a router with routes for `/jumpstats`.
+/// Returns an [`axum::Router`] for the `/jumpstats` routes.
 pub fn router(state: State) -> Router {
 	let root = Router::new()
 		.route("/", get(handlers::root::get))

@@ -1,4 +1,4 @@
-//! Handlers for the `/jumpstats/{jumpstat_id}/replay` route.
+//! HTTP handlers for the `/jumpstats/{jumpstat_id}/replay` routes.
 
 use axum::extract::Path;
 use axum::http::StatusCode;
@@ -6,7 +6,7 @@ use axum::http::StatusCode;
 use crate::jumpstats::JumpstatID;
 use crate::openapi::responses;
 
-/// Fetch the replay file for a specific jumpstat.
+/// Fetch a jumpstat replay.
 #[tracing::instrument]
 #[utoipa::path(
   get,
@@ -17,7 +17,6 @@ use crate::openapi::responses;
     responses::Ok<()>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(Path(_jumpstat_id): Path<JumpstatID>) -> StatusCode {

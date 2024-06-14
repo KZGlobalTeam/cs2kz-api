@@ -1,4 +1,4 @@
-//! Types used for describing jumpstats.
+//! Types for modeling jumpstats.
 
 use chrono::{DateTime, Utc};
 use cs2kz::{JumpType, Mode, SteamID};
@@ -14,7 +14,7 @@ use crate::time::Seconds;
 
 make_id!(JumpstatID as u64);
 
-/// A jumpstat.
+/// A KZ jumpstat.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Jumpstat {
 	/// The jumpstat's ID.
@@ -24,40 +24,40 @@ pub struct Jumpstat {
 	#[serde(rename = "type")]
 	pub jump_type: JumpType,
 
-	/// The mode this jump was performed in.
+	/// The mode the jump was performed in.
 	pub mode: Mode,
 
-	/// The player this jump was performed by.
+	/// The player who performed the jump.
 	pub player: Player,
 
-	/// The server this jump was performed on.
+	/// The server the jump was performed on.
 	pub server: ServerInfo,
 
-	/// The amount of strafes done in this jump.
+	/// How many strafes the player performed during the jump.
 	pub strafes: u8,
 
-	/// The jump's distance.
+	/// The distance cleared by the jump.
 	pub distance: f32,
 
-	/// The % of how much airtime was spent gaining speed.
+	/// The % of airtime spent gaining speed.
 	pub sync: f32,
 
-	/// The jump's speed at jumpoff.
+	/// The speed at jumpoff.
 	pub pre: f32,
 
 	/// The maximum speed during the jump.
 	pub max: f32,
 
-	/// The % of how much airtime was spent pressing both directional keys at once.
-	pub overlap: f32,
+	/// The amount of time spent pressing both strafe keys.
+	pub overlap: Seconds,
 
-	/// The % of how much airtime keys were pressed but no speed was gained.
-	pub bad_angles: f32,
+	/// The amount of time spent pressing keys but not gaining speed.
+	pub bad_angles: Seconds,
 
-	/// The % of how much airtime was spent not gaining speed.
-	pub dead_air: f32,
+	/// The amount of time spent doing nothing.
+	pub dead_air: Seconds,
 
-	/// The maximum height during this jump (in units).
+	/// The maximum height reached during the jump.
 	pub height: f32,
 
 	/// How close to a perfect airpath this jump was.
@@ -65,16 +65,16 @@ pub struct Jumpstat {
 	/// The closer to 1.0 the better.
 	pub airpath: f32,
 
-	/// How far the landing point deviates from the jumpoff point.
+	/// How far the landing position deviates from the jumpoff position.
 	pub deviation: f32,
 
 	/// The average strafe width.
 	pub average_width: f32,
 
-	/// How much time the player spent in the air.
+	/// The amount of time spent mid-air.
 	pub airtime: Seconds,
 
-	/// When this jump was submitted.
+	/// When this jumpstat was submitted.
 	pub created_on: DateTime<Utc>,
 }
 
@@ -104,44 +104,44 @@ impl FromRow<'_, MySqlRow> for Jumpstat {
 	}
 }
 
-/// Request body for submitting new jumpstats.
+/// Request payload for creating a new jumpstat.
 #[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
 pub struct NewJumpstat {
 	/// The jump type.
 	#[serde(rename = "type")]
 	pub jump_type: JumpType,
 
-	/// The mode this jump was performed in.
+	/// The mode the jump was performed in.
 	pub mode: Mode,
 
-	/// The SteamID of the player who performed this jump.
+	/// The SteamID of the player who performed the jump.
 	pub player_id: SteamID,
 
-	/// The amount of strafes done in this jump.
+	/// How many strafes the player performed during the jump.
 	pub strafes: u8,
 
-	/// The jump's distance.
+	/// The distance cleared by the jump.
 	pub distance: f32,
 
-	/// The % of how much airtime was spent gaining speed.
+	/// The % of airtime spent gaining speed.
 	pub sync: f32,
 
-	/// The jump's speed at jumpoff.
+	/// The speed at jumpoff.
 	pub pre: f32,
 
 	/// The maximum speed during the jump.
 	pub max: f32,
 
-	/// The % of how much airtime was spent pressing both directional keys at once.
-	pub overlap: f32,
+	/// The amount of time spent pressing both strafe keys.
+	pub overlap: Seconds,
 
-	/// The % of how much airtime keys were pressed but no speed was gained.
-	pub bad_angles: f32,
+	/// The amount of time spent pressing keys but not gaining speed.
+	pub bad_angles: Seconds,
 
-	/// The % of how much airtime was spent not gaining speed.
-	pub dead_air: f32,
+	/// The amount of time spent doing nothing.
+	pub dead_air: Seconds,
 
-	/// The maximum height during this jump (in units).
+	/// The maximum height reached during the jump.
 	pub height: f32,
 
 	/// How close to a perfect airpath this jump was.
@@ -149,17 +149,17 @@ pub struct NewJumpstat {
 	/// The closer to 1.0 the better.
 	pub airpath: f32,
 
-	/// How far the landing point deviates from the jumpoff point.
+	/// How far the landing position deviates from the jumpoff position.
 	pub deviation: f32,
 
 	/// The average strafe width.
 	pub average_width: f32,
 
-	/// How much time the player spent in the air.
+	/// The amount of time spent mid-air.
 	pub airtime: Seconds,
 }
 
-/// A newly created jumpstat.
+/// Response body for creating a new jumpstat.
 #[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct CreatedJumpstat {
 	/// The jumpstat's ID.

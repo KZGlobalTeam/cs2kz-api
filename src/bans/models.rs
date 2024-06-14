@@ -1,4 +1,4 @@
-//! Types used for describing bans and related concepts.
+//! Types for modeling KZ player bans.
 
 use std::net::IpAddr;
 use std::str::FromStr;
@@ -25,17 +25,17 @@ pub struct Ban {
 	/// The ban's ID.
 	pub id: BanID,
 
-	/// The player affected by this ban.
+	/// The player who the ban applies to.
 	pub player: Player,
 
-	/// The server that the ban happened on.
+	/// The server the player was banned on.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub server: Option<ServerInfo>,
 
-	/// The reason for this ban.
+	/// The reason the player was banned for.
 	pub reason: BanReason,
 
-	/// The admin who issued this ban.
+	/// The admin who banned the player.
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub admin: Option<Player>,
 
@@ -45,7 +45,7 @@ pub struct Ban {
 	/// When this ban will expire.
 	pub expires_on: Option<DateTime<Utc>>,
 
-	/// The unban associated with this ban.
+	/// The corresponding unban to this ban (if any).
 	#[serde(skip_serializing_if = "Option::is_none")]
 	pub unban: Option<Unban>,
 }
@@ -69,20 +69,17 @@ impl FromRow<'_, MySqlRow> for Ban {
 	}
 }
 
-/// The different reasons for which players can be banned.
+/// Ban reasons.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
+#[allow(missing_docs)]
 pub enum BanReason {
-	/// Perfect strafes
 	AutoStrafe,
-
-	/// Perfect bhops
 	AutoBhop,
 }
 
 impl BanReason {
-	/// A string format compatible with the API.
-	#[inline]
+	/// Stringified version that is also expected when parsing a string into a [`BanReason`].
 	pub const fn as_str(&self) -> &'static str {
 		match self {
 			BanReason::AutoStrafe => "auto_strafe",
@@ -90,7 +87,7 @@ impl BanReason {
 		}
 	}
 
-	/// Calculates the ban duration for this particular reason and the amount of previous bans.
+	/// Calculates the ban duration given the amount of previous bans.
 	pub const fn duration(&self, previous_offenses: u8) -> Duration {
 		match (self, previous_offenses) {
 			(Self::AutoStrafe, 0) => Duration::weeks(2),
@@ -103,7 +100,7 @@ impl BanReason {
 	}
 }
 
-/// Parsing a [`BanReason`] from a string failed.
+/// An error for parsing ban reasons.
 #[derive(Debug, Error)]
 #[error("`{0}` is not a valid ban reason")]
 pub struct InvalidBanReason(String);
@@ -144,7 +141,7 @@ impl<'q> sqlx::Decode<'q, MySql> for BanReason {
 	}
 }
 
-/// A reverted ban.
+/// Reversion of a `Ban`.
 #[derive(Debug, Serialize, ToSchema)]
 pub struct Unban {
 	/// The unban's ID.
@@ -153,10 +150,11 @@ pub struct Unban {
 	/// The reason for the unban.
 	pub reason: String,
 
-	/// The admin who reverted this ban.
+	/// The admin who reverted the ban.
+	#[serde(skip_serializing_if = "Option::is_none")]
 	pub admin: Option<Player>,
 
-	/// When the ban was reverted.
+	/// When this ban was reverted.
 	pub created_on: DateTime<Utc>,
 }
 
@@ -175,28 +173,28 @@ impl FromRow<'_, MySqlRow> for Unban {
 	}
 }
 
-/// Request body for submitting new bans.
+/// Request payload for submitting a new ban.
 #[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
 pub struct NewBan {
-	/// The player's SteamID.
+	/// The SteamID of the player who should be banned.
 	pub player_id: SteamID,
 
-	/// The player's IP address.
+	/// The IP address of the player who should be banned.
 	#[schema(value_type = Option<String>)]
 	pub player_ip: Option<IpAddr>,
 
-	/// The ban reason.
+	/// The reason for the ban.
 	pub reason: BanReason,
 }
 
-/// A newly created ban.
+/// Response body for submitting a new ban.
 #[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct CreatedBan {
 	/// The ban's ID.
 	pub ban_id: BanID,
 }
 
-/// Request body for updating bans.
+/// Request payload for updating an existing ban.
 #[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
 pub struct BanUpdate {
 	/// A new ban reason.
@@ -204,20 +202,20 @@ pub struct BanUpdate {
 
 	/// A new expiration date.
 	///
-	/// Not specifying this at all means the expiration date will not be modified.
-	/// If this is explicitly `null`, the expiration date will be deleted and the ban counts as
-	/// permanent.
+	/// If this field is omitted, nothing will happen.
+	/// If it is explicitly set to `null`, the expiration date will be set to `NULL`
+	/// (permanent).
 	pub expires_on: Option<Option<DateTime<Utc>>>,
 }
 
-/// Request body for reverting a ban.
+/// Request payload for submitting an unban.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewUnban {
-	/// The reason this ban should be reverted.
+	/// The reason for the unban.
 	pub reason: String,
 }
 
-/// A newly reverted ban.
+/// Response body for creating a new unban.
 #[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct CreatedUnban {
 	/// The unban's ID.

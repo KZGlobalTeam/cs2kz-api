@@ -1,4 +1,4 @@
-//! Handlers for the `/admins` route.
+//! HTTP handlers for the `/admins` routes.
 
 use axum::Json;
 use axum_extra::extract::Query;
@@ -14,7 +14,7 @@ use crate::openapi::responses::PaginationResponse;
 use crate::sqlx::query;
 use crate::{Error, Result, State};
 
-/// Query parameters for `GET /admins`.
+/// Query parameters for `/admins`.
 #[derive(Debug, Clone, Copy, Deserialize, IntoParams)]
 pub struct GetParams {
 	/// Filter by permissions.
@@ -22,11 +22,11 @@ pub struct GetParams {
 	#[serde(default)]
 	permissions: Permissions,
 
-	/// Limit the number of returned results.
+	/// Maximum number of results to return.
 	#[serde(default)]
 	limit: Limit,
 
-	/// Paginate by `offset` entries.
+	/// Pagination offset.
 	#[serde(default)]
 	offset: Offset,
 }
@@ -42,7 +42,6 @@ pub struct GetParams {
     responses::Ok<PaginationResponse<Admin>>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(
@@ -72,8 +71,8 @@ pub async fn get(
 		"#,
 		permissions,
 		permissions,
-		limit.0,
-		offset.0,
+		*limit,
+		*offset,
 	}
 	.fetch_all(transaction.as_mut())
 	.await?;

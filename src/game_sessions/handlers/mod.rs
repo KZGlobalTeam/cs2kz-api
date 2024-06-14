@@ -1,3 +1,3 @@
-//! Handlers for the `/sessions` routes.
+//! HTTP handlers for the `/sessions` routes.
 
 pub mod by_id;

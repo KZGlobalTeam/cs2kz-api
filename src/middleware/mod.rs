@@ -1,4 +1,4 @@
-//! General middlewares.
+//! Various middlewares.
 
 pub mod logging;
 pub mod cors;

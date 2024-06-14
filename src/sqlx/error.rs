@@ -1,11 +1,11 @@
-//! Utilities for dealing with database errors.
+//! Helpers for dealing with SQL errors.
 
-/// Extension trait for dealing with SQL errors.
+/// Extension trait for [`sqlx::Error`].
 pub trait SqlErrorExt {
-	/// Checks if this is a "duplicate entry" error.
+	/// Checks if the error is a "duplicate entry" error.
 	fn is_duplicate_entry(&self) -> bool;
 
-	/// Checks if this is a foreign key violation of a specific key.
+	/// Checks if the error is a foreign key violation of the given `fk`.
 	fn is_fk_violation_of(&self, fk: &str) -> bool;
 }
 

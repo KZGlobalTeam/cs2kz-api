@@ -1,4 +1,4 @@
-//! Handlers for the `/players` route.
+//! HTTP handlers for the `/players` routes.
 
 use axum::extract::Query;
 use axum::Json;
@@ -15,22 +15,22 @@ use crate::players::{queries, FullPlayer, NewPlayer};
 use crate::sqlx::{query, QueryBuilderExt, SqlErrorExt};
 use crate::{authentication, authorization, Error, Result, State};
 
-/// Query parameters for `GET /players`.
+/// Query parameters for `/players`.
 #[derive(Debug, Clone, Copy, Deserialize, IntoParams)]
 pub struct GetParams {
-	/// Limit the number of returned results.
+	/// Maximum number of results to return.
 	#[serde(default)]
 	limit: Limit,
 
-	/// Paginate by `offset` entries.
+	/// Pagination offset.
 	#[serde(default)]
 	offset: Offset,
 }
 
 /// Fetch players.
 ///
-/// If you send a cookie that shows you're "logged in", and you happen to have permissions for
-/// managing bans, the response will include IP addresses.
+/// The objects returned from this endpoint will include an `ip_address` field if and only if the
+/// requesting user is authorized to manage bans.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -41,7 +41,6 @@ pub struct GetParams {
     responses::Ok<PaginationResponse<FullPlayer>>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(
@@ -88,9 +87,11 @@ pub async fn get(
 	}))
 }
 
-/// Register a new player.
+/// Create a new player.
 ///
-/// This endpoint will be hit by CS2 servers whenever an unknown player joins.
+/// This endpoint is for CS2 servers. Whenever a player joins, they make a `GET` request to fetch
+/// information about that player. If that request fails, they will attempt to create one with this
+/// endpoint.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
@@ -103,7 +104,6 @@ pub async fn get(
     responses::BadRequest,
     responses::Unauthorized,
     responses::UnprocessableEntity,
-    responses::InternalServerError,
   ),
 )]
 pub async fn post(

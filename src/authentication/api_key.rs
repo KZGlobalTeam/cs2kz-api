@@ -1,4 +1,7 @@
-//! Everything related to API key authentication.
+//! Opaque API keys.
+//!
+//! These are one-off authentication keys used for special requests like GitHub actions submitting
+//! new cs2kz plugin versions.
 
 use axum::async_trait;
 use axum::extract::FromRequestParts;
@@ -16,37 +19,16 @@ use crate::{Error, Result, State};
 #[debug("{name}")]
 #[display("{key} ({name})")]
 pub struct ApiKey {
-	/// The secret key.
+	/// The key itself.
 	#[into]
 	key: Uuid,
 
-	/// The name of the key.
+	/// The name of the service associated with this key.
 	name: String,
 }
 
 impl ApiKey {
-	/// Generate a new [`ApiKey`].
-	#[tracing::instrument(level = "debug", name = "auth::api_key::new", skip_all, fields(
-		name = tracing::field::Empty,
-		value = tracing::field::Empty,
-	))]
-	pub fn new<S>(name: S) -> Self
-	where
-		S: Into<String>,
-	{
-		let key = Uuid::new_v4();
-		let name = name.into();
-
-		tracing::Span::current()
-			.record("name", &name)
-			.record("value", format_args!("{key}"));
-
-		tracing::debug!("generated API key");
-
-		Self { key, name }
-	}
-
-	/// Returns the name of this key.
+	/// Returns this key's service's name.
 	pub fn name(&self) -> &str {
 		&self.name
 	}
@@ -68,7 +50,7 @@ impl FromRequestParts<State> for ApiKey {
 			.await?
 			.token()
 			.parse::<Uuid>()
-			.map_err(|err| Error::invalid_api_key().context(err))?;
+			.map_err(|err| Error::invalid("key").context(err))?;
 
 		let api_key = sqlx::query! {
 			r#"
@@ -85,13 +67,13 @@ impl FromRequestParts<State> for ApiKey {
 		.fetch_optional(&state.database)
 		.await?
 		.map(|row| match row.is_expired {
-			true => Err(Error::expired_api_key()),
+			true => Err(Error::expired_key()),
 			false => Ok(ApiKey {
 				key,
 				name: row.name,
 			}),
 		})
-		.ok_or_else(|| Error::invalid_api_key())??;
+		.ok_or_else(|| Error::invalid("key"))??;
 
 		tracing::Span::current()
 			.record("name", api_key.name())

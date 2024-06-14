@@ -1,35 +1,36 @@
-//! This module contains the [`Session`] type and [`AuthorizeSession`] trait, which are used for
-//! managing user sessions on websites such as <https://dashboard.cs2kz.org>.
+//! Session authentication.
 //!
-//! [`Session`] implements both [`FromRequestParts`] as well as [`IntoResponseParts`], which means
-//! it acts as an [extractor] and can be returned from handlers. When it is extracted, it fetches
-//! various information about the user from the database, and when it is returned from a handler,
-//! it extends their session. [`Session::invalidate()`] can be used to invalidate the session
-//! instead.
+//! This module contains the [`Session`] type, which acts as an [extractor].
+//! It implements both [`FromRequestParts`], as well as [`IntoResponseParts`].
 //!
-//! Middleware to extend sessions on every request is available via [`middleware::auth::layer()`]
-//! and the [`session_auth!()`] helper macro.
+//! # Life Cycle
 //!
-//! The basic lifecycle of this type is as follows:
-//!    1. The user makes a request with a `kz-auth` header
-//!    2. The [`Session`] extractor will parse the value of that header and query the database
-//!    3. The session entry in the database and the [`cookie`] will have their expiration dates
-//!       extended
-//!    4. If desired, one can call [`Session::invalidate()`], which will revert step 3
-//!    5. When a [`Session`] is returned from a handler, it will set the `SET_COOKIE` header to
-//!       extend the session in the user's browser.
+//! The typical life cycle of a session is as follows:
+//!    1. A request comes in, with a [session ID] inside a [cookie]
+//!    2. [`Session`] acts as an [extractor] via its [`FromRequestParts`] implementation
+//!       2.1. The auth [cookie] value will be extracted from the request headers and parsed into a
+//!            UUID
+//!       2.2. The session is looked up in the database
+//!       2.3. The session is authorized by invoking [`AuthorizeSession::authorize_session()`]
+//!       2.4. The session is extended both in the database and in the cookie timestamp
+//!       2.5. The session is inserted into the request's extensions so we don't run auth logic
+//!            more than once
+//!    3. The [session ID] and [user] can be accessed by the request handler
+//!    4. The request handler runs
+//!    5. [`Session`]'s [`IntoResponseParts`] implementation is invoked, and the resulting response
+//!       will include a `Set-Cookie` header with the updated information
 //!
-//! The [`AuthorizeSession`] trait is used to determine whether the user should be allowed to
-//! proceed with a given request. The default implementation does nothing, but can be overridden by
-//! specifying the generic. All types which implement this trait are defined in [`authorization`].
+//! # Invalidating Sessions
+//!
+//! If a session should be invalidated, like in the [`/auth/logout` handler][logout], you can call
+//! [`Session::invalidate()`] before returning it in the response. This will set the session's
+//! expiration date to "now" both in the database and the cookie that will be returned to the user.
 //!
 //! [extractor]: axum::extract
-//! [`middleware::auth::layer()`]: crate::middleware::auth::layer
-//! [`session_auth!()`]: crate::middleware::auth::session_auth
-//! [`cookie`]: Session::cookie
-//! [`authorization`]: crate::authorization
-
-#![allow(rustdoc::private_intra_doc_links)]
+//! [session ID]: SessionID
+//! [cookie]: COOKIE_NAME
+//! [user]: User
+//! [logout]: crate::authentication::handlers::logout
 
 use std::marker::PhantomData;
 use std::net::IpAddr;
@@ -53,60 +54,61 @@ use crate::{steam, Error, Result, State};
 mod id;
 pub use id::SessionID;
 
-/// The name of the cookie holding the session's ID in the user's browser.
+/// The HTTP cookie name that stores the user's [session ID].
+///
+/// [session ID]: SessionID
 pub const COOKIE_NAME: &str = "kz-auth";
 
-/// An authenticated session.
+/// A user session.
 ///
-/// This type acts as an [extractor] to protect handlers.
-/// The [`Session::create()`] function is used to create a new session **in the database**.
-/// The resulting [`Session`] instance can then be returned from a middleware / handler to
-/// propagate updates to the expiration date to the user.
+/// This type acts as an [extractor] for session authentication.
+/// See [module level docs] for more details.
 ///
 /// [extractor]: axum::extract
-#[must_use]
+/// [module level docs]: crate::authentication::session
+#[must_use = "sessions are stateful, and creating a new one involves database operations"]
 #[derive(Debug, Into)]
 pub struct Session<A = authorization::None> {
-	/// The session ID.
+	/// The session's ID.
 	id: SessionID,
 
 	/// The user associated with this session.
 	#[debug("{} ({})", user.steam_id(), user.permissions())]
 	user: User,
 
-	/// The cookie that was extracted / will be sent.
+	/// The cookie that was extracted from the user request / will be sent back to the user in
+	/// the response.
 	#[debug(skip)]
 	#[into]
 	cookie: Cookie<'static>,
 
-	/// Marker for encoding the authorization method in the session's type.
+	/// Marker to tie an authorization method to any given [`Session`] without actually storing
+	/// anything.
 	#[debug(skip)]
 	_authorization: PhantomData<A>,
 }
 
 impl<A> Session<A> {
-	/// Returns the session ID.
+	/// Returns this session's ID.
 	pub const fn id(&self) -> SessionID {
 		self.id
 	}
 
-	/// Returns the logged-in user.
+	/// Returns the user associated with this session.
 	pub const fn user(&self) -> User {
 		self.user
 	}
 
-	/// Returns the expiration date for a new [Session].
+	/// Generates a new expiration date for any given session.
 	fn expires_on() -> OffsetDateTime {
 		OffsetDateTime::now_utc() + time::Duration::WEEK
 	}
 }
 
 impl Session {
-	/// Create a new session.
+	/// Creates a new [`Session`].
 	///
-	/// This will create a new session for the given user in the database.
-	/// The returned value of this function should be returned from a handler / middleware so a
-	/// cookie can be sent to the user's browser.
+	/// NOTE: this inserts new data into the database
 	#[tracing::instrument(level = "debug", name = "auth::session::login", skip_all, fields(
 		user.steam_id = %steam_user.steam_id,
 		user.username = %steam_user.username,
@@ -117,7 +119,7 @@ impl Session {
 	pub async fn create(
 		steam_user: &steam::User,
 		user_ip: IpAddr,
-		config: &crate::Config,
+		api_config: &crate::Config,
 		mut transaction: Transaction<'_, MySql>,
 	) -> Result<Self> {
 		let session_id = SessionID::new();
@@ -210,7 +212,7 @@ impl Session {
 		tracing::debug!("created session");
 
 		let cookie = Cookie::build((COOKIE_NAME, session_id.to_string()))
-			.domain(config.cookie_domain.clone())
+			.domain(api_config.cookie_domain.clone())
 			.path("/")
 			.secure(cfg!(feature = "production"))
 			.http_only(true)
@@ -230,11 +232,13 @@ impl<A> Session<A>
 where
 	A: AuthorizeSession,
 {
-	/// Invalidates the given session.
+	/// Invalidate this session.
 	///
-	/// This invovles both updating the database record as well as the stored cookie.
-	/// To propagate the change to the user, `self` must be returned from a handler /
-	/// middleware.
+	/// This will set the session's expiration date to "now", both in the database and the
+	/// cookie that will be returned in the response.
+	///
+	/// If `invalid_all` is `true`, **every** session in the database associated with this
+	/// session's user will be invalidated.
 	#[tracing::instrument(level = "debug", name = "auth::session::logout", skip(database))]
 	pub async fn invalidate(
 		&mut self,
@@ -297,7 +301,7 @@ where
 			return Ok(session);
 		}
 
-		let (mut cookie, session_id) = request
+		let (cookie, session_id) = request
 			.headers
 			.get_all(header::COOKIE)
 			.into_iter()
@@ -315,7 +319,7 @@ where
 				value
 					.parse::<Uuid>()
 					.inspect_err(|error| {
-						tracing::warn! {
+						tracing::debug! {
 							cookie.name = %name,
 							cookie.value = %value,
 							%error,
@@ -354,18 +358,34 @@ where
 		}
 		.fetch_optional(transaction.as_mut())
 		.await?
-		.ok_or_else(|| Error::invalid_session_id())?;
+		.ok_or_else(|| Error::invalid("session ID"))?;
 
 		current_span.record("session.user.id", format_args!("{}", session.user_id));
+
+		tracing::debug!("successfully authenticated session");
+
+		let mut session = Self {
+			id: session.id,
+			user: User::new(session.user_id, session.permissions),
+			cookie,
+			_authorization: PhantomData,
+		};
+
+		tracing::debug! {
+			method = std::any::type_name::<A>().split("::").last().unwrap(),
+			"authorizing session",
+		};
+
+		A::authorize_session(&session.user, request, &mut transaction).await?;
 
 		let expires_on = Self::expires_on();
 
 		tracing::debug!(until = %expires_on, "extending session");
 
-		cookie.set_path("/");
-		cookie.set_secure(cfg!(feature = "production"));
-		cookie.set_http_only(true);
-		cookie.set_expires(expires_on);
+		session.cookie.set_path("/");
+		session.cookie.set_secure(cfg!(feature = "production"));
+		session.cookie.set_http_only(true);
+		session.cookie.set_expires(expires_on);
 
 		sqlx::query! {
 			r#"
@@ -381,22 +401,6 @@ where
 		}
 		.execute(transaction.as_mut())
 		.await?;
-
-		tracing::debug!("successfully authenticated session");
-
-		let session = Self {
-			id: session.id,
-			user: User::new(session.user_id, session.permissions),
-			cookie,
-			_authorization: PhantomData,
-		};
-
-		tracing::debug! {
-			method = std::any::type_name::<A>().split("::").last().unwrap(),
-			"authorizing session",
-		};
-
-		A::authorize_session(&session.user, request, &mut transaction).await?;
 
 		transaction.commit().await?;
 

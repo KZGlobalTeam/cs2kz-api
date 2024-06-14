@@ -1,4 +1,7 @@
-//! Module containing the [`Config`] struct, the API's configuration.
+//! Runtime configuration for the API.
+//!
+//! When starting up, the API will read configuration values from the environment to construct a
+//! [`Config`]. It will then be part of the global application state.
 
 use std::env;
 use std::error::Error as StdError;
@@ -10,54 +13,58 @@ use anyhow::Context;
 use derive_more::Debug;
 use url::Url;
 
-/// Configuration values for the API.
-///
-/// These are read from the environment on startup.
+/// The API's runtime configuration.
 #[derive(Debug, Clone)]
 pub struct Config {
-	/// The ip address and port the API is going to listen on.
+	/// The address the API server will be listening on.
 	#[debug("{addr}")]
 	pub addr: SocketAddr,
 
-	/// The database URL that the API will connect to.
+	/// The database URL the API will connect to.
 	#[debug("{}", database_url.as_str())]
 	pub database_url: Url,
 
-	/// The public URL of the API (`api.cs2kz.org`).
+	/// The public URL of the API.
 	#[debug("{}", public_url.as_str())]
 	pub public_url: Url,
 
-	/// The `Domain` value to be used in cookies (`.cs2kz.org`).
+	/// The `Domain` field on cookies set by the API.
 	#[debug("{cookie_domain}")]
 	pub cookie_domain: String,
 
-	/// Steam WebAPI key.
+	/// Steam Web API key.
+	///
+	/// Get yours here: <https://steamcommunity.com/dev/apikey>
 	#[debug("*****")]
 	pub steam_api_key: String,
 
-	/// Path to the directory storing Steam Workshop artifacts.
+	/// Path to a directory where downloaded Workshop assets should be stored.
 	#[cfg(not(feature = "production"))]
 	pub workshop_artifacts_path: Option<PathBuf>,
 
-	/// Path to the directory storing Steam Workshop artifacts.
+	/// Path to a directory where downloaded Workshop assets should be stored.
 	#[cfg(feature = "production")]
 	pub workshop_artifacts_path: PathBuf,
 
-	/// Path to the `DepotDownloader` executable.
+	/// Path to the [DepotDownloader] executable.
+	///
+	/// [DepotDownloader]: https://github.com/SteamRE/DepotDownloader
 	#[cfg(not(feature = "production"))]
 	pub depot_downloader_path: Option<PathBuf>,
 
-	/// Path to the `DepotDownloader` executable.
+	/// Path to the [DepotDownloader] executable.
+	///
+	/// [DepotDownloader]: https://github.com/SteamRE/DepotDownloader
 	#[cfg(feature = "production")]
 	pub depot_downloader_path: PathBuf,
 
-	/// Base64-encoded JWT secret.
+	/// JWT secret for encoding/decoding tokens.
 	#[debug("*****")]
 	pub jwt_secret: String,
 }
 
 impl Config {
-	/// Creates a new [`Config`] object by reading from the environment.
+	/// Creates a new [`Config`] by reading environment variables.
 	pub fn new() -> anyhow::Result<Self> {
 		tracing::debug!("loading configuration from environment");
 
@@ -96,7 +103,7 @@ impl Config {
 	}
 }
 
-/// Parses an environment variable into a `T`.
+/// Parses a value from the environment.
 fn parse_from_env<T>(var: &str) -> anyhow::Result<T>
 where
 	T: FromStr,
@@ -111,8 +118,10 @@ where
 	<T as FromStr>::from_str(&value).with_context(|| format!("failed to parse `{var}`"))
 }
 
-/// Parses an environment variable into an `Option<T>`, returning `None` if the variable is not
-/// set or empty.
+/// Parses a value from the environment.
+///
+/// Returns `Ok(None)` if the value does not exist, and `Err` if the value does exist, and parsing
+/// it failed.
 #[cfg(not(feature = "production"))]
 fn parse_from_env_opt<T>(var: &str) -> anyhow::Result<Option<T>>
 where

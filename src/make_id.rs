@@ -1,16 +1,15 @@
-//! A helper macro for creating "ID" types.
+//! Helper macro & trait to make "ID" types.
+//!
+//! Defining concrete types for different kinds of IDs makes it harder to accidentally mix them up.
 
 use std::error::Error as StdError;
 
 use thiserror::Error;
 
-/// A helper trait for converting raw database IDs into custom types created by [`make_id!()`].
-///
-/// [`make_id!()`]: crate::make_id!
+/// Extension trait to turn a raw integer into a specific ID type.
 #[allow(private_bounds)] // this is intentional
-pub trait IntoID: private::Sealed + Sized {
-	/// Converts the ID into some target type that can be conveniently specified via a
-	/// turbofish.
+pub trait IntoID: sealed::Sealed + Sized {
+	/// Convert `self` into an `ID`.
 	fn into_id<ID>(self) -> Result<ID, ConvertIDError<<Self as TryInto<ID>>::Error>>
 	where
 		Self: TryInto<ID>,
@@ -27,22 +26,32 @@ impl IntoID for u64 {
 	}
 }
 
-/// An error that occurs when converting a raw database ID into a custom ID type.
+/// An error for failed conversions from a raw integer to an ID.
 #[derive(Debug, Error)]
 #[error("failed to parse database ID")]
 pub struct ConvertIDError<E>(E)
 where
 	E: StdError;
 
-/// See <https://rust-lang.github.io/api-guidelines/future-proofing.html#sealed-traits-protect-against-downstream-implementations-c-sealed>
-mod private {
-	/// See [module level documentation](self).
+#[allow(clippy::missing_docs_in_private_items)]
+mod sealed {
 	pub(super) trait Sealed {}
 
 	impl Sealed for u64 {}
 }
 
-/// Creates a thin integer wrapper that can be used as an ID with semantic meaning.
+/// A helper macro for defining an "ID" type.
+///
+/// All database tables with an `id` column get their own types defined by this macro in their
+/// respective modules.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// // This will expand to a unit struct called `MapID` that wraps a `u16` and implements various
+/// // traits so it can be treated like a `u16`, but still expresses a semantic difference.
+/// make_id!(MapID as u16);
+/// ```
 #[macro_export]
 macro_rules! make_id {
 	($name:ident as u64) => {

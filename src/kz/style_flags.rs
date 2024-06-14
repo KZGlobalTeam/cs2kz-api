@@ -1,13 +1,9 @@
-//! This module contains a bitflag type for storing combined ["styles"].
-//!
-//! ["styles"]: cs2kz::Style
+//! Bitflags for all the variants of [`cs2kz::Style`].
 
 use cs2kz::Style;
 
 crate::bitflags! {
-	/// Bitfield for holding style information.
-	///
-	/// See [`cs2kz::Style`].
+	/// Bitflags for all the variants of [`cs2kz::Style`].
 	pub StyleFlags as u32 {
 		NORMAL = { 1 << 0, "normal" };
 		AUTO_BHOP = { 1 << 1, "auto_bhop" };

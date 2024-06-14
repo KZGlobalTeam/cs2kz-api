@@ -1,4 +1,10 @@
-//! OpenAPI components.
+//! Everything related to [OpenAPI].
+//!
+//! This project uses the [`utoipa`] crate for generating an OpenAPI specification from code.
+//! The [`Spec`] struct in this module lists out all the relevant types, routes, and other metadata
+//! that will be included in the spec.
+//!
+//! [OpenAPI]: https://spec.openapis.org/oas/latest.html
 
 use derive_more::{Deref, DerefMut};
 use itertools::Itertools;
@@ -166,12 +172,12 @@ pub mod security;
 pub struct Spec(utoipa::openapi::OpenApi);
 
 impl Spec {
-	/// Creates a new [`Spec`] instance.
+	/// Creates a new [`Spec`].
 	pub fn new() -> Self {
 		Self(Self::openapi())
 	}
 
-	/// Returns an iterator over all the registered API routes.
+	/// Returns an iterator over the registered API routes and their allowed HTTP methods.
 	pub fn routes(&self) -> impl Iterator<Item = (&str, String)> {
 		self.paths.paths.iter().map(|(path, handler)| {
 			let methods = handler
@@ -184,12 +190,13 @@ impl Spec {
 		})
 	}
 
-	/// Generates a JSON version of the OpenAPI spec.
+	/// Generates a JSON representation of this OpenAPI spec.
 	pub fn as_json(&self) -> String {
 		self.to_pretty_json().expect("spec is valid")
 	}
 
-	/// Returns an [`axum::Router`] for hosting a SwaggerUI web page.
+	/// Creates a [`SwaggerUi`], which can be turned into an [`axum::Router`], that will serve
+	/// a SwaggerUI web page and a JSON file representing this OpenAPI spec.
 	pub fn swagger_ui(self) -> SwaggerUi {
 		SwaggerUi::new("/docs/swagger-ui").url("/docs/openapi.json", self.0)
 	}

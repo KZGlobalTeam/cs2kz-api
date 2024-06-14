@@ -1,4 +1,4 @@
-//! Types used for describing KZ admins.
+//! Types for modeling KZ admins.
 
 use cs2kz::SteamID;
 use derive_more::Debug;
@@ -7,7 +7,7 @@ use utoipa::ToSchema;
 
 use crate::authorization::Permissions;
 
-/// A player with special privileges.
+/// A KZ admin.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct Admin {
 	/// The admin's name.
@@ -22,10 +22,10 @@ pub struct Admin {
 	pub permissions: Permissions,
 }
 
-/// Request body for updating admins.
+/// Request payload for updating an admin.
 #[derive(Debug, Clone, Copy, Deserialize, ToSchema)]
 pub struct AdminUpdate {
-	/// New permissions for the admin.
+	/// New set of permissions for the admin.
 	#[debug("{permissions}")]
 	#[schema(value_type = Vec<String>, example = json!(["bans", "servers"]))]
 	pub permissions: Permissions,

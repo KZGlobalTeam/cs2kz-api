@@ -1,7 +1,14 @@
-//! The main error type used across the code base.
+//! Runtime errors.
 //!
-//! [`Error`] implements [`IntoResponse`], so that it can be returned by handlers.
-//! Most fallible functions in this crate return [`Result<T>`].
+//! This module exposes the [`Error`] type that is used across the code base for bubbling up
+//! errors. Any foreign errors that can occur at runtime can be turned into an [`Error`]. Specific
+//! error cases have dedicated constructors, see all the public methods on [`Error`].
+//!
+//! [`Error`] implements [`IntoResponse`], which means it can be returned from HTTP handlers,
+//! middleware, etc.
+//!
+//! This module also exposes a [`Result`] type alias, which sets [`Error`] as the default `E` type
+//! parameter.
 //!
 //! [`Error`]: struct@Error
 
@@ -24,31 +31,34 @@ use crate::bans::{BanID, UnbanID};
 use crate::make_id::ConvertIDError;
 use crate::maps::{CourseID, FilterID, MapID};
 
-/// Convenience type alias, because this type is long.
-type BoxedError = Box<dyn std::error::Error + Send + Sync + 'static>;
-
-/// Convenient type alias to use for fallible functions.
+/// Type alias for a [`Result<T, E>`] with its `E` parameter set to [`Error`].
 ///
-/// All fallible functions in this crate return an [`Error`] in their failure case, so spelling it
-/// out 500 times is not desirable.
-///
+/// [`Result`]: std::result::Result
 /// [`Error`]: struct@Error
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
-/// The main error type used in this crate.
+/// The API's core error type.
 ///
-/// Every fallible function returns it.
+/// Any errors that ever reach the outside should be this type.
+/// It carries information about the kind of error that occurred, where it occurred, and any extra
+/// information like error sources or debug messages.
+///
+/// This type implements [`IntoResponse`], which means it can be returned from HTTP handlers,
+/// middleware, etc.
 #[derive(Debug, Error)]
 pub struct Error {
 	/// The kind of error that occurred.
+	///
+	/// This is used for determining the HTTP status code and error message for the response
+	/// body, when an error is returned from a request.
 	kind: ErrorKind,
 
-	/// Source code location of where the error occurred.
+	/// The source code location of where the error occurred.
+	///
+	/// This is used for debugging / troubleshooting, and is included in logs.
 	location: Location<'static>,
 
-	/// A list of 'attachments'.
-	///
-	/// These can provide additional context when debugging in the form of errors or messages.
+	/// Extra information about the error, like source errors or debug messages.
 	attachments: Vec<Attachment>,
 }
 
@@ -74,10 +84,13 @@ impl Display for Error {
 	}
 }
 
-/// Public facing error message for a 400.
+#[allow(clippy::missing_docs_in_private_items)]
 const UNAUTHORIZED_MSG: &str = "you are not permitted to perform this action";
 
-/// The different kinds of errors that can occur anywhere across the code base.
+/// The different kinds of errors that can occur at runtime.
+///
+/// Every individual error case should be covered by this enum, with its own error message and any
+/// extra information that is necessary to keep around.
 #[allow(clippy::missing_docs_in_private_items)]
 #[derive(Debug, Error)]
 enum ErrorKind {
@@ -93,29 +106,17 @@ enum ErrorKind {
 	#[error("{UNAUTHORIZED_MSG}")]
 	Unauthorized,
 
-	#[error("{UNAUTHORIZED_MSG}")]
-	InvalidCS2RefreshKey,
-
-	#[error("this access key is expired; request a new one")]
-	ExpiredCS2AccessKey,
+	#[error("this access key is expired")]
+	ExpiredAccessKey,
 
 	#[error("you are not logged in")]
 	MissingSessionID,
 
-	#[error("you are not logged in")]
-	InvalidSessionID,
-
 	#[error("{UNAUTHORIZED_MSG}")]
-	InsufficientPermissions,
+	InsufficientPermissions { required_permissions: Permissions },
 
 	#[error("{UNAUTHORIZED_MSG}")]
 	MustBeServerOwner,
-
-	#[error("{UNAUTHORIZED_MSG}")]
-	InvalidApiKey,
-
-	#[error("{UNAUTHORIZED_MSG}")]
-	ExpiredApiKey,
 
 	#[error("{what} already exists")]
 	AlreadyExists { what: &'static str },
@@ -176,23 +177,25 @@ enum ErrorKind {
 	Path(#[from] PathRejection),
 }
 
-/// An error attachment.
-///
-/// This is ad-hoc context attached to an [`Error`] via [`Error::context()`].
-///
-/// [`Error`]: struct@Error
+#[allow(clippy::missing_docs_in_private_items)]
+type BoxedError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+/// Generic error attachments.
 #[derive(Debug, Display)]
 #[display("'{context}' at {location}")]
 struct Attachment {
-	/// The context itself.
+	/// The attachment context.
+	///
+	/// This could be a more concrete error type, e.g. from a third party crate, or simply an
+	/// error message.
 	context: BoxedError,
 
-	/// The source location of where this context was attached.
+	/// The source code location of where this attachment was created.
 	location: Location<'static>,
 }
 
 impl Attachment {
-	/// Creates a new attachment from the given `context` using the caller's [`Location`].
+	/// Creates a new [`Attachment`].
 	#[track_caller]
 	fn new<C>(context: C) -> Self
 	where
@@ -206,7 +209,9 @@ impl Attachment {
 }
 
 impl Error {
-	/// Create a new error.
+	/// Creates a new [`Error`] of the given [`ErrorKind`].
+	///
+	/// [`Error`]: struct@Error
 	#[track_caller]
 	fn new<E>(kind: E) -> Self
 	where
@@ -219,233 +224,12 @@ impl Error {
 		}
 	}
 
-	/// Create a new [`204 No Content`][no-content] error.
+	/// Attach additional context to an error.
 	///
-	/// [no-content]: ErrorKind::NoContent
-	#[track_caller]
-	pub(crate) fn no_content() -> Self {
-		Self::new(ErrorKind::NoContent)
-	}
-
-	/// Create a new error signaling "unknown" user input, such as a non-existent ID.
-	#[track_caller]
-	pub(crate) fn unknown(what: &'static str) -> Self {
-		Self::new(ErrorKind::UnknownInput { what })
-	}
-
-	/// Create a new error signaling that user input was invalid.
+	/// This can be another, more concrete, error type, or simply an error message.
+	/// If `ctx` is also an [`Error`], it will have its attachments transferred to `self`.
 	///
-	/// This could be because it could not be parsed.
-	#[track_caller]
-	pub(crate) fn invalid(what: &'static str) -> Self {
-		Self::new(ErrorKind::InvalidInput { what })
-	}
-
-	/// A generic "unauthorized" error.
-	///
-	/// Use sparingly.
-	#[track_caller]
-	pub(crate) fn unauthorized() -> Self {
-		Self::new(ErrorKind::Unauthorized)
-	}
-
-	/// An error that is produced during [CS2 server authentication].
-	///
-	/// [CS2 server authentication]: crate::servers::handlers::key::generate_temp
-	#[track_caller]
-	pub(crate) fn invalid_cs2_refresh_key() -> Self {
-		Self::new(ErrorKind::InvalidCS2RefreshKey)
-	}
-
-	/// An error that is produced during [CS2 server authentication].
-	///
-	/// [CS2 server authentication]: <crate::authentication::Jwt as axum::extract::FromRequestParts>::from_request_parts
-	#[track_caller]
-	pub(crate) fn expired_cs2_access_key() -> Self {
-		Self::new(ErrorKind::ExpiredCS2AccessKey)
-	}
-
-	/// An error that is produced during [session authentication].
-	///
-	/// [session authentication]: crate::authentication::session
-	#[track_caller]
-	pub(crate) fn missing_session_id() -> Self {
-		Self::new(ErrorKind::MissingSessionID)
-	}
-
-	/// An error that is produced during [session authentication].
-	///
-	/// [session authentication]: crate::authentication::session
-	#[track_caller]
-	pub(crate) fn invalid_session_id() -> Self {
-		Self::new(ErrorKind::InvalidSessionID)
-	}
-
-	/// An error that is produced during [session authorization].
-	///
-	/// [session authentication]: crate::authorization::has_permissions
-	#[track_caller]
-	pub(crate) fn insufficient_permissions(required_permissions: Permissions) -> Self {
-		Self::new(ErrorKind::InsufficientPermissions)
-			.context(format!("required permissions: {required_permissions}"))
-	}
-
-	/// An error that is produced during [session authorization].
-	///
-	/// [session authentication]: crate::authorization::is_server_admin_or_owner
-	#[track_caller]
-	pub(crate) fn must_be_server_owner() -> Self {
-		Self::new(ErrorKind::MustBeServerOwner)
-	}
-
-	/// An error that is produced during [API key authentication].
-	///
-	/// [API key authentication]: crate::authentication::api_key
-	#[track_caller]
-	pub(crate) fn invalid_api_key() -> Self {
-		Self::new(ErrorKind::InvalidApiKey)
-	}
-
-	/// An error that is produced during [API key authentication].
-	///
-	/// [API key authentication]: crate::authentication::api_key
-	#[track_caller]
-	pub(crate) fn expired_api_key() -> Self {
-		Self::new(ErrorKind::ExpiredApiKey)
-	}
-
-	/// Create a new error signaling that some submitted data already exists.
-	#[track_caller]
-	pub(crate) fn already_exists(what: &'static str) -> Self {
-		Self::new(ErrorKind::AlreadyExists { what })
-	}
-
-	/// When submitting new maps / updating existing maps, we need to ensure that a given map
-	/// or course always has at least 1 mapper.
-	#[track_caller]
-	pub(crate) fn must_have_mappers() -> Self {
-		Self::new(ErrorKind::MustHaveMappers)
-	}
-
-	/// An error that can occur when updating map courses.
-	///
-	/// These updates are provided as maps from `course_id -> data` per map, so the ID might
-	/// not belong to the map being updated.
-	#[track_caller]
-	pub(crate) fn mismatching_map_course(course_id: CourseID, map_id: MapID) -> Self {
-		Self::new(ErrorKind::MismatchingMapCourse { course_id, map_id })
-	}
-
-	/// An error that can occur when updating course filters.
-	///
-	/// These updates are provided as maps from `filter_id -> data` per course, so the ID might
-	/// not belong to the course being updated.
-	#[track_caller]
-	pub(crate) fn mismatching_course_filter(filter_id: FilterID, course_id: CourseID) -> Self {
-		Self::new(ErrorKind::MismatchingCourseFilter {
-			filter_id,
-			course_id,
-		})
-	}
-
-	/// An error that is produced when [reverting a ban].
-	///
-	/// Every ban can only be reverted once, so if there are duplicate requests for a given
-	/// ban, they should fail.
-	///
-	/// [reverting a ban]: crate::bans::handlers::by_id::delete
-	#[track_caller]
-	pub(crate) fn ban_already_reverted(ban_id: BanID, unban_id: UnbanID) -> Self {
-		Self::new(ErrorKind::BanAlreadyReverted { ban_id, unban_id })
-	}
-
-	/// Create an error signaling some internal logic error.
-	///
-	/// You can think of this like a "soft" assertion error.
-	#[track_caller]
-	pub(crate) fn logic<T>(message: T) -> Self
-	where
-		T: Display,
-	{
-		Self::new(ErrorKind::Logic(message.to_string()))
-	}
-
-	/// An error occurred when encoding a JWT.
-	#[track_caller]
-	pub(crate) fn encode_jwt(error: jwt::errors::Error) -> Self {
-		Self::new(ErrorKind::Jwt(error))
-	}
-
-	/// When downloading a [workshop map][map], we need to store it somewhere.
-	///
-	/// Where we store it is configured through an environment variable, which is allowed to
-	/// not exist (for local testing purposes).
-	///
-	/// [map]: crate::steam::workshop::MapFile
-	#[track_caller]
-	#[cfg(not(feature = "production"))]
-	pub(crate) fn missing_workshop_asset_dir() -> Self {
-		Self::new(ErrorKind::MissingWorkshopAssetDirectory)
-	}
-
-	/// For downloading a [workshop map][map], we use a program called [DepotDownloader].
-	///
-	/// The path to its executable is configured through environment variables, which is
-	/// allowed to not exist (for local testing purposes).
-	///
-	/// [map]: crate::steam::workshop::MapFile
-	/// [DepotDownloader]: https://github.com/SteamRE/DepotDownloader
-	#[track_caller]
-	#[cfg(not(feature = "production"))]
-	pub(crate) fn missing_depot_downloader() -> Self {
-		Self::new(ErrorKind::MissingDepotDownloader)
-	}
-
-	/// For downloading a [workshop map][map], we use a program called [DepotDownloader].
-	///
-	/// Running this program might fail at various points.
-	///
-	/// See [`MapFile::download()`][download] for more information.
-	///
-	/// [map]: crate::steam::workshop::MapFile
-	/// [download]: crate::steam::workshop::MapFile::download
-	/// [DepotDownloader]: https://github.com/SteamRE/DepotDownloader
-	#[track_caller]
-	pub(crate) fn depot_downloader(source: io::Error) -> Self {
-		Self::new(ErrorKind::DepotDownloader(source))
-	}
-
-	/// After downloading a [workshop map][map], we [hash its file contents using crc32][hash].
-	///
-	/// But before we can do that, we need to open the file!
-	///
-	/// [map]: crate::steam::workshop::MapFile
-	/// [hash]: crate::steam::workshop::MapFile::checksum
-	#[track_caller]
-	pub(crate) fn open_map_file(source: io::Error) -> Self {
-		Self::new(ErrorKind::OpenMapFile(source))
-	}
-
-	/// After downloading a [workshop map][map], we [hash its file contents using crc32][hash].
-	///
-	/// This operation might fail when reading from the file.
-	///
-	/// [map]: crate::steam::workshop::MapFile
-	/// [hash]: crate::steam::workshop::MapFile::checksum
-	#[track_caller]
-	pub(crate) fn checksum(source: io::Error) -> Self {
-		Self::new(ErrorKind::Checksum(source))
-	}
-
-	/// We make requests to other APIs, such as Steam's Web API.
-	#[track_caller]
-	pub(crate) fn external_api_call(source: reqwest::Error) -> Self {
-		Self::new(ErrorKind::ExternalApiCall(source))
-	}
-
-	/// Attach additional context to this error.
-	///
-	/// This could be another error type, or simply a message.
+	/// [`Error`]: struct@Error
 	#[track_caller]
 	pub(crate) fn context<E>(mut self, ctx: E) -> Self
 	where
@@ -463,33 +247,262 @@ impl Error {
 
 		self
 	}
+
+	/// A generic `204 No Content` error.
+	///
+	/// This should be returned from `PUT` / `PATCH` / `DELETE` handlers, as well as `GET`
+	/// handlers that would otherwise return an empty response body.
+	#[track_caller]
+	pub(crate) fn no_content() -> Self {
+		Self::new(ErrorKind::NoContent)
+	}
+
+	/// An error signaling unknown user input, like an unknown ID.
+	///
+	/// Produces a `400 Bad Request` status.
+	#[track_caller]
+	pub(crate) fn unknown(what: &'static str) -> Self {
+		Self::new(ErrorKind::UnknownInput { what })
+	}
+
+	/// An error signaling invalid user input.
+	///
+	/// Produces a `400 Bad Request` status.
+	#[track_caller]
+	pub(crate) fn invalid(what: &'static str) -> Self {
+		Self::new(ErrorKind::InvalidInput { what })
+	}
+
+	/// A generic `401 Unauthorized` error.
+	///
+	/// If you can, you should [attach additional context][context] to such an error to make
+	/// debugging the cause of the error easier later.
+	///
+	/// [context]: Error::context()
+	#[track_caller]
+	pub(crate) fn unauthorized() -> Self {
+		Self::new(ErrorKind::Unauthorized)
+	}
+
+	/// An error signaling an expired authentication key.
+	///
+	/// Produces a `401 Unauthorized` status.
+	#[track_caller]
+	pub(crate) fn expired_key() -> Self {
+		Self::new(ErrorKind::ExpiredAccessKey)
+	}
+
+	/// An error signaling a missing session ID.
+	///
+	/// For more information about session authentication, see
+	/// [`crate::authentication::session`].
+	///
+	/// Produces a `401 Unauthorized` status.
+	#[track_caller]
+	pub(crate) fn missing_session_id() -> Self {
+		Self::new(ErrorKind::MissingSessionID)
+	}
+
+	/// An error signaling an authorization failure caused by insufficient permissions.
+	///
+	/// For more information about permissions, see [`crate::authorization::Permissions`] and
+	/// [`crate::authorization::HasPermissions`].
+	///
+	/// Produces a `401 Unauthorized` status.
+	#[track_caller]
+	pub(crate) fn insufficient_permissions(required_permissions: Permissions) -> Self {
+		Self::new(ErrorKind::InsufficientPermissions {
+			required_permissions,
+		})
+	}
+
+	/// An error signaling an authorization failure caused by the requesting user not
+	/// being a server owner.
+	///
+	/// For more information, see [`crate::authorization::IsServerAdminOrOwner`].
+	///
+	/// Produces a `401 Unauthorized` status.
+	#[track_caller]
+	pub(crate) fn must_be_server_owner() -> Self {
+		Self::new(ErrorKind::MustBeServerOwner)
+	}
+
+	/// An error signaling that a resource already exists.
+	///
+	/// Produces a `409 Conflict` status.
+	#[track_caller]
+	pub(crate) fn already_exists(what: &'static str) -> Self {
+		Self::new(ErrorKind::AlreadyExists { what })
+	}
+
+	/// An error that can occur when creating or updating [maps].
+	///
+	/// Every map must always have at least 1 mapper. When a new map is submitted, or a map is
+	/// being updated, it must be ensured that there is at least 1 mapper.
+	///
+	/// Produces a `409 Conflict` status.
+	///
+	/// [maps]: crate::maps
+	#[track_caller]
+	pub(crate) fn must_have_mappers() -> Self {
+		Self::new(ErrorKind::MustHaveMappers)
+	}
+
+	/// An error that can occur when updating [maps].
+	///
+	/// Updating a map includes updating its courses. These updates are keyed by course ID. If
+	/// the supplied course IDs don't belong to the map being updated, that's most likely a
+	/// mistake by the client and should produce an error.
+	///
+	/// Produces a `409 Conflict` status.
+	///
+	/// [maps]: crate::maps
+	#[track_caller]
+	pub(crate) fn mismatching_map_course(course_id: CourseID, map_id: MapID) -> Self {
+		Self::new(ErrorKind::MismatchingMapCourse { course_id, map_id })
+	}
+
+	/// An error that can occur when updating [maps].
+	///
+	/// Updating a map includes updating its courses, which includes updating filters. These
+	/// updates are keyed by filter ID. If the supplied filter IDs don't belong to the course
+	/// being updated, that's most likely a mistake by the client and should produce an error.
+	///
+	/// Produces a `409 Conflict` status.
+	///
+	/// [maps]: crate::maps
+	#[track_caller]
+	pub(crate) fn mismatching_course_filter(filter_id: FilterID, course_id: CourseID) -> Self {
+		Self::new(ErrorKind::MismatchingCourseFilter {
+			filter_id,
+			course_id,
+		})
+	}
+
+	/// An error that can occur when [unbanning] players.
+	///
+	/// Any given ban can only ever be reverted once. When an unban request is made for a ban
+	/// that has already been reverted, that should produce an error.
+	///
+	/// Produces a `409 Conflict` status.
+	///
+	/// [unbanning]: crate::bans::handlers::by_id::delete
+	#[track_caller]
+	pub(crate) fn ban_already_reverted(ban_id: BanID, unban_id: UnbanID) -> Self {
+		Self::new(ErrorKind::BanAlreadyReverted { ban_id, unban_id })
+	}
+
+	/// A generic `500 Internal Server Error`.
+	///
+	/// This constructor is reserved for errors that _should not_ occur, but _may_ occur. If
+	/// such an error is ever returned, that's a bug.
+	#[track_caller]
+	pub(crate) fn logic<T>(message: T) -> Self
+	where
+		T: Display,
+	{
+		Self::new(ErrorKind::Logic(message.to_string()))
+	}
+
+	/// An error for wrapping a [`jwt`] error.
+	///
+	/// If this error ever gets constructed, it's a bug.
+	///
+	/// Produces a `500 Internal Server Error` status.
+	#[track_caller]
+	pub(crate) fn encode_jwt(error: jwt::errors::Error) -> Self {
+		Self::new(ErrorKind::Jwt(error))
+	}
+
+	/// An error that can occur when downloading something from the Steam Workshop.
+	///
+	/// This error can only occur if [`Config::workshop_artifacts_path`][config] is missing.
+	/// The environment variable for that value is required when compiled with the `production`
+	/// feature enabled. Because downloading Workshop files requires an external dependency,
+	/// it's optional for local testing.
+	///
+	/// Produces a `500 Internal Server Error` status.
+	///
+	/// [config]: crate::Config::workshop_artifacts_path
+	#[track_caller]
+	#[cfg(not(feature = "production"))]
+	pub(crate) fn missing_workshop_asset_dir() -> Self {
+		Self::new(ErrorKind::MissingWorkshopAssetDirectory)
+	}
+
+	/// An error that can occur when downloading something from the Steam Workshop.
+	///
+	/// This error can only occur if [`Config::depot_downloader_path`][config] is missing.
+	/// The environment variable for that value is required when compiled with the `production`
+	/// feature enabled. Because downloading Workshop files requires an external dependency,
+	/// it's optional for local testing.
+	///
+	/// Produces a `500 Internal Server Error` status.
+	///
+	/// [config]: crate::Config::depot_downloader_path
+	#[track_caller]
+	#[cfg(not(feature = "production"))]
+	pub(crate) fn missing_depot_downloader() -> Self {
+		Self::new(ErrorKind::MissingDepotDownloader)
+	}
+
+	/// An error that can occur when downloading something from the Steam Workshop.
+	///
+	/// Workshop downloads require an external dependency called [DepotDownloader].
+	/// If that executable fails, it will produce an [`io::Error`], and constructing this error
+	/// is considered a bug.
+	///
+	/// Produces a `500 Internal Server Error` status.
+	///
+	/// [DepotDownloader]: https://github.com/SteamRE/DepotDownloader
+	#[track_caller]
+	pub(crate) fn depot_downloader(source: io::Error) -> Self {
+		Self::new(ErrorKind::DepotDownloader(source))
+	}
+
+	/// An error that can occur when downloading a map from the Steam Workshop.
+	///
+	/// After downloading, opening the map file might fail for various reasons.
+	///
+	/// Produces a `500 Internal Server Error` status.
+	#[track_caller]
+	pub(crate) fn open_map_file(source: io::Error) -> Self {
+		Self::new(ErrorKind::OpenMapFile(source))
+	}
+
+	/// An error that can occur when calculating the checksum for a downloaded Workshop map.
+	///
+	/// Produces a `500 Internal Server Error` status.
+	#[track_caller]
+	pub(crate) fn checksum(source: io::Error) -> Self {
+		Self::new(ErrorKind::Checksum(source))
+	}
+
+	/// An error that can occur when making HTTP requests to external APIs such as the Steam
+	/// Web API.
+	///
+	/// Produces a `502 Bad Gateway` status.
+	#[track_caller]
+	pub(crate) fn external_api_call(source: reqwest::Error) -> Self {
+		Self::new(ErrorKind::ExternalApiCall(source))
+	}
 }
 
 impl IntoResponse for Error {
 	fn into_response(self) -> Response {
 		use ErrorKind as E;
 
-		let Self {
-			kind,
-			location,
-			attachments,
-		} = self;
-
-		let message = kind.to_string();
-		let status = match kind {
+		let message = self.kind.to_string();
+		let status = match self.kind {
 			E::NoContent => StatusCode::NO_CONTENT,
 			E::UnknownInput { .. } | E::InvalidInput { .. } | E::Header(_) => {
 				StatusCode::BAD_REQUEST
 			}
 			E::Unauthorized
-			| E::InvalidCS2RefreshKey
-			| E::ExpiredCS2AccessKey
+			| E::ExpiredAccessKey
 			| E::MissingSessionID
-			| E::InvalidSessionID
-			| E::InsufficientPermissions
-			| E::MustBeServerOwner
-			| E::InvalidApiKey
-			| E::ExpiredApiKey => StatusCode::UNAUTHORIZED,
+			| E::InsufficientPermissions { .. }
+			| E::MustBeServerOwner => StatusCode::UNAUTHORIZED,
 			E::AlreadyExists { .. }
 			| E::MustHaveMappers
 			| E::MismatchingMapCourse { .. }
@@ -512,19 +525,24 @@ impl IntoResponse for Error {
 			E::Path(ref rej) => rej.status(),
 		};
 
-		tracing::debug! {
-			%location,
-			?kind,
-			?attachments,
-			error_message = %message,
-			"returning error from request handler"
-		};
+		if status == StatusCode::INTERNAL_SERVER_ERROR {
+			tracing::error!(?self, "internal server error occurred");
+		} else {
+			tracing::debug! {
+				location = %self.location,
+				kind = ?self.kind,
+				attachments = ?self.attachments,
+				error_message = %message,
+				"returning error from request handler"
+			};
+		}
 
 		let mut json = json!({ "message": message });
 
 		#[allow(clippy::indexing_slicing)]
-		if !attachments.is_empty() {
-			json["debug_info"] = attachments
+		if !self.attachments.is_empty() {
+			json["debug_info"] = self
+				.attachments
 				.iter()
 				.rev()
 				.map(|attachment| format!("{attachment}"))

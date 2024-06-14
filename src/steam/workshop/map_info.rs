@@ -1,12 +1,15 @@
-//! Everything related to Workshop Maps.
+//! Functions for fetching information about Workshop Maps.
 
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value as JsonValue;
 
-use crate::steam::workshop::{WorkshopID, API_URL};
+use crate::steam::workshop::WorkshopID;
 use crate::{Error, Result};
 
-/// Fetches the name of the map with the given `workshop_id`.
+/// Steam Web API URL for fetching map information.
+const API_URL: &str = "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1";
+
+/// Fetches the name of a Workshop Map.
 #[tracing::instrument(level = "debug", skip(http_client), ret)]
 pub async fn fetch_map_name(
 	workshop_id: WorkshopID,
@@ -33,10 +36,8 @@ pub async fn fetch_map_name(
 	Ok(map_info.title)
 }
 
-/// Information about a workshop map.
 #[allow(clippy::missing_docs_in_private_items)]
 struct MapInfo {
-	/// The map's name.
 	title: String,
 }
 

@@ -1,4 +1,4 @@
-//! Everything related to servers.
+//! Everything related to KZ servers.
 
 use axum::http::Method;
 use axum::routing::{delete, get, patch, post, put};
@@ -18,7 +18,7 @@ pub use models::{
 mod queries;
 pub mod handlers;
 
-/// Returns a router with routes for `/servers`.
+/// Returns an [`axum::Router`] for the `/servers` routes.
 pub fn router(state: State) -> Router {
 	let is_admin = session_auth!(
 		authorization::HasPermissions<{ Permissions::SERVERS.value() }>,

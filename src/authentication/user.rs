@@ -1,11 +1,15 @@
-//! Everything related to user logins.
+//! Authenticated users.
+//!
+//! These are KZ players and admins authenticated via [sessions], e.g. on a website.
+//!
+//! [sessions]: super::Session
 
 use cs2kz::SteamID;
 use derive_more::Debug;
 
 use crate::authorization::Permissions;
 
-/// Information about a logged-in user.
+/// An authenticated user.
 #[derive(Debug, Clone, Copy)]
 pub struct User {
 	/// The user's [SteamID].
@@ -18,7 +22,7 @@ pub struct User {
 }
 
 impl User {
-	/// Creates a new [`User`] object.
+	/// Creates a new [`User`].
 	pub const fn new(steam_id: SteamID, permissions: Permissions) -> Self {
 		Self {
 			steam_id,
@@ -26,12 +30,12 @@ impl User {
 		}
 	}
 
-	/// Returns the user's [SteamID].
+	/// Returns this user's [SteamID].
 	pub const fn steam_id(&self) -> SteamID {
 		self.steam_id
 	}
 
-	/// Returns the user's permissions.
+	/// Returns this user's permissions.
 	pub const fn permissions(&self) -> Permissions {
 		self.permissions
 	}

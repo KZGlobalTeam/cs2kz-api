@@ -1,4 +1,6 @@
-//! Everything related to managing CS2KZ plugin versions.
+//! Everything related to the [CS2KZ plugin].
+//!
+//! [CS2KZ plugin]: https://github.com/KZGlobalTeam/cs2kz-metamod
 
 use axum::routing::{get, post};
 use axum::Router;
@@ -11,7 +13,7 @@ pub use models::{CreatedPluginVersion, NewPluginVersion, PluginVersion, PluginVe
 
 pub mod handlers;
 
-/// Returns a router with routes for `/plugin`.
+/// Returns an [`axum::Router`] for the `/plugin` routes.
 pub fn router(state: State) -> Router {
 	Router::new()
 		.route("/versions", get(handlers::versions::get))

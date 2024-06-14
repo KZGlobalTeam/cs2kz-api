@@ -1,6 +1,6 @@
-//! SQL queries that are used in multiple places.
+//! Shared SQL queries.
 
-/// SQL query for fetching records.
+/// SQL query for `SELECT`ing records from the database.
 pub static SELECT: &str = r#"
 	SELECT SQL_CALC_FOUND_ROWS
 	  r.id,

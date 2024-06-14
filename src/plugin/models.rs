@@ -1,4 +1,4 @@
-//! Types for representing CS2KZ plugin versions.
+//! Types for modeling CS2KZ plugin metadata.
 
 use chrono::{DateTime, Utc};
 use semver::Version;
@@ -17,14 +17,14 @@ pub struct PluginVersion {
 	/// The version's ID.
 	pub id: PluginVersionID,
 
-	/// The semver representation.
+	/// The version as a string.
 	#[schema(value_type = String)]
 	pub semver: Version,
 
-	/// The corresponding git revision (commit hash).
+	/// The git revision associated with this release.
 	pub git_revision: String,
 
-	/// When this version was published.
+	/// When this version was submitted.
 	pub created_on: DateTime<Utc>,
 }
 
@@ -45,19 +45,19 @@ impl FromRow<'_, MySqlRow> for PluginVersion {
 	}
 }
 
-/// Request body for submitting new plugin versions.
+/// Request payload for submitting a new plugin version.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewPluginVersion {
-	/// The semver representation.
+	/// The version as a string.
 	#[serde(deserialize_with = "crate::serde::semver::deserialize_plugin_version")]
 	#[schema(value_type = String)]
 	pub semver: Version,
 
-	/// The corresponding git revision (commit hash).
+	/// The git revision associated with this release.
 	pub git_revision: String,
 }
 
-/// A newly created plugin version.
+/// Response body for submitting a new plugin version.
 #[derive(Debug, Clone, Copy, Serialize, ToSchema)]
 pub struct CreatedPluginVersion {
 	/// The version's ID.

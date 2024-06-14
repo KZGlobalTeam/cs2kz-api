@@ -1,13 +1,13 @@
-//! This module contains useful helper types for query parameters.
+//! Generic query parameter types.
 
-use derive_more::Display;
+use derive_more::{Deref, Display};
 use serde::{Deserialize, Deserializer};
 use utoipa::openapi::schema::Schema;
 use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
 use utoipa::ToSchema;
 
-/// An offset used for pagination.
-#[derive(Debug, Display, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// An "offset" query parameter used for pagination.
+#[derive(Debug, Display, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deref)]
 pub struct Offset(pub i64);
 
 impl<'de> Deserialize<'de> for Offset {
@@ -39,11 +39,8 @@ impl<'s> ToSchema<'s> for Offset {
 	}
 }
 
-/// A limit on the amount of returned results from a request.
-///
-/// This will defaultu to `DEFAULT` (which is 100 by default), and max out at `MAX` (which is 1000
-/// by default). These values can be overriden as necessary.
-#[derive(Debug, Display, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// An "limit" query parameter used for pagination.
+#[derive(Debug, Display, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Deref)]
 pub struct Limit<const MAX: u64 = 1000, const DEFAULT: u64 = 100>(pub u64);
 
 impl<const MAX: u64, const DEFAULT: u64> Default for Limit<MAX, DEFAULT> {
@@ -91,22 +88,22 @@ impl<'s, const MAX: u64, const DEFAULT: u64> ToSchema<'s> for Limit<MAX, DEFAULT
 	}
 }
 
-/// A query parameter to decide a sorting order.
+/// An "sorting order" query parameter used for controlling the order of returned results.
 #[derive(Debug, Default, Clone, Copy, Deserialize, ToSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum SortingOrder {
-	/// Sort from lowest to highest.
+	/// Sort results in ascending order (default).
 	#[default]
 	Ascending,
 
-	/// Sort from highest to lowest.
+	/// Sort results in descending order.
 	Descending,
 }
 
 impl SortingOrder {
-	/// Returns a SQL keyword that can be used in an `ORDER BY` clause.
+	/// Generates the appropriate SQL keyword for an `ORDER BY` query.
 	pub const fn sql(&self) -> &'static str {
-		match *self {
+		match self {
 			SortingOrder::Ascending => " ASC ",
 			SortingOrder::Descending => " DESC ",
 		}

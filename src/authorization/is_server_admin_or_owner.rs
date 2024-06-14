@@ -1,5 +1,5 @@
-//! Ensures the requesting user is either an admin with the `SERVERS` permissions, or the owner of
-//! the server they are making a request for.
+//! Authorization for `/servers` routes, checking if the requesting user is either an admin or the
+//! owner of the server that is being modified.
 
 use axum::extract::{FromRequestParts, Path};
 use axum::http::request;
@@ -10,8 +10,11 @@ use crate::authorization::{self, Permissions};
 use crate::servers::ServerID;
 use crate::{authentication, Error, Result};
 
-/// Ensures the requesting user is either an admin with the `SERVERS` permissions, or the owner of
-/// the server they are making a request for.
+/// An authorization method that checks if the requesting user is either an admin with the
+/// [`SERVERS`] permission, or the owner of the server that is supposed to be modified by the
+/// request.
+///
+/// [`SERVERS`]: Permissions::SERVERS
 #[derive(Debug, Clone, Copy)]
 pub struct IsServerAdminOrOwner;
 

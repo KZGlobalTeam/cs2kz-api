@@ -1,4 +1,4 @@
-//! Handlers for the `/plugin` route.
+//! HTTP handlers for the `/plugin/versions` routes.
 
 use axum::extract::Query;
 use axum::Json;
@@ -15,19 +15,19 @@ use crate::plugin::{CreatedPluginVersion, NewPluginVersion, PluginVersion, Plugi
 use crate::sqlx::{query, QueryBuilderExt, SqlErrorExt};
 use crate::{Error, Result, State};
 
-/// Query parameters for `GET /plugin`.
+/// Query parameters for `/plugin/versions`.
 #[derive(Debug, Clone, Copy, Deserialize, IntoParams)]
 pub struct GetParams {
-	/// Limit the number of returned results.
+	/// Maximum number of results to return.
 	#[serde(default)]
 	limit: Limit,
 
-	/// Paginate by `offset` entries.
+	/// Pagination offset.
 	#[serde(default)]
 	offset: Offset,
 }
 
-/// Fetch cs2kz plugin versions.
+/// Fetch CS2KZ plugin versions.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -38,7 +38,6 @@ pub struct GetParams {
     responses::Ok<PaginationResponse<PluginVersion>>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(
@@ -70,9 +69,9 @@ pub async fn get(
 	}))
 }
 
-/// Create a new cs2kz plugin version.
+/// Submit a new CS2KZ plugin version.
 ///
-/// This endpoint is intended to be used by GitHub CI for new releases.
+/// This endpoint is intended to be used by GitHub Actions.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
@@ -86,7 +85,6 @@ pub async fn get(
     responses::Unauthorized,
     responses::Conflict,
     responses::UnprocessableEntity,
-    responses::InternalServerError,
   ),
 )]
 pub async fn post(
@@ -98,7 +96,7 @@ pub async fn post(
 	}): Json<NewPluginVersion>,
 ) -> Result<Created<Json<CreatedPluginVersion>>> {
 	if api_key.name() != "plugin_versions" {
-		return Err(Error::invalid_api_key().context(format!("actual key was {api_key:?}")));
+		return Err(Error::invalid("key").context(format!("actual key was {api_key:?}")));
 	}
 
 	let mut transaction = state.transaction().await?;

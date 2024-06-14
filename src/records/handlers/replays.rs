@@ -1,4 +1,4 @@
-//! Handlers for the `/records/{record_id}/replay` route.
+//! HTTP handlers for the `/records/{record_id}/replay` routes.
 
 use axum::extract::Path;
 use axum::http::StatusCode;
@@ -6,7 +6,7 @@ use axum::http::StatusCode;
 use crate::openapi::responses;
 use crate::records::RecordID;
 
-/// Fetch the replay file for a specific record.
+/// Fetch a record replay.
 #[tracing::instrument]
 #[utoipa::path(
   get,
@@ -17,7 +17,6 @@ use crate::records::RecordID;
     responses::Ok<()>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(Path(_record_id): Path<RecordID>) -> StatusCode {

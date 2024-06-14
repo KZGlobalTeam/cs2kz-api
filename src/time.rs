@@ -1,4 +1,4 @@
-//! Utility types for dealing with time.
+//! Helper types to deal with time.
 
 use std::time::Duration;
 
@@ -10,7 +10,7 @@ use sqlx::error::BoxDynError;
 use sqlx::MySql;
 use utoipa::ToSchema;
 
-/// Wrapper around [`std::time::Duration`], which takes care of encoding / decoding as seconds.
+/// A transparent wrapper around [`std::time::Duration`] that will encode/decode as seconds.
 #[derive(Debug, Display, Clone, Copy, Deref, DerefMut, From, Into, ToSchema)]
 #[display("{:.3}", self.as_secs_f64())]
 #[schema(value_type = f64)]

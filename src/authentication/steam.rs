@@ -1,4 +1,4 @@
-//! Authentication with the Steam API via OpenID.
+//! Steam OpenID authentication.
 
 use axum::async_trait;
 use axum::extract::FromRequestParts;
@@ -13,7 +13,7 @@ use utoipa::IntoParams;
 
 use crate::{Error, Result, State};
 
-/// Form used for logging a user into Steam.
+/// Form parameters that will be sent to Steam when redirecting a user for login.
 #[derive(Debug, Serialize)]
 #[allow(clippy::missing_docs_in_private_items)]
 pub struct LoginForm {
@@ -37,15 +37,15 @@ pub struct LoginForm {
 }
 
 impl LoginForm {
-	/// The route to which a user should be redirected back to by Steam after logging in.
+	/// The API route that Steam should redirect back to after a successful login.
 	const RETURN_ROUTE: &'static str = "/auth/callback";
 
-	/// The URL we redirect a user to when they log into Steam.
-	///
-	/// This is also used for verifying Steam's callback requests.
+	/// Steam URL to redirect the user in for login.
 	const LOGIN_URL: &'static str = "https://steamcommunity.com/openid/login";
 
-	/// Creates a new [`LoginForm`] that will redirect back to the given `realm`.
+	/// Creates a new [`LoginForm`].
+	///
+	/// `realm` is the base URL of the API.
 	#[tracing::instrument(level = "debug", name = "auth::steam::login_form", fields(
 		realm = %realm,
 		return_to = tracing::field::Empty
@@ -65,8 +65,7 @@ impl LoginForm {
 		}
 	}
 
-	/// Create a [`Redirect`] to Steam, which will redirect back to `redirect_to` after the
-	/// login process is complete.
+	/// Creates a [`Redirect`] that will redirect a request to Steam so the user can login.
 	#[tracing::instrument(level = "debug", name = "auth::steam::redirect", skip(self))]
 	pub fn redirect_to(mut self, redirect_to: &Url) -> Redirect {
 		self.return_to
@@ -84,13 +83,14 @@ impl LoginForm {
 	}
 }
 
-/// The payload sent by Steam after a user logged in.
+/// Form parameters that Steam will send to us after a successful login.
+///
+/// These can be sent back to Steam for validation, see [`LoginResponse::verify()`].
 #[derive(Debug, Serialize, Deserialize, IntoParams)]
 #[allow(clippy::missing_docs_in_private_items)]
 pub struct LoginResponse {
-	/// The URL we should redirect the user back to after we verified their request.
-	///
-	/// This is injected by [`LoginForm::redirect_to()`].
+	/// The injected query parameter that was passed as an argument to
+	/// [`LoginForm::redirect_to()`].
 	#[serde(skip_serializing)]
 	pub redirect_to: Url,
 
@@ -129,16 +129,7 @@ pub struct LoginResponse {
 }
 
 impl LoginResponse {
-	/// Extracts the user's SteamID.
-	pub fn steam_id(&self) -> SteamID {
-		self.claimed_id
-			.path_segments()
-			.and_then(|segments| segments.last())
-			.and_then(|segment| segment.parse::<SteamID>().ok())
-			.expect("invalid response from steam")
-	}
-
-	/// Verifies this payload by making an API request to Steam.
+	/// Verifies this payload with Steam and extracts the user's SteamID from it.
 	#[tracing::instrument(level = "debug", skip_all, ret, fields(
 		redirect_to = %self.redirect_to
 	))]
@@ -166,6 +157,15 @@ impl LoginResponse {
 		tracing::debug!("user logged in");
 
 		Ok(self.steam_id())
+	}
+
+	/// Extracts the SteamID from this form.
+	fn steam_id(&self) -> SteamID {
+		self.claimed_id
+			.path_segments()
+			.and_then(|segments| segments.last())
+			.and_then(|segment| segment.parse::<SteamID>().ok())
+			.expect("invalid response from steam")
 	}
 }
 

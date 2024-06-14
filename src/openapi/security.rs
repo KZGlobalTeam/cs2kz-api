@@ -1,4 +1,4 @@
-//! Security related OpenAPI types.
+#![allow(missing_docs, clippy::missing_docs_in_private_items)]
 
 use utoipa::openapi::security::{ApiKey, ApiKeyValue, Http, HttpAuthScheme, SecurityScheme};
 use utoipa::openapi::OpenApi;
@@ -6,7 +6,6 @@ use utoipa::Modify;
 
 use crate::authentication;
 
-/// Shim for implementing [`Modify`].
 #[derive(Debug, Clone, Copy)]
 pub struct Security;
 

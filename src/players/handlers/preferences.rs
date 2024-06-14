@@ -1,4 +1,4 @@
-//! Handlers for the `/players/{player}/preferences` route.
+//! HTTP handlers for the `/players/{player}/preferences` routes.
 
 use axum::extract::Path;
 use axum::Json;
@@ -10,9 +10,7 @@ use sqlx::QueryBuilder;
 use crate::openapi::responses;
 use crate::{Error, Result, State};
 
-/// Fetch in-game preference settings for a specific player.
-///
-/// This is used by CS2 servers for keeping settings in sync across multiple servers.
+/// Fetch a player's in-game preferences.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -23,7 +21,6 @@ use crate::{Error, Result, State};
     responses::Ok<responses::Object>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(state: State, Path(player): Path<PlayerIdentifier>) -> Result<Json<JsonValue>> {

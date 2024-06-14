@@ -1,4 +1,4 @@
-//! An authorization method that ensures the user has specific permissions.
+//! Authorization bound by [Permissions].
 
 use axum::http::request;
 use sqlx::{MySql, Transaction};
@@ -7,7 +7,9 @@ use super::AuthorizeSession;
 use crate::authorization::Permissions;
 use crate::{authentication, Error, Result};
 
-/// Ensure the user has _at least_ `PERMS`.
+/// An authorization method that will enforce the user to have at least `PERMS`.
+// NOTE: ideally this const generic would be `Permissions` instead of `u32`, but as of writing
+//       this, Rust does not allow it
 #[derive(Debug, Clone, Copy)]
 pub struct HasPermissions<const PERMS: u32>;
 

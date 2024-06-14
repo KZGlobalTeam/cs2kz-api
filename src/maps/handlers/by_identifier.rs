@@ -1,4 +1,4 @@
-//! Handlers for the `/maps/{map}` route.
+//! HTTP handlers for the `/maps/{map}` routes.
 
 use std::collections::HashSet;
 
@@ -20,7 +20,7 @@ use crate::sqlx::UpdateQuery;
 use crate::steam::workshop::{self, WorkshopID};
 use crate::{authentication, Error, Result, State};
 
-/// Fetch a single map.
+/// Fetch a specific map by its name or ID.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -31,7 +31,6 @@ use crate::{authentication, Error, Result, State};
     responses::Ok<FullMap>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(state: State, Path(map): Path<MapIdentifier>) -> Result<Json<FullMap>> {
@@ -61,11 +60,7 @@ pub async fn get(state: State, Path(map): Path<MapIdentifier>) -> Result<Json<Fu
 	Ok(Json(map))
 }
 
-/// Update a specific map.
-///
-/// This endpoint is used for non-breaking changes, i.e. changes that do not change the
-/// **gameplay** of a map in a backwards-incompatible way. This could include the map's name,
-/// filters, mappers, etc.
+/// Update an existing map.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   patch,
@@ -79,7 +74,6 @@ pub async fn get(state: State, Path(map): Path<MapIdentifier>) -> Result<Json<Fu
     responses::Unauthorized,
     responses::Conflict,
     responses::UnprocessableEntity,
-    responses::InternalServerError,
   ),
 )]
 pub async fn patch(
@@ -137,7 +131,7 @@ pub async fn patch(
 	Ok(NoContent)
 }
 
-/// Updates map details.
+/// Updates only the metadata of a map (what's in the `Maps` table).
 async fn update_details(
 	map_id: MapID,
 	description: Option<String>,
@@ -177,11 +171,11 @@ async fn update_details(
 	Ok(())
 }
 
-/// Updates a map's name and checksum by downloading its map file from Steam.
+/// Updates a map's name and checksum by downloading it from the workshop.
 async fn update_name_and_checksum(
 	map_id: MapID,
 	workshop_id: Option<WorkshopID>,
-	config: &crate::Config,
+	api_config: &crate::Config,
 	http_client: &reqwest::Client,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<()> {
@@ -205,7 +199,7 @@ async fn update_name_and_checksum(
 
 	let (name, checksum) = tokio::try_join! {
 		workshop::fetch_map_name(workshop_id, http_client),
-		workshop::MapFile::download(workshop_id, config).and_then(|map| async move {
+		workshop::MapFile::download(workshop_id, api_config).and_then(|map| async move {
 			map.checksum().await.map_err(|err| {
 				Error::checksum(err).context(format!("map_id: {map_id}, workshop_id: {workshop_id}"))
 			})
@@ -281,12 +275,13 @@ async fn delete_mappers(
 	Ok(())
 }
 
-/// Updates courses.
+/// Updates courses by applying [`CourseUpdate`]s and returns a list of [`CourseID`]s of the
+/// courses that were actually updated.
 async fn update_courses<C>(
 	map_id: MapID,
 	courses: C,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<()>
+) -> Result<Vec<CourseID>>
 where
 	C: IntoIterator<Item = (CourseID, CourseUpdate)> + Send,
 	C::IntoIter: Send,
@@ -332,10 +327,12 @@ where
 		"updated courses",
 	};
 
-	Ok(())
+	Ok(updated_course_ids)
 }
 
-/// Updates an individual course.
+/// Updates an individual course by applying a [`CourseUpdate`].
+///
+/// If the course was actually updated, `Some(course_id)` is returned, otherwise `None`.
 async fn update_course(
 	map_id: MapID,
 	course_id: CourseID,
@@ -434,13 +431,14 @@ async fn delete_course_mappers(
 	Ok(())
 }
 
-/// Applies updates to filters for a given course.
+/// Updates filters by applying [`FilterUpdate`]s and returns a list of [`FilterID`]s of the
+/// filters that were actually updated.
 async fn update_filters<F>(
 	map_id: MapID,
 	course_id: CourseID,
 	filters: F,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
-) -> Result<()>
+) -> Result<Vec<FilterID>>
 where
 	F: IntoIterator<Item = (FilterID, FilterUpdate)> + Send,
 	F::IntoIter: Send,
@@ -487,10 +485,12 @@ where
 		"updated filters",
 	};
 
-	Ok(())
+	Ok(updated_filter_ids)
 }
 
-/// Updates information about a course filter.
+/// Updates an individual filter by applying a [`FilterUpdate`].
+///
+/// If the filter was actually updated, `Some(filter_id)` is returned, otherwise `None`.
 async fn update_filter(
 	filter_id: FilterID,
 	FilterUpdate {

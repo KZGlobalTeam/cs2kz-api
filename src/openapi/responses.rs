@@ -1,8 +1,3 @@
-//! All types related to HTTP responses live in this module.
-//!
-//! Most of them exist purely for documentation purposes via the [`utoipa`] crate, and are used in
-//! its macros. Some however are also used as actual return types, e.g. [`Created<T>`].
-
 // Everything in here should be self-explanatory, and doc comments would end up as descriptions in
 // the OpenAPI spec, which we don't want.
 #![allow(missing_docs, clippy::missing_docs_in_private_items)]
@@ -17,18 +12,13 @@ use utoipa::openapi::schema::Schema;
 use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
 use utoipa::{IntoResponses, ToSchema};
 
-/// General purpose response body for pagination.
-///
-/// It includes the total amount of results that can be requested, as well as the current payload.
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct PaginationResponse<T>
 where
 	T: ToSchema<'static>,
 {
-	/// The total amount of available results.
 	pub total: u64,
 
-	/// The results for this request.
 	#[schema(inline)]
 	pub results: Vec<T>,
 }
@@ -96,10 +86,6 @@ pub struct Conflict;
 #[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
 #[response(status = 422)]
 pub struct UnprocessableEntity;
-
-#[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
-#[response(status = 500)]
-pub struct InternalServerError;
 
 #[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
 #[response(status = 502)]

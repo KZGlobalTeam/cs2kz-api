@@ -1,4 +1,4 @@
-//! Handlers for the `/bans` route.
+//! HTTP handlers for the `/bans` routes.
 
 use std::net::IpAddr;
 
@@ -20,7 +20,7 @@ use crate::plugin::PluginVersionID;
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{authentication, authorization, Error, Result, State};
 
-/// Query parameters for `GET /bans`.
+/// Query parameters for `/bans`.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetParams {
 	/// Filter by player.
@@ -35,31 +35,28 @@ pub struct GetParams {
 	/// Filter by bans that have already been reverted.
 	unbanned: Option<bool>,
 
-	/// Filter by admins responseible for bans.
+	/// Filter by admins who issued bans.
 	banned_by: Option<PlayerIdentifier>,
 
-	/// Filter by admins responseible for unbans.
+	/// Filter by admins who reverted bans.
 	unbanned_by: Option<PlayerIdentifier>,
 
-	/// Filter by creation date.
+	/// Only include bans submitted after this date.
 	created_after: Option<DateTime<Utc>>,
 
-	/// Filter by creation date.
+	/// Only include bans submitted before this date.
 	created_before: Option<DateTime<Utc>>,
 
-	/// Limit the number of returned results.
+	/// Maximum number of results to return.
 	#[serde(default)]
 	limit: Limit,
 
-	/// Paginate by `offset` entries.
+	/// Pagination offset.
 	#[serde(default)]
 	offset: Offset,
 }
 
 /// Fetch bans.
-///
-/// These are bans that might have expired / have been reverted. If that's the case, they will also
-/// include the according "unban" entry.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -70,7 +67,6 @@ pub struct GetParams {
     responses::Ok<PaginationResponse<Ban>>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(
@@ -140,9 +136,7 @@ pub async fn get(
 	}))
 }
 
-/// Ban a player.
-///
-/// This endpoint can be used by both CS2 servers and admins.
+/// Create a new ban.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   post,
@@ -155,7 +149,6 @@ pub async fn get(
     responses::BadRequest,
     responses::Unauthorized,
     responses::UnprocessableEntity,
-    responses::InternalServerError,
   ),
 )]
 pub async fn post(

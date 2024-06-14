@@ -1,3 +1,3 @@
-//! Handlers for the `/plugin` routes.
+//! HTTP handlers for the `/plugin` routes.
 
 pub mod versions;

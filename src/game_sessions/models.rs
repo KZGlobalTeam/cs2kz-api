@@ -1,4 +1,4 @@
-//! Types used for describing game sessions and related concepts.
+//! Types for modeling game sessions.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -15,16 +15,17 @@ use crate::time::Seconds;
 make_id!(GameSessionID as u64);
 make_id!(CourseSessionID as u64);
 
-/// An in-game session.
+/// A game session.
 ///
-/// Game sessions are recorded while players are playing on global servers, and submitted whenever
-/// a player disconnects or when the map changes.
+/// Game sessions start when a player joins a server, and end either when the player disconnects,
+/// or when the map changes. They record statistics about playtime, bhops, and potentially other
+/// metrics in the future.
 #[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct GameSession {
 	/// The session's ID.
 	pub id: GameSessionID,
 
-	/// The player associated with the session.
+	/// The player associated with this session.
 	#[sqlx(flatten)]
 	pub player: Player,
 
@@ -32,11 +33,12 @@ pub struct GameSession {
 	#[sqlx(flatten)]
 	pub server: ServerInfo,
 
-	/// Statistics on how much time the player spent doing what.
+	/// Stats about how the player spent their time.
 	#[sqlx(flatten)]
 	pub time_spent: TimeSpent,
 
-	/// Bhop statistics about this session.
+	/// Stats about how many bhops were performed by the player, and how many of them were
+	/// perfect bhops.
 	#[sqlx(flatten)]
 	pub bhop_stats: BhopStats,
 
@@ -44,16 +46,16 @@ pub struct GameSession {
 	pub created_on: DateTime<Utc>,
 }
 
-/// Breakdown of how time was spent.
+/// Statistics about how a player spent their time on a KZ server.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 pub struct TimeSpent {
-	/// How much time did the player spend actively playing?
+	/// How many seconds they were actively playing (had a running timer).
 	pub active: Seconds,
 
-	/// How much time did the player spend in spectator mode?
+	/// How many seconds they were in spectator mode.
 	pub spectating: Seconds,
 
-	/// How much time did the player spend doing nothing?
+	/// How many seconds they were inactive.
 	pub afk: Seconds,
 }
 

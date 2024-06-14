@@ -8,16 +8,18 @@ use sqlx::MySql;
 use uuid::fmt::Hyphenated;
 use uuid::Uuid;
 
-/// A session ID.
+/// A [session] ID.
 ///
-/// This is a randomly generated UUID.
+/// This is a UUID version 4.
+///
+/// [session]: super::Session
 #[derive(Debug, Display, Clone, Copy, PartialEq, Eq, Into)]
 #[debug("*****")]
 #[display("{_0}")]
 pub struct SessionID(Uuid);
 
 impl SessionID {
-	/// Generates a new random session ID.
+	/// Generates a new [`SessionID`].
 	pub fn new() -> Self {
 		Self(Uuid::new_v4())
 	}

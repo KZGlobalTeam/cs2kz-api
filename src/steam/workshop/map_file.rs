@@ -1,4 +1,9 @@
-//! This module contains functionality around downloading maps from the Steam Workshop.
+//! Workshop Map files.
+//!
+//! This module provides the [`MapFile`] type, which can be used to download `.vpk` files from the
+//! Workshop. It utilizes an external program called [DepotDownloader] to achieve this.
+//!
+//! [DepotDownloader]: https://github.com/SteamRE/DepotDownloader
 
 use derive_more::Debug;
 use tokio::fs::File;
@@ -8,37 +13,37 @@ use tokio::process::Command;
 use crate::steam::workshop::WorkshopID;
 use crate::{Config, Error, Result};
 
-/// A handle to a downloaded Workshop map.
+/// A handle to a downloaded map file.
 #[derive(Debug)]
 pub struct MapFile {
-	/// Handle to the file on disk.
+	/// The OS file handle.
 	#[debug(skip)]
 	file: File,
 }
 
 impl MapFile {
-	/// Download this map from the workshop and return a handle to it.
-	#[tracing::instrument(level = "debug", skip(config), fields(
+	/// Downloads a map from the workshop.
+	#[tracing::instrument(level = "debug", skip(api_config), fields(
 		file.path = tracing::field::Empty
 	))]
-	pub async fn download(workshop_id: WorkshopID, config: &Config) -> Result<Self> {
+	pub async fn download(workshop_id: WorkshopID, api_config: &Config) -> Result<Self> {
 		#[cfg(not(feature = "production"))]
-		let out_dir = config
+		let out_dir = api_config
 			.workshop_artifacts_path
 			.as_deref()
 			.ok_or_else(|| Error::missing_workshop_asset_dir())?;
 
 		#[cfg(feature = "production")]
-		let out_dir = &config.workshop_artifacts_path;
+		let out_dir = &api_config.workshop_artifacts_path;
 
 		#[cfg(not(feature = "production"))]
-		let depot_downloader_path = config
+		let depot_downloader_path = api_config
 			.depot_downloader_path
 			.as_deref()
 			.ok_or_else(|| Error::missing_depot_downloader())?;
 
 		#[cfg(feature = "production")]
-		let depot_downloader_path = &config.depot_downloader_path;
+		let depot_downloader_path = &api_config.depot_downloader_path;
 
 		let output = Command::new(depot_downloader_path)
 			.args(["-app", "730", "-pubfile"])
@@ -82,11 +87,7 @@ impl MapFile {
 		Ok(Self { file })
 	}
 
-	/// Calculate the checksum for this map file.
-	///
-	/// # Panics
-	///
-	/// This function will panic if the filesize exceeds `usize::MAX` bytes.
+	/// Computes the crc32 checksum for this file.
 	#[tracing::instrument(level = "debug", skip(self), ret)]
 	pub async fn checksum(mut self) -> io::Result<u32> {
 		let metadata = self.file.metadata().await?;

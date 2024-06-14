@@ -1,4 +1,4 @@
-//! Handlers for the `/players` routes.
+//! HTTP handlers for the `/players` routes.
 
 pub mod root;
 pub mod by_identifier;

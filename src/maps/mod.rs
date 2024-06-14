@@ -1,4 +1,4 @@
-//! Everything related to maps.
+//! Everything related to KZ maps.
 
 use axum::http::Method;
 use axum::routing::{get, patch, put};
@@ -18,7 +18,7 @@ pub use models::{
 mod queries;
 pub mod handlers;
 
-/// Returns a router with routes for `/maps`.
+/// Returns an [`axum::Router`] for the `/maps` routes.
 pub fn router(state: State) -> Router {
 	let auth = session_auth!(
 		authorization::HasPermissions<{ Permissions::MAPS.value() }>,

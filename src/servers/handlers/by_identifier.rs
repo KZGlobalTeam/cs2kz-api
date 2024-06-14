@@ -1,4 +1,4 @@
-//! Handlers for the `/servers/{server}` route.
+//! HTTP handlers for the `/servers/{server}` routes.
 
 use axum::extract::Path;
 use axum::Json;
@@ -11,7 +11,7 @@ use crate::servers::{queries, Server, ServerID, ServerUpdate};
 use crate::sqlx::UpdateQuery;
 use crate::{authentication, authorization, Error, Result, State};
 
-/// Fetch a specific server.
+/// Fetch a server by its name or ID.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -21,7 +21,6 @@ use crate::{authentication, authorization, Error, Result, State};
     responses::Ok<Server>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(state: State, Path(server): Path<ServerIdentifier>) -> Result<Json<Server>> {
@@ -47,21 +46,18 @@ pub async fn get(state: State, Path(server): Path<ServerIdentifier>) -> Result<J
 	Ok(Json(server))
 }
 
-/// Update a server.
-///
-/// This endpoint can be used by both admins and server owners.
+/// Update an existing server.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   patch,
   path = "/servers/{server}",
   tag = "Servers",
   security(("Browser Session" = ["servers"])),
-  responses(//
+  responses(
     responses::NoContent,
     responses::BadRequest,
     responses::Unauthorized,
     responses::UnprocessableEntity,
-    responses::InternalServerError,
   ),
 )]
 pub async fn patch(

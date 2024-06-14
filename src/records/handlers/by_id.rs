@@ -1,4 +1,4 @@
-//! Handlers for the `/records/{record_id}` route.
+//! HTTP handlers for the `/records/{record_id}` routes.
 
 use axum::extract::Path;
 use axum::Json;
@@ -19,7 +19,6 @@ use crate::{Error, Result, State};
     responses::Ok<Record>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(state: State, Path(record_id): Path<RecordID>) -> Result<Json<Record>> {

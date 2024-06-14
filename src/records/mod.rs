@@ -1,4 +1,4 @@
-//! Everything related to records.
+//! Everything related to KZ records.
 
 use axum::routing::{get, post};
 use axum::Router;
@@ -12,7 +12,7 @@ pub use models::{BhopStats, CreatedRecord, NewRecord, Record, RecordID};
 mod queries;
 pub mod handlers;
 
-/// Returns a router with routes for `/records`.
+/// Returns an [`axum::Router`] for the `/records` routes.
 pub fn router(state: State) -> Router {
 	let root = Router::new()
 		.route("/", get(handlers::root::get))

@@ -1,4 +1,4 @@
-//! Handlers for the `/players/{player}` route.
+//! HTTP handlers for the `/players/{player}` routes.
 
 use axum::extract::Path;
 use axum::Json;
@@ -16,10 +16,10 @@ use crate::servers::ServerID;
 use crate::sqlx::SqlErrorExt;
 use crate::{authentication, authorization, Error, Result, State};
 
-/// Fetch a specific player.
+/// Fetch a specific player by their name or SteamID.
 ///
-/// If you send a cookie that shows you're "logged in", and you happen to have permissions for
-/// managing bans, the response will include the player's IP address.
+/// The object returned from this endpoint will include an `ip_address` field if and only if the
+/// requesting user is authorized to manage bans.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   get,
@@ -30,7 +30,6 @@ use crate::{authentication, authorization, Error, Result, State};
     responses::Ok<FullPlayer>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(
@@ -68,10 +67,10 @@ pub async fn get(
 	Ok(Json(player))
 }
 
-/// Updates information about a player.
+/// Update an existing player.
 ///
-/// This endpoint will be hit periodically by CS2 servers whenever a map changes, or a player
-/// disconnects.
+/// This endpoint is for CS2 servers. Whenever a player disconnects, or when the map changes, they
+/// will update players using this endpoint.
 #[tracing::instrument(skip(state))]
 #[utoipa::path(
   patch,
@@ -85,7 +84,6 @@ pub async fn get(
     responses::BadRequest,
     responses::Unauthorized,
     responses::UnprocessableEntity,
-    responses::InternalServerError,
   ),
 )]
 pub async fn patch(
@@ -188,7 +186,7 @@ pub async fn patch(
 	Ok(NoContent)
 }
 
-/// Inserts course sessions into the database.
+/// Inserts a [`CourseSession`] into the database and returns the generated [`CourseSessionID`].
 async fn insert_course_session(
 	steam_id: SteamID,
 	server_id: ServerID,

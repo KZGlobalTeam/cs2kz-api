@@ -1,4 +1,4 @@
-//! Helpers and extension traits for [`sqlx`].
+//! Helpers types, functions, and extension traits for [`sqlx`].
 
 mod error;
 pub use error::SqlErrorExt;

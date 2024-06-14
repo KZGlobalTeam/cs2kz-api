@@ -1,4 +1,4 @@
-//! Handlers for the `/jumpstats` route.
+//! HTTP handlers for the `/jumpstats` routes.
 
 use axum::extract::Query;
 use axum::Json;
@@ -15,7 +15,7 @@ use crate::openapi::responses::{Created, PaginationResponse};
 use crate::sqlx::{query, FetchID, FilteredQuery, QueryBuilderExt, SqlErrorExt};
 use crate::{Error, Result, State};
 
-/// Query parameters for `GET /jumpstats`.
+/// Query parameters for `/jumpstats`.
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct GetParams {
 	/// Filter by jump type.
@@ -25,7 +25,7 @@ pub struct GetParams {
 	/// Filter by mode.
 	mode: Option<Mode>,
 
-	/// Filter by a minimum distance.
+	/// Filter by required minimum distance.
 	minimum_distance: Option<f32>,
 
 	/// Filter by player.
@@ -34,17 +34,17 @@ pub struct GetParams {
 	/// Filter by server.
 	server: Option<ServerIdentifier>,
 
-	/// Filter by creation date.
+	/// Only include jumpstats submitted after this date.
 	created_after: Option<DateTime<Utc>>,
 
-	/// Filter by creation date.
+	/// Only include jumpstats submitted before this date.
 	created_before: Option<DateTime<Utc>>,
 
-	/// Limit the number of returned results.
+	/// Maximum number of results to return.
 	#[serde(default)]
 	limit: Limit,
 
-	/// Paginate by `offset` entries.
+	/// Pagination offset.
 	#[serde(default)]
 	offset: Offset,
 }
@@ -60,7 +60,6 @@ pub struct GetParams {
     responses::Ok<PaginationResponse<Jumpstat>>,
     responses::NoContent,
     responses::BadRequest,
-    responses::InternalServerError,
   ),
 )]
 pub async fn get(
@@ -147,7 +146,6 @@ pub async fn get(
     responses::BadRequest,
     responses::Unauthorized,
     responses::UnprocessableEntity,
-    responses::InternalServerError,
   ),
 )]
 pub async fn post(

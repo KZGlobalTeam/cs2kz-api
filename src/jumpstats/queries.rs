@@ -1,6 +1,6 @@
-//! SQL queries that are used in multiple places.
+//! Shared SQL queries.
 
-/// SQL query for fetching jumpstats.
+/// SQL query for `SELECT`ing jumpstats from the database.
 pub static SELECT: &str = r#"
 	SELECT SQL_CALC_FOUND_ROWS
 	  j.id,
