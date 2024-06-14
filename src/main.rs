@@ -13,6 +13,7 @@
 //! You should have received a copy of the GNU General Public License along with this repository.
 //! If not, see <https://www.gnu.org/licenses/>.
 
+use std::backtrace::Backtrace;
 use std::panic;
 
 use anyhow::Context;
@@ -59,7 +60,11 @@ async fn main() -> anyhow::Result<()> {
 	// If anything anywhere ever panics, we want to log it.
 	panic::set_hook(Box::new(move |info| {
 		tracing::error_span!("runtime::panic_hook").in_scope(|| {
-			tracing::error!(target: "cs2kz_api::audit_log", message = %info);
+			let backtrace = Backtrace::force_capture();
+			tracing::error! {
+				target: "cs2kz_api::audit_log",
+				"{info}\n\nstack backtrace:\n{backtrace}",
+			};
 		});
 
 		old_panic_hook(info)
