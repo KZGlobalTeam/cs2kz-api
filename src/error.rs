@@ -98,10 +98,10 @@ enum ErrorKind {
 	NoContent,
 
 	#[error("could not find {what}")]
-	NotFound { what: &'static str },
+	NotFound { what: String },
 
 	#[error("invalid {what}")]
-	InvalidInput { what: &'static str },
+	InvalidInput { what: String },
 
 	#[error("{UNAUTHORIZED_MSG}")]
 	Unauthorized,
@@ -137,6 +137,12 @@ enum ErrorKind {
 
 	#[error("ban `{ban_id}` was already reverted by unban `{unban_id}`")]
 	BanAlreadyReverted { ban_id: BanID, unban_id: UnbanID },
+
+	#[error("submitted plugin version {submitted} is outdated (latest is {latest})")]
+	OutdatedPluginVersion {
+		submitted: semver::Version,
+		latest: semver::Version,
+	},
 
 	#[error("logic assertion failed: {0}")]
 	Logic(String),
@@ -261,16 +267,26 @@ impl Error {
 	///
 	/// Produces a `404 Not Found` status.
 	#[track_caller]
-	pub(crate) fn not_found(what: &'static str) -> Self {
-		Self::new(ErrorKind::NotFound { what })
+	pub(crate) fn not_found<T>(what: T) -> Self
+	where
+		T: Display,
+	{
+		Self::new(ErrorKind::NotFound {
+			what: what.to_string(),
+		})
 	}
 
 	/// An error signaling invalid user input.
 	///
 	/// Produces a `400 Bad Request` status.
 	#[track_caller]
-	pub(crate) fn invalid(what: &'static str) -> Self {
-		Self::new(ErrorKind::InvalidInput { what })
+	pub(crate) fn invalid<T>(what: T) -> Self
+	where
+		T: Display,
+	{
+		Self::new(ErrorKind::InvalidInput {
+			what: what.to_string(),
+		})
 	}
 
 	/// A generic `401 Unauthorized` error.
@@ -392,6 +408,20 @@ impl Error {
 		Self::new(ErrorKind::BanAlreadyReverted { ban_id, unban_id })
 	}
 
+	/// An error that can occur when submitting new CS2KZ plugin versions.
+	///
+	/// The API keeps track of all the versions, and if a new version is submitted that is
+	/// older than the latest one, that's probably wrong.
+	///
+	/// Produces a `409 Conflict` status.
+	#[track_caller]
+	pub(crate) fn outdated_plugin_version(
+		submitted: semver::Version,
+		latest: semver::Version,
+	) -> Self {
+		Self::new(ErrorKind::OutdatedPluginVersion { submitted, latest })
+	}
+
 	/// A generic `500 Internal Server Error`.
 	///
 	/// This constructor is reserved for errors that _should not_ occur, but _may_ occur. If
@@ -507,7 +537,8 @@ impl IntoResponse for Error {
 			| E::MustHaveMappers
 			| E::MismatchingMapCourse { .. }
 			| E::MismatchingCourseFilter { .. }
-			| E::BanAlreadyReverted { .. } => StatusCode::CONFLICT,
+			| E::BanAlreadyReverted { .. }
+			| E::OutdatedPluginVersion { .. } => StatusCode::CONFLICT,
 			E::Logic(_)
 			| E::Database(_)
 			| E::Jwt(_)

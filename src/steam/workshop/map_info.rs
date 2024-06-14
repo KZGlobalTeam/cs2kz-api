@@ -28,7 +28,7 @@ pub async fn fetch_map_name(
 		.await?;
 
 	if !response.status().is_success() {
-		return Err(Error::not_found("workshop ID"));
+		return Err(Error::not_found("workshop map"));
 	}
 
 	let map_info = response.json::<MapInfo>().await?;

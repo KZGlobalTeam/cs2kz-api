@@ -336,7 +336,7 @@ pub(super) async fn insert_course_mappers(
 		.await
 		.map_err(|err| {
 			if err.is_fk_violation_of("player_id") {
-				Error::not_found("mapper").context(err)
+				Error::not_found("course mapper").context(err)
 			} else {
 				Error::from(err)
 			}

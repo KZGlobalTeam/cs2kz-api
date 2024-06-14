@@ -73,7 +73,7 @@ impl FromRequestParts<State> for ApiKey {
 				name: row.name,
 			}),
 		})
-		.ok_or_else(|| Error::invalid("key"))??;
+		.ok_or_else(|| Error::unauthorized())??;
 
 		tracing::Span::current()
 			.record("name", api_key.name())

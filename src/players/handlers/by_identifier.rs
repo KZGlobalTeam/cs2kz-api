@@ -121,7 +121,7 @@ pub async fn patch(
 	.await?;
 
 	match query_result.rows_affected() {
-		0 => return Err(Error::not_found("SteamID")),
+		0 => return Err(Error::not_found("player")),
 		n => assert_eq!(n, 1, "updated more than 1 player"),
 	}
 

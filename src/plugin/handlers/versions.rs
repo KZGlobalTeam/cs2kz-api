@@ -96,7 +96,7 @@ pub async fn post(
 	}): Json<NewPluginVersion>,
 ) -> Result<Created<Json<CreatedPluginVersion>>> {
 	if api_key.name() != "plugin_versions" {
-		return Err(Error::invalid("key").context(format!("actual key was {api_key:?}")));
+		return Err(Error::unauthorized().context(api_key.to_string()));
 	}
 
 	let mut transaction = state.transaction().await?;
@@ -127,9 +127,7 @@ pub async fn post(
 			"submitted outdated plugin version",
 		};
 
-		return Err(Error::invalid("plugin version").context(format!(
-			"version is `{semver}` while latest version is `{version}`"
-		)));
+		return Err(Error::outdated_plugin_version(semver, version));
 	}
 
 	let plugin_version_id = sqlx::query! {

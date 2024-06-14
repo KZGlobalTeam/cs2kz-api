@@ -202,7 +202,7 @@ pub async fn post(
 	.fetch_optional(transaction.as_mut())
 	.await?
 	.map(|row| (row.already_banned, row.previous_bans))
-	.ok_or_else(|| Error::not_found("SteamID"))?;
+	.ok_or_else(|| Error::not_found("player"))?;
 
 	if already_banned {
 		return Err(Error::already_exists("ban"));

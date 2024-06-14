@@ -205,7 +205,7 @@ impl Session {
 		.fetch_optional(transaction.as_mut())
 		.await?
 		.map(|row| User::new(steam_user.steam_id, row.permissions))
-		.ok_or_else(|| Error::not_found("SteamID"))?;
+		.ok_or_else(|| Error::not_found(format!("user with SteamID `{}`", steam_user.steam_id)))?;
 
 		transaction.commit().await?;
 
@@ -358,7 +358,7 @@ where
 		}
 		.fetch_optional(transaction.as_mut())
 		.await?
-		.ok_or_else(|| Error::invalid("session ID"))?;
+		.ok_or_else(|| Error::unauthorized())?;
 
 		current_span.record("session.user.id", format_args!("{}", session.user_id));
 

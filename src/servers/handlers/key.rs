@@ -53,7 +53,7 @@ pub async fn generate_temp(
 	.fetch_optional(transaction.as_mut())
 	.await?
 	.map(|row| authentication::Server::new(row.server_id, row.plugin_version_id))
-	.ok_or_else(|| Error::invalid("token"))?;
+	.ok_or_else(|| Error::unauthorized())?;
 
 	let jwt = Jwt::new(&server, Duration::from_secs(60 * 15));
 	let access_key = state.encode_jwt(jwt)?;
@@ -106,7 +106,7 @@ pub async fn put_perma(
 	.await?;
 
 	match query_result.rows_affected() {
-		0 => return Err(Error::not_found("server ID")),
+		0 => return Err(Error::not_found("server")),
 		n => assert_eq!(n, 1, "updated more than 1 server"),
 	}
 
@@ -160,7 +160,7 @@ pub async fn delete_perma(
 	.await?;
 
 	match query_result.rows_affected() {
-		0 => return Err(Error::not_found("server ID")),
+		0 => return Err(Error::not_found("server")),
 		n => assert_eq!(n, 1, "updated more than 1 server"),
 	}
 

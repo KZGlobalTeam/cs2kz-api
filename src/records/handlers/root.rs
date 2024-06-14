@@ -241,7 +241,7 @@ pub async fn post(
 	}
 	.fetch_optional(transaction.as_mut())
 	.await?
-	.ok_or_else(|| Error::not_found("course ID"))?;
+	.ok_or_else(|| Error::not_found("course"))?;
 
 	let record_id = sqlx::query! {
 		r#"
