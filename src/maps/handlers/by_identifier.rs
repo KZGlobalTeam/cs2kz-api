@@ -55,7 +55,7 @@ pub async fn get(state: State, Path(map): Path<MapIdentifier>) -> Result<Json<Fu
 		.await?
 		.into_iter()
 		.reduce(FullMap::reduce)
-		.ok_or_else(|| Error::no_content())?;
+		.ok_or_else(|| Error::not_found("map"))?;
 
 	Ok(Json(map))
 }
@@ -162,7 +162,7 @@ async fn update_details(
 	let query_result = query.build().execute(transaction.as_mut()).await?;
 
 	match query_result.rows_affected() {
-		0 => return Err(Error::unknown("map ID")),
+		0 => return Err(Error::not_found("map ID")),
 		n => assert_eq!(n, 1, "updated more than 1 map"),
 	}
 
@@ -224,7 +224,7 @@ async fn update_name_and_checksum(
 	.await?;
 
 	match query_result.rows_affected() {
-		0 => return Err(Error::unknown("map ID")),
+		0 => return Err(Error::not_found("map ID")),
 		n => assert_eq!(n, 1, "updated more than 1 map"),
 	}
 

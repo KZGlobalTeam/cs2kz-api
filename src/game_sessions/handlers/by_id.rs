@@ -46,7 +46,7 @@ pub async fn get(state: State, Path(session_id): Path<GameSessionID>) -> Result<
 	.bind(session_id)
 	.fetch_optional(&state.database)
 	.await?
-	.ok_or_else(|| Error::no_content())?;
+	.ok_or_else(|| Error::not_found("session"))?;
 
 	Ok(Json(session))
 }

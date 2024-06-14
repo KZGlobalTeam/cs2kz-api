@@ -42,7 +42,7 @@ impl FetchID for PlayerIdentifier {
 			}
 			.fetch_optional(executor)
 			.await?
-			.ok_or_else(|| Error::no_content()),
+			.ok_or_else(|| Error::not_found("player")),
 		}
 	}
 }
@@ -66,7 +66,7 @@ impl FetchID for MapIdentifier {
 			}
 			.fetch_optional(executor)
 			.await?
-			.ok_or_else(|| Error::no_content()),
+			.ok_or_else(|| Error::not_found("map")),
 		}
 	}
 }
@@ -90,7 +90,7 @@ impl FetchID for CourseIdentifier {
 			}
 			.fetch_optional(executor)
 			.await?
-			.ok_or_else(|| Error::no_content()),
+			.ok_or_else(|| Error::not_found("course")),
 		}
 	}
 }
@@ -114,7 +114,7 @@ impl FetchID for ServerIdentifier {
 			}
 			.fetch_optional(executor)
 			.await?
-			.ok_or_else(|| Error::no_content()),
+			.ok_or_else(|| Error::not_found("server")),
 		}
 	}
 }

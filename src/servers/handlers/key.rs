@@ -106,7 +106,7 @@ pub async fn put_perma(
 	.await?;
 
 	match query_result.rows_affected() {
-		0 => return Err(Error::unknown("server ID")),
+		0 => return Err(Error::not_found("server ID")),
 		n => assert_eq!(n, 1, "updated more than 1 server"),
 	}
 
@@ -160,7 +160,7 @@ pub async fn delete_perma(
 	.await?;
 
 	match query_result.rows_affected() {
-		0 => return Err(Error::unknown("server ID")),
+		0 => return Err(Error::not_found("server ID")),
 		n => assert_eq!(n, 1, "updated more than 1 server"),
 	}
 

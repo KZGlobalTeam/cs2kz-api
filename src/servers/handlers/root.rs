@@ -164,7 +164,7 @@ pub async fn post(
 	.await
 	.map_err(|err| {
 		if err.is_fk_violation_of("owner_id") {
-			Error::unknown("owner").context(err)
+			Error::not_found("owner").context(err)
 		} else {
 			Error::from(err)
 		}

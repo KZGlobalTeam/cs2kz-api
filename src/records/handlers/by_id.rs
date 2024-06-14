@@ -30,7 +30,7 @@ pub async fn get(state: State, Path(record_id): Path<RecordID>) -> Result<Json<R
 		.build_query_as::<Record>()
 		.fetch_optional(&state.database)
 		.await?
-		.ok_or_else(|| Error::no_content())?;
+		.ok_or_else(|| Error::not_found("record"))?;
 
 	Ok(Json(record))
 }

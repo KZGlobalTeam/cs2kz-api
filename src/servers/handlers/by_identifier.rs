@@ -41,7 +41,7 @@ pub async fn get(state: State, Path(server): Path<ServerIdentifier>) -> Result<J
 		.build_query_as::<Server>()
 		.fetch_optional(&state.database)
 		.await?
-		.ok_or_else(|| Error::no_content())?;
+		.ok_or_else(|| Error::not_found("server"))?;
 
 	Ok(Json(server))
 }
@@ -99,7 +99,7 @@ pub async fn patch(
 	let query_result = query.build().execute(transaction.as_mut()).await?;
 
 	match query_result.rows_affected() {
-		0 => return Err(Error::unknown("server ID")),
+		0 => return Err(Error::not_found("server ID")),
 		n => assert_eq!(n, 1, "updated more than 1 server"),
 	}
 

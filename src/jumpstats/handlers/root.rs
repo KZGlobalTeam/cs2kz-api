@@ -242,7 +242,7 @@ pub async fn post(
 	.await
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
-			Error::unknown("player").context(err)
+			Error::not_found("player").context(err)
 		} else {
 			Error::from(err)
 		}

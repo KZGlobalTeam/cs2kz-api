@@ -44,7 +44,7 @@ pub async fn get(state: State, Path(steam_id): Path<SteamID>) -> Result<Json<Adm
 		steam_id: row.id,
 		permissions: row.permissions,
 	})
-	.ok_or_else(|| Error::no_content())?;
+	.ok_or_else(|| Error::not_found("admin"))?;
 
 	Ok(Json(admin))
 }
@@ -91,7 +91,7 @@ pub async fn put(
 	.await?;
 
 	match query_result.rows_affected() {
-		0 => return Err(Error::unknown("SteamID")),
+		0 => return Err(Error::not_found("SteamID")),
 		n => assert_eq!(n, 1, "updated more than 1 player"),
 	}
 

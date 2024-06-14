@@ -56,7 +56,7 @@ pub async fn get(
 		.build_query_as::<FullPlayer>()
 		.fetch_optional(&state.database)
 		.await?
-		.ok_or_else(|| Error::no_content())?;
+		.ok_or_else(|| Error::not_found("player"))?;
 
 	// Filter out IP address if we're not in a test and the user does not have permission to
 	// view IP addresses
@@ -121,7 +121,7 @@ pub async fn patch(
 	.await?;
 
 	match query_result.rows_affected() {
-		0 => return Err(Error::unknown("SteamID")),
+		0 => return Err(Error::not_found("SteamID")),
 		n => assert_eq!(n, 1, "updated more than 1 player"),
 	}
 
@@ -154,7 +154,7 @@ pub async fn patch(
 	.await
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
-			Error::unknown("player").context(err)
+			Error::not_found("player").context(err)
 		} else {
 			Error::from(err)
 		}
@@ -231,9 +231,9 @@ async fn insert_course_session(
 	.await
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
-			Error::unknown("player").context(err)
+			Error::not_found("player").context(err)
 		} else if err.is_fk_violation_of("course_id") {
-			Error::unknown("course").context(err)
+			Error::not_found("course").context(err)
 		} else {
 			Error::from(err)
 		}

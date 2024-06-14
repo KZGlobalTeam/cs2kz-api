@@ -30,7 +30,7 @@ pub async fn get(state: State, Path(jumpstat_id): Path<JumpstatID>) -> Result<Js
 		.build_query_as::<Jumpstat>()
 		.fetch_optional(&state.database)
 		.await?
-		.ok_or_else(|| Error::no_content())?;
+		.ok_or_else(|| Error::not_found("jumpstat"))?;
 
 	Ok(Json(jumpstat))
 }

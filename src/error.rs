@@ -97,8 +97,8 @@ enum ErrorKind {
 	#[error("no content")]
 	NoContent,
 
-	#[error("unknown {what}")]
-	UnknownInput { what: &'static str },
+	#[error("could not find {what}")]
+	NotFound { what: &'static str },
 
 	#[error("invalid {what}")]
 	InvalidInput { what: &'static str },
@@ -257,12 +257,12 @@ impl Error {
 		Self::new(ErrorKind::NoContent)
 	}
 
-	/// An error signaling unknown user input, like an unknown ID.
+	/// An error signaling that a resource could not be found.
 	///
-	/// Produces a `400 Bad Request` status.
+	/// Produces a `404 Not Found` status.
 	#[track_caller]
-	pub(crate) fn unknown(what: &'static str) -> Self {
-		Self::new(ErrorKind::UnknownInput { what })
+	pub(crate) fn not_found(what: &'static str) -> Self {
+		Self::new(ErrorKind::NotFound { what })
 	}
 
 	/// An error signaling invalid user input.
@@ -489,20 +489,20 @@ impl Error {
 }
 
 impl IntoResponse for Error {
+	#[track_caller]
 	fn into_response(self) -> Response {
 		use ErrorKind as E;
 
 		let message = self.kind.to_string();
 		let status = match self.kind {
 			E::NoContent => StatusCode::NO_CONTENT,
-			E::UnknownInput { .. } | E::InvalidInput { .. } | E::Header(_) => {
-				StatusCode::BAD_REQUEST
-			}
+			E::InvalidInput { .. } | E::Header(_) => StatusCode::BAD_REQUEST,
 			E::Unauthorized
 			| E::ExpiredAccessKey
 			| E::MissingSessionID
 			| E::InsufficientPermissions { .. }
 			| E::MustBeServerOwner => StatusCode::UNAUTHORIZED,
+			E::NotFound { .. } => StatusCode::NOT_FOUND,
 			E::AlreadyExists { .. }
 			| E::MustHaveMappers
 			| E::MismatchingMapCourse { .. }

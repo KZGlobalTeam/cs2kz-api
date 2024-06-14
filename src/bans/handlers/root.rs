@@ -202,7 +202,7 @@ pub async fn post(
 	.fetch_optional(transaction.as_mut())
 	.await?
 	.map(|row| (row.already_banned, row.previous_bans))
-	.ok_or_else(|| Error::unknown("SteamID"))?;
+	.ok_or_else(|| Error::not_found("SteamID"))?;
 
 	if already_banned {
 		return Err(Error::already_exists("ban"));
@@ -223,7 +223,7 @@ pub async fn post(
 		}
 		.fetch_optional(transaction.as_mut())
 		.await?
-		.ok_or_else(|| Error::unknown("player"))?,
+		.ok_or_else(|| Error::not_found("player"))?,
 	};
 
 	let plugin_version_id = if let Some(id) = server.map(|server| server.plugin_version_id()) {
@@ -274,9 +274,9 @@ pub async fn post(
 	.await
 	.map_err(|err| {
 		if err.is_fk_violation_of("player_id") {
-			Error::unknown("player").context(err)
+			Error::not_found("player").context(err)
 		} else if err.is_fk_violation_of("admin_id") {
-			Error::unknown("admin").context(err)
+			Error::not_found("admin").context(err)
 		} else {
 			Error::from(err)
 		}

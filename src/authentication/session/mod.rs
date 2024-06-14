@@ -205,7 +205,7 @@ impl Session {
 		.fetch_optional(transaction.as_mut())
 		.await?
 		.map(|row| User::new(steam_user.steam_id, row.permissions))
-		.ok_or_else(|| Error::unknown("SteamID"))?;
+		.ok_or_else(|| Error::not_found("SteamID"))?;
 
 		transaction.commit().await?;
 
