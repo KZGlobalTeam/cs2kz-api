@@ -226,12 +226,14 @@ impl NewMap {
 		let courses: Vec<NewCourse> = vec::deserialize_non_empty(deserializer)?;
 		let mut names = HashSet::new();
 
-		for name in courses.iter().filter_map(|course| course.name.as_deref()) {
-			if !names.insert(name) {
-				return Err(serde::de::Error::custom(format_args!(
-					"cannot submit duplicate course `{name}`",
-				)));
-			}
+		if let Some(name) = courses
+			.iter()
+			.filter_map(|course| course.name.as_deref())
+			.find(|&name| !names.insert(name))
+		{
+			return Err(serde::de::Error::custom(format_args!(
+				"cannot submit duplicate course `{name}`",
+			)));
 		}
 
 		Ok(courses)

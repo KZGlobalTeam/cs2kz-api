@@ -310,11 +310,10 @@ fn setup() {
 			.init();
 	}
 
-	for path in [".env.example", ".env", ".env.docker.example", ".env.docker"] {
-		if let Err(err) = dotenvy::from_filename(path) {
-			eprintln!("WARNING: Failed to load `{path}`: {err}");
-		}
-	}
+	[".env.example", ".env", ".env.docker.example", ".env.docker"]
+		.into_iter()
+		.filter_map(|path| dotenvy::from_filename(path).err().map(|err| (path, err)))
+		.for_each(|(path, err)| eprintln!("WARNING: Failed to load `{path}`: {err}"));
 }
 
 #[crate::integration_test]
