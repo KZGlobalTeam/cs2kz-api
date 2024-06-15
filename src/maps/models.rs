@@ -295,7 +295,7 @@ impl NewCourse {
 				)));
 			}
 
-			if filter.tier > Tier::Death && filter.ranked_status == RankedStatus::Ranked {
+			if filter.tier > Tier::Death && filter.ranked_status.is_ranked() {
 				return Err(serde::de::Error::custom(format_args!(
 					"tier `{}` is too high for a ranked filter",
 					filter.tier,
