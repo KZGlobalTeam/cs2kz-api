@@ -45,12 +45,20 @@ impl State {
 	/// The minimum number of [database pool] connections.
 	///
 	/// [database pool]: State::database
-	const MIN_DB_CONNECTIONS: u32 = if cfg!(production) { 200 } else { 20 };
+	const MIN_DB_CONNECTIONS: u32 = if cfg!(feature = "production") {
+		200
+	} else {
+		20
+	};
 
 	/// The maximum number of [database pool] connections.
 	///
 	/// [database pool]: State::database
-	const MAX_DB_CONNECTIONS: u32 = if cfg!(production) { 256 } else { 50 };
+	const MAX_DB_CONNECTIONS: u32 = if cfg!(feature = "production") {
+		256
+	} else {
+		50
+	};
 
 	/// Creates a new [`State`].
 	pub async fn new(api_config: crate::Config) -> Result<Self> {
