@@ -16,5 +16,9 @@ where
 		.with_writer(io::stderr)
 		.with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
 		.pretty()
-		.with_filter(EnvFilter::from_default_env())
+		.with_filter(if cfg!(feature = "production") {
+			EnvFilter::new("cs2kz_api::audit_log=trace,warn")
+		} else {
+			EnvFilter::from_default_env()
+		})
 }
