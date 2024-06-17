@@ -41,9 +41,7 @@ jobs:
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - name: cargo clippy
-        uses: giraffate/clippy-action@v1
-        with:
-          clippy_flags: --workspace --all-features --no-deps --tests -- -D warnings
+        run: cargo clippy --workspace --all-features --no-deps --tests -- -D warnings
 
   rustfmt:
     name: rustfmt
