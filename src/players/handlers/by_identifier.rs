@@ -1,8 +1,11 @@
 //! HTTP handlers for the `/players/{player}` routes.
 
+use std::iter;
+
 use axum::extract::Path;
 use axum::Json;
-use cs2kz::{PlayerIdentifier, SteamID};
+use cs2kz::{Mode, PlayerIdentifier, SteamID};
+use futures::TryFutureExt;
 use sqlx::types::Json as SqlJson;
 use sqlx::{MySql, QueryBuilder};
 
@@ -166,17 +169,21 @@ pub async fn patch(
 
 	let mut course_session_ids = Vec::with_capacity(session.course_sessions.len());
 
-	for (course_id, course_session) in session.course_sessions {
-		course_session_ids.push(
-			insert_course_session(
-				steam_id,
-				server.id(),
-				course_id,
-				course_session,
-				&mut transaction,
-			)
-			.await?,
-		);
+	for (course_id, (mode, session)) in session
+		.course_sessions
+		.into_iter()
+		.flat_map(|(course_id, sessions)| iter::zip(iter::repeat(course_id), sessions))
+	{
+		insert_course_session(
+			steam_id,
+			server.id(),
+			course_id,
+			mode,
+			session,
+			&mut transaction,
+		)
+		.map_ok(|id| course_session_ids.push(id))
+		.await?;
 	}
 
 	tracing::trace!(target: "cs2kz_api::audit_log", ?course_session_ids, "created course sessions");
@@ -191,8 +198,8 @@ async fn insert_course_session(
 	steam_id: SteamID,
 	server_id: ServerID,
 	course_id: CourseID,
+	mode: Mode,
 	CourseSession {
-		mode,
 		playtime,
 		started_runs,
 		finished_runs,

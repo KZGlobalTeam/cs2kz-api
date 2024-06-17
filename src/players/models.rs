@@ -1,6 +1,6 @@
 //! Types for modeling KZ players.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::BTreeMap;
 use std::net::{IpAddr, Ipv6Addr};
 
 use cs2kz::{Mode, SteamID};
@@ -109,6 +109,7 @@ pub struct PlayerUpdate {
 	pub ip_address: IpAddr,
 
 	/// The player's current in-game preferences.
+	#[schema(value_type = Object)]
 	pub preferences: JsonValue,
 
 	/// Game Session information.
@@ -131,7 +132,20 @@ pub struct Session {
 
 	/// Per-Course session information.
 	#[serde(deserialize_with = "Session::deserialize_course_sessions")]
-	pub course_sessions: BTreeMap<CourseID, CourseSession>,
+	#[schema(example = json!({
+	  "69": {
+	    "classic": {
+	      "playtime": 1337,
+	      "started_runs": 54,
+	      "finished_runs": 8,
+	      "bhop_stats": {
+	        "bhops": 432,
+	        "perfs": 397,
+              }
+	    }
+	  }
+	}))]
+	pub course_sessions: BTreeMap<CourseID, CourseSessions>,
 }
 
 impl Session {
@@ -139,25 +153,23 @@ impl Session {
 	///
 	/// This function ensures **logical invariants**, such as:
 	///    1. no session has more [finished runs] than [started runs]
-	///    2. there are no duplicates between modes
 	///
-	/// This function does **not** ensure that the map keys are valid, or belong to appropriate
-	/// courses. This validation has to be done in the handler because it requires database
-	/// access.
+	/// This function does **not** ensure that IDs actually exist, or belong to appropriate
+	/// courses. That validation needs to be done later, as it requires database access.
 	///
 	/// [finished runs]: CourseSession::finished_runs
 	/// [started runs]: CourseSession::started_runs
 	fn deserialize_course_sessions<'de, D>(
 		deserializer: D,
-	) -> Result<BTreeMap<CourseID, CourseSession>, D::Error>
+	) -> Result<BTreeMap<CourseID, CourseSessions>, D::Error>
 	where
 		D: Deserializer<'de>,
 	{
-		let course_sessions = BTreeMap::<CourseID, CourseSession>::deserialize(deserializer)?;
+		let sessions = BTreeMap::<CourseID, CourseSessions>::deserialize(deserializer)?;
 
-		if let Some(course_id) = course_sessions
+		if let Some(course_id) = sessions
 			.iter()
-			.find(|(_, session)| session.finished_runs > session.started_runs)
+			.find(|(_, sessions)| !sessions.is_valid())
 			.map(|(course_id, _)| course_id)
 		{
 			return Err(serde::de::Error::custom(format_args!(
@@ -165,28 +177,62 @@ impl Session {
 			)));
 		}
 
-		let mut modes = HashSet::new();
+		Ok(sessions)
+	}
+}
 
-		if let Some(mode) = course_sessions
-			.values()
-			.map(|session| session.mode)
-			.find(|&mode| !modes.insert(mode))
-		{
-			return Err(serde::de::Error::custom(format_args!(
-				"cannot submit duplicate course sessions stats for {mode}",
-			)));
+/// Course sessions for all the modes.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
+pub struct CourseSessions {
+	/// Course session for vanilla.
+	pub vanilla: Option<CourseSession>,
+
+	/// Course session for classic.
+	pub classic: Option<CourseSession>,
+}
+
+impl CourseSessions {
+	/// Checks if these sessions are logically valid.
+	fn is_valid(&self) -> bool {
+		[&self.vanilla, &self.classic]
+			.into_iter()
+			.filter_map(Option::as_ref)
+			.all(CourseSession::is_valid)
+	}
+}
+
+impl IntoIterator for CourseSessions {
+	type Item = (Mode, CourseSession);
+	type IntoIter = CourseSessionsIter;
+
+	fn into_iter(self) -> Self::IntoIter {
+		CourseSessionsIter(self)
+	}
+}
+
+/// Iterator to iterate over the modes and sessions in [`CourseSessions`].
+#[derive(Debug)]
+pub struct CourseSessionsIter(CourseSessions);
+
+impl Iterator for CourseSessionsIter {
+	type Item = (Mode, CourseSession);
+
+	fn next(&mut self) -> Option<Self::Item> {
+		if let Some(session) = self.0.vanilla.take() {
+			return Some((Mode::Vanilla, session));
 		}
 
-		Ok(course_sessions)
+		if let Some(session) = self.0.classic.take() {
+			return Some((Mode::Classic, session));
+		}
+
+		None
 	}
 }
 
 /// Session information tied to a specific course.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, ToSchema)]
 pub struct CourseSession {
-	/// The player's mode.
-	pub mode: Mode,
-
 	/// The amount of seconds the player spent playing this course.
 	pub playtime: Seconds,
 
@@ -198,4 +244,11 @@ pub struct CourseSession {
 
 	/// Bhop statistics specific to this course.
 	pub bhop_stats: BhopStats,
+}
+
+impl CourseSession {
+	/// Checks if this session is logically valid.
+	const fn is_valid(&self) -> bool {
+		self.finished_runs <= self.started_runs
+	}
 }
