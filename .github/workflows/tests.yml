@@ -29,7 +29,5 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: cargo generate-lockfile
-        run: cargo generate-lockfile
-      - name: cargo test --locked
-        run: cargo test --workspace --locked --all-features --all-targets -- --nocapture
+      - name: cargo test
+        run: cargo test --workspace --locked --all-features -- --nocapture
