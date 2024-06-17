@@ -161,7 +161,7 @@ version = "0.2"
 version = "0.8"
 
 [dev-dependencies.testcontainers]
-version = "0.17"
+version = "0.18"
 
 [dev-dependencies.testcontainers-modules]
 version = "0.5.0"
