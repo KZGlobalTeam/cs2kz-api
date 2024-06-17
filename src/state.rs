@@ -45,19 +45,19 @@ impl State {
 	/// The minimum number of [database pool] connections.
 	///
 	/// [database pool]: State::database
-	const MIN_DB_CONNECTIONS: u32 = if cfg!(feature = "production") {
-		200
-	} else {
-		20
+	const MIN_DB_CONNECTIONS: u32 = match (cfg!(test), cfg!(feature = "production")) {
+		(true, _) => 1,
+		(false, false) => 20,
+		(false, true) => 200,
 	};
 
 	/// The maximum number of [database pool] connections.
 	///
 	/// [database pool]: State::database
-	const MAX_DB_CONNECTIONS: u32 = if cfg!(feature = "production") {
-		256
-	} else {
-		50
+	const MAX_DB_CONNECTIONS: u32 = match (cfg!(test), cfg!(feature = "production")) {
+		(true, _) => 10,
+		(false, false) => 50,
+		(false, true) => 256,
 	};
 
 	/// Creates a new [`State`].

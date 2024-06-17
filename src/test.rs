@@ -169,7 +169,8 @@ impl Context {
 			eprintln!("[{test_id}] spawning API task");
 
 			let fut = crate::run_until(config.clone(), async move {
-				_ = shutdown_rx.await;
+				let result = shutdown_rx.await;
+				eprintln!("[{test_id}] shutting down API: {result:?}");
 			});
 
 			async move { fut.await.context("run api") }
@@ -297,18 +298,16 @@ impl Context {
 fn setup() {
 	use std::{env, io};
 
-	use tracing_subscriber::fmt::format::FmtSpan;
 	use tracing_subscriber::EnvFilter;
 
-	if let Ok(rust_log) = env::var("RUST_TEST_LOG") {
-		tracing_subscriber::fmt()
-			.with_target(true)
-			.with_writer(io::stderr)
-			.with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
-			.compact()
-			.with_env_filter(EnvFilter::new(rust_log))
-			.init();
-	}
+	let filter = env::var("RUST_TEST_LOG").map_or_else(|_| EnvFilter::new("warn"), EnvFilter::new);
+
+	tracing_subscriber::fmt()
+		.with_target(true)
+		.with_writer(io::stderr)
+		.compact()
+		.with_env_filter(filter)
+		.init();
 
 	[".env.example", ".env", ".env.docker.example", ".env.docker"]
 		.into_iter()

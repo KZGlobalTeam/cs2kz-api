@@ -147,7 +147,8 @@ enum ErrorKind {
 	#[error("logic assertion failed: {0}")]
 	Logic(String),
 
-	#[error("database error")]
+	#[cfg_attr(test, error("database error: {0}"))]
+	#[cfg_attr(not(test), error("database error"))]
 	Database(#[from] sqlx::Error),
 
 	#[error("internal server error")]
