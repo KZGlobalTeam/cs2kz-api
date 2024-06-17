@@ -17,6 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  RUST_BACKTRACE: '1'
   STEAM_WEB_API_KEY: ${{ secrets.STEAM_WEB_API_KEY }}
 
 jobs:
