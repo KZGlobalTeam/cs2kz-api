@@ -105,6 +105,9 @@ pub mod security;
       crate::players::Player,
       crate::players::NewPlayer,
       crate::players::PlayerUpdate,
+      crate::players::Session,
+      crate::players::CourseSession,
+      crate::players::CourseSessions,
 
       crate::maps::FullMap,
       crate::maps::MapID,

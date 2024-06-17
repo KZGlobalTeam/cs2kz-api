@@ -3825,6 +3825,58 @@
           }
         }
       },
+      "CourseSession": {
+        "type": "object",
+        "description": "Session information tied to a specific course.",
+        "required": [
+          "playtime",
+          "started_runs",
+          "finished_runs",
+          "bhop_stats"
+        ],
+        "properties": {
+          "playtime": {
+            "$ref": "#/components/schemas/Seconds"
+          },
+          "started_runs": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many times the player has left the start zone of this course.",
+            "minimum": 0
+          },
+          "finished_runs": {
+            "type": "integer",
+            "format": "uint16",
+            "description": "How many times the player has entered the end zone of this course.",
+            "minimum": 0
+          },
+          "bhop_stats": {
+            "$ref": "#/components/schemas/BhopStats"
+          }
+        }
+      },
+      "CourseSessions": {
+        "type": "object",
+        "description": "Course sessions for all the modes.",
+        "properties": {
+          "vanilla": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CourseSession"
+              }
+            ],
+            "nullable": true
+          },
+          "classic": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CourseSession"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
       "CourseUpdate": {
         "type": "object",
         "description": "Request payload for updating a map course.",
@@ -4852,7 +4904,8 @@
             "description": "The player's IP address."
           },
           "preferences": {
-            "$ref": "#/components/schemas/JsonValue"
+            "type": "object",
+            "description": "The player's current in-game preferences."
           },
           "session": {
             "$ref": "#/components/schemas/Session"
@@ -5124,6 +5177,46 @@
             "nullable": true
           }
         }
+      },
+      "Session": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TimeSpent"
+          },
+          {
+            "type": "object",
+            "required": [
+              "bhop_stats",
+              "course_sessions"
+            ],
+            "properties": {
+              "bhop_stats": {
+                "$ref": "#/components/schemas/BhopStats"
+              },
+              "course_sessions": {
+                "type": "object",
+                "description": "Per-Course session information.",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/CourseSessions"
+                },
+                "example": {
+                  "69": {
+                    "classic": {
+                      "bhop_stats": {
+                        "bhops": 432,
+                        "perfs": 397
+                      },
+                      "finished_runs": 8,
+                      "playtime": 1337,
+                      "started_runs": 54
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "description": "Game Session information.\n\nA game session starts when a player joins a server, and ends either when they disconnect or\nwhen the map changes."
       },
       "SortRecordsBy": {
         "type": "string",
