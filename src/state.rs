@@ -9,6 +9,7 @@
 use std::convert::Infallible;
 use std::sync::Arc;
 
+use anyhow::Context;
 use axum::async_trait;
 use axum::extract::FromRequestParts;
 use axum::http::request;
@@ -61,7 +62,7 @@ impl State {
 	};
 
 	/// Creates a new [`State`].
-	pub async fn new(api_config: crate::Config) -> Result<Self> {
+	pub async fn new(api_config: crate::Config) -> anyhow::Result<Self> {
 		tracing::debug!(?api_config, "initializing application state");
 		tracing::debug! {
 			url = %api_config.database_url,
@@ -76,6 +77,11 @@ impl State {
 			.max_connections(Self::MAX_DB_CONNECTIONS)
 			.connect(config.database_url.as_str())
 			.await?;
+
+		sqlx::migrate!("./database/migrations")
+			.run(&database)
+			.await
+			.context("run migrations")?;
 
 		let http_client = reqwest::Client::new();
 		let jwt_state = JwtState::new(&config).map(Arc::new)?;

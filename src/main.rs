@@ -17,7 +17,6 @@ use std::backtrace::Backtrace;
 use std::panic;
 
 use anyhow::Context;
-use sqlx::{Connection, MySqlConnection};
 use tracing::Instrument;
 
 mod logging;
@@ -32,28 +31,9 @@ async fn main() -> anyhow::Result<()> {
 
 	let _guard = logging::init().context("initialize logging")?;
 	let runtime_span = tracing::info_span!("runtime::startup");
-
 	let api_config = runtime_span
 		.in_scope(cs2kz_api::Config::new)
 		.context("load config")?;
-
-	let mut connection = MySqlConnection::connect(api_config.database_url.as_str())
-		.instrument(runtime_span.clone())
-		.await
-		.context("connect to database")?;
-
-	// Run database migrations.
-	//
-	// If this fails, e.g. because the migration files have changed since they last have been
-	// applied, the API will fail to startup, so the migrations can be fixed.
-	sqlx::migrate!("./database/migrations")
-		.run(&mut connection)
-		.instrument(runtime_span.clone())
-		.await
-		.context("run migrations")?;
-
-	// Don't wanna keep around a dead connection!
-	drop(connection);
 
 	let old_panic_hook = panic::take_hook();
 
