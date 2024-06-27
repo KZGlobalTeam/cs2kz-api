@@ -17,6 +17,7 @@ services:
     env_file:
       - .env
       - .env.docker
+    image: cs2kz-api
     build:
       context: .
       dockerfile: ./Dockerfile
