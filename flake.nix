@@ -16,7 +16,7 @@
 
       # fixed versions of stable & nightly toolchains
       rust-stable = pkgs.rust-bin.stable."1.79.0";
-      rust-nightly = pkgs.rust-bin.nightly."2024-06-24";
+      rust-nightly = pkgs.rust-bin.nightly."2024-06-25";
 
       # function for instantiating a stable toolchain with a set of components
       mkToolchain = extensions: rust-stable.minimal.override {
