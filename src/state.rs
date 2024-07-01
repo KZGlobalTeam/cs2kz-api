@@ -22,6 +22,24 @@ use sqlx::{MySql, Pool, Transaction};
 use crate::authentication::Jwt;
 use crate::{Error, Result};
 
+/// The minimum number of [database pool] connections.
+///
+/// [database pool]: State::database
+const MIN_DB_CONNECTIONS: u32 = match (cfg!(test), cfg!(feature = "production")) {
+	(true, _) => 1,
+	(false, false) => 20,
+	(false, true) => 200,
+};
+
+/// The maximum number of [database pool] connections.
+///
+/// [database pool]: State::database
+const MAX_DB_CONNECTIONS: u32 = match (cfg!(test), cfg!(feature = "production")) {
+	(true, _) => 10,
+	(false, false) => 50,
+	(false, true) => 256,
+};
+
 /// The API's state.
 #[derive(Debug, Clone)]
 pub struct State {
@@ -43,38 +61,20 @@ pub struct State {
 }
 
 impl State {
-	/// The minimum number of [database pool] connections.
-	///
-	/// [database pool]: State::database
-	const MIN_DB_CONNECTIONS: u32 = match (cfg!(test), cfg!(feature = "production")) {
-		(true, _) => 1,
-		(false, false) => 20,
-		(false, true) => 200,
-	};
-
-	/// The maximum number of [database pool] connections.
-	///
-	/// [database pool]: State::database
-	const MAX_DB_CONNECTIONS: u32 = match (cfg!(test), cfg!(feature = "production")) {
-		(true, _) => 10,
-		(false, false) => 50,
-		(false, true) => 256,
-	};
-
 	/// Creates a new [`State`].
 	pub async fn new(api_config: crate::Config) -> anyhow::Result<Self> {
 		tracing::debug!(?api_config, "initializing application state");
 		tracing::debug! {
 			url = %api_config.database_url,
-			min_connections = Self::MIN_DB_CONNECTIONS,
-			max_connections = Self::MAX_DB_CONNECTIONS,
+			min_connections = MIN_DB_CONNECTIONS,
+			max_connections = MAX_DB_CONNECTIONS,
 			"establishing database connection",
 		};
 
 		let config = Arc::new(api_config);
 		let database = PoolOptions::new()
-			.min_connections(Self::MIN_DB_CONNECTIONS)
-			.max_connections(Self::MAX_DB_CONNECTIONS)
+			.min_connections(MIN_DB_CONNECTIONS)
+			.max_connections(MAX_DB_CONNECTIONS)
 			.connect(config.database_url.as_str())
 			.await?;
 
