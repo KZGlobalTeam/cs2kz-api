@@ -1,5 +1,7 @@
 //! HTTP handlers for the `/players` routes.
 
+use std::net::IpAddr;
+
 use axum::extract::Query;
 use axum::Json;
 use futures::TryStreamExt;
@@ -126,7 +128,10 @@ pub async fn post(
 		"#,
 		steam_id,
 		name,
-		ip_address,
+		match ip_address {
+			IpAddr::V4(ip) => ip.to_ipv6_mapped(),
+			IpAddr::V6(ip) => ip,
+		},
 	}
 	.execute(&state.database)
 	.await
