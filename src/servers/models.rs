@@ -119,6 +119,7 @@ pub struct AccessKeyRequest {
 	pub refresh_key: Uuid,
 
 	/// The server's CS2KZ plugin version.
+	#[serde(deserialize_with = "crate::serde::semver::deserialize_plugin_version")]
 	#[schema(value_type = String)]
 	pub plugin_version: Version,
 }
