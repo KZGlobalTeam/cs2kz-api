@@ -31,8 +31,8 @@ use crate::{authentication, authorization, Error, Result, State};
   params(PlayerIdentifier),
   responses(
     responses::Ok<FullPlayer>,
-    responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
   ),
 )]
 pub async fn get(
@@ -85,6 +85,7 @@ pub async fn get(
   responses(
     responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
     responses::Unauthorized,
     responses::UnprocessableEntity,
   ),

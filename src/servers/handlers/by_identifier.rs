@@ -19,8 +19,8 @@ use crate::{authentication, authorization, Error, Result, State};
   tag = "Servers",
   responses(
     responses::Ok<Server>,
-    responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
   ),
 )]
 pub async fn get(state: State, Path(server): Path<ServerIdentifier>) -> Result<Json<Server>> {
@@ -56,6 +56,7 @@ pub async fn get(state: State, Path(server): Path<ServerIdentifier>) -> Result<J
   responses(
     responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
     responses::Unauthorized,
     responses::UnprocessableEntity,
   ),

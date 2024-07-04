@@ -17,8 +17,8 @@ use crate::{Error, Result, State};
   params(("jumpstat_id" = u64, Path, description = "The jumpstat's ID")),
   responses(
     responses::Ok<Jumpstat>,
-    responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
   ),
 )]
 pub async fn get(state: State, Path(jumpstat_id): Path<JumpstatID>) -> Result<Json<Jumpstat>> {

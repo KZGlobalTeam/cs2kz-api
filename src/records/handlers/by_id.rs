@@ -17,8 +17,8 @@ use crate::{Error, Result, State};
   params(("record_id" = u64, Path, description = "The record's ID")),
   responses(
     responses::Ok<Record>,
-    responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
   ),
 )]
 pub async fn get(state: State, Path(record_id): Path<RecordID>) -> Result<Json<Record>> {

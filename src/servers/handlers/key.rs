@@ -80,6 +80,7 @@ pub async fn generate_temp(
   responses(
     responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
     responses::Unauthorized,
   ),
 )]
@@ -133,6 +134,7 @@ pub async fn put_perma(
   responses(
     responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
     responses::Unauthorized,
   ),
 )]

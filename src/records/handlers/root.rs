@@ -203,8 +203,8 @@ pub async fn get(
   request_body = NewRecord,
   responses(
     responses::Created<CreatedRecord>,
-    responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
   ),
 )]
 pub async fn post(

@@ -29,8 +29,8 @@ use crate::{authentication, Error, Result, State};
   params(MapIdentifier),
   responses(
     responses::Ok<FullMap>,
-    responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
   ),
 )]
 pub async fn get(state: State, Path(map): Path<MapIdentifier>) -> Result<Json<FullMap>> {

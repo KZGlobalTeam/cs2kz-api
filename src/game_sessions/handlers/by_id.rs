@@ -16,8 +16,8 @@ use crate::{Error, Result, State};
   params(("sesion_id" = u64, Path, description = "The session's ID")),
   responses(
     responses::Ok<()>,
-    responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
   ),
 )]
 pub async fn get(state: State, Path(session_id): Path<GameSessionID>) -> Result<Json<GameSession>> {

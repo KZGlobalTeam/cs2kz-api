@@ -19,8 +19,8 @@ use crate::{Error, Result, State};
   params(PlayerIdentifier),
   responses(
     responses::Ok<responses::Object>,
-    responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
   ),
 )]
 pub async fn get(state: State, Path(player): Path<PlayerIdentifier>) -> Result<Json<JsonValue>> {

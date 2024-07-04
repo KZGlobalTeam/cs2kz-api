@@ -147,6 +147,7 @@ pub async fn get(
   responses(
     responses::Created<CreatedBan>,
     responses::BadRequest,
+    responses::NotFound,
     responses::Unauthorized,
     responses::UnprocessableEntity,
   ),

@@ -80,6 +80,10 @@ pub struct BadRequest;
 pub struct Unauthorized;
 
 #[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
+#[response(status = 404)]
+pub struct NotFound;
+
+#[derive(Debug, Clone, Copy, Serialize, IntoResponses)]
 #[response(status = 409)]
 pub struct Conflict;
 

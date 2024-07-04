@@ -20,7 +20,7 @@ use crate::{authentication, Error, Result, State};
   params(("ban_id" = u64, Path, description = "The ban's ID")),
   responses(
     responses::Ok<Ban>,
-    responses::NoContent,
+    responses::NotFound,
     responses::BadRequest,
   ),
 )]
@@ -49,6 +49,7 @@ pub async fn get(state: State, Path(ban_id): Path<BanID>) -> Result<Json<Ban>> {
   responses(
     responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
     responses::Unauthorized,
     responses::Conflict,
     responses::UnprocessableEntity,
@@ -107,6 +108,7 @@ pub async fn patch(
   responses(
     responses::Created<CreatedUnban>,
     responses::BadRequest,
+    responses::NotFound,
     responses::Unauthorized,
     responses::Conflict,
   ),

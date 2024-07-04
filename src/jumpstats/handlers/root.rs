@@ -142,8 +142,8 @@ pub async fn get(
   request_body = NewJumpstat,
   responses(
     responses::Created<CreatedJumpstat>,
-    responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
     responses::Unauthorized,
     responses::UnprocessableEntity,
   ),

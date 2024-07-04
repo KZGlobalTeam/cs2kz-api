@@ -129,6 +129,7 @@ pub async fn get(
     responses::Created<CreatedServer>,
     responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
     responses::Unauthorized,
     responses::UnprocessableEntity,
   ),

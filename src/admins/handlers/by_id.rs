@@ -19,7 +19,7 @@ use crate::{authentication, Error, Result, State};
   params(SteamID),
   responses(
     responses::Ok<Admin>,
-    responses::NoContent,
+    responses::NotFound,
     responses::BadRequest,
   ),
 )]
@@ -63,6 +63,7 @@ pub async fn get(state: State, Path(steam_id): Path<SteamID>) -> Result<Json<Adm
   responses(
     responses::NoContent,
     responses::BadRequest,
+    responses::NotFound,
     responses::Unauthorized,
     responses::UnprocessableEntity,
   ),
