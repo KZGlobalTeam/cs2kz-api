@@ -1,6 +1,7 @@
 //! HTTP handlers for the `/players/{player}` routes.
 
 use std::iter;
+use std::net::IpAddr;
 
 use axum::extract::Path;
 use axum::Json;
@@ -117,7 +118,10 @@ pub async fn patch(
 		  id = ?
 		"#,
 		name,
-		ip_address,
+		match ip_address {
+			IpAddr::V4(ip) => ip.to_ipv6_mapped(),
+			IpAddr::V6(ip) => ip,
+		},
 		SqlJson(&preferences),
 		steam_id,
 	}
