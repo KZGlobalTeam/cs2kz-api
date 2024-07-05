@@ -113,7 +113,8 @@ pub async fn patch(
 		SET
 		  name = ?,
 		  ip_address = ?,
-		  preferences = ?
+		  preferences = ?,
+		  last_seen_on = NOW()
 		WHERE
 		  id = ?
 		"#,
