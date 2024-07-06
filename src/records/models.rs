@@ -3,7 +3,7 @@
 use chrono::{DateTime, Utc};
 use cs2kz::{Mode, SteamID, Style};
 use itertools::Itertools;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use sqlx::mysql::MySqlRow;
 use sqlx::{FromRow, Row};
 use utoipa::ToSchema;
@@ -93,6 +93,24 @@ pub struct BhopStats {
 	pub perfs: u16,
 }
 
+impl BhopStats {
+	/// Deserializes [`BhopStats`] and checks that `perfs <= bhops`.
+	pub fn deserialize_checked<'de, D>(deserializer: D) -> Result<Self, D::Error>
+	where
+		D: Deserializer<'de>,
+	{
+		let bhop_stats = Self::deserialize(deserializer)?;
+
+		if bhop_stats.perfs > bhop_stats.bhops {
+			return Err(serde::de::Error::custom(
+				"bhop stats can't have more perfs than bhops",
+			));
+		}
+
+		Ok(bhop_stats)
+	}
+}
+
 /// Request payload for creating a new record.
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct NewRecord {
@@ -115,6 +133,7 @@ pub struct NewRecord {
 	pub time: Seconds,
 
 	/// Bhop statistics.
+	#[serde(deserialize_with = "BhopStats::deserialize_checked")]
 	pub bhop_stats: BhopStats,
 }
 

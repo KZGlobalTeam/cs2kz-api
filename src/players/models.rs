@@ -128,6 +128,7 @@ pub struct Session {
 
 	/// Stats about how many bhops were performed by the player, and how many of them were
 	/// perfect bhops.
+	#[serde(deserialize_with = "BhopStats::deserialize_checked")]
 	pub bhop_stats: BhopStats,
 
 	/// Per-Course session information.
@@ -243,6 +244,7 @@ pub struct CourseSession {
 	pub finished_runs: u16,
 
 	/// Bhop statistics specific to this course.
+	#[serde(deserialize_with = "BhopStats::deserialize_checked")]
 	pub bhop_stats: BhopStats,
 }
 
