@@ -10,8 +10,8 @@ use crate::{authorization, State};
 
 mod models;
 pub use models::{
-	AccessKeyRequest, AccessKeyResponse, CreatedServer, NewServer, RefreshKey, Server, ServerID,
-	ServerInfo, ServerUpdate,
+	AccessKeyRequest, AccessKeyResponse, CreatedServer, Host, NewServer, RefreshKey, Server,
+	ServerID, ServerInfo, ServerUpdate,
 };
 
 mod queries;

@@ -938,8 +938,7 @@
                             "description": "The server's name."
                           },
                           "host": {
-                            "type": "string",
-                            "description": "The server's host.\n\nThis can either be a domain name, or an IP address."
+                            "$ref": "#/components/schemas/Host"
                           },
                           "port": {
                             "type": "integer",
@@ -1071,8 +1070,7 @@
                       "description": "The server's name."
                     },
                     "host": {
-                      "type": "string",
-                      "description": "The server's host.\n\nThis can either be a domain name, or an IP address."
+                      "$ref": "#/components/schemas/Host"
                     },
                     "port": {
                       "type": "integer",
@@ -4221,6 +4219,27 @@
         "default": "global",
         "example": "global"
       },
+      "Host": {
+        "oneOf": [
+          {
+            "type": "string",
+            "title": "IPv4",
+            "example": "127.0.0.1"
+          },
+          {
+            "type": "string",
+            "title": "IPv6",
+            "example": "::1"
+          },
+          {
+            "type": "string",
+            "title": "Domain",
+            "format": "uri",
+            "example": "example.com"
+          }
+        ],
+        "description": "A server's host address"
+      },
       "JumpType": {
         "oneOf": [
           {
@@ -5080,8 +5099,7 @@
             "description": "The server's name."
           },
           "host": {
-            "type": "string",
-            "description": "The server's host.\n\nThis can either be a domain name, or an IP address."
+            "$ref": "#/components/schemas/Host"
           },
           "port": {
             "type": "integer",

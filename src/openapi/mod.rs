@@ -125,6 +125,7 @@ pub mod security;
       crate::maps::MapInfo,
       crate::maps::CourseInfo,
 
+      crate::servers::Host,
       crate::servers::Server,
       crate::servers::ServerID,
       crate::servers::NewServer,

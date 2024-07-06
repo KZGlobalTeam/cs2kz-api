@@ -156,7 +156,7 @@ pub async fn post(
 		  (?, ?, ?, ?, ?)
 		"#,
 		name,
-		host.to_string(),
+		host,
 		port,
 		owned_by,
 		refresh_key,
@@ -197,7 +197,7 @@ mod tests {
 	use reqwest::header;
 
 	use crate::openapi::responses::PaginationResponse;
-	use crate::servers::{CreatedServer, NewServer, Server};
+	use crate::servers::{self, CreatedServer, NewServer, Server};
 
 	#[crate::integration_test]
 	async fn fetch_servers(ctx: &Context) {
@@ -220,7 +220,7 @@ mod tests {
 		let alphakeks = SteamID::from_u64(76561198282622073_u64).unwrap();
 		let server = NewServer {
 			name: String::from("very cool server"),
-			host: url::Host::Ipv6(Ipv6Addr::UNSPECIFIED),
+			host: servers::Host::Ipv6(Ipv6Addr::UNSPECIFIED),
 			port: 69,
 			owned_by: alphakeks,
 		};

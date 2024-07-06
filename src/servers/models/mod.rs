@@ -15,6 +15,9 @@ use uuid::Uuid;
 use crate::make_id;
 use crate::players::Player;
 
+mod host;
+pub use host::Host;
+
 make_id!(ServerID as u16);
 
 /// A KZ server.
@@ -29,8 +32,7 @@ pub struct Server {
 	/// The server's host.
 	///
 	/// This can either be a domain name, or an IP address.
-	#[schema(value_type = String)]
-	pub host: url::Host,
+	pub host: Host,
 
 	/// The server's port.
 	pub port: u16,
@@ -50,9 +52,9 @@ impl FromRow<'_, MySqlRow> for Server {
 			host: {
 				let raw_host = row.try_get::<&str, _>("host")?;
 				match raw_host.parse::<IpAddr>() {
-					Ok(IpAddr::V4(ip)) => url::Host::Ipv4(ip),
-					Ok(IpAddr::V6(ip)) => url::Host::Ipv6(ip),
-					Err(_) => url::Host::Domain(raw_host.to_owned()),
+					Ok(IpAddr::V4(ip)) => Host::Ipv4(ip),
+					Ok(IpAddr::V6(ip)) => Host::Ipv6(ip),
+					Err(_) => Host::Domain(raw_host.to_owned()),
 				}
 			},
 			port: row.try_get("port")?,
@@ -75,7 +77,7 @@ pub struct NewServer {
 	///
 	/// This can either be a domain name, or an IP address.
 	#[schema(value_type = String)]
-	pub host: url::Host,
+	pub host: Host,
 
 	/// The server's port.
 	pub port: u16,
@@ -103,7 +105,7 @@ pub struct ServerUpdate {
 
 	/// A new host.
 	#[schema(value_type = Option<String>)]
-	pub host: Option<url::Host>,
+	pub host: Option<Host>,
 
 	/// A new port.
 	pub port: Option<u16>,

@@ -84,7 +84,7 @@ pub async fn patch(
 	}
 
 	if let Some(host) = host {
-		query.set("host", host.to_string());
+		query.set("host", host);
 	}
 
 	if let Some(port) = port {
