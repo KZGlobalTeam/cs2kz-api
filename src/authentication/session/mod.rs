@@ -158,7 +158,10 @@ impl Session {
 				"#,
 				steam_user.steam_id,
 				steam_user.username,
-				user_ip,
+				match user_ip {
+					IpAddr::V4(ip) => ip.to_ipv6_mapped(),
+					IpAddr::V6(ip) => ip,
+				},
 			}
 			.execute(transaction.as_mut())
 			.await?;
