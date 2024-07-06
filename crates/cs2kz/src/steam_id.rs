@@ -742,7 +742,7 @@ mod sqlx_impls {
 #[cfg(feature = "utoipa")]
 mod utoipa_impls {
 	use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};
-	use utoipa::openapi::schema::{AnyOfBuilder, Schema};
+	use utoipa::openapi::schema::{OneOfBuilder, Schema};
 	use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
 	use utoipa::{IntoParams, ToSchema};
 
@@ -752,8 +752,8 @@ mod utoipa_impls {
 		fn schema() -> (&'s str, RefOr<Schema>) {
 			(
 				"SteamID",
-				Schema::AnyOf(
-					AnyOfBuilder::new()
+				Schema::OneOf(
+					OneOfBuilder::new()
 						.nullable(false)
 						.description(Some("a player's SteamID"))
 						.example(Some("STEAM_1:1:161178172".into()))

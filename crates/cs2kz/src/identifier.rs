@@ -18,7 +18,6 @@ macro_rules! identifier {
 	) => {
 		$(#[$docs])*
 		#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-		#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 		pub enum $name {
 			$( $(#[$variant_docs])* $variant($ty) ),*
 		}

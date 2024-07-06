@@ -228,7 +228,7 @@ mod sqlx_impls {
 #[cfg(feature = "utoipa")]
 mod utoipa_impls {
 	use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};
-	use utoipa::openapi::schema::AnyOfBuilder;
+	use utoipa::openapi::schema::OneOfBuilder;
 	use utoipa::openapi::{ObjectBuilder, RefOr, Schema, SchemaType};
 	use utoipa::{IntoParams, ToSchema};
 
@@ -238,8 +238,8 @@ mod utoipa_impls {
 		fn schema() -> (&'s str, RefOr<Schema>) {
 			(
 				"Tier",
-				Schema::AnyOf(
-					AnyOfBuilder::new()
+				Schema::OneOf(
+					OneOfBuilder::new()
 						.nullable(false)
 						.example(Some("hard".into()))
 						.item(Schema::Object(
