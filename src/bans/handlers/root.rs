@@ -1,6 +1,6 @@
 //! HTTP handlers for the `/bans` routes.
 
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv6Addr};
 
 use axum::extract::Query;
 use axum::Json;
@@ -210,11 +210,12 @@ pub async fn post(
 	}
 
 	let player_ip = match player_ip {
-		Some(ip) => ip,
+		Some(IpAddr::V4(ip)) => ip.to_ipv6_mapped(),
+		Some(IpAddr::V6(ip)) => ip,
 		None => sqlx::query_scalar! {
 			r#"
 			SELECT
-			  ip_address `ip: IpAddr`
+			  ip_address `ip: Ipv6Addr`
 			FROM
 			  Players
 			WHERE

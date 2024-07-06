@@ -1,0 +1,25 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tSELECT\n\t\t\t  ip_address `ip: Ipv6Addr`\n\t\t\tFROM\n\t\t\t  Players\n\t\t\tWHERE\n\t\t\t  id = ?\n\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ip: Ipv6Addr",
+        "type_info": {
+          "type": "String",
+          "flags": "NOT_NULL | UNSIGNED | BINARY | NO_DEFAULT_VALUE",
+          "char_set": 224,
+          "max_size": 156
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2a292dd88d8bc78fa96d5d0990a5b52b1f17a3718a4593c3d139e2b39b47ed80"
+}
