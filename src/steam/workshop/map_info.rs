@@ -1,6 +1,6 @@
 //! Functions for fetching information about Workshop Maps.
 
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value as JsonValue;
 
 use crate::steam::workshop::WorkshopID;
@@ -15,10 +15,24 @@ pub async fn fetch_map_name(
 	workshop_id: WorkshopID,
 	http_client: &reqwest::Client,
 ) -> Result<String> {
-	#[derive(Serialize)]
 	#[allow(clippy::missing_docs_in_private_items)]
 	struct Params {
 		workshop_id: WorkshopID,
+	}
+
+	impl Serialize for Params {
+		fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+		where
+			S: Serializer,
+		{
+			use serde::ser::SerializeStruct;
+
+			let mut serializer = serializer.serialize_struct("params", 2)?;
+
+			serializer.serialize_field("itemcount", &1)?;
+			serializer.serialize_field("publishedfileids[0]", &self.workshop_id)?;
+			serializer.end()
+		}
 	}
 
 	let response = http_client
