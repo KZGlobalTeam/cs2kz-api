@@ -97,3 +97,14 @@ pub mod semver {
 		version.parse::<Version>().map_err(de::Error::custom)
 	}
 }
+
+pub mod md5 {
+	use serde::{Serialize, Serializer};
+
+	pub fn serialize_digest<S>(digest: &md5::Digest, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer,
+	{
+		format_args!("{digest:x}").serialize(serializer)
+	}
+}

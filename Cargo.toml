@@ -148,8 +148,8 @@ features = ["from", "into", "debug", "display", "deref", "deref_mut"]
 [dependencies.itertools]
 version = "0.13"
 
-[dependencies.crc32fast]
-version = "1"
+[dependencies.md5]
+version = "0.7"
 
 [dev-dependencies.ctor]
 version = "0.2"

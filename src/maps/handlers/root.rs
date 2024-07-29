@@ -185,7 +185,7 @@ async fn create_map(
 	description: Option<String>,
 	global_status: GlobalStatus,
 	workshop_id: WorkshopID,
-	checksum: u32,
+	checksum: md5::Digest,
 	transaction: &mut sqlx::Transaction<'_, MySql>,
 ) -> Result<MapID> {
 	let deglobal_old_result = sqlx::query! {
@@ -234,7 +234,7 @@ async fn create_map(
 		description,
 		global_status,
 		workshop_id,
-		checksum,
+		&checksum.0[..],
 	}
 	.execute(transaction.as_mut())
 	.await?

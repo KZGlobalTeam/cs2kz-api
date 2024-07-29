@@ -217,7 +217,7 @@ async fn update_name_and_checksum(
 		  id = ?
 		"#,
 		name,
-		checksum,
+		&checksum.0[..],
 		map_id,
 	}
 	.execute(transaction.as_mut())

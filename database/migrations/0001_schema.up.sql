@@ -53,7 +53,7 @@ CREATE TABLE IF NOT EXISTS `Maps` (
   `description` TEXT,
   `global_status` INT1 NOT NULL DEFAULT -1,
   `workshop_id` INT4 UNSIGNED NOT NULL,
-  `checksum` INT4 UNSIGNED NOT NULL,
+  `checksum` BINARY(16) NOT NULL,
   `created_on` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   CONSTRAINT `valid_global_status` CHECK(`global_status` BETWEEN -1 AND 1)

@@ -560,10 +560,7 @@
                             "$ref": "#/components/schemas/WorkshopID"
                           },
                           "checksum": {
-                            "type": "integer",
-                            "format": "uint32",
-                            "description": "CRC32 checksum of the map's `.vpk` file.",
-                            "minimum": 0
+                            "$ref": "#/components/schemas/md5.Digest"
                           },
                           "mappers": {
                             "type": "array",
@@ -721,10 +718,7 @@
                       "$ref": "#/components/schemas/WorkshopID"
                     },
                     "checksum": {
-                      "type": "integer",
-                      "format": "uint32",
-                      "description": "CRC32 checksum of the map's `.vpk` file.",
-                      "minimum": 0
+                      "$ref": "#/components/schemas/md5.Digest"
                     },
                     "mappers": {
                       "type": "array",
@@ -4128,10 +4122,7 @@
             "$ref": "#/components/schemas/WorkshopID"
           },
           "checksum": {
-            "type": "integer",
-            "format": "uint32",
-            "description": "CRC32 checksum of the map's `.vpk` file.",
-            "minimum": 0
+            "$ref": "#/components/schemas/md5.Digest"
           },
           "mappers": {
             "type": "array",

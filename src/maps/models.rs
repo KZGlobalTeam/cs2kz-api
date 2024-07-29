@@ -38,8 +38,9 @@ pub struct FullMap {
 	/// The map's Steam Workshop ID.
 	pub workshop_id: WorkshopID,
 
-	/// CRC32 checksum of the map's `.vpk` file.
-	pub checksum: u32,
+	/// MD5 checksum of the map's `.vpk` file.
+	#[serde(serialize_with = "crate::serde::md5::serialize_digest")]
+	pub checksum: md5::Digest,
 
 	/// Players who contributed to the creation of this map.
 	pub mappers: Vec<Player>,
@@ -102,15 +103,19 @@ impl FullMap {
 	}
 }
 
-impl FromRow<'_, MySqlRow> for FullMap {
-	fn from_row(row: &MySqlRow) -> sqlx::Result<Self> {
+impl<'r> FromRow<'r, MySqlRow> for FullMap {
+	fn from_row(row: &'r MySqlRow) -> sqlx::Result<Self> {
 		Ok(Self {
 			id: row.try_get("id")?,
 			name: row.try_get("name")?,
 			description: row.try_get("description")?,
 			global_status: row.try_get("global_status")?,
 			workshop_id: row.try_get("workshop_id")?,
-			checksum: row.try_get("checksum")?,
+			checksum: row
+				.try_get::<&'r [u8], _>("checksum")?
+				.try_into()
+				.map(md5::Digest)
+				.expect("16 bytes"),
 			mappers: vec![Player {
 				name: row.try_get("mapper_name")?,
 				steam_id: row.try_get("mapper_id")?,

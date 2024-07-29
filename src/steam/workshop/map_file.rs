@@ -87,15 +87,15 @@ impl MapFile {
 		Ok(Self { file })
 	}
 
-	/// Computes the crc32 checksum for this file.
+	/// Computes the MD5 checksum for this file.
 	#[tracing::instrument(level = "debug", skip(self), ret)]
-	pub async fn checksum(mut self) -> io::Result<u32> {
+	pub async fn checksum(mut self) -> io::Result<md5::Digest> {
 		let metadata = self.file.metadata().await?;
 		let filesize = usize::try_from(metadata.len()).expect("64-bit platform");
 		let mut buf = Vec::with_capacity(filesize);
 
 		self.file.read_to_end(&mut buf).await?;
 
-		Ok(crc32fast::hash(&buf))
+		Ok(md5::compute(&buf))
 	}
 }
