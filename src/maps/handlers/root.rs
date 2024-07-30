@@ -283,11 +283,15 @@ async fn create_courses(
 ) -> Result<Vec<CourseID>> {
 	let mut query = QueryBuilder::new("INSERT INTO Courses (name, description, map_id)");
 
-	query.push_values(courses, |mut query, course| {
-		query
-			.push_bind(course.name.as_deref())
-			.push_bind(course.description.as_deref())
-			.push_bind(map_id);
+	query.push_values(courses.iter().enumerate(), |mut query, (idx, course)| {
+		if let Some(name) = course.name.as_deref() {
+			query.push_bind(name);
+		} else {
+			query.push_bind(format!("Course {}", idx + 1));
+		}
+
+		query.push_bind(course.description.as_deref());
+		query.push_bind(map_id);
 	});
 
 	query.build().execute(transaction.as_mut()).await?;
