@@ -30,6 +30,7 @@ use crate::authorization::Permissions;
 use crate::bans::{BanID, UnbanID};
 use crate::make_id::ConvertIDError;
 use crate::maps::{CourseID, FilterID, MapID};
+use crate::steam::workshop::WorkshopID;
 
 /// Type alias for a [`Result<T, E>`] with its `E` parameter set to [`Error`].
 ///
@@ -117,6 +118,9 @@ enum ErrorKind {
 
 	#[error("{UNAUTHORIZED_MSG}")]
 	MustBeServerOwner,
+
+	#[error("workshop item `{workshop_id}` is not a CS2 map")]
+	NotAMap { workshop_id: WorkshopID },
 
 	#[error("{what} already exists")]
 	AlreadyExists { what: &'static str },
@@ -344,6 +348,19 @@ impl Error {
 		Self::new(ErrorKind::MustBeServerOwner)
 	}
 
+	/// An error that can occur when creating or updating [maps].
+	///
+	/// When creating or updating a map, we fetch metadata about it from Steam's API.
+	/// If the response we get back doesn't deserialize correctly, it probably wasn't a map.
+	///
+	/// Produces a `409 Conflict` status.
+	///
+	/// [maps]: crate::maps
+	#[track_caller]
+	pub(crate) fn not_a_map(workshop_id: WorkshopID) -> Self {
+		Self::new(ErrorKind::NotAMap { workshop_id })
+	}
+
 	/// An error signaling that a resource already exists.
 	///
 	/// Produces a `409 Conflict` status.
@@ -534,7 +551,8 @@ impl IntoResponse for Error {
 			| E::InsufficientPermissions { .. }
 			| E::MustBeServerOwner => StatusCode::UNAUTHORIZED,
 			E::NotFound { .. } => StatusCode::NOT_FOUND,
-			E::AlreadyExists { .. }
+			E::NotAMap { .. }
+			| E::AlreadyExists { .. }
 			| E::MustHaveMappers
 			| E::MismatchingMapCourse { .. }
 			| E::MismatchingCourseFilter { .. }

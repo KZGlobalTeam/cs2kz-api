@@ -45,7 +45,11 @@ pub async fn fetch_map_name(
 		return Err(Error::not_found("workshop map"));
 	}
 
-	let map_info = response.json::<MapInfo>().await?;
+	let map_info = response
+		.json::<MapInfo>()
+		.await
+		.inspect_err(|error| tracing::debug!(%error, "failed to deserialize workshop map"))
+		.map_err(|_| Error::not_a_map(workshop_id))?;
 
 	Ok(map_info.title)
 }
@@ -61,8 +65,6 @@ impl<'de> Deserialize<'de> for MapInfo {
 	where
 		D: Deserializer<'de>,
 	{
-		use serde::de::Error as E;
-
 		#[derive(Deserialize)]
 		struct Helper1 {
 			response: Helper2,
@@ -73,12 +75,43 @@ impl<'de> Deserialize<'de> for MapInfo {
 			publishedfiledetails: Vec<JsonValue>,
 		}
 
-		Helper1::deserialize(deserializer)
+		let title = Helper1::deserialize(deserializer)
 			.map(|x| x.response)
 			.map(|mut x| x.publishedfiledetails.remove(0))
-			.map(|mut json| json.get_mut("title").unwrap_or(&mut JsonValue::Null).take())
-			.map(|json| json.as_str().map(ToOwned::to_owned))?
-			.map(|title| Self { title })
-			.ok_or_else(|| E::missing_field("title"))
+			.map(|mut json| json.get_mut("title").unwrap_or(&mut JsonValue::Null).take())?;
+
+		macro_rules! invalid_type {
+			($unexpected:ident) => {
+				Err(serde::de::Error::invalid_type(
+					serde::de::Unexpected::$unexpected,
+					&"string",
+				))
+			};
+			($unexpected:ident($v:expr)) => {
+				Err(serde::de::Error::invalid_type(
+					serde::de::Unexpected::$unexpected($v),
+					&"string",
+				))
+			};
+		}
+
+		match title {
+			JsonValue::String(title) => Ok(Self { title }),
+			JsonValue::Null => Err(serde::de::Error::missing_field("title")),
+			JsonValue::Bool(v) => invalid_type!(Bool(v)),
+			JsonValue::Number(v) => {
+				if let Some(v) = v.as_i64() {
+					invalid_type!(Signed(v))
+				} else if let Some(v) = v.as_u64() {
+					invalid_type!(Unsigned(v))
+				} else if let Some(v) = v.as_f64() {
+					invalid_type!(Float(v))
+				} else {
+					unreachable!()
+				}
+			}
+			JsonValue::Array(_) => invalid_type!(Seq),
+			JsonValue::Object(_) => invalid_type!(Map),
+		}
 	}
 }
