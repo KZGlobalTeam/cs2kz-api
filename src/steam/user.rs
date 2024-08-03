@@ -16,7 +16,7 @@ use crate::{Error, Result, State};
 const API_URL: &str = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002";
 
 /// HTTP cookie name for storing a serialized [`User`].
-const COOKIE_NAME: &str = "kz-player";
+pub const COOKIE_NAME: &str = "kz-player";
 
 /// A Steam user.
 #[derive(Debug, Serialize, ToSchema)]

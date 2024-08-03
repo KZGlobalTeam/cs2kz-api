@@ -6,6 +6,7 @@ use authentication::Session;
 use axum::extract::{ConnectInfo, Query};
 use axum::http::StatusCode;
 use axum::response::Redirect;
+use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::CookieJar;
 use serde::Deserialize;
 use url::Url;
@@ -71,10 +72,11 @@ pub struct LogoutParams {
 pub async fn logout(
 	state: State,
 	mut session: Session,
+	cookies: CookieJar,
 	Query(LogoutParams {
 		invalidate_all_sessions,
 	}): Query<LogoutParams>,
-) -> Result<(Session, StatusCode)> {
+) -> Result<(Session, CookieJar, StatusCode)> {
 	let mut transaction = state.transaction().await?;
 
 	session
@@ -85,7 +87,15 @@ pub async fn logout(
 
 	tracing::debug!("user logged out");
 
-	Ok((session, StatusCode::OK))
+	let user_cookie = Cookie::build((steam::user::COOKIE_NAME, ""))
+		.domain(state.config.cookie_domain.clone())
+		.path("/")
+		.secure(cfg!(feature = "production"))
+		.http_only(false)
+		.expires(time::OffsetDateTime::now_utc())
+		.build();
+
+	Ok((session, cookies.add(user_cookie), StatusCode::OK))
 }
 
 /// The endpoint hit by Steam after a successful login.
