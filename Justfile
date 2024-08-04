@@ -25,16 +25,6 @@ format:
 	# Running rustfmt...
 	{{rustfmt}} --all
 
-# Run tests
-test *ARGS:
-	#!/usr/bin/env sh
-
-	if command -v cargo-nextest &>/dev/null; then
-		cargo nextest run --workspace {{ARGS}}
-	else
-		cargo test --workspace {{ARGS}}
-	fi
-
 # Run with tokio-console support
 debug *ARGS:
 	RUSTFLAGS="--cfg tokio_unstable" cargo run -Fconsole serve {{ARGS}}
