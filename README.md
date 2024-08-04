@@ -2,51 +2,18 @@
 
 # CS2KZ API
 
-This is the backend for CS2KZ that is responsible for storing records, maps,
-servers, etc. and exposing them to the outside world. It is currently under
-development together with
-[cs2kz-metamod](https://github.com/KZGlobalTeam/cs2kz-metamod).
+This project encapsulates the backend infrastructure of CS2KZ.
+It is developed in tandem with [the plugin][cs2kz] and currently WIP.
 
-## Running the API
+If you want to run the API locally, see [Local Setup](#local-setup).
+The recommended tooling for development is listed under [Tooling](#tooling).
+The project structure is documented in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-In order to run locally, you will have to install
-[Docker](https://www.docker.com). This is the recommended way to run the
-database, as well as the API itself if you don't have Rust installed. If you
-have Rust installed (or want to install it:
-[rustup](https://www.rust-lang.org/tools/install)), then you can run the API
-itself outside of docker as well.
+Questions and feedback are appreciated! Feel free to open an issue or join [our Discord][discord].
 
-First, clone this repository:
+## Local Setup
 
-```sh
-$ git clone https://github.com/KZGlobalTeam/cs2kz-api
-```
+## Tooling
 
-Then setup environment variables:
-
-```sh
-$ cp .env.example .env
-$ cp .env.docker.example .env.docker
-```
-
-Now make sure the database is running:
-
-```sh
-$ docker compose up -d cs2kz-database
-```
-
-If you want to run the API in docker as well, run:
-
-```sh
-$ docker compose up cs2kz-api
-```
-
-If you want to run natively, you can use `cargo`:
-
-```sh
-$ cargo run
-```
-
-## Contributions
-
-If you want to contribute, have a look at [CONTRIBUTING.md](./CONTRIBUTING.md)!
+[cs2kz]: https://github.com/KZGlobalTeam/cs2kz-metamod
+[discord]: https://www.discord.gg/csgokz

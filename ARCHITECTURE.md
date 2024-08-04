@@ -1,101 +1,105 @@
 # The CS2KZ API Architecture
 
-> This repository follows a certain structure, so if you want to understand it
-> and/or contribute, keep reading!
+This document aims to explain how this project is structured, which libraries you should be familiar with, and how the
+API works at a high level. If you're new to the project, this is the right place to start!
 
 > [!IMPORTANT]
-> This is a [Rust](https://www.rust-lang.org) project, which means you should
-> be familiar with [Cargo](https://doc.rust-lang.org/cargo), as it is the main
-> build tool.
+> As this is a [Rust](https://www.rust-lang.org) project, you should be familiar with
+> [Cargo](https://doc.rust-lang.org/cargo), its main build tool and package manager.
+> It is expected that you have a general understanding of how Rust projects are structured and how the module system
+> works.
 
 ## Repository Structure
 
-The repository is structured as a
-[cargo workspace](https://doc.rust-lang.org/cargo/reference/workspaces.html),
-with the root manifest at [./Cargo.toml](./Cargo.toml). Important files /
-directories include:
+This project is organized into several crates within a [Cargo workspace][workspace]. The next few sections will focus on
+the most important ones. The main crate, [`cs2kz-api`](#cs2kz-api-crate), lives in [`./src/`](./src/) and declares its
+metadata inside [`Cargo.toml`](./Cargo.toml). [`./lib/`](./lib/) contains helper libraries, most notably
+[`cs2kz`](#cs2kz-crate).
 
-* [`src`](./src) - the main API crate; this is where the bulk of the code is located
-* [`crates`](./crates) - any utility libraries or helper crates (part of the workspace)
-* [`database`](./database) - migrations, test fixtures, and docker volumes
-* [`Justfile`](./Justfile) - command runner for developing
-* `.env.*` files - environment variables that are loaded at runtime
-   * you should copy both of them and remove the `.example` suffix
-   * `.docker` is only used by the API while running inside a docker container
-* [`compose.yml`](./compose.yml) - docker setup for the database & API
-* [`Dockerfile`](./Dockerfile) - [Dockerfile](https://docs.docker.com/reference/dockerfile)
-  for the API container
+- The [`./database/`](./database/) directory contains database migrations, test fixtures, and docker volumes.
+- The [`./nix/`](./nix/) directory contains `.nix` files referenced by [`flake.nix`](./flake.nix).
+- The `./logs/` directory will be created when using the default `LOG_DIR` configuration value as specified in
+  [`.env.example`](./.env.example), and stores log files created by the API.
+- The `./workshop/` directory will be created when using the default `KZ_API_WORKSHOP_PATH` configuration value as
+  specified in [`.env.example`](./.env.example), and stores downloaded Steam Workshop files.
+- The `./docker/` directory will contain directories for mounted volumes used by the API container.
 
-## `cs2kz-api` crate
+### `cs2kz` crate
 
-The [`src`](./src) directory contains the API code. It is fairly complex, but
-follows a specific structure.
+The "standard library" of CS2KZ.
 
-`cs2kz-api` contains both a library and a binary crate. The binary's entry
-point is [`main.rs`](./src/main.rs), which is only concerned with log capturing
-and actually running the API.
+It mosty contains type definitions for core concepts such as `SteamID` and `Mode`, and is used by most other crates in
+the workspace.
 
-[`lib.rs`](./src/lib.rs) is what contains all the logic.
+### `cs2kz-api-macros` crate
 
-* simple modules will be singular files, like [`state.rs`](./src/state.rs)
-* "domains" all have their own modules, e.g. [`players`](./src/players) or
-  [`maps`](./src/maps)
-   * the entrypoint `mod.rs` exports a function called `router`, which describes
-     the API routes covered by that module
-   * every "domain" contains at least 1 module called `handlers`, which contains
-     HTTP handlers for the corresponding routes
-      * handler functions are named after their HTTP method, e.g. `get()`
-      * handler functions are annotated with `#[utoipa::path]` macros for
-        generating OpenAPI documentation
-   * `models` and `queries` are used for shared types and SQL queries
+A companion crate for `cs2kz-api`, containing procedural macros.
 
-### Core Libraries
+Currently it is necessary to define procedural macros in their own crates with a special `proc-macro = true` flag in
+their `Cargo.toml`. Any macros that were written specifically for this project live in that crate.
 
-The most important libraries you should be familiar with:
+## Services
 
-* [tokio](https://tokio.rs) - async runtime
-* [axum](https://docs.rs/axum) - http framework
-* [tracing](https://docs.rs/tracing) - logging
-* [serde](https://docs.rs/serde) - (de)serializing e.g. JSON
-* [utoipa](https://docs.rs/utoipa) - generating OpenAPI documentation
+[`tower::Service`][tower-service] is the core abstraction that `axum` builds on to handle requests. As such, they are an
+important concept to understand. You'll find that `cs2kz-api` exports a module called `services`. This module contains
+types which handle different parts of the system/domain, such as the `PlayerService` or the `MapService`. These usually
+map directly to HTTP routes, such as `/players` or `/maps`. Some services don't, and are instead used by other services,
+like `JwtService`. It's important to note that these types do not actually implement the `tower::Service` trait. As they
+are application code, and not used in generic contexts, it would make little sense to actually implement those traits
+for them. They follow the general structure of `async fn(Request) -> Response` by exposing public functions taking
+a single `req` parameter and returning some response type. They are only concerned with business logic and don't know
+anything about HTTP. The HTTP handlers for each service live in their own module, usually `http.rs`, and just call into
+the service. Each service is then passed as router state using [`Router::with_state()`][axum-router-state] and extracted
+in the handler functions. The request/response types are defined in `models.rs` and also publicly exported.
 
-### Authentication
+They _do_ know about database queries; there is no "repository" abstraction. This might change in the future, but
+currently 99% of the "business logic" consists of database queries. I don't think there is a good reason to abstract
+this away further, as it would just needlessly complicate things.
 
-There are 3 main "sources" for authentication:
+## Authentication & Authorization
 
-* CS2 Servers
-* Steam
-* Opaque API Keys
+The API provides several ways to authenticate requests:
 
-#### CS2 Servers
+1. [Sessions](#session-authentication)
+2. [JWTs](#jwt-authentication)
+3. [API Keys](#key-authentication)
 
-Every globally approved server has a "permanent" refresh key. This key is a UUID
-that is randomly generated when the server is approved. It will only be exposed
-once, and is not viewable again later. Admins and server owners can generate new
-keys for their servers anytime they want, and will get to see that new key
-exactly once as well. This key will then be put into a configuration file by the
-server owner and used by the cs2kz plugin to request temporary JWTs. This is
-done by making a `POST` request to `/servers/key` with the refresh key in the
-request body. The returned JWT will be valid for 15 minutes and grants the
-server access to protected endpoints (e.g. for submitting records). The refresh
-key can be revoked by admins at any time, which will effectively "deglobal" a
-server, because it won't be able to request new JWTs anymore.
+### Session Authentication
 
-#### Steam
+Sessions are how other _applications_, such as websites, can authenticate with the API. We use Steam as an OpenID
+provider to perform the actual login process, and then store the user's SteamID alongside an opaque session ID in the
+database. The session ID is given back to the user in a cookie, and they can use it for future requests.
 
-Anyone with a Steam account can hit the `/auth/login` endpoint to login with
-Steam. This will create a stateful session in the API's database and be queried
-on every request. Users have permissions associated with them in the database,
-so while auth**entication** is handled by Steam, auth**orization** is handled by
-the API. Having a valid session cookie is necessary for making requests to
-protected endpoints (e.g. for managing servers or bans). These sessions can be
-invalidated using the `/auth/logout` endpoint, or by not making any requests for
-7 consecutive days. Every request made will extend the current session to be
-valid for the next 7 days.
+For authorization we primarily use a custom permission system. These are modeled as bitflags, and every user has
+them. They are checked whenever a session is fetched from the database, and can then be used to perform
+authorization. There are other methods as well, all encapsulated in the `AuthorizeSession` trait. Check the
+`AuthService` documentation and implementation for details.
 
-#### Opaque API Keys
+### JWT Authentication
 
-These are randomly generated UUIDs that don't have any special information
-associated with them. They are used for automated tasks like submitting new
-plugin versions via GitHub CD or by known services to bypass restrictions. They
-have to be generated and revoked manually by admins.
+JWTs are how CS2 servers authenticate with the API. Every server has a permanent refresh key, which they can use to
+obtain temporary access tokens (JWTs). These access tokens are short-lived and are used to authenticate all requests.
+Server owners receive their refresh key when their server is approved, and can reset it at any time. Global Admins may
+_delete_ a server's refresh key, preventing it from generating new access tokens. This is usually done if a server
+breaks the rules, and server owners are informed when it happens.
+
+### Key Authentication
+
+The API also stores a table of opaque keys that are used for one-off purposes, such as GitHub actions. These are
+supposed to be used for internal processes, and aren't given out to random people.
+
+[workspace]: https://doc.rust-lang.org/cargo/reference/workspaces.html
+[future]: https://doc.rust-lang.org/std/future/index.html
+[tokio-docs]: https://docs.rs/tokio/1
+[axum-router]: https://docs.rs/axum/0.7/axum/struct.Router.html
+[axum-query]: https://docs.rs/axum/0.7/axum/extract/struct.Query.html
+[axum-json]: https://docs.rs/axum/0.7/axum/struct.Json.html
+[axum-router-state]: https://docs.rs/axum/0.7/axum/struct.Router.html#method.with_state
+[tower-service]: https://docs.rs/tower/0.4/tower/trait.Service.html
+[sqlx-database]: https://docs.rs/sqlx/0.8/sqlx/trait.Database.html
+[sqlx-encode]: https://docs.rs/sqlx/0.8/sqlx/trait.Encode.html
+[sqlx-decode]: https://docs.rs/sqlx/0.8/sqlx/trait.Decode.html
+[sqlx-from-row]: https://docs.rs/sqlx/0.8/sqlx/trait.FromRow.html
+[sqlx-query-builder]: https://docs.rs/sqlx/0.8.0/sqlx/struct.QueryBuilder.html
+[tracing-docs]: https://docs.rs/tracing/0.1
+[tracing-subscriber]: https://docs.rs/tracing/0.1/tracing/trait.Subscriber.html

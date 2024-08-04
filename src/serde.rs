@@ -1,110 +1,63 @@
-//! Custom [`serde`] functions.
+//! This module contains extensions for [`serde`].
 
-#![allow(missing_docs)]
+use serde::{Deserialize, Deserializer};
 
-pub mod string {
-	use serde::{Deserialize, Deserializer};
+use crate::util::IsEmpty;
 
-	pub fn deserialize_empty_as_none<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
-	where
-		D: Deserializer<'de>,
-	{
-		let Some(value) = Option::<String>::deserialize(deserializer)? else {
-			return Ok(None);
-		};
-
-		if value.is_empty() {
-			return Ok(None);
-		}
-
-		Ok(Some(value))
-	}
+/// Deserializes a collection and makes sure it isn't empty.
+pub fn deserialize_non_empty<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+where
+	T: IsEmpty + Deserialize<'de>,
+	D: Deserializer<'de>,
+{
+	T::deserialize(deserializer).and_then(|v| match v.is_empty() {
+		false => Ok(v),
+		true => Err(serde::de::Error::invalid_length(0, &"1 or more")),
+	})
 }
 
-pub mod vec {
-	use serde::{de, Deserialize, Deserializer};
-
-	pub fn deserialize_non_empty<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
-	where
-		D: Deserializer<'de>,
-		T: Deserialize<'de>,
-	{
-		let vec = Vec::<T>::deserialize(deserializer)?;
-
-		if vec.is_empty() {
-			return Err(de::Error::invalid_length(0, &"1 or more"));
-		}
-
-		Ok(vec)
-	}
-
-	pub fn deserialize_empty_as_none<'de, D, T>(deserializer: D) -> Result<Option<Vec<T>>, D::Error>
-	where
-		D: Deserializer<'de>,
-		T: Deserialize<'de>,
-	{
-		let Some(vec) = Option::<Vec<T>>::deserialize(deserializer)? else {
-			return Ok(None);
-		};
-
-		if vec.is_empty() {
-			return Ok(None);
-		}
-
-		Ok(Some(vec))
-	}
+/// Deserializes an `Option<T>` but treats `Some(<empty>)` as `None`.
+pub fn deserialize_empty_as_none<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+	T: IsEmpty,
+	Option<T>: Deserialize<'de>,
+	D: Deserializer<'de>,
+{
+	Option::<T>::deserialize(deserializer).map(|opt| opt.filter(|v| !v.is_empty()))
 }
 
-pub mod btree_map {
-	use std::collections::BTreeMap;
+#[cfg(test)]
+mod tests
+{
+	use serde_json::json;
 
-	use serde::{Deserialize, Deserializer};
-
-	pub fn deserialize_empty_as_none<'de, D, K, V>(
-		deserializer: D,
-	) -> Result<Option<BTreeMap<K, V>>, D::Error>
-	where
-		D: Deserializer<'de>,
-		K: Deserialize<'de> + Ord,
-		V: Deserialize<'de>,
+	#[test]
+	fn deserialize_non_empty()
 	{
-		let Some(map) = Option::<BTreeMap<K, V>>::deserialize(deserializer)? else {
-			return Ok(None);
-		};
+		let empty = json!([]);
+		let result = super::deserialize_non_empty::<Vec<i32>, _>(empty);
 
-		if map.is_empty() {
-			return Ok(None);
-		}
-
-		Ok(Some(map))
+		assert!(result.is_err());
 	}
-}
 
-pub mod semver {
-	use semver::Version;
-	use serde::{de, Deserialize, Deserializer};
-
-	pub fn deserialize_plugin_version<'de, D>(deserializer: D) -> Result<Version, D::Error>
-	where
-		D: Deserializer<'de>,
+	#[test]
+	fn deserialize_empty_as_none() -> color_eyre::Result<()>
 	{
-		let mut version = <&'de str>::deserialize(deserializer)?;
+		let empty = json!(null);
+		let result = super::deserialize_empty_as_none::<String, _>(empty)?;
 
-		if let ("v", rest) = version.split_at(1) {
-			version = rest;
-		}
+		assert!(result.is_none());
 
-		version.parse::<Version>().map_err(de::Error::custom)
-	}
-}
+		let empty = json!("");
+		let result = super::deserialize_empty_as_none::<String, _>(empty)?;
 
-pub mod md5 {
-	use serde::{Serialize, Serializer};
+		assert!(result.is_none());
 
-	pub fn serialize_digest<S>(digest: &md5::Digest, serializer: S) -> Result<S::Ok, S::Error>
-	where
-		S: Serializer,
-	{
-		format_args!("{digest:x}").serialize(serializer)
+		let empty = json!("foo");
+		let result = super::deserialize_empty_as_none::<String, _>(empty)?;
+
+		assert_eq!(result.as_deref(), Some("foo"));
+
+		Ok(())
 	}
 }

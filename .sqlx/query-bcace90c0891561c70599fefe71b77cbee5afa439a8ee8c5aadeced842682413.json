@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t  name\n\t\tFROM\n\t\t  Credentials\n\t\tWHERE\n\t\t  `key` = ?\n\t\t  AND expires_on > NOW()\n\t\tLIMIT\n\t\t  1\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 1020
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bcace90c0891561c70599fefe71b77cbee5afa439a8ee8c5aadeced842682413"
+}

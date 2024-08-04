@@ -1,0 +1,54 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t  count(r.id) cnt_normal,\n\t\t  count(sr.id) cnt_sus,\n\t\t  count(sr.id) cnt_cheated,\n\t\t  count(wr.id) cnt_wiped\n\t\tFROM\n\t\t  Records r\n\t\t  JOIN SuspiciousRecords sr ON sr.id = ?\n\t\t  JOIN CheatedRecords cr ON cr.id = ?\n\t\t  JOIN WipedRecords wr ON wr.id = ?\n\t\tWHERE\n\t\t  r.id = ?\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cnt_normal",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "max_size": 21
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "cnt_sus",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "max_size": 21
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "cnt_cheated",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "max_size": 21
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "cnt_wiped",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "max_size": 21
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "449818c3458e86f1f04686c81830957ba214a37f3b6ef3ebea8079e6ac88e348"
+}

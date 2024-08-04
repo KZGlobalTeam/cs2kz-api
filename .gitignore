@@ -1,14 +1,14 @@
 # build artifacts
-/target
+target
 
 # persistent data
-/database/volumes
-/logs
-/docker
+docker
+logs
+workshop
 
 # environment variables
 .env
 .env.docker
 
 # nix
-/.direnv
+.direnv

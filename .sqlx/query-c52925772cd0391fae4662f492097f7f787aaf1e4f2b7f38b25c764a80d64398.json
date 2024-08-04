@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tUPDATE\n\t\t  Maps\n\t\tSET\n\t\t  description = COALESCE(?, description),\n\t\t  workshop_id = COALESCE(?, workshop_id),\n\t\t  global_status = COALESCE(?, global_status)\n\t\tWHERE\n\t\t  id = ?\n\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "c52925772cd0391fae4662f492097f7f787aaf1e4f2b7f38b25c764a80d64398"
+}

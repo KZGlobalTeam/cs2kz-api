@@ -1,146 +1,139 @@
 #![doc = include_str!("../README.md")]
-// TODO: remove once https://github.com/tokio-rs/tracing/issues/2912 lands
-#![allow(clippy::blocks_in_conditions)]
+#![allow(clippy::blocks_in_conditions)] // TODO: remove when tokio-rs/tracing#2912 is fixed
 
-use std::fmt::Write;
-use std::future::Future;
-use std::net::SocketAddr;
+/*
+ * CS2KZ API - the core infrastructure for CS2KZ.
+ * Copyright (C) 2024  AlphaKeks <alphakeks@dawn>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see https://www.gnu.org/licenses.
+ */
 
-use anyhow::Context;
-use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
-use axum::extract::ConnectInfo;
-use axum::{routing, Router};
-use tokio::net::TcpListener;
-use tokio::signal;
+#[macro_use]
+extern crate sealed;
 
-mod error;
-pub use error::{Error, Result};
+#[macro_use]
+extern crate pin_project;
 
-mod config;
-pub use config::Config;
-
-mod state;
-pub(crate) use state::State;
+mod docs;
+mod macros;
+mod net;
+mod num;
+mod serde;
+mod time;
+mod util;
 
 #[cfg(test)]
-mod test;
+mod testing;
 
-#[cfg(test)]
-pub(crate) use cs2kz_api_macros::integration_test;
-
-pub mod openapi;
+pub mod database;
+pub mod http;
 pub mod middleware;
-pub mod authentication;
-pub mod authorization;
-pub mod sqlx;
-pub mod steam;
-pub mod serde;
-pub mod time;
-pub mod make_id;
-pub mod bitflags;
-pub mod kz;
+pub mod runtime;
+pub mod services;
+pub mod setup;
+pub mod stats;
+pub mod openapi;
 
-pub mod players;
-pub mod maps;
-pub mod servers;
-pub mod jumpstats;
-pub mod records;
-pub mod bans;
-pub mod game_sessions;
-pub mod admins;
-pub mod plugin;
+/// A [`tower::MakeService`] that can be passed to [`axum::serve()`].
+pub type Server =
+	axum::extract::connect_info::IntoMakeServiceWithConnectInfo<axum::Router, std::net::SocketAddr>;
 
-#[allow(clippy::missing_docs_in_private_items)]
-type Server = axum::serve::Serve<
-	IntoMakeServiceWithConnectInfo<Router, SocketAddr>,
-	axum::middleware::AddExtension<Router, ConnectInfo<SocketAddr>>,
->;
-
-/// Run the API.
+/// Initializes the API's services and returns a [`tower::MakeService`].
 ///
-/// This function will not exit until a SIGINT signal is received.
-/// If you want to supply a custom signal for graceful shutdown, use [`run_until()`] instead.
-pub async fn run(config: Config) -> anyhow::Result<()> {
-	server(config)
-		.await
-		.context("build http server")?
-		.with_graceful_shutdown(sigint())
-		.await
-		.context("run http server")
-}
-
-/// Run the API until a given future completes.
+/// When the returned service is called, it will return a new service that can
+/// handle an incoming connection.
 ///
-/// This function is the same as [`run()`], except that it also waits for the provided `until`
-/// future, and shuts down the server when that future resolves.
-pub async fn run_until<Until>(config: Config, until: Until) -> anyhow::Result<()>
-where
-	Until: Future<Output = ()> + Send + 'static,
+/// You'll likely just pass the return value to [`axum::serve()`] to run the
+/// server.
+#[tracing::instrument(target = "cs2kz_api::runtime", name = "start", err(Debug))]
+pub async fn server(config: runtime::Config) -> Result<Server, setup::Error>
 {
-	server(config)
-		.await
-		.context("build http server")?
-		.with_graceful_shutdown(async move {
-			tokio::select! {
-				() = until => {}
-				() = sigint() => {}
-			}
-		})
-		.await
-		.context("run http server")
-}
+	use std::sync::Arc;
 
-/// Runs the necessary setup for the API and returns a future that will run the server when polled.
-///
-/// See [`run()`] and [`run_until()`].
-async fn server(config: Config) -> anyhow::Result<Server> {
-	tracing::debug!(addr = %config.addr, "establishing TCP connection");
+	use self::services::{
+		AdminService,
+		AuthService,
+		BanService,
+		HealthService,
+		JumpstatService,
+		MapService,
+		PlayerService,
+		PluginService,
+		RecordService,
+		ServerService,
+		SteamService,
+	};
 
-	let tcp_listener = TcpListener::bind(config.addr)
-		.await
-		.context("bind tcp socket")?;
+	let http_client = reqwest::Client::new();
+	let database = sqlx::pool::PoolOptions::new()
+		.min_connections(database::min_connections())
+		.max_connections(database::max_connections())
+		.connect(config.database_url.as_str())
+		.await?;
 
-	let addr = tcp_listener.local_addr().context("get tcp addr")?;
-	tracing::info!(%addr, prod = cfg!(feature = "production"), "listening for requests");
+	sqlx::migrate!("./database/migrations")
+		.run(&database)
+		.await?;
 
-	let state = State::new(config).await.context("initialize state")?;
-	let spec = openapi::Spec::new();
-	let mut routes_message = String::from("registering routes:\n");
+	let api_url = Arc::new(config.public_url);
 
-	for (path, methods) in spec.routes() {
-		writeln!(&mut routes_message, "    • {path} => [{methods}]")?;
-	}
+	let steam_svc = SteamService::new(
+		Arc::clone(&api_url),
+		config.steam_api_key,
+		config.workshop_artifacts_path,
+		config.depot_downloader_path,
+		http_client.clone(),
+	);
 
-	tracing::info!("{routes_message}");
-	tracing::debug!("initializing API service");
+	let auth_svc = AuthService::new(
+		database.clone(),
+		http_client.clone(),
+		steam_svc.clone(),
+		config.jwt_secret,
+		config.cookie_domain,
+	)?;
 
-	let api_service = Router::new()
-		.route("/", routing::get(|| async { "(͡ ͡° ͜ つ ͡͡°)" }))
-		.nest("/players", players::router(state.clone()))
-		.nest("/maps", maps::router(state.clone()))
-		.nest("/servers", servers::router(state.clone()))
-		.nest("/jumpstats", jumpstats::router(state.clone()))
-		.nest("/records", records::router(state.clone()))
-		.nest("/bans", bans::router(state.clone()))
-		.nest("/sessions", game_sessions::router(state.clone()))
-		.nest("/auth", authentication::router(state.clone()))
-		.nest("/admins", admins::router(state.clone()))
-		.nest("/plugin", plugin::router(state.clone()))
-		.layer(middleware::logging::layer!())
-		.merge(spec.swagger_ui())
-		.into_make_service_with_connect_info::<SocketAddr>();
+	let health_svc = HealthService::new();
+	let player_svc = PlayerService::new(database.clone(), auth_svc.clone(), steam_svc.clone());
+	let map_svc = MapService::new(database.clone(), auth_svc.clone(), steam_svc.clone());
+	let server_svc = ServerService::new(database.clone(), auth_svc.clone());
+	let record_svc = RecordService::new(database.clone(), auth_svc.clone());
+	let jumpstat_svc = JumpstatService::new(database.clone(), auth_svc.clone());
+	let ban_svc = BanService::new(database.clone(), auth_svc.clone());
+	let admin_svc = AdminService::new(database.clone(), auth_svc.clone());
+	let plugin_svc = PluginService::new(database.clone());
 
-	Ok(axum::serve(tcp_listener, api_service))
-}
+	let docs = docs::router();
 
-/// Waits for a SIGINT signal from the operating system.
-#[tracing::instrument(name = "runtime::signals")]
-async fn sigint() {
-	let signal_result = signal::ctrl_c().await;
+	let panic_handler = middleware::panic_handler::layer();
+	let logging = middleware::logging::layer!();
 
-	if let Err(err) = signal_result {
-		tracing::error!(target: "cs2kz_api::audit_log", "failed to receive SIGINT: {err}");
-	} else {
-		tracing::warn!(target: "cs2kz_api::audit_log", "received SIGINT; shutting down...");
-	}
+	let server = axum::Router::new()
+		.merge(health_svc)
+		.nest("/players", player_svc.into())
+		.nest("/maps", map_svc.into())
+		.nest("/servers", server_svc.into())
+		.nest("/records", record_svc.into())
+		.nest("/jumpstats", jumpstat_svc.into())
+		.nest("/bans", ban_svc.into())
+		.nest("/auth", auth_svc.into())
+		.nest("/admins", admin_svc.into())
+		.nest("/plugin", plugin_svc.into())
+		.layer(panic_handler)
+		.layer(logging)
+		.merge(docs)
+		.into_make_service_with_connect_info::<std::net::SocketAddr>();
+
+	Ok(server)
 }

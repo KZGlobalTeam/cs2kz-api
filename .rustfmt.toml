@@ -1,16 +1,26 @@
-# https://rust-lang.github.io/rustfmt?version=v1.7.0
+# See https://rust-lang.github.io/rustfmt/?version=v1.7.1 for a reference on all the options.
 
 edition = "2021"
 version = "Two"
 unstable_features = true
 
+array_width = 100
+attr_fn_like_width = 100
+brace_style = "AlwaysNextLine"
+condense_wildcard_suffixes = true
+fn_call_width = 100
+doc_comment_code_block_width = 80
+format_strings = true
 hard_tabs = true
-
-group_imports = "StdExternalCrate"
+hex_literal_case = "Upper"
+imports_layout = "HorizontalVertical"
 imports_granularity = "Module"
-reorder_modules = false
-
-format_macro_matchers = true
 newline_style = "Unix"
 overflow_delimited_expr = true
+group_imports = "StdExternalCrate"
+reorder_modules = false
+single_line_let_else_max_width = 0
+struct_lit_width = 100
+struct_variant_width = 100
 use_field_init_shorthand = true
+wrap_comments = true

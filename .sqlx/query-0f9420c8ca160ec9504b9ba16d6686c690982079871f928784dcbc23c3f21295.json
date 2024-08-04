@@ -9,7 +9,6 @@
         "type_info": {
           "type": "Short",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
-          "char_set": 63,
           "max_size": 5
         }
       }

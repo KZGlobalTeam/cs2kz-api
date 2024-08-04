@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\tSELECT\n\t\t\t\t  id `id: PluginVersionID`\n\t\t\t\tFROM\n\t\t\t\t  PluginVersions\n\t\t\t\tORDER BY\n\t\t\t\t  created_on DESC\n\t\t\t\tLIMIT\n\t\t\t\t  1\n\t\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: PluginVersionID",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2111120a2055c1629890a1bb35857d09d278ecded45856aca72f19883cfda099"
+}

@@ -1,207 +1,91 @@
-//! Everything related to [OpenAPI].
+//! [OpenAPI] specification for the API.
 //!
-//! This project uses the [`utoipa`] crate for generating an OpenAPI specification from code.
-//! The [`Spec`] struct in this module lists out all the relevant types, routes, and other metadata
-//! that will be included in the spec.
-//!
-//! [OpenAPI]: https://spec.openapis.org/oas/latest.html
+//! [OpenAPI]: https://www.openapis.org
 
-use derive_more::{Deref, DerefMut};
-use itertools::Itertools;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::openapi::security::Security;
+use crate::services;
 
-pub mod parameters;
+mod security;
+pub use security::Security;
+
 pub mod responses;
-pub mod security;
 
-#[derive(Debug, Clone, Deref, DerefMut, OpenApi)]
+/// The API's OpenAPI schema.
+#[rustfmt::skip]
+#[utoipauto::utoipauto(paths = "./src/services/health, ./src/services/players, ./src/services/maps, ./src/services/servers, ./src/services/records, ./src/services/jumpstats, ./src/services/bans, ./src/services/admins, ./src/services/plugin, ./src/services/auth, ./src")]
+#[derive(OpenApi)]
 #[openapi(
-  info(
-    title = "CS2KZ API",
-    description = "Source Code available on [GitHub](https://github.com/KZGlobalTeam/cs2kz-api).",
-    license(
-      name = "Licensed under the GPLv3",
-      url = "https://www.gnu.org/licenses/gpl-3.0",
-    ),
-  ),
-  modifiers(&Security),
-  paths(
-    crate::players::handlers::root::get,
-    crate::players::handlers::root::post,
-    crate::players::handlers::by_identifier::get,
-    crate::players::handlers::by_identifier::patch,
-    crate::players::handlers::steam::get,
-    crate::players::handlers::preferences::get,
-
-    crate::maps::handlers::root::get,
-    crate::maps::handlers::root::put,
-    crate::maps::handlers::by_identifier::get,
-    crate::maps::handlers::by_identifier::patch,
-
-    crate::servers::handlers::root::get,
-    crate::servers::handlers::root::post,
-    crate::servers::handlers::by_identifier::get,
-    crate::servers::handlers::by_identifier::patch,
-    crate::servers::handlers::key::generate_temp,
-    crate::servers::handlers::key::put_perma,
-    crate::servers::handlers::key::delete_perma,
-
-    crate::jumpstats::handlers::root::get,
-    crate::jumpstats::handlers::root::post,
-    crate::jumpstats::handlers::by_id::get,
-    crate::jumpstats::handlers::replays::get,
-
-    crate::records::handlers::root::get,
-    crate::records::handlers::root::post,
-    crate::records::handlers::top::get,
-    crate::records::handlers::by_id::get,
-    crate::records::handlers::replays::get,
-
-    crate::bans::handlers::root::get,
-    crate::bans::handlers::root::post,
-    crate::bans::handlers::by_id::get,
-    crate::bans::handlers::by_id::patch,
-    crate::bans::handlers::by_id::delete,
-
-    crate::game_sessions::handlers::by_id::get,
-
-    crate::authentication::handlers::login,
-    crate::authentication::handlers::logout,
-    crate::authentication::handlers::callback,
-
-    crate::admins::handlers::root::get,
-    crate::admins::handlers::by_id::get,
-    crate::admins::handlers::by_id::put,
-
-    crate::plugin::handlers::versions::get,
-    crate::plugin::handlers::versions::post,
-  ),
   components(
     schemas(
       cs2kz::SteamID,
       cs2kz::Mode,
-      cs2kz::Style,
+      cs2kz::Styles,
       cs2kz::Tier,
       cs2kz::JumpType,
-      cs2kz::PlayerIdentifier,
-      cs2kz::MapIdentifier,
-      cs2kz::CourseIdentifier,
-      cs2kz::ServerIdentifier,
       cs2kz::GlobalStatus,
       cs2kz::RankedStatus,
 
-      crate::openapi::parameters::Offset,
-      crate::openapi::parameters::Limit,
-      crate::openapi::parameters::SortingOrder,
-      crate::openapi::responses::Object,
+      crate::util::CourseIdentifier,
+      crate::util::MapIdentifier,
+      crate::util::PlayerIdentifier,
+      crate::util::ServerIdentifier,
 
-      crate::time::Seconds,
+      services::steam::WorkshopID,
+      services::auth::session::user::Permissions,
+      services::players::SessionID,
+      services::players::CourseSessionID,
+      services::maps::MapID,
+      services::maps::CourseID,
+      services::maps::FilterID,
+      services::servers::ServerID,
+      services::records::RecordID,
+      services::jumpstats::JumpstatID,
+      services::bans::BanID,
+      services::bans::UnbanID,
+      services::plugin::PluginVersionID,
+    )
+  ),
+  info(
+    title = "CS2KZ API",
+    description = "\
+This is the [OpenAPI] documentation for the CS2KZ API.
 
-      crate::steam::workshop::WorkshopID,
+The source code is available on [GitHub].
 
-      crate::players::Player,
-      crate::players::NewPlayer,
-      crate::players::PlayerUpdate,
-      crate::players::Session,
-      crate::players::CourseSession,
-      crate::players::CourseSessions,
-
-      crate::maps::FullMap,
-      crate::maps::MapID,
-      crate::maps::Course,
-      crate::maps::CourseID,
-      crate::maps::Filter,
-      crate::maps::FilterID,
-      crate::maps::NewMap,
-      crate::maps::NewCourse,
-      crate::maps::NewFilter,
-      crate::maps::CreatedMap,
-      crate::maps::MapUpdate,
-      crate::maps::CourseUpdate,
-      crate::maps::FilterUpdate,
-      crate::maps::MapInfo,
-      crate::maps::CourseInfo,
-
-      crate::servers::Host,
-      crate::servers::Server,
-      crate::servers::ServerID,
-      crate::servers::NewServer,
-      crate::servers::CreatedServer,
-      crate::servers::ServerUpdate,
-      crate::servers::AccessKeyRequest,
-      crate::servers::RefreshKey,
-      crate::servers::ServerInfo,
-
-      crate::jumpstats::Jumpstat,
-      crate::jumpstats::JumpstatID,
-      crate::jumpstats::NewJumpstat,
-      crate::jumpstats::CreatedJumpstat,
-
-      crate::records::Record,
-      crate::records::RecordID,
-      crate::records::BhopStats,
-      crate::records::NewRecord,
-      crate::records::CreatedRecord,
-      crate::records::handlers::root::SortRecordsBy,
-
-      crate::bans::Ban,
-      crate::bans::BanID,
-      crate::bans::BanReason,
-      crate::bans::Unban,
-      crate::bans::UnbanID,
-      crate::bans::NewBan,
-      crate::bans::CreatedBan,
-      crate::bans::BanUpdate,
-      crate::bans::NewUnban,
-      crate::bans::CreatedUnban,
-
-      crate::game_sessions::GameSession,
-      crate::game_sessions::GameSessionID,
-      crate::game_sessions::TimeSpent,
-
-      crate::admins::Admin,
-      crate::admins::AdminUpdate,
-
-      crate::plugin::PluginVersion,
-      crate::plugin::PluginVersionID,
-      crate::plugin::NewPluginVersion,
-      crate::plugin::CreatedPluginVersion,
+[OpenAPI]: https://www.openapis.org
+[RFC 9457]: https://www.rfc-editor.org/rfc/rfc9457.html
+[GitHub]: https://github.com/KZGlobalTeam/cs2kz-api",
+    license(
+      name = "Licensed under the GPL-3.0",
+      url = "https://www.gnu.org/licenses/gpl-3.0.html",
     ),
   ),
+  external_docs(
+    url = "https://docs.cs2kz.org",
+    description = "CS2KZ documentation",
+  ),
+  modifiers(&Security),
 )]
-#[allow(missing_docs)]
-pub struct Spec(utoipa::openapi::OpenApi);
+pub struct Schema;
 
-impl Spec {
-	/// Creates a new [`Spec`].
-	pub fn new() -> Self {
-		Self(Self::openapi())
+impl Schema
+{
+	/// Returns a [`SwaggerUi`], which can be turned into an [`axum::Router`] to
+	/// serve the API's SwaggerUI documentation.
+	pub fn swagger_ui() -> SwaggerUi
+	{
+		SwaggerUi::new("/docs/swagger-ui").url("/docs/openapi.json", Self::openapi())
 	}
 
-	/// Returns an iterator over the registered API routes and their allowed HTTP methods.
-	pub fn routes(&self) -> impl Iterator<Item = (&str, String)> {
-		self.paths.paths.iter().map(|(path, handler)| {
-			let methods = handler
-				.operations
-				.keys()
-				.map(|method| format!("{method:?}").to_uppercase())
-				.join(", ");
-
-			(path.as_str(), methods)
-		})
-	}
-
-	/// Generates a JSON representation of this OpenAPI spec.
-	pub fn as_json(&self) -> String {
-		self.to_pretty_json().expect("spec is valid")
-	}
-
-	/// Creates a [`SwaggerUi`], which can be turned into an [`axum::Router`], that will serve
-	/// a SwaggerUI web page and a JSON file representing this OpenAPI spec.
-	pub fn swagger_ui(self) -> SwaggerUi {
-		SwaggerUi::new("/docs/swagger-ui").url("/docs/openapi.json", self.0)
+	/// Generates a JSON representation of the schema.
+	///
+	/// # Panics
+	///
+	/// This function will panic if the schema cannot be serialized as JSON.
+	pub fn json() -> String
+	{
+		Self::openapi().to_pretty_json().expect("valid schema")
 	}
 }

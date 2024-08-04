@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tUPDATE\n\t\t\t  Servers\n\t\t\tSET\n\t\t\t  `key` = ?\n\t\t\tWHERE\n\t\t\t  id = ?\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "b8229dd97bd88bb4622ae4c57e74e1056115f86b512d395bb9ddbebdb122b798"
+}

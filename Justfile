@@ -1,39 +1,57 @@
 set dotenv-load := true
 
-default:
-  @just --list
+rustfmt := if env('IN_DEV_SHELL', '0') == '1' { 'cargo fmt' } else { 'cargo +nightly fmt' }
 
-clippy *ARGS:
-  cargo clippy --workspace --all-features --no-deps --tests {{ARGS}}
+# List all available recipes
+help:
+	@just --list
 
-fmt *ARGS:
-  cargo +nightly fmt --all {{ARGS}}
+# Various integrity checks
+check:
+	# Running clippy...
+	cargo clippy --workspace --all-features --tests --no-deps -- -Dwarnings
 
-doc *ARGS:
-  cargo doc --workspace --all-features --document-private-items {{ARGS}}
-  cargo run --package spec-generator > api-spec.json
+	# Running rustfmt...
+	{{rustfmt}} --all --check
 
-sqlx-cache *ARGS:
-  cargo sqlx prepare --workspace {{ARGS}} -- --tests
+	# Running rustdoc...
+	RUSTDOCFLAGS="-Dwarnings" cargo doc --workspace --all-features --document-private-items
 
+	# Running sqlx...
+	cargo sqlx prepare --workspace --check -- --tests
+
+# Format the code
+format:
+	# Running rustfmt...
+	{{rustfmt}} --all
+
+# Run tests
 test *ARGS:
-  cargo test --workspace {{ARGS}} -- --nocapture
+	#!/usr/bin/env sh
 
-run-with-console *ARGS:
-  RUSTFLAGS="--cfg tokio_unstable" cargo +nightly run --features console {{ARGS}}
+	if command -v cargo-nextest &>/dev/null; then
+		cargo nextest run --workspace {{ARGS}}
+	else
+		cargo test --workspace {{ARGS}}
+	fi
 
+# Run with tokio-console support
+debug *ARGS:
+	RUSTFLAGS="--cfg tokio_unstable" cargo run -Fconsole serve {{ARGS}}
+
+# Spin up the database container
 create-database:
-  docker compose up --detach --wait cs2kz-database
+	docker compose up --detach --wait cs2kz-database
 
+# Remove the database container and clean volumes
 clean-database:
-  docker compose down --timeout 1 cs2kz-database
-  sudo rm -rf {{justfile_directory()}}/database/volumes/cs2kz
+	docker compose down --timeout=3 cs2kz-database
+	sudo rm -rfv {{justfile_directory()}}/database/volumes/cs2kz
 
-run-migrations *ARGS:
-  sqlx migrate run --source {{justfile_directory()}}/database/migrations {{ARGS}}
+# Run database migrations
+run-migrations:
+	cargo sqlx migrate run --source {{justfile_directory()}}/database/migrations
 
-precommit:
-  just clippy
-  just fmt
-  just doc
-  just sqlx-cache
+# Build sqlx's query cache
+prepare-query-cache:
+	cargo sqlx prepare --workspace -- --tests

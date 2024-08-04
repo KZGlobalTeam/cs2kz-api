@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\t\tSELECT\n\t\t\t\t\t  id `id: ServerID`\n\t\t\t\t\tFROM\n\t\t\t\t\t  Servers\n\t\t\t\t\tWHERE\n\t\t\t\t\t  name LIKE ?\n\t\t\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: ServerID",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3b61921f0c0e669963a7338d2715c4abfebb1f97c462b21ff7c600cab19ec687"
+}

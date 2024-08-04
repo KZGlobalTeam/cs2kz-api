@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tINSERT INTO\n\t\t\t  Records (\n\t\t\t    filter_id,\n\t\t\t    styles,\n\t\t\t    teleports,\n\t\t\t    time,\n\t\t\t    player_id,\n\t\t\t    server_id,\n\t\t\t    bhops,\n\t\t\t    perfs,\n\t\t\t    perfect_perfs,\n\t\t\t    plugin_version_id\n\t\t\t  )\n\t\t\tVALUES\n\t\t\t  (\n\t\t\t    (\n\t\t\t      SELECT\n\t\t\t\tid\n\t\t\t      FROM\n\t\t\t\tCourseFilters\n\t\t\t      WHERE\n\t\t\t\tcourse_id = ?\n\t\t\t\tAND mode = ?\n\t\t\t\tAND teleports = ?\n\t\t\t      LIMIT\n\t\t\t\t1\n\t\t\t    ), ?, ?, ?, ?, ?, ?, ?, ?, ?\n\t\t\t  )\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 12
+    },
+    "nullable": []
+  },
+  "hash": "f194c56a3b2b58f674f465c6afcb1c276c48a7fccae0aa8fd10379ea8b6631f3"
+}

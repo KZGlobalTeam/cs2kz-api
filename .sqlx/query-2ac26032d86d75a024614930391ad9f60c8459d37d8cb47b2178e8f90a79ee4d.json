@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\t\t\tSELECT\n\t\t\t\t\t  id `id: MapID`\n\t\t\t\t\tFROM\n\t\t\t\t\t  Maps\n\t\t\t\t\tWHERE\n\t\t\t\t\t  name LIKE ?\n\t\t\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: MapID",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2ac26032d86d75a024614930391ad9f60c8459d37d8cb47b2178e8f90a79ee4d"
+}

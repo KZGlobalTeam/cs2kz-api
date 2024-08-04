@@ -1,0 +1,34 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tSELECT\n\t\t\t  u.id `user_id: SteamID`,\n\t\t\t  u.permissions `user_permissions: user::Permissions`\n\t\t\tFROM\n\t\t\t  LoginSessions s\n\t\t\t  JOIN Players u ON u.id = s.player_id\n\t\t\tWHERE\n\t\t\t  s.id = ?\n\t\t\t  AND s.expires_on > NOW()\n\t\t\tORDER BY\n\t\t\t  expires_on DESC\n\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id: SteamID",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 20
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "user_permissions: user::Permissions",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | UNSIGNED",
+          "max_size": 20
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "2e9d1a2aa9c1880c20ddd87748a5ae3026203a34af52adc3ac1812173cb2401e"
+}

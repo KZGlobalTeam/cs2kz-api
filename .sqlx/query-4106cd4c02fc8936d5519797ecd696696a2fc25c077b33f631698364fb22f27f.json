@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tUPDATE\n\t\t\t  Players\n\t\t\tSET\n\t\t\t  permissions = ?\n\t\t\tWHERE\n\t\t\t  id = ?\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "4106cd4c02fc8936d5519797ecd696696a2fc25c077b33f631698364fb22f27f"
+}

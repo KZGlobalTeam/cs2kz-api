@@ -1,36 +1,66 @@
 //! Log-capturing facilities.
 
-use anyhow::Context;
-use tracing_appender::non_blocking::WorkerGuard;
+use std::env;
+
+use color_eyre::eyre::WrapErr;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::EnvFilter;
 
 mod stderr;
 mod files;
 
+#[cfg(feature = "console")]
+mod console;
+
+/// RAII guard that will perform cleanup on drop.
+#[allow(dead_code)]
+pub struct Guard
+{
+	/// The guard returned by [`tracing-appender`]'s logging thread.
+	appender_guard: tracing_appender::non_blocking::WorkerGuard,
+}
+
 /// Initializes [`tracing-subscriber`].
 ///
-/// NOTE: the returned [`WorkerGuard`] will perform cleanup for the tracing layer that emits logs
-///       to files, which means it has to stay alive until the program exits!
-pub fn init() -> anyhow::Result<WorkerGuard> {
-	let (files_layer, guard, log_dir) = files::layer().context("files layer")?;
-	let registry = tracing_subscriber::registry()
-		.with(stderr::layer())
-		.with(files_layer);
+/// NOTE: the returned [`Guard`] will perform cleanup for the tracing layer that
+/// emits logs to files, which means it has to stay alive until the program
+/// exits!
+pub fn init() -> color_eyre::Result<Guard>
+{
+	let stderr = stderr::layer().context("construct logging layer for stderr")?;
+	let (files, appender_guard) = files::layer().context("construct logging layer for files")?;
+	let registry = tracing_subscriber::registry().with(stderr).with(files);
 
 	#[cfg(feature = "console")]
-	let registry = {
-		use tracing_subscriber::{EnvFilter, Layer};
-		registry.with(console_subscriber::spawn().with_filter(EnvFilter::new("tokio=trace")))
-	};
+	let registry = registry.with(console::layer()?);
 
 	registry.init();
 
-	tracing::info! {
-		target: "cs2kz_api::audit_log",
-		dir = %log_dir.display(),
-		"initialized logging",
+	tracing::info!("initialized logging");
+
+	Ok(Guard { appender_guard })
+}
+
+/// Returns a default filter layer that all layers should use by default.
+fn default_env_filter() -> color_eyre::Result<EnvFilter>
+{
+	let filter = EnvFilter::new(concat!(
+		"cs2kz_api=debug",
+		",cs2kz_api::audit_log=trace",
+		",cs2kz_api::runtime=info",
+		",sqlx=debug",
+		",warn",
+	));
+
+	let Ok(custom) = env::var("RUST_LOG") else {
+		return Ok(filter);
 	};
 
-	Ok(guard)
+	custom.split(',').try_fold(filter, |filter, raw_directive| {
+		raw_directive
+			.parse()
+			.map(|directive| filter.add_directive(directive))
+			.context("parse env-filter directive")
+	})
 }

@@ -1,0 +1,44 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\tSELECT\n\t\t  COUNT(active_bans.id) > 0 `currently_banned: bool`,\n\t\t  COUNT(expired_bans.id) > 0 `has_previous_bans: bool`,\n\t\t  TIMESTAMPDIFF(\n\t\t    SECOND,\n\t\t    expired_bans.created_on,\n\t\t    expired_bans.expires_on\n\t\t  ) `previous_ban_duration: u64`\n\t\tFROM\n\t\t  Players p\n\t\t  LEFT JOIN Bans active_bans ON active_bans.player_id = p.id\n\t\t  AND active_bans.expires_on > NOW()\n\t\t  LEFT JOIN Bans expired_bans ON expired_bans.player_id = p.id\n\t\t  AND expired_bans.expires_on < NOW()\n\t\t  AND expired_bans.id IN (\n\t\t    SELECT\n\t\t      ban_id\n\t\t    FROM\n\t\t      Unbans\n\t\t    WHERE\n\t\t      reason != 'false_ban'\n\t\t  )\n\t\tWHERE\n\t\t  p.id = ?\n\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "currently_banned: bool",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | BINARY",
+          "max_size": 1
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "has_previous_bans: bool",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | BINARY",
+          "max_size": 1
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "previous_ban_duration: u64",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "BINARY",
+          "max_size": 21
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "135c938e21d5ef9d05156b5db786179b1907bdce8c0c7c3989eb1686ae9ceec6"
+}

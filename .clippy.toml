@@ -1,8 +1,11 @@
 max-fn-params-bools = 1
 check-private-items = true
 
-enforced-import-renames = [
-  { path = "std::error::Error", rename = "StdError" },
-  { path = "serde_json::Value", rename = "JsonValue" },
-  { path = "sqlx::types::Json", rename = "SqlJson" },
+disallowed-types = [
+  { path = "std::net::IpAddr", reason = "use `crate::net::IpAddr` instead" },
+  { path = "std::net::Ipv4Addr", reason = "use `crate::net::IpAddr` instead" },
+  { path = "std::net::Ipv6Addr", reason = "use `crate::net::IpAddr` instead" },
+  { path = "axum::extract::Path", reason = "use `crate::http::extract::Path` instead" },
+  { path = "axum::extract::Query", reason = "use `crate::http::extract::Query` instead" },
+  { path = "axum::Json", reason = "use `crate::http::extract::Json` instead" },
 ]

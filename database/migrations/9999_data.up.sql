@@ -8,63 +8,13 @@ VALUES
   );
 
 INSERT INTO
-  `Modes` (`name`)
-VALUES
-  ("vanilla");
-
-INSERT INTO
-  `Modes` (`name`)
-VALUES
-  ("classic");
-
-INSERT INTO
-  `Styles` (`name`)
-VALUES
-  ("normal");
-
-INSERT INTO
-  `Styles` (`name`)
-VALUES
-  ("auto_bhop");
-
-INSERT INTO
-  `JumpTypes` (`name`)
-VALUES
-  ("longjump");
-
-INSERT INTO
-  `JumpTypes` (`name`)
-VALUES
-  ("single_bhop");
-
-INSERT INTO
-  `JumpTypes` (`name`)
-VALUES
-  ("multi_bhop");
-
-INSERT INTO
-  `JumpTypes` (`name`)
-VALUES
-  ("weirdjump");
-
-INSERT INTO
-  `JumpTypes` (`name`)
-VALUES
-  ("ladderjump");
-
-INSERT INTO
-  `JumpTypes` (`name`)
-VALUES
-  ("ladderhop");
-
-INSERT INTO
   `Players` (`id`, `name`, `ip_address`, `permissions`)
 VALUES
   (
     76561198282622073,
     "AlphaKeks",
     "::1",
-    (0b10000000000000010000000100000001)
+    2147549441
   );
 
 INSERT INTO
@@ -73,7 +23,7 @@ INSERT INTO
     `host`,
     `port`,
     `owner_id`,
-    `refresh_key`
+    `key`
   )
 VALUES
   (

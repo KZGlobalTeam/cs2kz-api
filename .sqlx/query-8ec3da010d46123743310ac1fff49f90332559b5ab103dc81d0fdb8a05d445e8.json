@@ -1,0 +1,34 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tSELECT\n\t\t\t  b.created_on `created_on: DateTime<Utc>`,\n\t\t\t  ub.id `unban_id: UnbanID`\n\t\t\tFROM\n\t\t\t  Bans b\n\t\t\t  LEFT JOIN Unbans ub ON ub.ban_id = b.id\n\t\t\tWHERE\n\t\t\t  b.id = ?\n\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "created_on: DateTime<Utc>",
+        "type_info": {
+          "type": "Timestamp",
+          "flags": "NOT_NULL | UNSIGNED | BINARY | TIMESTAMP",
+          "max_size": 19
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "unban_id: UnbanID",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 20
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "8ec3da010d46123743310ac1fff49f90332559b5ab103dc81d0fdb8a05d445e8"
+}
