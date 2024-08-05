@@ -346,8 +346,8 @@ impl ServerService
 		.execute(txn.as_mut())
 		.await?;
 
-		let token = Jwt::new(server_info, Duration::MINUTE * 15)
-			.pipe(|jwt| self.auth_svc.encode_jwt(&jwt))?;
+		let token = Jwt::new(&server_info, Duration::MINUTE * 15)
+			.pipe(|jwt| self.auth_svc.encode_jwt(jwt))?;
 
 		txn.commit().await?;
 

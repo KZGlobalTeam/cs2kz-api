@@ -176,3 +176,51 @@ where
 
 	Ok(response)
 }
+
+#[cfg(test)]
+mod tests
+{
+	use std::convert::Infallible;
+	use std::time::Duration;
+
+	use serde::{Deserialize, Serialize};
+	use sqlx::{MySql, Pool};
+	use tower::{service_fn, Layer, ServiceExt};
+
+	use super::*;
+	use crate::testing;
+
+	#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+	struct TestInfo
+	{
+		foo: i32,
+		bar: bool,
+	}
+
+	#[sqlx::test]
+	async fn it_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let auth_svc = testing::auth_svc(database);
+		let info = TestInfo { foo: 69, bar: true };
+		let expires_after = Duration::from_secs(69);
+		let jwt = auth_svc.encode_jwt(Jwt::new(&info, expires_after))?;
+
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Authorization", format!("Bearer {jwt}"))
+			.body(Default::default())?;
+
+		let res = JwtLayer::<TestInfo>::new(auth_svc)
+			.layer(service_fn(|req: Request| async move {
+				assert!(req.extensions().get::<Jwt<TestInfo>>().is_some());
+				Result::<_, Infallible>::Ok(Default::default())
+			}))
+			.oneshot(req)
+			.await;
+
+		testing::assert!(res.is_ok());
+
+		Ok(())
+	}
+}

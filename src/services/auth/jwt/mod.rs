@@ -171,3 +171,132 @@ where
 		Ok(jwt)
 	}
 }
+
+#[cfg(test)]
+mod tests
+{
+	use axum::RequestExt;
+	use serde::{Deserialize, Serialize};
+	use sqlx::{MySql, Pool};
+
+	use super::*;
+	use crate::services::auth::Error as AuthError;
+	use crate::testing;
+
+	#[derive(Debug, PartialEq, Serialize, Deserialize)]
+	struct TestInfo
+	{
+		foo: i32,
+		bar: bool,
+	}
+
+	#[sqlx::test]
+	async fn reject_missing_header(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let auth_svc = testing::auth_svc(database);
+		let mut req = http::Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.body(Default::default())?;
+
+		let extracted = req
+			.extract_parts_with_state::<Jwt<TestInfo>, _>(&auth_svc)
+			.await
+			.unwrap_err();
+
+		testing::assert_matches!(extracted, JwtRejection::Header(ref rej) if rej.is_missing());
+
+		Ok(())
+	}
+
+	#[sqlx::test]
+	async fn reject_invalid_header(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let auth_svc = testing::auth_svc(database);
+		let mut req = http::Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Authorization", "foobarbaz")
+			.body(Default::default())?;
+
+		let extracted = req
+			.extract_parts_with_state::<Jwt<TestInfo>, _>(&auth_svc)
+			.await
+			.unwrap_err();
+
+		testing::assert_matches!(extracted, JwtRejection::Header(ref rej) if !rej.is_missing());
+
+		Ok(())
+	}
+
+	#[sqlx::test]
+	async fn reject_malformed_jwt(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let auth_svc = testing::auth_svc(database);
+		let mut req = http::Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Authorization", "Bearer not-a-jwt")
+			.body(Default::default())?;
+
+		let extracted = req
+			.extract_parts_with_state::<Jwt<TestInfo>, _>(&auth_svc)
+			.await
+			.unwrap_err();
+
+		testing::assert_matches!(extracted, JwtRejection::Auth(AuthError::DecodeJwt { .. }));
+
+		Ok(())
+	}
+
+	#[sqlx::test]
+	async fn reject_expired_jwt(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let auth_svc = testing::auth_svc(database);
+		let info = TestInfo { foo: 69, bar: true };
+		let expires_after = Duration::from_secs(1);
+		let jwt = auth_svc.encode_jwt(Jwt::new(info, expires_after))?;
+
+		// jwt only has second precision, so we need to wait for it to expire
+		tokio::time::sleep(Duration::from_secs(2)).await;
+
+		let mut req = http::Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Authorization", format!("Bearer {jwt}"))
+			.body(Default::default())?;
+
+		let extracted = req
+			.extract_parts_with_state::<Jwt<TestInfo>, _>(&auth_svc)
+			.await
+			.unwrap_err();
+
+		testing::assert_matches!(extracted, JwtRejection::JwtExpired);
+
+		Ok(())
+	}
+
+	#[sqlx::test]
+	async fn accept_valid_jwt(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let auth_svc = testing::auth_svc(database);
+		let info = TestInfo { foo: 69, bar: true };
+		let expires_after = Duration::from_secs(69);
+		let jwt = auth_svc.encode_jwt(Jwt::new(&info, expires_after))?;
+
+		let mut req = http::Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Authorization", format!("Bearer {jwt}"))
+			.body(Default::default())?;
+
+		let extracted = req
+			.extract_parts_with_state::<Jwt<TestInfo>, _>(&auth_svc)
+			.await
+			.unwrap();
+
+		testing::assert_eq!(extracted.payload(), &info);
+
+		Ok(())
+	}
+}

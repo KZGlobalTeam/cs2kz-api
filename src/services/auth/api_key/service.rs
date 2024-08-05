@@ -269,6 +269,26 @@ mod tests
 		let req = Request::builder()
 			.method(http::Method::GET)
 			.uri("/")
+			.header("Authorization", "foobarbaz")
+			.body(Default::default())?;
+
+		let res = ApiKeyLayer::new("invalid", database)
+			.layer(service_fn(|_| async { Result::<_, Infallible>::Ok(Default::default()) }))
+			.oneshot(req)
+			.await
+			.unwrap_err();
+
+		testing::assert_matches!(res, ApiKeyServiceError::ExtractHeader(ref rej) if !rej.is_missing());
+
+		Ok(())
+	}
+
+	#[sqlx::test]
+	async fn reject_malformed_key(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
 			.header("Authorization", "Bearer not-a-uuid")
 			.body(Default::default())?;
 

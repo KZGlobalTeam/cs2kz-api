@@ -83,12 +83,7 @@ impl AuthService
 		cookie_domain: String,
 	) -> Result<Self, SetupError>
 	{
-		let jwt_state = Arc::new(JwtState {
-			header: jsonwebtoken::Header::default(),
-			encoding_key: jsonwebtoken::EncodingKey::from_base64_secret(&jwt_secret)?,
-			decoding_key: jsonwebtoken::DecodingKey::from_base64_secret(&jwt_secret)?,
-			validation: jsonwebtoken::Validation::default(),
-		});
+		let jwt_state = JwtState::new(&jwt_secret).map(Arc::new)?;
 
 		Ok(Self {
 			database,
@@ -227,11 +222,12 @@ impl AuthService
 
 	/// Encode a JWT into a string.
 	#[tracing::instrument(level = "debug", err(Debug, level = "debug"))]
-	pub fn encode_jwt<T>(&self, jwt: &Jwt<T>) -> Result<String>
+	pub fn encode_jwt<T>(&self, jwt: Jwt<T>) -> Result<String>
 	where
 		T: Serialize + fmt::Debug,
 	{
-		jsonwebtoken::encode(&self.jwt_state.header, jwt.payload(), &self.jwt_state.encoding_key)
+		self.jwt_state
+			.encode(jwt)
 			.map_err(|source| Error::EncodeJwt { source })
 	}
 
@@ -241,8 +237,8 @@ impl AuthService
 	where
 		T: DeserializeOwned,
 	{
-		jsonwebtoken::decode(jwt, &self.jwt_state.decoding_key, &self.jwt_state.validation)
-			.map(|data| data.claims)
+		self.jwt_state
+			.decode(jwt)
 			.map_err(|source| Error::DecodeJwt { source })
 	}
 }
@@ -257,8 +253,71 @@ struct JwtState
 	validation: jsonwebtoken::Validation,
 }
 
+impl JwtState
+{
+	/// Creates a new [`JwtState`] using the provided `secret` for
+	/// encoding/decoding.
+	///
+	/// `secret` should be base64-encoded.
+	fn new(secret: &str) -> Result<Self, jsonwebtoken::errors::Error>
+	{
+		Ok(Self {
+			header: jsonwebtoken::Header::default(),
+			encoding_key: jsonwebtoken::EncodingKey::from_base64_secret(secret)?,
+			decoding_key: jsonwebtoken::DecodingKey::from_base64_secret(secret)?,
+			validation: jsonwebtoken::Validation::default(),
+		})
+	}
+
+	/// Encode a JWT into a string.
+	fn encode<T>(&self, jwt: Jwt<T>) -> Result<String, jsonwebtoken::errors::Error>
+	where
+		T: Serialize + fmt::Debug,
+	{
+		jsonwebtoken::encode(&self.header, &jwt, &self.encoding_key)
+	}
+
+	/// Decode a string as a JWT.
+	fn decode<T>(&self, jwt: &str) -> Result<Jwt<T>, jsonwebtoken::errors::Error>
+	where
+		T: DeserializeOwned,
+	{
+		jsonwebtoken::decode(jwt, &self.decoding_key, &self.validation).map(|data| data.claims)
+	}
+}
+
 /// Generates a new expiration date for any given session.
 fn generate_session_expiration_date() -> OffsetDateTime
 {
 	OffsetDateTime::now_utc() + (time::Duration::WEEK * 2)
+}
+
+#[cfg(test)]
+mod tests
+{
+	use std::time::Duration;
+
+	use serde::{Deserialize, Serialize};
+
+	use super::*;
+	use crate::testing;
+
+	#[derive(Debug, PartialEq, Serialize, Deserialize)]
+	struct Data
+	{
+		foo: i32,
+	}
+
+	#[test]
+	fn jwt_ping_pong() -> color_eyre::Result<()>
+	{
+		let state = JwtState::new("Zm9vYmFyYmF6")?;
+		let data = Data { foo: 69 };
+		let encoded = state.encode(Jwt::new(&data, Duration::from_secs(69)))?;
+		let decoded = state.decode::<Data>(&encoded)?;
+
+		testing::assert_eq!(decoded.payload(), &data);
+
+		Ok(())
+	}
 }
