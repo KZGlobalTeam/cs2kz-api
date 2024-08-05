@@ -264,7 +264,7 @@ mod tests
 		let req = Request::builder()
 			.method(http::Method::GET)
 			.uri("/")
-			.header("Cookie", format!("kz-auth={}", SessionID::TESTING.to_string()))
+			.header("Cookie", format!("kz-auth={}", SessionID::TESTING))
 			.body(Default::default())?;
 
 		let res = handler.call(req, state).await;
@@ -323,7 +323,7 @@ mod tests
 		let req = Request::builder()
 			.method(http::Method::GET)
 			.uri("/alphakeks")
-			.header("Cookie", format!("kz-auth={}", SessionID::TESTING.to_string()))
+			.header("Cookie", format!("kz-auth={}", SessionID::TESTING))
 			.body(axum::body::Body::default())?;
 
 		let res = handler.call(req).await?;

@@ -342,7 +342,7 @@ mod tests
 
 		testing::assert_eq!(res.info.name, "AlphaKeks");
 		testing::assert_eq!(res.info.steam_id, ALPHAKEKS_ID);
-		testing::assert_eq!(res.is_banned, false);
+		testing::assert!(!res.is_banned);
 
 		Ok(())
 	}

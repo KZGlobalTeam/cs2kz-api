@@ -176,7 +176,7 @@ mod tests
 		let mut req = Request::builder()
 			.method(http::Method::GET)
 			.uri("/")
-			.header("Cookie", format!("kz-auth={}", SessionID::TESTING.to_string()))
+			.header("Cookie", format!("kz-auth={}", SessionID::TESTING))
 			.body(Default::default())?;
 
 		let extracted: Session = req.extract_parts_with_state(&database).await?;

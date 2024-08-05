@@ -251,7 +251,7 @@ mod tests
 		let req = Request::builder()
 			.method(http::Method::GET)
 			.uri("/")
-			.header("Cookie", format!("kz-auth={}", SessionID::TESTING.to_string()))
+			.header("Cookie", format!("kz-auth={}", SessionID::TESTING))
 			.body(Default::default())?;
 
 		let res = SessionManagerLayer::new(auth_svc)
@@ -275,7 +275,7 @@ mod tests
 		let req = Request::builder()
 			.method(http::Method::GET)
 			.uri("/")
-			.header("Cookie", format!("kz-auth={}", SessionID::TESTING.to_string()))
+			.header("Cookie", format!("kz-auth={}", SessionID::TESTING))
 			.body(Default::default())?;
 
 		let res = SessionManagerLayer::with_strategy(auth_svc, YouShallNotPass)
