@@ -46,6 +46,7 @@ fn main() -> color_eyre::Result<ExitCode>
 	Ok(ExitCode::SUCCESS)
 }
 
+/// Serves the API on the given `ip_address` and `port` with the given `config`.
 #[tokio::main]
 async fn serve(
 	ip_address: IpAddr,
@@ -68,6 +69,8 @@ async fn serve(
 	axum::serve(tcp_listener, server).await.context("run axum")
 }
 
+/// Generates the API's OpenAPI schema and either writes it to stdout, or diffs
+/// it against an existing file.
 fn generate_schema(check_against: Option<PathBuf>) -> color_eyre::Result<ExitCode>
 {
 	let schema = cs2kz_api::openapi::Schema::json();
@@ -103,6 +106,7 @@ struct Args
 }
 
 #[derive(Debug, Subcommand)]
+#[allow(clippy::large_enum_variant)]
 enum Action
 {
 	/// Serve the API.

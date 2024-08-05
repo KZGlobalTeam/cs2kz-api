@@ -1,3 +1,7 @@
+//! Tracing layer for [tokio-console].
+//!
+//! [tokio-console]: https://github.com/tokio-rs/console
+
 use std::env;
 use std::net::SocketAddr;
 use std::path::PathBuf;
