@@ -58,8 +58,8 @@ async fn get_many(
 	Query(req): Query<FetchPlayersRequest>,
 ) -> Result<FetchPlayersResponse, ProblemDetails>
 {
-	let may_view_ips = session
-		.map_or(cfg!(test), |session| session.user().permissions().contains(Permissions::BANS));
+	let may_view_ips =
+		session.is_some_and(|session| session.user().permissions().contains(Permissions::BANS));
 
 	let mut res = svc.fetch_players(req).await?;
 
@@ -101,8 +101,8 @@ async fn get_single(
 	Path(identifier): Path<PlayerIdentifier>,
 ) -> Result<FetchPlayerResponse, ProblemDetails>
 {
-	let may_view_ips = session
-		.map_or(cfg!(test), |session| session.user().permissions().contains(Permissions::BANS));
+	let may_view_ips =
+		session.is_some_and(|session| session.user().permissions().contains(Permissions::BANS));
 
 	let mut player = svc
 		.fetch_player(FetchPlayerRequest { identifier })
@@ -118,6 +118,7 @@ async fn get_single(
 
 /// Request payload for `PATCH /players/{player}`.
 #[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[cfg_attr(test, derive(serde::Serialize))]
 #[schema(title = "UpdatePlayerRequest")]
 #[doc(hidden)]
 pub(crate) struct UpdatePlayerPayload
@@ -200,4 +201,253 @@ async fn get_steam_profile(
 		.map(FetchSteamProfileResponse)?;
 
 	Ok(res)
+}
+
+#[cfg(test)]
+mod tests
+{
+	use std::time::Duration;
+
+	use axum::extract::Request;
+	use axum::handler::Handler;
+	use fake::{Fake, Faker};
+	use serde_json::json;
+	use sqlx::{MySql, Pool};
+	use tower::Service;
+
+	use super::*;
+	use crate::services::auth::jwt;
+	use crate::services::auth::session::SessionID;
+	use crate::testing;
+
+	const ALPHAKEKS_ID: SteamID = match SteamID::new(76561198282622073_u64) {
+		Some(id) => id,
+		None => unreachable!(),
+	};
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn get_many_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let state = testing::player_svc(database);
+		let handler = routing::get(get_many);
+
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.body(Default::default())?;
+
+		let res = handler.call(req, state).await;
+
+		testing::assert_eq!(res.status(), http::StatusCode::OK);
+
+		let res = testing::parse_body::<FetchPlayersResponse>(res.into_body()).await?;
+
+		testing::assert!(!res.players.is_empty());
+		testing::assert_eq!(res.players.len() as u64, res.total);
+
+		for player in res.players {
+			testing::assert!(player.ip_address.is_none());
+		}
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/session.sql")
+	)]
+	async fn get_many_with_auth_returns_ips(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let state = testing::player_svc(database);
+		let handler = routing::get(get_many);
+
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Cookie", format!("kz-auth={}", SessionID::TESTING.to_string()))
+			.body(Default::default())?;
+
+		let res = handler.call(req, state).await;
+
+		testing::assert_eq!(res.status(), http::StatusCode::OK);
+
+		let res = testing::parse_body::<FetchPlayersResponse>(res.into_body()).await?;
+
+		testing::assert!(!res.players.is_empty());
+		testing::assert_eq!(res.players.len() as u64, res.total);
+
+		for player in res.players {
+			testing::assert!(player.ip_address.is_some());
+		}
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn get_single_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let state = testing::player_svc(database);
+		let mut handler = Router::new()
+			.route("/:player", routing::get(get_single))
+			.with_state(state);
+
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/alphakeks")
+			.body(axum::body::Body::default())?;
+
+		let res = handler.call(req).await?;
+
+		testing::assert_eq!(res.status(), http::StatusCode::OK);
+
+		let res = testing::parse_body::<FetchPlayerResponse>(res.into_body()).await?;
+
+		testing::assert_eq!(res.info.name, "AlphaKeks");
+		testing::assert_eq!(res.info.steam_id, ALPHAKEKS_ID);
+		testing::assert!(res.ip_address.is_none());
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/session.sql")
+	)]
+	async fn get_single_with_auth_returns_ip(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let state = testing::player_svc(database);
+		let mut handler = Router::new()
+			.route("/:player", routing::get(get_single))
+			.with_state(state);
+
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/alphakeks")
+			.header("Cookie", format!("kz-auth={}", SessionID::TESTING.to_string()))
+			.body(axum::body::Body::default())?;
+
+		let res = handler.call(req).await?;
+
+		testing::assert_eq!(res.status(), http::StatusCode::OK);
+
+		let res = testing::parse_body::<FetchPlayerResponse>(res.into_body()).await?;
+
+		testing::assert_eq!(res.info.name, "AlphaKeks");
+		testing::assert_eq!(res.info.steam_id, ALPHAKEKS_ID);
+		testing::assert!(res.ip_address.is_some());
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn update_player_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let state = testing::player_svc(database.clone());
+		let mut handler = Router::new()
+			.route("/players/:id", routing::patch(update_player))
+			.with_state(state);
+
+		let auth_svc = testing::auth_svc(database);
+		let info = jwt::ServerInfo::new(1.into(), 1.into());
+		let expires_after = Duration::from_secs(69);
+		let jwt = auth_svc.encode_jwt(Jwt::new(&info, expires_after))?;
+		let body = serde_json::to_string(&UpdatePlayerPayload {
+			name: String::from("(͡ ͡° ͜ つ ͡͡°)"),
+			ip_address: "::1".parse()?,
+			preferences: json!({ "foo": "bar" }),
+			session: Faker.fake(),
+		})?;
+
+		let req = Request::builder()
+			.method(http::Method::PATCH)
+			.uri(format!("/players/{ALPHAKEKS_ID}"))
+			.header("Authorization", format!("Bearer {jwt}"))
+			.header("Content-Type", "application/json")
+			.body(axum::body::Body::from(body))?;
+
+		let res = handler.call(req).await?;
+
+		testing::assert_eq!(res.status(), http::StatusCode::CREATED);
+
+		let res = testing::parse_body::<UpdatePlayerResponse>(res.into_body()).await?;
+
+		testing::assert!(res.course_session_ids.is_empty());
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn update_player_not_found(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let state = testing::player_svc(database.clone());
+		let mut handler = Router::new()
+			.route("/players/:id", routing::patch(update_player))
+			.with_state(state);
+
+		let auth_svc = testing::auth_svc(database);
+		let info = jwt::ServerInfo::new(1.into(), 1.into());
+		let expires_after = Duration::from_secs(69);
+		let jwt = auth_svc.encode_jwt(Jwt::new(&info, expires_after))?;
+		let body = serde_json::to_string(&UpdatePlayerPayload {
+			name: String::from("(͡ ͡° ͜ つ ͡͡°)"),
+			ip_address: "::1".parse()?,
+			preferences: json!({ "foo": "bar" }),
+			session: Faker.fake(),
+		})?;
+
+		let steam_id = const {
+			match SteamID::new(76561198264939817) {
+				Some(id) => id,
+				None => unreachable!(),
+			}
+		};
+
+		let req = Request::builder()
+			.method(http::Method::PATCH)
+			.uri(format!("/players/{steam_id}"))
+			.header("Authorization", format!("Bearer {jwt}"))
+			.header("Content-Type", "application/json")
+			.body(axum::body::Body::from(body))?;
+
+		let res = handler.call(req).await?;
+
+		testing::assert_eq!(res.status(), http::StatusCode::NOT_FOUND);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn update_player_unauthorized(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let state = testing::player_svc(database.clone());
+		let mut handler = Router::new()
+			.route("/players/:id", routing::patch(update_player))
+			.with_state(state);
+
+		let auth_svc = testing::auth_svc(database);
+		let info = jwt::ServerInfo::new(1.into(), 1.into());
+		let expires_after = Duration::from_secs(1);
+		let jwt = auth_svc.encode_jwt(Jwt::new(&info, expires_after))?;
+		let body = serde_json::to_string(&UpdatePlayerPayload {
+			name: String::from("(͡ ͡° ͜ つ ͡͡°)"),
+			ip_address: "::1".parse()?,
+			preferences: json!({ "foo": "bar" }),
+			session: Faker.fake(),
+		})?;
+
+		let req = Request::builder()
+			.method(http::Method::PATCH)
+			.uri(format!("/players/{ALPHAKEKS_ID}"))
+			.header("Authorization", format!("Bearer {jwt}"))
+			.header("Content-Type", "application/json")
+			.body(axum::body::Body::from(body))?;
+
+		tokio::time::sleep(Duration::from_secs(2)).await;
+
+		let res = handler.call(req).await?;
+
+		testing::assert_eq!(res.status(), http::StatusCode::UNAUTHORIZED);
+
+		Ok(())
+	}
 }

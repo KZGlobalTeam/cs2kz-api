@@ -178,6 +178,9 @@ version = "0.2"
 version = "2.9"
 features = ["derive", "time"]
 
+[dev-dependencies.rand]
+version = "0.8"
+
 [workspace]
 members = ["lib/cs2kz", "lib/macros"]
 

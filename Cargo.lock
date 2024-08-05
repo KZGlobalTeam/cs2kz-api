@@ -610,6 +610,7 @@ dependencies = [
  "md5",
  "mime",
  "pin-project",
+ "rand",
  "reqwest",
  "sealed",
  "semver",

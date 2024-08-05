@@ -162,6 +162,11 @@ mod tests
 	use super::*;
 	use crate::testing;
 
+	const ALPHAKEKS_ID: SteamID = match SteamID::new(76561198282622073_u64) {
+		Some(id) => id,
+		None => unreachable!(),
+	};
+
 	#[sqlx::test(
 		migrations = "database/migrations",
 		fixtures("../../../../database/fixtures/session.sql")
@@ -177,7 +182,7 @@ mod tests
 		let extracted: Session = req.extract_parts_with_state(&database).await?;
 
 		testing::assert_eq!(extracted.id(), SessionID::TESTING);
-		testing::assert_eq!(extracted.user().steam_id(), SteamID::MIN);
+		testing::assert_eq!(extracted.user().steam_id(), ALPHAKEKS_ID);
 
 		Ok(())
 	}

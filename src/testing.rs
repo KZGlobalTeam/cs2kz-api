@@ -2,10 +2,12 @@
 
 use std::sync::Arc;
 
+use color_eyre::eyre::WrapErr;
+use serde::de::DeserializeOwned;
 use sqlx::{MySql, Pool};
 use url::Url;
 
-use crate::services::{AuthService, SteamService};
+use crate::services::{AuthService, PlayerService, SteamService};
 
 pub fn steam_svc() -> SteamService
 {
@@ -24,6 +26,24 @@ pub fn auth_svc(database: Pool<MySql>) -> AuthService
 	let cookie_domain = String::from("localhost");
 
 	AuthService::new(database, http_client, steam_svc, jwt_secret, cookie_domain).unwrap()
+}
+
+pub fn player_svc(database: Pool<MySql>) -> PlayerService
+{
+	let auth_svc = auth_svc(database.clone());
+	let steam_svc = steam_svc();
+
+	PlayerService::new(database, auth_svc, steam_svc)
+}
+
+pub async fn parse_body<T>(body: axum::body::Body) -> color_eyre::Result<T>
+where
+	T: DeserializeOwned,
+{
+	let bytes = axum::body::to_bytes(body, usize::MAX).await?;
+	let parsed = serde_json::from_slice::<T>(&bytes).context("parse body")?;
+
+	Ok(parsed)
 }
 
 /// Global constructor that will run before tests.

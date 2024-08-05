@@ -48,6 +48,7 @@ pub struct FetchPlayerRequest
 
 /// Response payload for fetching a player.
 #[derive(Debug, PartialEq, Serialize, sqlx::FromRow, utoipa::ToSchema, utoipa::IntoResponses)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 #[response(status = OK)]
 pub struct FetchPlayerResponse
 {
@@ -89,6 +90,7 @@ pub struct FetchPlayersRequest
 
 /// Response payload for fetching potentially many players.
 #[derive(Debug, Serialize, utoipa::IntoResponses)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 #[response(status = OK)]
 pub struct FetchPlayersResponse
 {
@@ -213,7 +215,7 @@ pub struct UpdatePlayerRequest
 ///
 /// These sessions are used to track various statistics long-term.
 #[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
-#[cfg_attr(test, derive(fake::Dummy))]
+#[cfg_attr(test, derive(serde::Serialize, fake::Dummy))]
 pub struct Session
 {
 	/// How many seconds the player was actively playing.
@@ -249,6 +251,7 @@ pub struct Session
 /// }
 /// ```
 #[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct CourseSession
 {
 	/// The data for [`Mode::Vanilla`].
@@ -313,6 +316,7 @@ impl<'a> Iterator for CourseSessionIter<'a>
 
 /// The raw data for an in-game session on a specific course.
 #[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
+#[cfg_attr(test, derive(serde::Serialize))]
 pub struct CourseSessionData
 {
 	/// How many seconds the player spent with a running timer.
@@ -353,6 +357,7 @@ impl CourseSessionData
 
 /// Response payload for updating an existing player.
 #[derive(Debug, Serialize, utoipa::IntoResponses)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 #[response(status = CREATED)]
 pub struct UpdatePlayerResponse
 {

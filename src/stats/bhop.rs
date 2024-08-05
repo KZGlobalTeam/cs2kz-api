@@ -20,7 +20,6 @@ use serde::{Deserialize, Deserializer, Serialize};
 	sqlx::FromRow,
 	utoipa::ToSchema,
 )]
-#[cfg_attr(test, derive(fake::Dummy))]
 pub struct BhopStats
 {
 	/// The total count.
@@ -64,5 +63,18 @@ impl BhopStats
 		}
 
 		Ok(stats)
+	}
+}
+
+#[cfg(test)]
+impl fake::Dummy<fake::Faker> for BhopStats
+{
+	fn dummy_with_rng<R: rand::Rng + ?Sized>(_: &fake::Faker, rng: &mut R) -> Self
+	{
+		let total = rng.r#gen::<u16>();
+		let perfs = rng.gen_range(0..=total);
+		let perfect_perfs = rng.gen_range(0..=perfs);
+
+		Self { total, perfs, perfect_perfs }
 	}
 }

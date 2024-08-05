@@ -321,7 +321,7 @@ mod tests
 
 	use color_eyre::eyre::ContextCompat;
 	use cs2kz::SteamID;
-	use fake::Fake;
+	use fake::{Fake, Faker};
 	use serde_json::json;
 	use sqlx::{MySql, Pool};
 
@@ -333,18 +333,10 @@ mod tests
 		None => unreachable!(),
 	};
 
-	fn player_svc(database: Pool<MySql>) -> PlayerService
-	{
-		let auth_svc = testing::auth_svc(database.clone());
-		let steam_svc = testing::steam_svc();
-
-		PlayerService::new(database, auth_svc, steam_svc)
-	}
-
 	#[sqlx::test(migrations = "database/migrations")]
 	async fn fetch_player_works(database: Pool<MySql>) -> color_eyre::Result<()>
 	{
-		let svc = player_svc(database);
+		let svc = testing::player_svc(database);
 		let req = FetchPlayerRequest { identifier: ALPHAKEKS_ID.into() };
 		let res = svc.fetch_player(req).await?.context("got `None`")?;
 
@@ -358,7 +350,7 @@ mod tests
 	#[sqlx::test(migrations = "database/migrations")]
 	async fn fetch_player_not_found(database: Pool<MySql>) -> color_eyre::Result<()>
 	{
-		let svc = player_svc(database);
+		let svc = testing::player_svc(database);
 		let req = FetchPlayerRequest { identifier: "foobar".parse()? };
 		let res = svc.fetch_player(req).await?;
 
@@ -373,7 +365,7 @@ mod tests
 	)]
 	async fn fetch_players_works(database: Pool<MySql>) -> color_eyre::Result<()>
 	{
-		let svc = player_svc(database);
+		let svc = testing::player_svc(database);
 		let req = FetchPlayersRequest { limit: Default::default(), offset: Default::default() };
 		let res = svc.fetch_players(req).await?;
 
@@ -396,7 +388,7 @@ mod tests
 	)]
 	async fn fetch_players_works_with_limit(database: Pool<MySql>) -> color_eyre::Result<()>
 	{
-		let svc = player_svc(database);
+		let svc = testing::player_svc(database);
 		let req = FetchPlayersRequest { limit: 2.into(), offset: Default::default() };
 		let res = svc.fetch_players(req).await?;
 
@@ -419,7 +411,7 @@ mod tests
 	)]
 	async fn fetch_players_works_with_offset(database: Pool<MySql>) -> color_eyre::Result<()>
 	{
-		let svc = player_svc(database);
+		let svc = testing::player_svc(database);
 		let req = FetchPlayersRequest { limit: Default::default(), offset: Default::default() };
 		let all = svc.fetch_players(req).await?;
 
@@ -453,7 +445,7 @@ mod tests
 	)]
 	async fn fetch_player_preferences_works(database: Pool<MySql>) -> color_eyre::Result<()>
 	{
-		let svc = player_svc(database);
+		let svc = testing::player_svc(database);
 		let req = FetchPlayerPreferencesRequest { identifier: ALPHAKEKS_ID.into() };
 		let res = svc
 			.fetch_player_preferences(req)
@@ -468,7 +460,7 @@ mod tests
 	#[sqlx::test(migrations = "database/migrations")]
 	async fn fetch_player_preferences_not_found(database: Pool<MySql>) -> color_eyre::Result<()>
 	{
-		let svc = player_svc(database);
+		let svc = testing::player_svc(database);
 		let req = FetchPlayerPreferencesRequest { identifier: "foobar".parse()? };
 		let res = svc.fetch_player_preferences(req).await?;
 
@@ -480,7 +472,7 @@ mod tests
 	#[sqlx::test(migrations = "database/migrations")]
 	async fn register_player_works(database: Pool<MySql>) -> color_eyre::Result<()>
 	{
-		let svc = player_svc(database);
+		let svc = testing::player_svc(database);
 
 		let steam_id = const {
 			match SteamID::new(76561198264939817) {
@@ -505,7 +497,7 @@ mod tests
 	#[sqlx::test(migrations = "database/migrations")]
 	async fn register_player_already_exists(database: Pool<MySql>) -> color_eyre::Result<()>
 	{
-		let svc = player_svc(database);
+		let svc = testing::player_svc(database);
 
 		let req = RegisterPlayerRequest {
 			name: String::from("AlphaKeks"),
@@ -523,7 +515,7 @@ mod tests
 	#[sqlx::test(migrations = "database/migrations")]
 	async fn update_player_works(database: Pool<MySql>) -> color_eyre::Result<()>
 	{
-		let svc = player_svc(database);
+		let svc = testing::player_svc(database);
 
 		let req = UpdatePlayerRequest {
 			player_id: ALPHAKEKS_ID,
@@ -531,7 +523,7 @@ mod tests
 			name: String::from("(͡ ͡° ͜ つ ͡͡°)"),
 			ip_address: "::1".parse()?,
 			preferences: json!({ "foo": "bar" }),
-			session: fake::Faker.fake(),
+			session: Faker.fake(),
 		};
 
 		let res = svc.update_player(req).await?;
@@ -546,7 +538,7 @@ mod tests
 		database: Pool<MySql>,
 	) -> color_eyre::Result<()>
 	{
-		let svc = player_svc(database);
+		let svc = testing::player_svc(database);
 
 		let steam_id = const {
 			match SteamID::new(76561198264939817) {
@@ -561,7 +553,7 @@ mod tests
 			name: String::from("(͡ ͡° ͜ つ ͡͡°)"),
 			ip_address: "::1".parse()?,
 			preferences: json!({ "foo": "bar" }),
-			session: fake::Faker.fake(),
+			session: Faker.fake(),
 		};
 
 		let res = svc.update_player(req).await.unwrap_err();
