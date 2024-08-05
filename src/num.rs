@@ -33,6 +33,22 @@ impl<const DEFAULT: u64, const MAX: u64> Default for ClampedU64<DEFAULT, MAX>
 	}
 }
 
+impl<const DEFAULT: u64, const MAX: u64> From<u64> for ClampedU64<DEFAULT, MAX>
+{
+	fn from(value: u64) -> Self
+	{
+		Self::new(value)
+	}
+}
+
+impl<const DEFAULT: u64, const MAX: u64> From<ClampedU64<DEFAULT, MAX>> for u64
+{
+	fn from(ClampedU64(value): ClampedU64<DEFAULT, MAX>) -> Self
+	{
+		value
+	}
+}
+
 impl<const DEFAULT: u64, const MAX: u64> ops::Deref for ClampedU64<DEFAULT, MAX>
 {
 	type Target = u64;

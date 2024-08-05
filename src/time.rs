@@ -36,8 +36,12 @@ impl DurationExt for Duration {}
 /// A wrapper around [`std::time::Duration`] that ensures encoding/decoding
 /// always happens in terms of seconds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, utoipa::ToSchema)]
+#[cfg_attr(test, derive(fake::Dummy))]
 #[schema(value_type = f64)]
-pub struct Seconds(pub Duration);
+pub struct Seconds(
+	#[cfg_attr(test, dummy(expr = "Duration::from_secs_f64(fake::Fake::fake(&fake::Faker))"))]
+	pub  Duration,
+);
 
 impl ops::Deref for Seconds
 {

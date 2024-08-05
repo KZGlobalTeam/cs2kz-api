@@ -144,8 +144,8 @@ impl PlayerService
 			FROM
 			  Players
 			WHERE
-			  p.id = COALESCE(?, p.id)
-			  AND p.name LIKE COALESCE(?, p.name)
+			  id = COALESCE(?, id)
+			  AND name LIKE COALESCE(?, name)
 			LIMIT
 			  1
 			",
@@ -311,5 +311,263 @@ impl PlayerService
 		txn.commit().await?;
 
 		Ok(UpdatePlayerResponse { session_id, course_session_ids })
+	}
+}
+
+#[cfg(test)]
+mod tests
+{
+	use std::iter;
+
+	use color_eyre::eyre::ContextCompat;
+	use cs2kz::SteamID;
+	use fake::Fake;
+	use serde_json::json;
+	use sqlx::{MySql, Pool};
+
+	use super::*;
+	use crate::testing;
+
+	const ALPHAKEKS_ID: SteamID = match SteamID::new(76561198282622073_u64) {
+		Some(id) => id,
+		None => unreachable!(),
+	};
+
+	fn player_svc(database: Pool<MySql>) -> PlayerService
+	{
+		let auth_svc = testing::auth_svc(database.clone());
+		let steam_svc = testing::steam_svc();
+
+		PlayerService::new(database, auth_svc, steam_svc)
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn fetch_player_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = player_svc(database);
+		let req = FetchPlayerRequest { identifier: ALPHAKEKS_ID.into() };
+		let res = svc.fetch_player(req).await?.context("got `None`")?;
+
+		testing::assert_eq!(res.info.name, "AlphaKeks");
+		testing::assert_eq!(res.info.steam_id, ALPHAKEKS_ID);
+		testing::assert_eq!(res.is_banned, false);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn fetch_player_not_found(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = player_svc(database);
+		let req = FetchPlayerRequest { identifier: "foobar".parse()? };
+		let res = svc.fetch_player(req).await?;
+
+		testing::assert!(res.is_none());
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/players.sql")
+	)]
+	async fn fetch_players_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = player_svc(database);
+		let req = FetchPlayersRequest { limit: Default::default(), offset: Default::default() };
+		let res = svc.fetch_players(req).await?;
+
+		testing::assert_eq!(res.players.len(), 4);
+		testing::assert_eq!(res.total, 4);
+
+		for found in ["AlphaKeks", "iBrahizy", "zer0.k", "GameChaos"]
+			.iter()
+			.map(|name| res.players.iter().find(|p| &p.info.name == name))
+		{
+			testing::assert!(found.is_some());
+		}
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/players.sql")
+	)]
+	async fn fetch_players_works_with_limit(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = player_svc(database);
+		let req = FetchPlayersRequest { limit: 2.into(), offset: Default::default() };
+		let res = svc.fetch_players(req).await?;
+
+		testing::assert_eq!(res.players.len(), 2);
+		testing::assert_eq!(res.total, 4);
+
+		let found = ["AlphaKeks", "iBrahizy", "zer0.k", "GameChaos"]
+			.iter()
+			.filter_map(|name| res.players.iter().find(|p| &p.info.name == name))
+			.count();
+
+		testing::assert_eq!(found, 2);
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/players.sql")
+	)]
+	async fn fetch_players_works_with_offset(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = player_svc(database);
+		let req = FetchPlayersRequest { limit: Default::default(), offset: Default::default() };
+		let all = svc.fetch_players(req).await?;
+
+		testing::assert_eq!(all.players.len() as u64, all.total);
+
+		let req = FetchPlayersRequest { limit: 2.into(), offset: 0.into() };
+		let first_two = svc.fetch_players(req).await?;
+
+		testing::assert_eq!(first_two.players.len(), 2);
+		testing::assert_eq!(first_two.total, 4);
+
+		let req = FetchPlayersRequest { limit: 2.into(), offset: 2.into() };
+		let last_two = svc.fetch_players(req).await?;
+
+		testing::assert_eq!(first_two.players.len(), 2);
+		testing::assert_eq!(first_two.total, 4);
+
+		let all = all.players.into_iter();
+		let chained = first_two.players.into_iter().chain(last_two.players);
+
+		for (a, b) in iter::zip(all, chained) {
+			testing::assert_eq!(a, b);
+		}
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/player-preferences.sql")
+	)]
+	async fn fetch_player_preferences_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = player_svc(database);
+		let req = FetchPlayerPreferencesRequest { identifier: ALPHAKEKS_ID.into() };
+		let res = svc
+			.fetch_player_preferences(req)
+			.await?
+			.context("got `None`")?;
+
+		testing::assert_eq!(res.preferences, json!({ "foo": "bar" }));
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn fetch_player_preferences_not_found(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = player_svc(database);
+		let req = FetchPlayerPreferencesRequest { identifier: "foobar".parse()? };
+		let res = svc.fetch_player_preferences(req).await?;
+
+		testing::assert!(res.is_none());
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn register_player_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = player_svc(database);
+
+		let steam_id = const {
+			match SteamID::new(76561198264939817) {
+				Some(id) => id,
+				None => unreachable!(),
+			}
+		};
+
+		let req = RegisterPlayerRequest {
+			name: String::from("iBrahizy"),
+			steam_id,
+			ip_address: "::1".parse()?,
+		};
+
+		let res = svc.register_player(req).await?;
+
+		testing::assert_eq!(res.player_id, steam_id);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn register_player_already_exists(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = player_svc(database);
+
+		let req = RegisterPlayerRequest {
+			name: String::from("AlphaKeks"),
+			steam_id: ALPHAKEKS_ID,
+			ip_address: "::1".parse()?,
+		};
+
+		let res = svc.register_player(req).await.unwrap_err();
+
+		testing::assert_matches!(res, Error::PlayerAlreadyExists);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn update_player_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = player_svc(database);
+
+		let req = UpdatePlayerRequest {
+			player_id: ALPHAKEKS_ID,
+			server_id: 1.into(),
+			name: String::from("(͡ ͡° ͜ つ ͡͡°)"),
+			ip_address: "::1".parse()?,
+			preferences: json!({ "foo": "bar" }),
+			session: fake::Faker.fake(),
+		};
+
+		let res = svc.update_player(req).await?;
+
+		testing::assert!(res.course_session_ids.is_empty());
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn update_player_fails_player_does_not_exist(
+		database: Pool<MySql>,
+	) -> color_eyre::Result<()>
+	{
+		let svc = player_svc(database);
+
+		let steam_id = const {
+			match SteamID::new(76561198264939817) {
+				Some(id) => id,
+				None => unreachable!(),
+			}
+		};
+
+		let req = UpdatePlayerRequest {
+			player_id: steam_id,
+			server_id: 1.into(),
+			name: String::from("(͡ ͡° ͜ つ ͡͡°)"),
+			ip_address: "::1".parse()?,
+			preferences: json!({ "foo": "bar" }),
+			session: fake::Faker.fake(),
+		};
+
+		let res = svc.update_player(req).await.unwrap_err();
+
+		testing::assert_matches!(res, Error::PlayerDoesNotExist);
+
+		Ok(())
 	}
 }

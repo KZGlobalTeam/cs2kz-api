@@ -7,12 +7,19 @@ use url::Url;
 
 use crate::services::{AuthService, SteamService};
 
-pub fn auth_svc(database: Pool<MySql>) -> AuthService
+pub fn steam_svc() -> SteamService
 {
 	let http_client = reqwest::Client::new();
 	let api_url = Arc::new(Url::parse("http://127.0.0.1").unwrap());
 	let steam_api_key = String::new();
-	let steam_svc = SteamService::new(api_url, steam_api_key, None, None, http_client.clone());
+
+	SteamService::new(api_url, steam_api_key, None, None, http_client)
+}
+
+pub fn auth_svc(database: Pool<MySql>) -> AuthService
+{
+	let http_client = reqwest::Client::new();
+	let steam_svc = steam_svc();
 	let jwt_secret = String::from("Zm9vYmFyYmF6");
 	let cookie_domain = String::from("localhost");
 
@@ -60,10 +67,12 @@ macro_rules! assert {
 macro_rules! assert_eq {
 	($lhs:expr, $rhs:expr $(, $($msg:tt)*)?) => {
 		if &$lhs != &$rhs {
-			let lhs = stringify!($lhs);
-			let rhs = stringify!($rhs);
 			::color_eyre::eyre::bail!(
-				"assertion `{lhs} == {rhs}` failed\n  lhs: {lhs}\n  rhs:{rhs}"
+				"assertion `{} == {}` failed\n  lhs: {:?}\n  rhs: {:?}",
+				stringify!($lhs),
+				stringify!($rhs),
+				$lhs,
+				$rhs,
 			);
 		}
 	};

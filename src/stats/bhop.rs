@@ -20,6 +20,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 	sqlx::FromRow,
 	utoipa::ToSchema,
 )]
+#[cfg_attr(test, derive(fake::Dummy))]
 pub struct BhopStats
 {
 	/// The total count.

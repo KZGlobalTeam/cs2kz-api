@@ -26,7 +26,7 @@ crate::macros::make_id! {
 }
 
 /// Basic information about a player.
-#[derive(Debug, Serialize, Deserialize, sqlx::FromRow, utoipa::ToSchema)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct PlayerInfo
 {
 	/// The player's name.
@@ -47,7 +47,7 @@ pub struct FetchPlayerRequest
 }
 
 /// Response payload for fetching a player.
-#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema, utoipa::IntoResponses)]
+#[derive(Debug, PartialEq, Serialize, sqlx::FromRow, utoipa::ToSchema, utoipa::IntoResponses)]
 #[response(status = OK)]
 pub struct FetchPlayerResponse
 {
@@ -212,7 +212,8 @@ pub struct UpdatePlayerRequest
 /// disconnect. A map change is also considered a disconnect.
 ///
 /// These sessions are used to track various statistics long-term.
-#[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
+#[cfg_attr(test, derive(fake::Dummy))]
 pub struct Session
 {
 	/// How many seconds the player was actively playing.
@@ -230,6 +231,7 @@ pub struct Session
 
 	/// Session information per course.
 	#[serde(default)]
+	#[cfg_attr(test, dummy(default))]
 	pub course_sessions: BTreeMap<CourseID, CourseSession>,
 }
 
@@ -246,7 +248,7 @@ pub struct Session
 ///     // ...
 /// }
 /// ```
-#[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
 pub struct CourseSession
 {
 	/// The data for [`Mode::Vanilla`].
@@ -310,7 +312,7 @@ impl<'a> Iterator for CourseSessionIter<'a>
 }
 
 /// The raw data for an in-game session on a specific course.
-#[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
 pub struct CourseSessionData
 {
 	/// How many seconds the player spent with a running timer.
