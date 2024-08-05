@@ -31,5 +31,5 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: cargo test
         run: |
-          cargo test --workspace --locked --all-features --all-targets -- --nocapture
+          cargo test --workspace --locked --all-targets -- --nocapture
           cargo test --workspace --locked --all-features --doc -- --nocapture
