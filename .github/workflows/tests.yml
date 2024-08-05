@@ -19,6 +19,8 @@ concurrency:
 env:
   RUST_BACKTRACE: '1'
   STEAM_WEB_API_KEY: ${{ secrets.STEAM_WEB_API_KEY }}
+  SQLX_OFFLINE: '1'
+  DATABASE_URL: 'mysql://schnose:csgo-kz-is-dead-boys@127.0.0.1:8070/cs2kz'
 
 jobs:
   test:
@@ -28,6 +30,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+      - name: Start Database
+        run: |
+          cp .env.example .env
+          cp .env.docker.example .env.docker
+          docker compose up cs2kz-database -d --wait
       - uses: Swatinem/rust-cache@v2
       - name: cargo test
         run: |

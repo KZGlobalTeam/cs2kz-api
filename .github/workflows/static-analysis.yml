@@ -21,8 +21,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CARGO_TERM_COLOR: always
-  SQLX_OFFLINE: true
+  CARGO_TERM_COLOR: 'always'
+  SQLX_OFFLINE: '1'
 
 jobs:
   clippy:
