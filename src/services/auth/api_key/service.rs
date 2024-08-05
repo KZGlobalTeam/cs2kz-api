@@ -232,3 +232,96 @@ where
 		.await
 		.map_err(ApiKeyServiceError::Service)
 }
+
+#[cfg(test)]
+mod tests
+{
+	use std::convert::Infallible;
+
+	use sqlx::{MySql, Pool};
+	use tower::{service_fn, Layer, ServiceExt};
+
+	use super::*;
+	use crate::testing;
+
+	#[sqlx::test]
+	async fn reject_missing_header(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.body(Default::default())?;
+
+		let res = ApiKeyLayer::new("invalid", database)
+			.layer(service_fn(|_| async { Result::<_, Infallible>::Ok(Default::default()) }))
+			.oneshot(req)
+			.await
+			.unwrap_err();
+
+		testing::assert_matches!(res, ApiKeyServiceError::ExtractHeader(ref rej) if rej.is_missing());
+
+		Ok(())
+	}
+
+	#[sqlx::test]
+	async fn reject_invalid_header(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Authorization", "Bearer not-a-uuid")
+			.body(Default::default())?;
+
+		let res = ApiKeyLayer::new("invalid", database)
+			.layer(service_fn(|_| async { Result::<_, Infallible>::Ok(Default::default()) }))
+			.oneshot(req)
+			.await
+			.unwrap_err();
+
+		testing::assert_matches!(res, ApiKeyServiceError::ParseKey(_));
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn reject_invalid_key(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Authorization", "Bearer 00000000-0000-0000-0000-000000000000")
+			.body(Default::default())?;
+
+		let res = ApiKeyLayer::new("invalid", database)
+			.layer(service_fn(|_| async { Result::<_, Infallible>::Ok(Default::default()) }))
+			.oneshot(req)
+			.await
+			.unwrap_err();
+
+		testing::assert_matches!(res, ApiKeyServiceError::InvalidKey);
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../../database/fixtures/api-key.sql")
+	)]
+	async fn accept_valid_key(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Authorization", "Bearer 00000000-0000-0000-0000-000000000000")
+			.body(Default::default())?;
+
+		let res = ApiKeyLayer::new("valid-key", database)
+			.layer(service_fn(|_| async { Result::<_, Infallible>::Ok(Default::default()) }))
+			.oneshot(req)
+			.await;
+
+		testing::assert!(res.is_ok());
+
+		Ok(())
+	}
+}
