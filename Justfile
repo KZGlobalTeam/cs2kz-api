@@ -9,7 +9,8 @@ help:
 # Various integrity checks
 check:
 	# Running clippy...
-	cargo clippy --workspace --all-features --tests --no-deps -- -Dwarnings
+	cargo clippy --workspace --all-features --no-deps -- -Dwarnings
+	cargo clippy --workspace --tests --no-deps -- -Dwarnings
 
 	# Running rustfmt...
 	{{rustfmt}} --all --check
