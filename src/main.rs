@@ -66,7 +66,10 @@ async fn serve(
 
 	tracing::info!("listening on {}", tcp_listener.local_addr()?);
 
-	axum::serve(tcp_listener, server).await.context("run axum")
+	axum::serve(tcp_listener, server)
+		.with_graceful_shutdown(cs2kz_api::runtime::signals::sigint())
+		.await
+		.context("run axum")
 }
 
 /// Generates the API's OpenAPI schema and either writes it to stdout, or diffs
