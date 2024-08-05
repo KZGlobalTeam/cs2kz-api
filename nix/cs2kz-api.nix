@@ -35,6 +35,9 @@ let
         ".*sqlx/query-.*json$"
         ".*database/fixtures/.*sql$"
         ".*database/migrations/.*sql$"
+
+        # required by problem-details docgen
+        ".*static/.*(html|css)$"
       ]);
     };
 
