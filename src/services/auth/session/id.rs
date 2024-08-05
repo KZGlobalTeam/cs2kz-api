@@ -8,12 +8,15 @@ use uuid::fmt::Hyphenated;
 use uuid::Uuid;
 
 /// A session ID.
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct SessionID(Uuid);
 
 impl SessionID
 {
+	#[cfg(test)]
+	pub const TESTING: Self = Self(uuid::uuid!("331c9a7e-2536-4149-9aee-774de29f368e"));
+
 	/// Generates a new random ID.
 	pub fn new() -> Self
 	{

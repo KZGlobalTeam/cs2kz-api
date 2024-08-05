@@ -244,6 +244,28 @@ mod tests
 	use super::*;
 	use crate::testing;
 
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../../database/fixtures/api-key.sql")
+	)]
+	async fn accept_valid_key(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Authorization", "Bearer 00000000-0000-0000-0000-000000000000")
+			.body(Default::default())?;
+
+		let res = ApiKeyLayer::new("valid-key", database)
+			.layer(service_fn(|_| async { Result::<_, Infallible>::Ok(Default::default()) }))
+			.oneshot(req)
+			.await;
+
+		testing::assert!(res.is_ok());
+
+		Ok(())
+	}
+
 	#[sqlx::test]
 	async fn reject_missing_header(database: Pool<MySql>) -> color_eyre::Result<()>
 	{
@@ -319,28 +341,6 @@ mod tests
 			.unwrap_err();
 
 		testing::assert_matches!(res, ApiKeyServiceError::InvalidKey);
-
-		Ok(())
-	}
-
-	#[sqlx::test(
-		migrations = "database/migrations",
-		fixtures("../../../../database/fixtures/api-key.sql")
-	)]
-	async fn accept_valid_key(database: Pool<MySql>) -> color_eyre::Result<()>
-	{
-		let req = Request::builder()
-			.method(http::Method::GET)
-			.uri("/")
-			.header("Authorization", "Bearer 00000000-0000-0000-0000-000000000000")
-			.body(Default::default())?;
-
-		let res = ApiKeyLayer::new("valid-key", database)
-			.layer(service_fn(|_| async { Result::<_, Infallible>::Ok(Default::default()) }))
-			.oneshot(req)
-			.await;
-
-		testing::assert!(res.is_ok());
 
 		Ok(())
 	}

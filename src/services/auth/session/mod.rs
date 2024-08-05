@@ -150,3 +150,91 @@ where
 		Ok(session)
 	}
 }
+
+#[cfg(test)]
+mod tests
+{
+	use axum::extract::Request;
+	use axum::RequestExt;
+	use cs2kz::SteamID;
+	use sqlx::{MySql, Pool};
+
+	use super::*;
+	use crate::testing;
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../../database/fixtures/session.sql")
+	)]
+	async fn accept_valid_session_id(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let mut req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Cookie", format!("kz-auth={}", SessionID::TESTING.to_string()))
+			.body(Default::default())?;
+
+		let extracted: Session = req.extract_parts_with_state(&database).await?;
+
+		testing::assert_eq!(extracted.id(), SessionID::TESTING);
+		testing::assert_eq!(extracted.user().steam_id(), SteamID::MIN);
+
+		Ok(())
+	}
+
+	#[sqlx::test]
+	async fn reject_missing_cookie(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let mut req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.body(Default::default())?;
+
+		let extracted = req
+			.extract_parts_with_state::<Session, _>(&database)
+			.await
+			.unwrap_err();
+
+		testing::assert_matches!(extracted, SessionRejection::MissingCookie);
+
+		Ok(())
+	}
+
+	#[sqlx::test]
+	async fn reject_malformed_session_id(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let mut req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Cookie", "kz-auth=foobarbaz")
+			.body(Default::default())?;
+
+		let extracted = req
+			.extract_parts_with_state::<Session, _>(&database)
+			.await
+			.unwrap_err();
+
+		testing::assert_matches!(extracted, SessionRejection::ParseSessionID { .. });
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn reject_invalid_session_id(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let mut req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Cookie", "kz-auth=00000000-0000-0000-0000-000000000000")
+			.body(Default::default())?;
+
+		let extracted = req
+			.extract_parts_with_state::<Session, _>(&database)
+			.await
+			.unwrap_err();
+
+		testing::assert_matches!(extracted, SessionRejection::InvalidSessionID);
+
+		Ok(())
+	}
+}

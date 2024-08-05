@@ -201,3 +201,91 @@ where
 
 	Ok(response)
 }
+
+#[cfg(test)]
+mod tests
+{
+	use std::convert::Infallible;
+
+	use sqlx::{MySql, Pool};
+	use tower::{service_fn, Layer, ServiceExt};
+
+	use super::*;
+	use crate::http::problem_details::{IntoProblemDetails, ProblemType};
+	use crate::services::auth::session::{AuthorizeSession, SessionID};
+	use crate::testing;
+
+	#[derive(Debug, Clone)]
+	struct YouShallNotPass;
+
+	#[derive(Debug, thiserror::Error)]
+	#[error("you shall not pass")]
+	struct YouShallNotPassError;
+
+	impl IntoProblemDetails for YouShallNotPassError
+	{
+		fn problem_type(&self) -> ProblemType
+		{
+			ProblemType::Unauthorized
+		}
+	}
+
+	impl AuthorizeSession for YouShallNotPass
+	{
+		type Error = YouShallNotPassError;
+
+		async fn authorize_session(self, _: &Session, _: &mut Request) -> Result<(), Self::Error>
+		{
+			Err(YouShallNotPassError)
+		}
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../../database/fixtures/session.sql")
+	)]
+	async fn it_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let auth_svc = testing::auth_svc(database);
+
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Cookie", format!("kz-auth={}", SessionID::TESTING.to_string()))
+			.body(Default::default())?;
+
+		let res = SessionManagerLayer::new(auth_svc)
+			.layer(service_fn(|_| async { Result::<_, Infallible>::Ok(Default::default()) }))
+			.oneshot(req)
+			.await;
+
+		testing::assert!(res.is_ok());
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../../database/fixtures/session.sql")
+	)]
+	async fn reject_unauthorized(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let auth_svc = testing::auth_svc(database);
+
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.header("Cookie", format!("kz-auth={}", SessionID::TESTING.to_string()))
+			.body(Default::default())?;
+
+		let res = SessionManagerLayer::with_strategy(auth_svc, YouShallNotPass)
+			.layer(service_fn(|_| async { Result::<_, Infallible>::Ok(Default::default()) }))
+			.oneshot(req)
+			.await
+			.unwrap_err();
+
+		testing::assert_matches!(res, SessionManagerError::Authorize(YouShallNotPassError));
+
+		Ok(())
+	}
+}
