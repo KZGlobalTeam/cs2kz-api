@@ -218,12 +218,7 @@ mod tests
 	use super::*;
 	use crate::services::auth::jwt;
 	use crate::services::auth::session::SessionID;
-	use crate::testing;
-
-	const ALPHAKEKS_ID: SteamID = match SteamID::new(76561198282622073_u64) {
-		Some(id) => id,
-		None => unreachable!(),
-	};
+	use crate::testing::{self, ALPHAKEKS_ID};
 
 	#[sqlx::test(migrations = "database/migrations")]
 	async fn get_many_works(database: Pool<MySql>) -> color_eyre::Result<()>

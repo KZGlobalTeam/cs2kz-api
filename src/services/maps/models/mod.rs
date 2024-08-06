@@ -42,7 +42,7 @@ pub struct FetchMapRequest
 }
 
 /// Response payload for fetching a map.
-#[derive(Debug, Serialize, utoipa::ToSchema, utoipa::IntoResponses)]
+#[derive(Debug, PartialEq, Serialize, utoipa::ToSchema, utoipa::IntoResponses)]
 #[response(status = OK)]
 pub struct FetchMapResponse
 {
@@ -130,7 +130,7 @@ impl IntoResponse for FetchMapResponse
 }
 
 /// A KZ map course.
-#[derive(Debug, Serialize, utoipa::ToSchema)]
+#[derive(Debug, PartialEq, Serialize, utoipa::ToSchema)]
 pub struct Course
 {
 	/// The course's ID.
@@ -178,7 +178,7 @@ where
 }
 
 /// A KZ map course filter.
-#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
+#[derive(Debug, PartialEq, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct Filter
 {
 	/// The filter's ID.
@@ -614,7 +614,7 @@ impl Ord for UpdatedCourse
 }
 
 /// An update to a map course.
-#[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Default, Deserialize, utoipa::ToSchema)]
 pub struct CourseUpdate
 {
 	/// A new name.
@@ -656,7 +656,7 @@ impl CourseUpdate
 }
 
 /// An update to a course filter.
-#[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Default, Deserialize, utoipa::ToSchema)]
 pub struct FilterUpdate
 {
 	/// A new tier.

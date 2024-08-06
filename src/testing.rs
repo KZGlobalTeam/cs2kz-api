@@ -3,11 +3,17 @@
 use std::sync::Arc;
 
 use color_eyre::eyre::WrapErr;
+use cs2kz::SteamID;
 use serde::de::DeserializeOwned;
 use sqlx::{MySql, Pool};
 use url::Url;
 
-use crate::services::{AuthService, PlayerService, SteamService};
+use crate::services::{AuthService, MapService, PlayerService, SteamService};
+
+pub const ALPHAKEKS_ID: SteamID = match SteamID::new(76561198282622073_u64) {
+	Some(id) => id,
+	None => unreachable!(),
+};
 
 pub fn steam_svc() -> SteamService
 {
@@ -34,6 +40,14 @@ pub fn player_svc(database: Pool<MySql>) -> PlayerService
 	let steam_svc = steam_svc();
 
 	PlayerService::new(database, auth_svc, steam_svc)
+}
+
+pub fn map_svc(database: Pool<MySql>) -> MapService
+{
+	let auth_svc = auth_svc(database.clone());
+	let steam_svc = steam_svc();
+
+	MapService::new(database, auth_svc, steam_svc)
 }
 
 pub async fn parse_body<T>(body: axum::body::Body) -> color_eyre::Result<T>

@@ -120,7 +120,7 @@ impl MapService
 			",
 			queries::SELECT,
 		))
-		.bind(req.name)
+		.bind(req.name.map(|name| format!("%{name}%")))
 		.bind(req.workshop_id)
 		.bind(req.global_status)
 		.bind(req.created_after)
@@ -153,6 +153,18 @@ impl MapService
 	#[tracing::instrument(level = "debug", err(Debug, level = "debug"))]
 	pub async fn submit_map(&self, req: SubmitMapRequest) -> Result<SubmitMapResponse>
 	{
+		if req.mappers.is_empty() {
+			return Err(Error::MapMustHaveMappers);
+		}
+
+		if req.courses.is_empty() {
+			return Err(Error::MapMustHaveCourses);
+		}
+
+		if req.courses.iter().any(|c| c.mappers.is_empty()) {
+			return Err(Error::CourseMustHaveMappers { course_id: None });
+		}
+
 		let mut txn = self.database.begin().await?;
 
 		let (map_name, checksum) = tokio::try_join! {
@@ -833,7 +845,7 @@ async fn remove_course_mappers(
 	.await?;
 
 	if remaining_mappers == 0 {
-		return Err(Error::CourseMustHaveMappers { course_id });
+		return Err(Error::CourseMustHaveMappers { course_id: Some(course_id) });
 	}
 
 	tracing::info!(target: "cs2kz_api::audit_log", %course_id, ?mapper_ids, "removed course mappers");
@@ -933,4 +945,613 @@ async fn update_filter(
 	.await?;
 
 	Ok(Some(filter_id))
+}
+
+#[cfg(test)]
+mod tests
+{
+	use std::collections::BTreeMap;
+
+	use cs2kz::{GlobalStatus, Mode, RankedStatus, Tier};
+	use sqlx::{MySql, Pool};
+
+	use super::*;
+	use crate::testing::{self, ALPHAKEKS_ID};
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/checkmate.sql")
+	)]
+	async fn fetch_map_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+		let req = FetchMapRequest { ident: "checkmate".parse()? };
+		let res = svc.fetch_map(req).await?;
+
+		testing::assert!(res.is_some());
+		testing::assert_matches!(res.as_ref().map(|r| &*r.name), Some("kz_checkmate"));
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn fetch_map_not_found(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+		let req = FetchMapRequest { ident: "foobar".parse()? };
+		let res = svc.fetch_map(req).await?;
+
+		testing::assert!(res.is_none());
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures(
+			"../../../database/fixtures/checkmate.sql",
+			"../../../database/fixtures/grotto.sql",
+		)
+	)]
+	async fn fetch_maps_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+		let req = FetchMapsRequest::default();
+		let res = svc.fetch_maps(req).await?;
+
+		testing::assert_eq!(res.maps.len(), 2);
+		testing::assert_eq!(res.total, 2);
+
+		for found in ["kz_checkmate", "kz_grotto"]
+			.iter()
+			.map(|name| res.maps.iter().find(|m| &m.name == name))
+		{
+			testing::assert!(found.is_some());
+		}
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures(
+			"../../../database/fixtures/checkmate.sql",
+			"../../../database/fixtures/grotto.sql",
+		)
+	)]
+	async fn fetch_maps_works_with_name(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+		let req = FetchMapsRequest { name: Some(String::from("checkmate")), ..Default::default() };
+		let res = svc.fetch_maps(req).await?;
+
+		testing::assert_eq!(res.maps.len(), 1);
+		testing::assert_eq!(res.total, 1);
+		testing::assert_eq!(res.maps[0].name, "kz_checkmate");
+
+		let req = FetchMapsRequest { name: Some(String::from("grotto")), ..Default::default() };
+		let res = svc.fetch_maps(req).await?;
+
+		testing::assert_eq!(res.maps.len(), 1);
+		testing::assert_eq!(res.total, 1);
+		testing::assert_eq!(res.maps[0].name, "kz_grotto");
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/checkmate.sql")
+	)]
+	async fn fetch_maps_works_with_workshop_id(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+		let req = FetchMapsRequest { workshop_id: Some(3070194623.into()), ..Default::default() };
+		let res = svc.fetch_maps(req).await?;
+
+		testing::assert_eq!(res.maps.len(), 1);
+		testing::assert_eq!(res.total, 1);
+		testing::assert_eq!(res.maps[0].name, "kz_checkmate");
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures(
+			"../../../database/fixtures/checkmate.sql",
+			"../../../database/fixtures/grotto.sql",
+		)
+	)]
+	async fn fetch_maps_works_with_global_status(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+		let req =
+			FetchMapsRequest { global_status: Some(GlobalStatus::Global), ..Default::default() };
+		let res = svc.fetch_maps(req).await?;
+
+		testing::assert_eq!(res.maps.len(), 1);
+		testing::assert_eq!(res.total, 1);
+		testing::assert_eq!(res.maps[0].name, "kz_checkmate");
+
+		let req =
+			FetchMapsRequest { global_status: Some(GlobalStatus::InTesting), ..Default::default() };
+		let res = svc.fetch_maps(req).await?;
+
+		testing::assert_eq!(res.maps.len(), 1);
+		testing::assert_eq!(res.total, 1);
+		testing::assert_eq!(res.maps[0].name, "kz_grotto");
+
+		let req =
+			FetchMapsRequest { global_status: Some(GlobalStatus::NotGlobal), ..Default::default() };
+		let res = svc.fetch_maps(req).await?;
+
+		testing::assert_eq!(res.maps.len(), 0);
+		testing::assert_eq!(res.total, 0);
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures(
+			"../../../database/fixtures/checkmate.sql",
+			"../../../database/fixtures/grotto.sql",
+		)
+	)]
+	async fn fetch_maps_works_with_limit(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+		let req = FetchMapsRequest { limit: 1.into(), ..Default::default() };
+		let res = svc.fetch_maps(req).await?;
+
+		testing::assert_eq!(res.maps.len(), 1);
+		testing::assert_eq!(res.total, 2);
+
+		let found = ["kz_checkmate", "kz_grotto"]
+			.iter()
+			.filter_map(|name| res.maps.iter().find(|m| &m.name == name))
+			.count();
+
+		testing::assert_eq!(found, 1);
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures(
+			"../../../database/fixtures/checkmate.sql",
+			"../../../database/fixtures/grotto.sql",
+		)
+	)]
+	async fn fetch_maps_works_with_offset(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+		let req = FetchMapsRequest::default();
+		let all = svc.fetch_maps(req).await?;
+
+		testing::assert_eq!(all.maps.len() as u64, all.total);
+
+		let req = FetchMapsRequest { limit: 1.into(), offset: 0.into(), ..Default::default() };
+		let first_two = svc.fetch_maps(req).await?;
+
+		testing::assert_eq!(first_two.maps.len(), 1);
+		testing::assert_eq!(first_two.total, 2);
+
+		let req = FetchMapsRequest { limit: 1.into(), offset: 1.into(), ..Default::default() };
+		let last_two = svc.fetch_maps(req).await?;
+
+		testing::assert_eq!(first_two.maps.len(), 1);
+		testing::assert_eq!(first_two.total, 2);
+
+		let all = all.maps.into_iter();
+		let chained = first_two.maps.into_iter().chain(last_two.maps);
+
+		for (a, b) in iter::zip(all, chained) {
+			testing::assert_eq!(a, b);
+		}
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn create_map_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let mut txn = database.begin().await?;
+
+		let req = SubmitMapRequest {
+			workshop_id: 69.into(),
+			description: None,
+			global_status: GlobalStatus::InTesting,
+			mappers: vec![ALPHAKEKS_ID],
+			courses: vec![NewCourse {
+				name: None,
+				description: Some(String::from("course description!")),
+				mappers: vec![ALPHAKEKS_ID],
+				filters: [
+					NewFilter {
+						mode: Mode::Vanilla,
+						teleports: true,
+						tier: Tier::Medium,
+						ranked_status: RankedStatus::Ranked,
+						notes: None,
+					},
+					NewFilter {
+						mode: Mode::Vanilla,
+						teleports: false,
+						tier: Tier::Hard,
+						ranked_status: RankedStatus::Ranked,
+						notes: None,
+					},
+					NewFilter {
+						mode: Mode::Classic,
+						teleports: true,
+						tier: Tier::VeryEasy,
+						ranked_status: RankedStatus::Ranked,
+						notes: None,
+					},
+					NewFilter {
+						mode: Mode::Classic,
+						teleports: false,
+						tier: Tier::Easy,
+						ranked_status: RankedStatus::Ranked,
+						notes: None,
+					},
+				],
+			}],
+		};
+
+		let map_id = create_map("kz_foobar", Checksum::new(b"foobar"), &req, &mut txn).await?;
+
+		txn.commit().await?;
+
+		let map = sqlx::query! {
+			r"
+			SELECT
+			  name `name!: String`,
+			  workshop_id `workshop_id!: u32`,
+			  description,
+			  global_status `global_status!: GlobalStatus`
+			FROM
+			  Maps
+			WHERE
+			  id = ?
+			",
+			map_id,
+		}
+		.fetch_one(&database)
+		.await?;
+
+		testing::assert_eq!(map.name, "kz_foobar");
+		testing::assert_eq!(map.workshop_id, 69);
+		testing::assert!(map.description.is_none());
+		testing::assert_eq!(map.global_status, GlobalStatus::InTesting);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn create_map_rejects_no_mappers(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+
+		let req = SubmitMapRequest {
+			workshop_id: 69.into(),
+			description: None,
+			global_status: GlobalStatus::InTesting,
+			mappers: Vec::new(),
+			courses: vec![NewCourse {
+				name: None,
+				description: Some(String::from("course description!")),
+				mappers: vec![ALPHAKEKS_ID],
+				filters: [
+					NewFilter {
+						mode: Mode::Vanilla,
+						teleports: true,
+						tier: Tier::Medium,
+						ranked_status: RankedStatus::Ranked,
+						notes: None,
+					},
+					NewFilter {
+						mode: Mode::Vanilla,
+						teleports: false,
+						tier: Tier::Hard,
+						ranked_status: RankedStatus::Ranked,
+						notes: None,
+					},
+					NewFilter {
+						mode: Mode::Classic,
+						teleports: true,
+						tier: Tier::VeryEasy,
+						ranked_status: RankedStatus::Ranked,
+						notes: None,
+					},
+					NewFilter {
+						mode: Mode::Classic,
+						teleports: false,
+						tier: Tier::Easy,
+						ranked_status: RankedStatus::Ranked,
+						notes: None,
+					},
+				],
+			}],
+		};
+
+		let res = svc.submit_map(req).await.unwrap_err();
+
+		testing::assert_matches!(res, Error::MapMustHaveMappers);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn create_map_rejects_no_courses(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+
+		let req = SubmitMapRequest {
+			workshop_id: 69.into(),
+			description: None,
+			global_status: GlobalStatus::InTesting,
+			mappers: vec![ALPHAKEKS_ID],
+			courses: Vec::new(),
+		};
+
+		let res = svc.submit_map(req).await.unwrap_err();
+
+		testing::assert_matches!(res, Error::MapMustHaveCourses);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn create_map_rejects_no_course_mappers(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+
+		let req = SubmitMapRequest {
+			workshop_id: 69.into(),
+			description: None,
+			global_status: GlobalStatus::InTesting,
+			mappers: vec![ALPHAKEKS_ID],
+			courses: vec![NewCourse {
+				name: None,
+				description: Some(String::from("course description!")),
+				mappers: Vec::new(),
+				filters: [
+					NewFilter {
+						mode: Mode::Vanilla,
+						teleports: true,
+						tier: Tier::Medium,
+						ranked_status: RankedStatus::Ranked,
+						notes: None,
+					},
+					NewFilter {
+						mode: Mode::Vanilla,
+						teleports: false,
+						tier: Tier::Hard,
+						ranked_status: RankedStatus::Ranked,
+						notes: None,
+					},
+					NewFilter {
+						mode: Mode::Classic,
+						teleports: true,
+						tier: Tier::VeryEasy,
+						ranked_status: RankedStatus::Ranked,
+						notes: None,
+					},
+					NewFilter {
+						mode: Mode::Classic,
+						teleports: false,
+						tier: Tier::Easy,
+						ranked_status: RankedStatus::Ranked,
+						notes: None,
+					},
+				],
+			}],
+		};
+
+		let res = svc.submit_map(req).await.unwrap_err();
+
+		testing::assert_matches!(res, Error::CourseMustHaveMappers { .. });
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/checkmate.sql")
+	)]
+	async fn update_map_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+		let map_id = sqlx::query_scalar! {
+			r#"
+			SELECT
+			  id `id: MapID`
+			FROM
+			  Maps
+			WHERE
+			  name = "kz_checkmate"
+			"#,
+		}
+		.fetch_one(&svc.database)
+		.await?;
+
+		let new_description = "a new description";
+		let new_global_status = GlobalStatus::NotGlobal;
+		let req = UpdateMapRequest {
+			map_id,
+			description: Some(String::from(new_description)),
+			workshop_id: None,
+			global_status: Some(new_global_status),
+			check_steam: false,
+			added_mappers: None,
+			removed_mappers: None,
+			course_updates: None,
+		};
+
+		let res = svc.update_map(req).await?;
+
+		testing::assert!(res.updated_courses.is_empty());
+
+		let map = sqlx::query! {
+			r"
+			SELECT
+			  description,
+			  global_status `global_status: GlobalStatus`
+			FROM
+			  Maps
+			WHERE
+			  id = ?
+			",
+			map_id,
+		}
+		.fetch_one(&svc.database)
+		.await?;
+
+		testing::assert_eq!(map.description.as_deref(), Some(new_description));
+		testing::assert_eq!(map.global_status, new_global_status);
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures(
+			"../../../database/fixtures/checkmate.sql",
+			"../../../database/fixtures/grotto.sql",
+		)
+	)]
+	async fn update_map_rejects_mismatching_course_id(
+		database: Pool<MySql>,
+	) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+		let (checkmate_id, grotto_course_id) = sqlx::query! {
+			r#"
+			SELECT
+			  checkmate.id `checkmate_id: MapID`,
+			  grotto.id `grotto_course_id: CourseID`
+			FROM
+			  Maps checkmate
+			  JOIN Courses grotto
+			WHERE
+			  checkmate.name = "kz_checkmate"
+			  AND grotto.map_id = (
+			    SELECT
+			      id
+			    FROM
+			      Maps
+			    WHERE
+			      name = "kz_grotto"
+			  )
+			"#,
+		}
+		.fetch_one(&svc.database)
+		.await
+		.map(|row| (row.checkmate_id, row.grotto_course_id))?;
+
+		let new_description = "a new description";
+		let new_global_status = GlobalStatus::NotGlobal;
+		let req = UpdateMapRequest {
+			map_id: checkmate_id,
+			description: Some(String::from(new_description)),
+			workshop_id: None,
+			global_status: Some(new_global_status),
+			check_steam: false,
+			added_mappers: None,
+			removed_mappers: None,
+			course_updates: Some(BTreeMap::from_iter([(grotto_course_id, CourseUpdate {
+				name: Some(String::from("this won't work!")),
+				..Default::default()
+			})])),
+		};
+
+		let res = svc.update_map(req).await.unwrap_err();
+
+		testing::assert_matches!(
+			res,
+			Error::MismatchingCourseID { map_id, course_id }
+				if map_id == checkmate_id && course_id == grotto_course_id
+		);
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures(
+			"../../../database/fixtures/checkmate.sql",
+			"../../../database/fixtures/grotto.sql",
+		)
+	)]
+	async fn update_map_rejects_mismatching_filter_id(
+		database: Pool<MySql>,
+	) -> color_eyre::Result<()>
+	{
+		let svc = testing::map_svc(database);
+		let (map_id, course_id, filter_id) = sqlx::query! {
+			r#"
+			SELECT
+			  m.id `map_id: MapID`,
+			  c.id `course_id: CourseID`,
+			  f.id `filter_id: FilterID`
+			FROM
+			  Maps m
+			  JOIN Courses c ON c.map_id = m.id
+			  JOIN CourseFilters f ON f.course_id = (
+			    SELECT
+			      id
+			    FROM
+			      Courses
+			    WHERE
+			      map_id = (
+				SELECT
+				  id
+				FROM
+				  Maps
+				WHERE
+				  name = "kz_grotto"
+			      )
+			  )
+			WHERE
+			  m.name = "kz_checkmate"
+			"#,
+		}
+		.fetch_one(&svc.database)
+		.await
+		.map(|row| (row.map_id, row.course_id, row.filter_id))?;
+
+		let new_description = "a new description";
+		let new_global_status = GlobalStatus::NotGlobal;
+		let req = UpdateMapRequest {
+			map_id,
+			description: Some(String::from(new_description)),
+			workshop_id: None,
+			global_status: Some(new_global_status),
+			check_steam: false,
+			added_mappers: None,
+			removed_mappers: None,
+			course_updates: Some(BTreeMap::from_iter([(course_id, CourseUpdate {
+				name: Some(String::from("this won't work!")),
+				filter_updates: Some(BTreeMap::from_iter([(filter_id, FilterUpdate {
+					tier: Some(Tier::Impossible),
+					..Default::default()
+				})])),
+				..Default::default()
+			})])),
+		};
+
+		let res = svc.update_map(req).await.unwrap_err();
+
+		testing::assert_matches!(
+			res,
+			Error::MismatchingFilterID { course_id: c_id, filter_id: f_id }
+				if c_id == course_id && f_id == filter_id
+		);
+
+		Ok(())
+	}
 }

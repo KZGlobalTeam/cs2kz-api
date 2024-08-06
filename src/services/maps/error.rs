@@ -31,22 +31,37 @@ pub enum Error
 	#[error("one of the submitted mappers is unknown")]
 	MapperDoesNotExist,
 
-	/// A request wanted to remove mappers from a map, but specified all the
-	/// mappers associated with that map.
+	/// A request wanted to create a new map / remove mappers from an existing
+	/// map, but specified all the mappers associated with that map.
 	///
 	/// Every map must have at least one mapper at any given time.
-	#[error("you cannot delete all mappers of a map")]
+	#[error("every map must have at least one mapper")]
 	MapMustHaveMappers,
 
-	/// A request wanted to remove mappers from a course, but specified all the
-	/// mappers associated with that course.
+	/// A request wanted to create a new map but didn't submit any courses.
+	///
+	/// Every map must have at least one course at any given time.
+	#[error("every map must have at least one course")]
+	MapMustHaveCourses,
+
+	/// A request wanted to create a new map or update an existing one, in which
+	/// mappers were supposed to be removed from a course.
+	///
+	/// In the case of a new map, no mappers were included in the course.
+	/// In the case of an update, all mappers associated with that course were
+	/// supposed to be removed.
 	///
 	/// Every course must have at least one mapper at any given time.
-	#[error("you cannot delete all mappers of a course")]
+	#[error("every course must have at least one mapper")]
 	CourseMustHaveMappers
 	{
-		/// The ID of the course whose mappers were supposed to be removed.
-		course_id: CourseID,
+		/// This is `None` for new map submissions, when the new courses don't
+		/// have IDs yet.
+		///
+		/// If this error was caused by an update, this will be `Some` and
+		/// contain the ID of the course whose mappers were supposed to be
+		/// removed.
+		course_id: Option<CourseID>,
 	},
 
 	/// A request wanted to update a map's courses, but specified a course ID
@@ -98,6 +113,7 @@ impl IntoProblemDetails for Error
 			Self::MapMustHaveMappers | Self::CourseMustHaveMappers { .. } => {
 				ProblemType::MustHaveMappers
 			}
+			Self::MapMustHaveCourses => ProblemType::MapMustHaveCourses,
 			Self::MismatchingCourseID { .. } | Self::MismatchingFilterID { .. } => {
 				ProblemType::UnrelatedUpdate
 			}
@@ -111,7 +127,7 @@ impl IntoProblemDetails for Error
 	fn add_extension_members(&self, ext: &mut problem_details::ExtensionMembers)
 	{
 		match self {
-			Self::CourseMustHaveMappers { course_id } => {
+			Self::CourseMustHaveMappers { course_id: Some(course_id) } => {
 				ext.add("course_id", course_id);
 			}
 			Self::MismatchingCourseID { map_id, course_id } => {

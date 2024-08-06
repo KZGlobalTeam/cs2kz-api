@@ -55,6 +55,13 @@ pub enum ProblemType
 	#[status = 409]
 	MustHaveMappers,
 
+	/// Maps must have at least 1 course at any given time.
+	///
+	/// When submitting a new map, you also submit a list of courses for that
+	/// map. That list cannot be empty.
+	#[status = 409]
+	MapMustHaveCourses,
+
 	/// When updating (parts of) a resource, such as a map, you may be able to
 	/// supply pairs of resource IDs and update payloads. For example, when
 	/// updating a map, you can supply a list of course updates. These are

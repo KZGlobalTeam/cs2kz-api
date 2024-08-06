@@ -156,16 +156,10 @@ mod tests
 {
 	use axum::extract::Request;
 	use axum::RequestExt;
-	use cs2kz::SteamID;
 	use sqlx::{MySql, Pool};
 
 	use super::*;
-	use crate::testing;
-
-	const ALPHAKEKS_ID: SteamID = match SteamID::new(76561198282622073_u64) {
-		Some(id) => id,
-		None => unreachable!(),
-	};
+	use crate::testing::{self, ALPHAKEKS_ID};
 
 	#[sqlx::test(
 		migrations = "database/migrations",
