@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tSELECT\n\t\t\t  id `id: MapID`\n\t\t\tFROM\n\t\t\t  Maps\n\t\t\tWHERE\n\t\t\t  name = \"kz_checkmate\"\n\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: MapID",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8c50d0d85c0ad249eec209feb665995fa21dcb78a619d4932e1bfe3434750c37"
+}

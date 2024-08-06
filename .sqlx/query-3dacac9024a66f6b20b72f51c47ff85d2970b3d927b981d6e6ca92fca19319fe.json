@@ -1,0 +1,44 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tSELECT\n\t\t\t  m.id `map_id: MapID`,\n\t\t\t  c.id `course_id: CourseID`,\n\t\t\t  f.id `filter_id: FilterID`\n\t\t\tFROM\n\t\t\t  Maps m\n\t\t\t  JOIN Courses c ON c.map_id = m.id\n\t\t\t  JOIN CourseFilters f ON f.course_id = (\n\t\t\t    SELECT\n\t\t\t      id\n\t\t\t    FROM\n\t\t\t      Courses\n\t\t\t    WHERE\n\t\t\t      map_id = (\n\t\t\t\tSELECT\n\t\t\t\t  id\n\t\t\t\tFROM\n\t\t\t\t  Maps\n\t\t\t\tWHERE\n\t\t\t\t  name = \"kz_grotto\"\n\t\t\t      )\n\t\t\t  )\n\t\t\tWHERE\n\t\t\t  m.name = \"kz_checkmate\"\n\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "map_id: MapID",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "course_id: CourseID",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "filter_id: FilterID",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3dacac9024a66f6b20b72f51c47ff85d2970b3d927b981d6e6ca92fca19319fe"
+}
