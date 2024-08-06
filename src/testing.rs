@@ -71,6 +71,7 @@ fn ctor()
 	use url::Url;
 
 	color_eyre::install().expect("failed to install color-eyre");
+
 	tracing_subscriber::fmt()
 		.compact()
 		.with_ansi(true)
@@ -85,6 +86,7 @@ fn ctor()
 		.with_env_filter(EnvFilter::from_default_env())
 		.init();
 
+	// so `#[sqlx::test]` can create new databases
 	if let Ok(database_url) = env::var("DATABASE_URL") {
 		let mut database_url = database_url.parse::<Url>().unwrap();
 		database_url.set_username("root").unwrap();

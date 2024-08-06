@@ -43,6 +43,7 @@ pub struct FetchMapRequest
 
 /// Response payload for fetching a map.
 #[derive(Debug, PartialEq, Serialize, utoipa::ToSchema, utoipa::IntoResponses)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 #[response(status = OK)]
 pub struct FetchMapResponse
 {
@@ -131,6 +132,7 @@ impl IntoResponse for FetchMapResponse
 
 /// A KZ map course.
 #[derive(Debug, PartialEq, Serialize, utoipa::ToSchema)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub struct Course
 {
 	/// The course's ID.
@@ -179,6 +181,7 @@ where
 
 /// A KZ map course filter.
 #[derive(Debug, PartialEq, Serialize, sqlx::FromRow, utoipa::ToSchema)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 pub struct Filter
 {
 	/// The filter's ID.
@@ -239,6 +242,7 @@ pub struct FetchMapsRequest
 
 /// Response payload for fetching maps.
 #[derive(Debug, Serialize, utoipa::IntoResponses)]
+#[cfg_attr(test, derive(serde::Deserialize))]
 #[response(status = OK)]
 pub struct FetchMapsResponse
 {

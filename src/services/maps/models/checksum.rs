@@ -113,9 +113,19 @@ impl<'de> Deserialize<'de> for Checksum
 	where
 		D: Deserializer<'de>,
 	{
-		<[u8; 16]>::deserialize(deserializer)
-			.map(md5::Digest)
-			.map(Self)
+		#[derive(Deserialize)]
+		#[serde(untagged)]
+		enum Helper
+		{
+			Bytes([u8; 16]),
+
+			#[serde(deserialize_with = "hex::serde::deserialize")]
+			Hex([u8; 16]),
+		}
+
+		Helper::deserialize(deserializer).map(|v| match v {
+			Helper::Bytes(bytes) | Helper::Hex(bytes) => Self(md5::Digest(bytes)),
+		})
 	}
 }
 

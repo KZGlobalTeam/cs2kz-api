@@ -18,7 +18,7 @@ INSERT INTO
 VALUES
   (
     "kz_grotto",
-    "very cool map",
+    "also very cool map",
     0,
     3121168339,
     0x20a546b4fdaebc518c079a91e24738be

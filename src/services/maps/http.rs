@@ -184,3 +184,71 @@ async fn update_map(
 
 	Ok(res)
 }
+
+#[cfg(test)]
+mod tests
+{
+	use axum::extract::Request;
+	use axum::handler::Handler;
+	use sqlx::{MySql, Pool};
+	use tower::Service;
+
+	use super::*;
+	use crate::testing;
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures(
+			"../../../database/fixtures/checkmate.sql",
+			"../../../database/fixtures/grotto.sql",
+		)
+	)]
+	async fn get_many_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let state = testing::map_svc(database);
+		let handler = routing::get(get_many);
+
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/")
+			.body(Default::default())?;
+
+		let res = handler.call(req, state).await;
+
+		testing::assert_eq!(res.status(), http::StatusCode::OK);
+
+		let res = testing::parse_body::<FetchMapsResponse>(res.into_body()).await?;
+
+		testing::assert_eq!(res.maps.len(), 2);
+		testing::assert_eq!(res.total, 2);
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/checkmate.sql")
+	)]
+	async fn get_single_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let state = testing::map_svc(database);
+		let mut handler = Router::new()
+			.route("/:map", routing::get(get_single))
+			.with_state(state);
+
+		let req = Request::builder()
+			.method(http::Method::GET)
+			.uri("/checkmate")
+			.body(axum::body::Body::default())?;
+
+		let res = handler.call(req).await?;
+
+		testing::assert_eq!(res.status(), http::StatusCode::OK);
+
+		let res = testing::parse_body::<FetchMapResponse>(res.into_body()).await?;
+
+		testing::assert_eq!(res.name, "kz_checkmate");
+
+		Ok(())
+	}
+}
