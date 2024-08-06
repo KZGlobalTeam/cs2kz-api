@@ -8,7 +8,7 @@ use serde::de::DeserializeOwned;
 use sqlx::{MySql, Pool};
 use url::Url;
 
-use crate::services::{AuthService, MapService, PlayerService, SteamService};
+use crate::services::{AuthService, MapService, PlayerService, ServerService, SteamService};
 
 pub const ALPHAKEKS_ID: SteamID = match SteamID::new(76561198282622073_u64) {
 	Some(id) => id,
@@ -48,6 +48,13 @@ pub fn map_svc(database: Pool<MySql>) -> MapService
 	let steam_svc = steam_svc();
 
 	MapService::new(database, auth_svc, steam_svc)
+}
+
+pub fn server_svc(database: Pool<MySql>) -> ServerService
+{
+	let auth_svc = auth_svc(database.clone());
+
+	ServerService::new(database, auth_svc)
 }
 
 pub async fn parse_body<T>(body: axum::body::Body) -> color_eyre::Result<T>
@@ -114,10 +121,24 @@ macro_rules! assert_eq {
 	};
 }
 
+macro_rules! assert_ne {
+	($lhs:expr, $rhs:expr $(, $($msg:tt)*)?) => {
+		if &$lhs == &$rhs {
+			::color_eyre::eyre::bail!(
+				"assertion `{} != {}` failed\n  lhs: {:?}\n  rhs: {:?}",
+				stringify!($lhs),
+				stringify!($rhs),
+				$lhs,
+				$rhs,
+			);
+		}
+	};
+}
+
 macro_rules! assert_matches {
 	($expr:expr, $pat:pat $(if $cond:expr)? $(, $($msg:tt)*)?) => {
 		::color_eyre::eyre::ensure!(matches!($expr, $pat $(if $cond)? $(, $($msg)*)?))
 	};
 }
 
-pub(crate) use {assert, assert_eq, assert_matches};
+pub(crate) use {assert, assert_eq, assert_matches, assert_ne};

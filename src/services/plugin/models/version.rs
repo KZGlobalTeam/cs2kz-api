@@ -2,6 +2,7 @@
 //! implementations.
 
 use std::fmt;
+use std::str::FromStr;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -15,6 +16,16 @@ impl fmt::Display for PluginVersion
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
 	{
 		fmt::Display::fmt(&self.0, f)
+	}
+}
+
+impl FromStr for PluginVersion
+{
+	type Err = <semver::Version as FromStr>::Err;
+
+	fn from_str(s: &str) -> Result<Self, Self::Err>
+	{
+		s.parse().map(Self)
 	}
 }
 

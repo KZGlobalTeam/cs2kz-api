@@ -55,7 +55,7 @@ crate::macros::sqlx_scalar_forward!(Host as String => {
 	encode: |self| {
 		match self {
 			Host::Ip(ip) => ip.to_string(),
-			Host::Domain(domain) => domain.clone(),
+			Host::Domain(domain) => format!("%{domain}%"),
 		}
 	},
 

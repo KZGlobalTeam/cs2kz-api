@@ -107,7 +107,7 @@ impl ServerService
 			{}
 			WHERE
 			  s.name LIKE COALESCE(?, s.name)
-			  AND s.host = COALESCE(?, s.host)
+			  AND s.host LIKE COALESCE(?, s.host)
 			  AND s.owner_id = COALESCE(?, s.owner_id)
 			  AND s.created_on > COALESCE(?, '1970-01-01 00:00:01')
 			  AND s.created_on < COALESCE(?, '2038-01-19 03:14:07')
@@ -116,7 +116,7 @@ impl ServerService
 			",
 			queries::SELECT,
 		))
-		.bind(req.name)
+		.bind(req.name.map(|name| format!("%{name}%")))
 		.bind(req.host)
 		.bind(owner_id)
 		.bind(req.created_after)
@@ -354,5 +354,295 @@ impl ServerService
 		tracing::trace!(server_id = %server_info.id(), %token, "generated jwt");
 
 		Ok(GenerateAccessTokenResponse { token })
+	}
+}
+
+#[cfg(test)]
+mod tests
+{
+	use cs2kz::SteamID;
+	use sqlx::{MySql, Pool};
+
+	use super::*;
+	use crate::services::plugin::PluginVersion;
+	use crate::testing::{self, ALPHAKEKS_ID};
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn fetch_server_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+		let req = FetchServerRequest { identifier: "alpha".parse()? };
+		let res = svc.fetch_server(req).await?;
+
+		testing::assert!(res.as_ref().is_some_and(|s| s.name == "Alpha's KZ"));
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn fetch_server_not_found(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+		let req = FetchServerRequest { identifier: "foobar".parse()? };
+		let res = svc.fetch_server(req).await?;
+
+		testing::assert!(res.is_none());
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/servers.sql")
+	)]
+	async fn fetch_servers_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+		let req =
+			FetchServersRequest { name: Some(String::from("balls.kz EU")), ..Default::default() };
+		let res = svc.fetch_servers(req).await?;
+
+		testing::assert_eq!(res.servers.len(), 2);
+		testing::assert_eq!(res.total, 2);
+
+		let req = FetchServersRequest { host: Some(".balls.com".parse()?), ..Default::default() };
+		let res = svc.fetch_servers(req).await?;
+
+		testing::assert_eq!(res.servers.len(), 3);
+		testing::assert_eq!(res.total, 3);
+
+		let req =
+			FetchServersRequest { owned_by: Some("AlphaKeks".parse()?), ..Default::default() };
+		let res = svc.fetch_servers(req).await?;
+
+		testing::assert_eq!(res.servers.len(), 1);
+		testing::assert_eq!(res.total, 1);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn register_server_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+		let req = RegisterServerRequest {
+			name: String::from("my cool new server!"),
+			host: "123.456.789.420".parse()?,
+			port: 1337,
+			owner_id: ALPHAKEKS_ID,
+		};
+
+		let res = svc.register_server(req).await?;
+		let server = svc
+			.fetch_server(FetchServerRequest { identifier: res.server_id.into() })
+			.await?
+			.expect("server should be available to fetch after registering");
+
+		testing::assert_eq!(server.name, "my cool new server!");
+		testing::assert_eq!(server.owner.steam_id, ALPHAKEKS_ID);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn register_server_rejects_unknown_owner(database: Pool<MySql>)
+	-> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+		let ibrahizy_id = SteamID::new(76561198264939817).unwrap();
+		let req = RegisterServerRequest {
+			name: String::from("my cool new server!"),
+			host: "123.456.789.420".parse()?,
+			port: 1337,
+			owner_id: ibrahizy_id,
+		};
+
+		let res = svc.register_server(req).await.unwrap_err();
+
+		testing::assert_matches!(
+			res,
+			Error::ServerOwnerDoesNotExist { steam_id }
+				if steam_id == ibrahizy_id
+		);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn update_server_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+		let req = UpdateServerRequest {
+			server_id: 1.into(),
+			new_name: Some(String::from("new name")),
+			new_host: None,
+			new_port: None,
+			new_owner: None,
+		};
+
+		let _res = svc.update_server(req).await?;
+
+		let name = sqlx::query_scalar!("SELECT name FROM Servers WHERE id = 1")
+			.fetch_one(&svc.database)
+			.await?;
+
+		testing::assert_eq!(name, "new name");
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn update_server_rejects_unknown_server(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+		let req = UpdateServerRequest {
+			server_id: 69.into(),
+			new_name: Some(String::from("new name")),
+			new_host: None,
+			new_port: None,
+			new_owner: None,
+		};
+
+		let res = svc.update_server(req).await.unwrap_err();
+
+		testing::assert_matches!(res, Error::ServerDoesNotExist);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn reset_key_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+
+		let old_key = sqlx::query_scalar!("SELECT `key` `key!: ApiKey` FROM Servers WHERE id = 1")
+			.fetch_one(&svc.database)
+			.await?;
+
+		let req = ResetKeyRequest { server_id: 1.into() };
+		let res = svc.reset_key(req).await?;
+
+		testing::assert_ne!(res.key, old_key);
+
+		let new_key = sqlx::query_scalar!("SELECT `key` `key!: ApiKey` FROM Servers WHERE id = 1")
+			.fetch_one(&svc.database)
+			.await?;
+
+		testing::assert_eq!(new_key, res.key);
+		testing::assert_ne!(new_key, old_key);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn reset_key_rejects_unknown_server(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+		let req = ResetKeyRequest { server_id: 69.into() };
+		let res = svc.reset_key(req).await.unwrap_err();
+
+		testing::assert_matches!(res, Error::ServerDoesNotExist);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn delete_key_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+		let old_key = sqlx::query_scalar!("SELECT `key` `key: ApiKey` FROM Servers WHERE id = 1")
+			.fetch_one(&svc.database)
+			.await?;
+
+		testing::assert!(old_key.is_some());
+
+		let req = DeleteKeyRequest { server_id: 1.into() };
+		let _res = svc.delete_key(req).await?;
+
+		let new_key = sqlx::query_scalar!("SELECT `key` `key: ApiKey` FROM Servers WHERE id = 1")
+			.fetch_one(&svc.database)
+			.await?;
+
+		testing::assert!(new_key.is_none());
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn delete_key_rejects_unknown_server(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+		let req = DeleteKeyRequest { server_id: 69.into() };
+		let res = svc.delete_key(req).await.unwrap_err();
+
+		testing::assert_matches!(res, Error::ServerDoesNotExist);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn generate_access_token_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+
+		let (key, plugin_version) = sqlx::query! {
+			r"
+			SELECT
+			  s.`key` `key!: ApiKey`,
+			  v.semver `plugin_version: PluginVersion`
+			FROM
+			  Servers s
+			  JOIN PluginVersions v
+			WHERE
+			  s.id = 1
+			ORDER BY
+			  v.created_on DESC
+			",
+		}
+		.fetch_one(&svc.database)
+		.await
+		.map(|row| (row.key, row.plugin_version))?;
+
+		let req = GenerateAccessTokenRequest { key, plugin_version };
+		let res = svc.generate_access_token(req).await;
+
+		testing::assert!(res.is_ok());
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn generate_access_token_rejects_invalid_key(
+		database: Pool<MySql>,
+	) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+		let req =
+			GenerateAccessTokenRequest { key: ApiKey::new(), plugin_version: "0.0.0".parse()? };
+
+		let res = svc.generate_access_token(req).await.unwrap_err();
+
+		testing::assert_matches!(res, Error::InvalidKeyOrPluginVersion);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn generate_access_token_rejects_invalid_version(
+		database: Pool<MySql>,
+	) -> color_eyre::Result<()>
+	{
+		let svc = testing::server_svc(database);
+
+		let key = sqlx::query_scalar!("SELECT `key` `key!: ApiKey` FROM Servers WHERE id = 1")
+			.fetch_one(&svc.database)
+			.await?;
+
+		let req = GenerateAccessTokenRequest { key, plugin_version: "0.0.0".parse()? };
+		let res = svc.generate_access_token(req).await.unwrap_err();
+
+		testing::assert_matches!(res, Error::InvalidKeyOrPluginVersion);
+
+		Ok(())
 	}
 }
