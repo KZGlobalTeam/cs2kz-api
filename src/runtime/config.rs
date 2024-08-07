@@ -1,195 +1,296 @@
 //! This module contains the [`Config`] struct - a set of configuration options
-//! that will be read from the environment on startup.
+//! that will be read from a file on startup.
 //!
-//! See the `.env.example` file in the root of the repository for all the
-//! relevant variables and example values.
+//! See the `.config/config.example.toml` file in the root of the repository for
+//! all the available options and their default values.
 
-use std::path::PathBuf;
-use std::str::FromStr;
-use std::{env, fmt};
+#![allow(clippy::disallowed_types)]
 
+use std::net::{IpAddr, SocketAddr};
+use std::num::NonZero;
+use std::path::{Path, PathBuf};
+use std::{env, fs, io};
+
+use serde::{Deserialize, Deserializer};
 use thiserror::Error;
+use tracing_subscriber::EnvFilter;
 use url::Url;
 
 /// The API's runtime configuration.
-#[derive(Clone, clap::Parser)]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct Config
 {
-	/// The public URL.
-	///
-	/// This might be sent to other APIs or be used for building URLs.
-	#[arg(long, env = "KZ_API_PUBLIC_URL")]
-	pub public_url: Url,
+	/// Tokio configuration.
+	pub runtime: RuntimeConfig,
 
-	/// Database connection URL.
-	#[arg(long, env)]
-	pub database_url: Url,
+	/// Tracing configuration.
+	pub tracing: TracingConfig,
 
-	/// Value to use for the `Domain` field on HTTP cookies.
-	#[arg(long, env = "KZ_API_COOKIE_DOMAIN")]
-	pub cookie_domain: String,
+	/// Database configuration.
+	pub database: DatabaseConfig,
 
-	/// Steam Web API key.
-	#[arg(long, env = "STEAM_WEB_API_KEY")]
-	pub steam_api_key: String,
+	/// HTTP configuration.
+	pub http: HttpConfig,
 
-	/// Base64 secret for encoding/decoding JWTs.
-	#[arg(long, env = "KZ_API_JWT_SECRET")]
-	pub jwt_secret: String,
+	/// Secrets.
+	pub secrets: Secrets,
 
-	/// Path to a directory that can be used for storing Steam workshop assets.
-	#[cfg(feature = "production")]
-	#[arg(long, env = "KZ_API_WORKSHOP_PATH")]
-	pub workshop_artifacts_path: PathBuf,
-
-	/// Path to a directory that can be used for storing Steam workshop assets.
-	#[cfg(not(feature = "production"))]
-	#[arg(long, env = "KZ_API_WORKSHOP_PATH")]
-	pub workshop_artifacts_path: Option<PathBuf>,
-
-	/// Path to a [DepotDownloader] executable.
-	///
-	/// This can be used to download things from the Steam workshop.
-	///
-	/// [DepotDownloader]: https://github.com/SteamRE/DepotDownloader
-	#[cfg(feature = "production")]
-	#[arg(long, env)]
-	pub depot_downloader_path: PathBuf,
-
-	/// Path to a [DepotDownloader] executable.
-	///
-	/// This can be used to download things from the Steam workshop.
-	///
-	/// [DepotDownloader]: https://github.com/SteamRE/DepotDownloader
-	#[cfg(not(feature = "production"))]
-	#[arg(long, env)]
-	pub depot_downloader_path: Option<PathBuf>,
-}
-
-/// Error that can occur while initializing the API's [`Config`].
-#[derive(Debug, Error)]
-pub enum InitializeConfigError
-{
-	/// A required environment variable was not found or invalid
-	/// UTF-8.
-	#[error("failed to read environment variable `{var}`: {source}")]
-	Env
-	{
-		/// The environment variable we tried to read.
-		var: &'static str,
-
-		/// The original error we got from [`std::env::var()`] when we tried to
-		/// read a value.
-		source: env::VarError,
-	},
-
-	/// A required configuration option was empty.
-	#[error("`{var}` cannot be empty")]
-	EmptyValue
-	{
-		/// The environment variable we read.
-		var: &'static str,
-	},
-
-	/// A required configuration option could not be parsed into the required
-	/// type.
-	#[error("failed to parse configuration value `{var}`: {source}")]
-	Parse
-	{
-		/// The environment variable containing the value.
-		var: &'static str,
-
-		/// The parsing error.
-		source: Box<dyn std::error::Error + Send + Sync + 'static>,
-	},
+	/// Steam configuration.
+	pub steam: SteamConfig,
 }
 
 impl Config
 {
-	/// Initializes a [`Config`] by reading and parsing environment variables.
-	#[tracing::instrument(err(Debug))]
-	pub fn new() -> Result<Self, InitializeConfigError>
+	/// Loads a configuration file located at `path` from disk and parses it
+	/// into a [`Config`].
+	pub fn load(path: impl AsRef<Path>) -> Result<Self, LoadConfigError>
 	{
-		let public_url = parse_from_env::<Url>("KZ_API_PUBLIC_URL")?;
-		let database_url = parse_from_env::<Url>("DATABASE_URL")?;
-		let cookie_domain = parse_from_env::<String>("KZ_API_COOKIE_DOMAIN")?;
-		let steam_api_key = parse_from_env::<String>("STEAM_WEB_API_KEY")?;
-		let jwt_secret = parse_from_env::<String>("KZ_API_JWT_SECRET")?;
+		let file = fs::read_to_string(path).map_err(LoadConfigError::ReadFile)?;
+		let config = toml::from_str(&file).map_err(LoadConfigError::ParseFile)?;
 
-		#[cfg(feature = "production")]
-		let workshop_artifacts_path = parse_from_env::<PathBuf>("KZ_API_WORKSHOP_PATH")?;
-
-		#[cfg(not(feature = "production"))]
-		let workshop_artifacts_path = parse_from_env_opt::<PathBuf>("KZ_API_WORKSHOP_PATH")?;
-
-		#[cfg(feature = "production")]
-		let depot_downloader_path = parse_from_env::<PathBuf>("DEPOT_DOWNLOADER_PATH")?;
-
-		#[cfg(not(feature = "production"))]
-		let depot_downloader_path = parse_from_env_opt::<PathBuf>("DEPOT_DOWNLOADER_PATH")?;
-
-		Ok(Self {
-			public_url,
-			database_url,
-			cookie_domain,
-			steam_api_key,
-			jwt_secret,
-			workshop_artifacts_path,
-			depot_downloader_path,
-		})
+		Ok(config)
 	}
 }
 
-impl fmt::Debug for Config
+/// Tokio configuration.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct RuntimeConfig
 {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+	/// The amount of worker threads to spawn.
+	#[serde(deserialize_with = "deserialize_zero_as_none_usize")]
+	pub worker_threads: Option<NonZero<usize>>,
+
+	/// The maximum amount of blocking threads to spawn.
+	#[serde(deserialize_with = "deserialize_zero_as_none_usize")]
+	pub max_blocking_threads: Option<NonZero<usize>>,
+
+	/// The stack size (in bytes) for any spawned threads.
+	pub thread_stack_size: usize,
+
+	/// Tokio tracing configuration.
+	#[cfg(feature = "console")]
+	pub metrics: RuntimeMetricsConfig,
+}
+
+/// Tokio tracing configuration.
+#[cfg(feature = "console")]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct RuntimeMetricsConfig
+{
+	/// Record task poll times.
+	pub record_poll_counts: bool,
+}
+
+/// Tracing configuration.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct TracingConfig
+{
+	/// Enable tracing.
+	pub enable: bool,
+
+	/// The default global filter.
+	#[serde(deserialize_with = "deserialize_env_filter")]
+	pub filter: EnvFilter,
+
+	/// Configuration for writing trace data to stderr.
+	pub stderr: TracingStderrConfig,
+
+	/// Configuration for writing trace data to files.
+	pub files: TracingFilesConfig,
+
+	/// Configuration for collecting trace data with tokio-console.
+	#[cfg(feature = "console")]
+	pub console: TracingConsoleConfig,
+}
+
+/// Configuration for writing trace data to stderr.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct TracingStderrConfig
+{
+	/// Write trace data to stderr.
+	pub enable: bool,
+
+	/// Emit ANSI escape codes for formatting (colors, italics, etc.).
+	pub ansi: bool,
+
+	/// Additional filter directives for this layer.
+	#[serde(deserialize_with = "deserialize_env_filter_opt")]
+	pub filter: Option<EnvFilter>,
+}
+
+/// Configuration for writing trace data to files.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct TracingFilesConfig
+{
+	/// Path to the directory to store logs in.
+	pub path: PathBuf,
+
+	/// Additional filter directives for this layer.
+	#[serde(deserialize_with = "deserialize_env_filter_opt")]
+	pub filter: Option<EnvFilter>,
+}
+
+/// Configuration for collecting trace data with tokio-console.
+#[cfg(feature = "console")]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct TracingConsoleConfig
+{
+	/// Address to listen for client connections on.
+	pub server_addr: Option<TokioConsoleServerAddr>,
+}
+
+/// Server address for tokio-console to listen on.
+#[cfg(feature = "console")]
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum TokioConsoleServerAddr
+{
+	/// A TCP address.
+	Tcp(SocketAddr),
+
+	/// A Unix Domain Socket path.
+	Unix(PathBuf),
+}
+
+/// Database configuration.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct DatabaseConfig
+{
+	/// Connection URL
+	#[serde(skip_deserializing, default = "database_url")]
+	pub url: Url,
+
+	/// Minimum amount of pool connections to open right away.
+	pub min_connections: u32,
+
+	/// Maximum amount of pool connections to open right away.
+	#[serde(deserialize_with = "deserialize_zero_as_none_u32")]
+	pub max_connections: Option<NonZero<u32>>,
+}
+
+/// HTTP configuration.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct HttpConfig
+{
+	/// IP address to listen on.
+	pub listen_addr: IpAddr,
+
+	/// Port to listen on.
+	pub listen_port: u16,
+
+	/// The URL that other services can use to reach the API.
+	pub public_url: Url,
+
+	/// The value to use for `Domain` fields in HTTP cookies.
+	pub cookie_domain: String,
+}
+
+impl HttpConfig
+{
+	/// Returns a full [`SocketAddr`] composed of the values stored in this
+	/// struct.
+	pub fn socket_addr(&self) -> SocketAddr
 	{
-		f.debug_struct("Config")
-			.field("public_url", &format_args!("{:?}", self.public_url.as_str()))
-			.field("database_url", &format_args!("{:?}", self.database_url.as_str()))
-			.field("cookie_domain", &self.cookie_domain)
-			.field("steam_api_key", &"*****")
-			.field("jwt_secret", &"*****")
-			.field("workshop_artifacts_path", &self.workshop_artifacts_path)
-			.field("depot_downloader_path", &self.depot_downloader_path)
-			.finish_non_exhaustive()
+		SocketAddr::new(self.listen_addr, self.listen_port)
 	}
 }
 
-/// Reads and parses an environment variable.
-fn parse_from_env<T>(var: &'static str) -> Result<T, InitializeConfigError>
+/// Secrets.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct Secrets
+{
+	/// Key to use for encoding/decoding JWTs.
+	pub jwt_key: String,
+}
+
+/// Steam configuration.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct SteamConfig
+{
+	/// Steam WebAPI key.
+	pub api_key: String,
+
+	/// Path to use for storing downloaded workshop assets.
+	pub workshop_artifacts_path: PathBuf,
+
+	/// Path to the `DepotDownloader` executable.
+	pub depot_downloader_path: PathBuf,
+}
+
+/// Errors that can occur when loading a config file.
+#[derive(Debug, Error)]
+pub enum LoadConfigError
+{
+	/// The file could not be read from disk.
+	#[error("failed to read config file: {0}")]
+	ReadFile(io::Error),
+
+	/// The file could not be parsed.
+	#[error("failed to parse config file: {0}")]
+	ParseFile(toml::de::Error),
+}
+
+/// Deserializes a [`NonZero<32>`] and turns 0 into [`None`].
+fn deserialize_zero_as_none_u32<'de, D>(deserializer: D) -> Result<Option<NonZero<u32>>, D::Error>
 where
-	T: FromStr<Err: std::error::Error + Send + Sync + 'static>,
+	D: Deserializer<'de>,
 {
-	let value = env::var(var).map_err(|source| InitializeConfigError::Env { var, source })?;
-
-	if value.is_empty() {
-		return Err(InitializeConfigError::EmptyValue { var });
-	}
-
-	value
-		.parse::<T>()
-		.map_err(|error| InitializeConfigError::Parse { var, source: Box::new(error) })
+	u32::deserialize(deserializer).map(NonZero::new)
 }
 
-/// Reads and parses an environment variable.
+/// Deserializes a [`NonZero<usize>`] and turns 0 into [`None`].
+fn deserialize_zero_as_none_usize<'de, D>(
+	deserializer: D,
+) -> Result<Option<NonZero<usize>>, D::Error>
+where
+	D: Deserializer<'de>,
+{
+	usize::deserialize(deserializer).map(NonZero::new)
+}
+
+/// Loads `DATABASE_URL` from the environment.
 ///
-/// Returns [`None`] if a variable does not exist or is empty.
-#[cfg(not(feature = "production"))]
-fn parse_from_env_opt<T>(var: &'static str) -> Result<Option<T>, InitializeConfigError>
-where
-	T: FromStr<Err: std::error::Error + Send + Sync + 'static>,
+/// # Panics
+///
+/// This function will panic if `DATABASE_URL` is not set or not a valid URL.
+fn database_url() -> Url
 {
-	let Some(value) = env::var(var).ok() else {
-		return Ok(None);
-	};
+	env::var("DATABASE_URL")
+		.expect("`DATABASE_URL` should be set")
+		.parse()
+		.expect("`DATABASE_URL` must be a valid URL")
+}
 
-	if value.is_empty() {
-		return Ok(None);
-	}
+/// Deserializes [`EnvFilter`] directives.
+fn deserialize_env_filter<'de, D>(deserializer: D) -> Result<EnvFilter, D::Error>
+where
+	D: Deserializer<'de>,
+{
+	String::deserialize(deserializer)?
+		.parse::<EnvFilter>()
+		.map_err(serde::de::Error::custom)
+}
 
-	value
-		.parse::<T>()
-		.map(Some)
-		.map_err(|error| InitializeConfigError::Parse { var, source: Box::new(error) })
+/// Deserializes optional [`EnvFilter`] directives and treats an empty string as
+/// [`None`].
+fn deserialize_env_filter_opt<'de, D>(deserializer: D) -> Result<Option<EnvFilter>, D::Error>
+where
+	D: Deserializer<'de>,
+{
+	Option::<String>::deserialize(deserializer)?
+		.filter(|s| !s.is_empty())
+		.map(|directives| directives.parse::<EnvFilter>())
+		.transpose()
+		.map_err(serde::de::Error::custom)
 }

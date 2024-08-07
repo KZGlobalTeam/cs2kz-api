@@ -5,6 +5,6 @@ pkgs.dockerTools.buildLayeredImage {
   tag = "latest";
   contents = [ pkgs.depotdownloader ];
   config = {
-    Cmd = [ "${cs2kz-api}/bin/cs2kz-api" ];
+    Cmd = [ "${cs2kz-api}/bin/cs2kz-api" "serve" "--config" "/etc/cs2kz-api.toml" ];
   };
 }

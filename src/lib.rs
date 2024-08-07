@@ -57,10 +57,14 @@ pub type Server =
 /// You'll likely just pass the return value to [`axum::serve()`] to run the
 /// server.
 #[tracing::instrument(target = "cs2kz_api::runtime", name = "start", err(Debug))]
-pub async fn server(config: runtime::Config) -> Result<Server, setup::Error>
+pub async fn server(
+	runtime_config: runtime::config::RuntimeConfig,
+	database_config: runtime::config::DatabaseConfig,
+	http_config: runtime::config::HttpConfig,
+	secrets: runtime::config::Secrets,
+	steam_config: runtime::config::SteamConfig,
+) -> Result<Server, setup::Error>
 {
-	use std::sync::Arc;
-
 	use self::services::{
 		AdminService,
 		AuthService,
@@ -75,24 +79,16 @@ pub async fn server(config: runtime::Config) -> Result<Server, setup::Error>
 		SteamService,
 	};
 
+	self::http::problem_details::problem_type::set_base_url(http_config.public_url.clone());
+
 	let http_client = reqwest::Client::new();
-	let database = sqlx::pool::PoolOptions::new()
-		.min_connections(database::min_connections())
-		.max_connections(database::max_connections())
-		.connect(config.database_url.as_str())
-		.await?;
-
-	sqlx::migrate!("./database/migrations")
-		.run(&database)
-		.await?;
-
-	let api_url = Arc::new(config.public_url);
+	let database = database::create_pool(&database_config).await?;
 
 	let steam_svc = SteamService::new(
-		Arc::clone(&api_url),
-		config.steam_api_key,
-		config.workshop_artifacts_path,
-		config.depot_downloader_path,
+		http_config.public_url,
+		steam_config.api_key,
+		steam_config.workshop_artifacts_path,
+		steam_config.depot_downloader_path,
 		http_client.clone(),
 	);
 
@@ -100,9 +96,9 @@ pub async fn server(config: runtime::Config) -> Result<Server, setup::Error>
 		database.clone(),
 		http_client.clone(),
 		steam_svc.clone(),
-		config.jwt_secret,
-		config.cookie_domain,
-	)?;
+		secrets.jwt_key,
+		http_config.cookie_domain,
+	);
 
 	let health_svc = HealthService::new();
 	let player_svc = PlayerService::new(database.clone(), auth_svc.clone(), steam_svc.clone());

@@ -12,7 +12,7 @@ use axum::response::{IntoResponse, Response};
 use serde::Serialize;
 use tap::Tap;
 
-mod problem_type;
+pub(crate) mod problem_type;
 pub use problem_type::ProblemType;
 
 mod extension_members;

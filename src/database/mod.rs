@@ -3,43 +3,43 @@
 //! Most notably, it exports extension traits like [`SqlErrorExt`] and
 //! [`TransactionExt`] which add extra methods to [`sqlx`] types.
 
+use std::num::NonZero;
+use std::thread;
+
+use sqlx::pool::PoolOptions;
+use sqlx::{MySql, Pool};
+
+use crate::runtime::config::DatabaseConfig;
+
 mod error;
 pub use error::SqlErrorExt;
 
 mod transaction;
 pub use transaction::TransactionExt;
 
-/// The minimum number of database pool connections to use.
-#[cfg(test)]
-pub fn min_connections() -> u32
+/// Creates a database connection pool and runs migrations.
+pub async fn create_pool(config: &DatabaseConfig) -> sqlx::Result<Pool<MySql>>
 {
-	1
-}
+	let max_connections = config
+		.max_connections
+		.map_or_else(max_connections, NonZero::get);
 
-/// The minimum number of database pool connections to use.
-#[cfg(not(test))]
-pub fn min_connections() -> u32
-{
-	let available = std::thread::available_parallelism()
-		.expect("system does not have parallelism?")
-		.get();
+	let pool = PoolOptions::new()
+		.min_connections(config.min_connections)
+		.max_connections(max_connections)
+		.connect(config.url.as_str())
+		.await?;
 
-	(available / 2) as u32
-}
+	sqlx::migrate!("./database/migrations").run(&pool).await?;
 
-/// The maximum number of database pool connections to use.
-#[cfg(test)]
-pub fn max_connections() -> u32
-{
-	4
+	Ok(pool)
 }
 
 /// The maximum number of database pool connections to use.
-#[cfg(not(test))]
-pub fn max_connections() -> u32
+fn max_connections() -> u32
 {
-	let available = std::thread::available_parallelism()
-		.expect("system does not have parallelism?")
+	let available = thread::available_parallelism()
+		.expect("system does not support parallelism?")
 		.get();
 
 	(available * 2) as u32

@@ -17,16 +17,17 @@
 #![allow(clippy::disallowed_types)]
 
 use std::fs;
-use std::net::{IpAddr, SocketAddr};
+use std::net::IpAddr;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use color_eyre::eyre::WrapErr;
 use similar::TextDiff;
+use tap::Tap;
 use tokio::net::TcpListener;
 
-mod logging;
+mod tracing;
 
 /// The main server entrypoint for the API.
 fn main() -> color_eyre::Result<ExitCode>
@@ -35,7 +36,39 @@ fn main() -> color_eyre::Result<ExitCode>
 
 	match Args::parse().action {
 		Action::Serve { ip_address, port, config } => {
-			serve(ip_address, port, config)?;
+			let mut config = cs2kz_api::runtime::Config::load(config).context("load config")?;
+
+			if let Some(ip) = ip_address {
+				config.http.listen_addr = ip;
+			}
+
+			if let Some(port) = port {
+				config.http.listen_port = port;
+			}
+
+			let mut runtime = tokio::runtime::Builder::new_multi_thread().tap_mut(|builder| {
+				builder.enable_all();
+			});
+
+			if let Some(worker_threads) = config.runtime.worker_threads {
+				runtime.worker_threads(worker_threads.get());
+			}
+
+			if let Some(max_blocking_threads) = config.runtime.max_blocking_threads {
+				runtime.max_blocking_threads(max_blocking_threads.get());
+			}
+
+			runtime.thread_stack_size(config.runtime.thread_stack_size);
+
+			#[cfg(all(feature = "console", tokio_unstable))]
+			if config.runtime.metrics.record_poll_counts {
+				runtime.enable_metrics_poll_count_histogram();
+			}
+
+			runtime
+				.build()
+				.context("build tokio runtime")?
+				.block_on(serve(config))?;
 		}
 
 		Action::GenerateSchema { check } => {
@@ -47,24 +80,27 @@ fn main() -> color_eyre::Result<ExitCode>
 }
 
 /// Serves the API on the given `ip_address` and `port` with the given `config`.
-#[tokio::main]
-async fn serve(
-	ip_address: IpAddr,
-	port: u16,
-	config: cs2kz_api::runtime::Config,
-) -> color_eyre::Result<()>
+async fn serve(config: cs2kz_api::runtime::Config) -> color_eyre::Result<()>
 {
 	cs2kz_api::runtime::panic_hook::install();
 
-	let _guard = logging::init().context("initialize logging")?;
+	let _tracing_guard = self::tracing::init(config.tracing).context("initalize tracing")?;
 
-	let tcp_listener = TcpListener::bind(SocketAddr::new(ip_address, port))
+	let tcp_listener = TcpListener::bind(config.http.socket_addr())
 		.await
 		.context("bind tcp listener")?;
 
-	let server = cs2kz_api::server(config).await.context("run server")?;
+	let server = cs2kz_api::server(
+		config.runtime,
+		config.database,
+		config.http,
+		config.secrets,
+		config.steam,
+	)
+	.await
+	.context("run server")?;
 
-	tracing::info!("listening on {}", tcp_listener.local_addr()?);
+	::tracing::info!("listening on {}", tcp_listener.local_addr()?);
 
 	axum::serve(tcp_listener, server)
 		.with_graceful_shutdown(cs2kz_api::runtime::signals::sigint())
@@ -116,18 +152,17 @@ enum Action
 	Serve
 	{
 		/// The IP address you want the API to listen on.
-		#[clap(default_value = "127.0.0.1")]
 		#[arg(long = "ip")]
-		ip_address: IpAddr,
+		ip_address: Option<IpAddr>,
 
 		/// The port you want the API to listen on.
-		#[clap(default_value = "42069")]
 		#[arg(long)]
-		port: u16,
+		port: Option<u16>,
 
-		#[allow(clippy::missing_docs_in_private_items)]
-		#[command(flatten)]
-		config: cs2kz_api::runtime::Config,
+		/// Path to the configuration file to use.
+		#[clap(default_value = ".config/config.toml")]
+		#[arg(long)]
+		config: PathBuf,
 	},
 
 	/// Generate the API's OpenAPI schema.

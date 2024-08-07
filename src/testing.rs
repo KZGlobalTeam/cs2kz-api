@@ -1,7 +1,5 @@
 //! This module contains helpers for unit/integration tests.
 
-use std::sync::Arc;
-
 use color_eyre::eyre::WrapErr;
 use cs2kz::SteamID;
 use serde::de::DeserializeOwned;
@@ -25,10 +23,10 @@ pub const ALPHAKEKS_ID: SteamID = match SteamID::new(76561198282622073_u64) {
 pub fn steam_svc() -> SteamService
 {
 	let http_client = reqwest::Client::new();
-	let api_url = Arc::new(Url::parse("http://127.0.0.1").unwrap());
+	let api_url = Url::parse("http://127.0.0.1").unwrap();
 	let steam_api_key = String::new();
 
-	SteamService::new(api_url, steam_api_key, None, None, http_client)
+	SteamService::new(api_url, steam_api_key, Default::default(), Default::default(), http_client)
 }
 
 pub fn auth_svc(database: Pool<MySql>) -> AuthService
@@ -38,7 +36,7 @@ pub fn auth_svc(database: Pool<MySql>) -> AuthService
 	let jwt_secret = String::from("Zm9vYmFyYmF6");
 	let cookie_domain = String::from("localhost");
 
-	AuthService::new(database, http_client, steam_svc, jwt_secret, cookie_domain).unwrap()
+	AuthService::new(database, http_client, steam_svc, jwt_secret, cookie_domain)
 }
 
 pub fn player_svc(database: Pool<MySql>) -> PlayerService

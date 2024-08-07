@@ -52,7 +52,7 @@ in
 craneLib.buildPackage (commonArgs // {
   inherit cargoArtifacts;
 
-  # A lot of tests are integration tests that require docker.
+  # A lot of tests require a live database.
   # They run in CI anyway, so it's not too important to have nix run them as well.
   doCheck = false;
 })

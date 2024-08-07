@@ -1,9 +1,9 @@
 //! Tracing layer for logging to files.
 
-use std::path::PathBuf;
-use std::{env, fs};
+use std::fs;
 
 use color_eyre::eyre::WrapErr;
+use cs2kz_api::runtime::config::TracingFilesConfig;
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_appender::rolling::Rotation;
 use tracing_subscriber::fmt::format::FmtSpan;
@@ -16,18 +16,18 @@ use tracing_subscriber::Layer;
 /// when the application shuts down.
 ///
 /// The returned [`PathBuf`] is the directory storing the log files.
-pub fn layer<S>() -> color_eyre::Result<(impl tracing_subscriber::Layer<S>, WorkerGuard)>
+pub fn layer<S>(
+	config: TracingFilesConfig,
+) -> color_eyre::Result<(impl tracing_subscriber::Layer<S>, WorkerGuard)>
 where
 	S: tracing::Subscriber + for<'a> LookupSpan<'a>,
 {
-	let log_dir =
-		env::var("LOG_DIR").map_or_else(|_| PathBuf::from("/var/log/cs2kz-api"), PathBuf::from);
-
-	if !log_dir.exists() {
-		fs::create_dir_all(&log_dir).context("create log dir")?;
+	if !config.path.exists() {
+		fs::create_dir_all(&config.path).context("create log dir")?;
 	}
 
-	let log_dir = log_dir
+	let log_dir = config
+		.path
 		.canonicalize()
 		.context("canonicalize log dir path")?;
 
@@ -37,8 +37,6 @@ where
 		.build(&log_dir)
 		.map(tracing_appender::non_blocking)
 		.context("failed to initialize logger")?;
-
-	let filter = super::default_env_filter()?;
 
 	let layer = tracing_subscriber::fmt::layer()
 		.compact()
@@ -51,7 +49,7 @@ where
 		.with_thread_ids(true)
 		.with_thread_names(true)
 		.with_writer(writer)
-		.with_filter(filter);
+		.with_filter(config.filter);
 
 	Ok((layer, guard))
 }

@@ -6,6 +6,7 @@
 //! [DepotDownloader]: https://github.com/SteamRE/DepotDownloader
 
 use std::io;
+use std::path::Path;
 
 use tap::{Pipe, TryConv};
 use tokio::fs::File;
@@ -26,12 +27,6 @@ pub struct MapFile
 	handle: File,
 }
 
-#[cfg(feature = "production")]
-pub(super) type Path<'a> = &'a std::path::Path;
-
-#[cfg(not(feature = "production"))]
-pub(super) type Path<'a> = Option<&'a std::path::Path>;
-
 impl MapFile
 {
 	/// Downloads a map using [DepotDownloader] and returns a handle to the
@@ -41,23 +36,12 @@ impl MapFile
 	#[tracing::instrument(level = "trace", err(Debug, level = "debug"))]
 	pub(super) async fn download(
 		id: WorkshopID,
-		artifacts_path: Path<'_>,
-		depot_downloader_path: Path<'_>,
+		artifacts_path: &Path,
+		depot_downloader_path: &Path,
 	) -> io::Result<Self>
 	{
-		#[cfg(feature = "production")]
 		let out_dir = artifacts_path;
-
-		#[cfg(not(feature = "production"))]
-		let out_dir = artifacts_path
-			.ok_or_else(|| io::Error::other("missing workshop artifacts directory"))?;
-
-		#[cfg(feature = "production")]
 		let depot_downloader = depot_downloader_path;
-
-		#[cfg(not(feature = "production"))]
-		let depot_downloader = depot_downloader_path
-			.ok_or_else(|| io::Error::other("missing depot downloader path"))?;
 
 		tracing::debug!(?out_dir, "invoking {depot_downloader:?}");
 

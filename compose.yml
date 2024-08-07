@@ -26,5 +26,6 @@ services:
     ports:
       - ${KZ_API_PORT:-42069}:${KZ_API_PORT:-42069}
     volumes:
+      - ./.config/config.docker.toml:/etc/cs2kz-api.toml
       - ./docker/logs:/var/log/cs2kz-api
       - ./docker/workshop:/var/lib/cs2kz-api/workshop

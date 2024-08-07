@@ -3,12 +3,21 @@
 //! It represents an exhaustive list of all the possible error conditions the
 //! API might return.
 
-use std::env;
-use std::sync::LazyLock;
+use std::sync::OnceLock;
 
 use serde::{Serialize, Serializer};
 use tap::Tap;
 use url::Url;
+
+/// The base URL for the problem type documentation.
+static BASE_URL: OnceLock<Url> = OnceLock::new();
+
+/// Sets `URL`.
+#[doc(hidden)]
+pub(crate) fn set_base_url(url: Url)
+{
+	assert!(BASE_URL.set(url).is_ok(), "called `set_base_url()` twice!");
+}
 
 /// A problem type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, cs2kz_api_macros::ProblemType)]
@@ -146,19 +155,12 @@ impl Serialize for ProblemType
 	where
 		S: Serializer,
 	{
-		/// The base URL for the problem type documentation.
-		static URL: LazyLock<Url> = LazyLock::new(|| {
-			env::var("KZ_API_PUBLIC_URL")
-				.as_ref()
-				.map_or("https://api.cs2kz.org", |s| s.as_str())
-				.parse::<Url>()
-				.expect("valid public url")
-				.join("/docs/problem-types")
-				.expect("valid url")
-		});
-
-		(*URL)
-			.clone()
+		BASE_URL
+			.get()
+			.cloned()
+			.unwrap_or_else(|| "https://api.cs2kz.org".parse::<Url>().expect("valid url"))
+			.join("/docs/problem-types")
+			.expect("valid url")
 			.tap_mut(|url| url.set_fragment(Some(self.slug())))
 			.serialize(serializer)
 	}

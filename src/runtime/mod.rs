@@ -4,5 +4,5 @@
 pub mod signals;
 pub mod panic_hook;
 
-mod config;
+pub mod config;
 pub use config::Config;

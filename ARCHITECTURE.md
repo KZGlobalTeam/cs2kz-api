@@ -18,10 +18,10 @@ metadata inside [`Cargo.toml`](./Cargo.toml). [`./lib/`](./lib/) contains helper
 
 - The [`./database/`](./database/) directory contains database migrations, test fixtures, and docker volumes.
 - The [`./nix/`](./nix/) directory contains `.nix` files referenced by [`flake.nix`](./flake.nix).
-- The `./logs/` directory will be created when using the default `LOG_DIR` configuration value as specified in
-  [`.env.example`](./.env.example), and stores log files created by the API.
-- The `./workshop/` directory will be created when using the default `KZ_API_WORKSHOP_PATH` configuration value as
-  specified in [`.env.example`](./.env.example), and stores downloaded Steam Workshop files.
+- The `./logs/` directory will be created when using the default `tracing.files.path` configuration value as specified
+  in [`config.example.toml`](./.config/config.example.toml), and stores log files created by the API.
+- The `./workshop/` directory will be created when using the default `steam.workshop-artifacts-path` configuration value
+  as specified in [`config.example.toml`](./.config/config.example.toml), and stores downloaded Steam Workshop files.
 - The `./docker/` directory will contain directories for mounted volumes used by the API container.
 
 ### `cs2kz` crate

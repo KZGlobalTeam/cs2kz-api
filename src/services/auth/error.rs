@@ -63,12 +63,3 @@ impl IntoProblemDetails for Error
 		}
 	}
 }
-
-/// The errors that can occur when setting up the auth service.
-#[derive(Debug, Error)]
-pub enum SetupError
-{
-	/// Something went wrong setting up the JWT state.
-	#[error("failed to setup jwt state")]
-	SetupJwtState(#[from] jsonwebtoken::errors::Error),
-}

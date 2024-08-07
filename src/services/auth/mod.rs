@@ -35,7 +35,7 @@ use crate::services::SteamService;
 pub(crate) mod http;
 
 mod error;
-pub use error::{Error, Result, SetupError};
+pub use error::{Error, Result};
 
 pub(crate) mod models;
 pub use models::{LoginRequest, LoginResponse, LogoutRequest, LogoutResponse};
@@ -74,24 +74,22 @@ impl fmt::Debug for AuthService
 impl AuthService
 {
 	/// Create a new [`AuthService`].
-	#[tracing::instrument(err(Debug))]
+	#[tracing::instrument]
 	pub fn new(
 		database: Pool<MySql>,
 		http_client: reqwest::Client,
 		steam_svc: SteamService,
 		jwt_secret: String,
 		cookie_domain: String,
-	) -> Result<Self, SetupError>
+	) -> Self
 	{
-		let jwt_state = JwtState::new(&jwt_secret).map(Arc::new)?;
-
-		Ok(Self {
+		Self {
 			database,
 			http_client,
-			jwt_state,
+			jwt_state: Arc::new(JwtState::new(&jwt_secret)),
 			steam_svc,
 			cookie_domain: cookie_domain.into(),
-		})
+		}
 	}
 
 	/// Generates a URL that allows a user to login with Steam.
@@ -257,16 +255,14 @@ impl JwtState
 {
 	/// Creates a new [`JwtState`] using the provided `secret` for
 	/// encoding/decoding.
-	///
-	/// `secret` should be base64-encoded.
-	fn new(secret: &str) -> Result<Self, jsonwebtoken::errors::Error>
+	fn new(secret: &str) -> Self
 	{
-		Ok(Self {
+		Self {
 			header: jsonwebtoken::Header::default(),
-			encoding_key: jsonwebtoken::EncodingKey::from_base64_secret(secret)?,
-			decoding_key: jsonwebtoken::DecodingKey::from_base64_secret(secret)?,
+			encoding_key: jsonwebtoken::EncodingKey::from_secret(secret.as_bytes()),
+			decoding_key: jsonwebtoken::DecodingKey::from_secret(secret.as_bytes()),
 			validation: jsonwebtoken::Validation::default(),
-		})
+		}
 	}
 
 	/// Encode a JWT into a string.
@@ -311,7 +307,7 @@ mod tests
 	#[test]
 	fn jwt_ping_pong() -> color_eyre::Result<()>
 	{
-		let state = JwtState::new("Zm9vYmFyYmF6")?;
+		let state = JwtState::new("Zm9vYmFyYmF6");
 		let data = Data { foo: 69 };
 		let encoded = state.encode(Jwt::new(&data, Duration::from_secs(69)))?;
 		let decoded = state.decode::<Data>(&encoded)?;

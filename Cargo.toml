@@ -130,6 +130,11 @@ features = ["derive"]
 [dependencies.serde_json]
 version = "1"
 
+[dependencies.toml]
+version = "0.8"
+default-features = false
+features = ["parse"]
+
 [dependencies.serde_urlencoded]
 version = "0.7"
 
@@ -197,6 +202,7 @@ let_underscore_drop = "warn"
 missing_docs = "warn"
 non_ascii_idents = "deny"
 redundant_lifetimes = "warn"
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tokio_unstable)"] }
 unit_bindings = "warn"
 unsafe_op_in_unsafe_fn = "forbid"
 unused_lifetimes = "warn"

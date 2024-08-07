@@ -37,19 +37,8 @@ pub struct SteamService
 {
 	api_url: Arc<Url>,
 	steam_api_key: Arc<str>,
-
-	#[cfg(feature = "production")]
 	workshop_artifacts_path: Arc<Path>,
-
-	#[cfg(not(feature = "production"))]
-	workshop_artifacts_path: Option<Arc<Path>>,
-
-	#[cfg(feature = "production")]
 	depot_downloader_path: Arc<Path>,
-
-	#[cfg(not(feature = "production"))]
-	depot_downloader_path: Option<Arc<Path>>,
-
 	http_client: reqwest::Client,
 }
 
@@ -77,31 +66,18 @@ impl SteamService
 {
 	/// Creates a new [`SteamService`].
 	pub fn new(
-		api_url: Arc<Url>,
+		api_url: Url,
 		steam_api_key: String,
-		#[cfg(feature = "production")] workshop_artifacts_path: PathBuf,
-		#[cfg(not(feature = "production"))] workshop_artifacts_path: Option<PathBuf>,
-		#[cfg(feature = "production")] depot_downloader_path: PathBuf,
-		#[cfg(not(feature = "production"))] depot_downloader_path: Option<PathBuf>,
+		workshop_artifacts_path: PathBuf,
+		depot_downloader_path: PathBuf,
 		http_client: reqwest::Client,
 	) -> Self
 	{
 		Self {
-			api_url,
+			api_url: api_url.into(),
 			steam_api_key: steam_api_key.into(),
-
-			#[cfg(feature = "production")]
 			workshop_artifacts_path: workshop_artifacts_path.into(),
-
-			#[cfg(not(feature = "production"))]
-			workshop_artifacts_path: workshop_artifacts_path.map(Into::into),
-
-			#[cfg(feature = "production")]
 			depot_downloader_path: depot_downloader_path.into(),
-
-			#[cfg(not(feature = "production"))]
-			depot_downloader_path: depot_downloader_path.map(Into::into),
-
 			http_client,
 		}
 	}
@@ -276,16 +252,12 @@ impl SteamService
 	#[tracing::instrument(level = "debug", err(Debug, level = "debug"))]
 	pub async fn download_map(&self, workshop_id: WorkshopID) -> Result<workshop::MapFile>
 	{
-		#[cfg(feature = "production")]
-		let (workshop_artifacts_path, depot_downloader_path) =
-			(&*self.workshop_artifacts_path, &*self.depot_downloader_path);
-
-		#[cfg(not(feature = "production"))]
-		let (workshop_artifacts_path, depot_downloader_path) =
-			(self.workshop_artifacts_path.as_deref(), self.depot_downloader_path.as_deref());
-
-		workshop::MapFile::download(workshop_id, workshop_artifacts_path, depot_downloader_path)
-			.await
-			.map_err(Error::DownloadWorkshopMap)
+		workshop::MapFile::download(
+			workshop_id,
+			&self.workshop_artifacts_path,
+			&self.depot_downloader_path,
+		)
+		.await
+		.map_err(Error::DownloadWorkshopMap)
 	}
 }
