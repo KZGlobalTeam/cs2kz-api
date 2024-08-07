@@ -116,15 +116,13 @@ impl BanService
 			WHERE
 			  b.player_id = COALESCE(?, b.player_id)
 			  AND (
-			    CASE
-			      WHEN ? IS NULL THEN TRUE
-			      ELSE b.server_id = ?
-			    END
+			    (? IS NULL)
+			    OR b.server_id = ?
 			  )
 			  AND b.reason = COALESCE(?, b.reason)
 			  AND b.created_on > COALESCE(?, '1970-01-01 00:00:01')
 			  AND b.created_on < COALESCE(?, '2038-01-19 03:14:07')
-			  AND ({ })
+			  AND ({})
 			LIMIT
 			  ? OFFSET ?
 			",
@@ -524,4 +522,86 @@ async fn create_ban(
 	})?
 	.last_insert_id()
 	.conv::<BanID>())
+}
+
+#[cfg(test)]
+mod tests
+{
+	use sqlx::{MySql, Pool};
+
+	use super::*;
+	use crate::testing;
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/bans.sql")
+	)]
+	async fn fetch_ban_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::ban_svc(database);
+		let req = FetchBanRequest { ban_id: 1.into() };
+		let res = svc.fetch_ban(req).await?.expect("there should be a ban");
+
+		testing::assert_eq!(res.player.name, "iBrahizy");
+		testing::assert_eq!(res.admin.as_ref().map(|p| &*p.name), Some("AlphaKeks"));
+		testing::assert_eq!(res.reason, BanReason::AutoBhop);
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn fetch_ban_not_found(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::ban_svc(database);
+		let req = FetchBanRequest { ban_id: 1.into() };
+		let res = svc.fetch_ban(req).await?;
+
+		testing::assert!(res.is_none());
+
+		Ok(())
+	}
+
+	#[sqlx::test(
+		migrations = "database/migrations",
+		fixtures("../../../database/fixtures/bans.sql")
+	)]
+	async fn fetch_bans_works(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::ban_svc(database);
+		let req = FetchBansRequest::default();
+		let res = svc.fetch_bans(req).await?;
+
+		testing::assert_eq!(res.bans.len(), 3);
+		testing::assert_eq!(res.total, 3);
+
+		let req = FetchBansRequest { player: Some("alphakeks".parse()?), ..Default::default() };
+		let res = svc.fetch_bans(req).await?;
+
+		testing::assert_eq!(res.bans.len(), 1);
+		testing::assert_eq!(res.total, 1);
+		testing::assert!(res.bans[0].server.is_some());
+		testing::assert!(res.bans[0].admin.is_none());
+
+		let req = FetchBansRequest { reason: Some(BanReason::AutoStrafe), ..Default::default() };
+		let res = svc.fetch_bans(req).await?;
+
+		testing::assert_eq!(res.bans.len(), 1);
+		testing::assert_eq!(res.total, 1);
+		testing::assert_eq!(res.bans[0].player.name, "zer0.k");
+
+		Ok(())
+	}
+
+	#[sqlx::test(migrations = "database/migrations")]
+	async fn fetch_bans_no_content(database: Pool<MySql>) -> color_eyre::Result<()>
+	{
+		let svc = testing::ban_svc(database);
+		let req = FetchBansRequest::default();
+		let res = svc.fetch_bans(req).await?;
+
+		testing::assert_eq!(res.bans.len(), 0);
+		testing::assert_eq!(res.total, 0);
+
+		Ok(())
+	}
 }

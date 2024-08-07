@@ -8,7 +8,14 @@ use serde::de::DeserializeOwned;
 use sqlx::{MySql, Pool};
 use url::Url;
 
-use crate::services::{AuthService, MapService, PlayerService, ServerService, SteamService};
+use crate::services::{
+	AuthService,
+	BanService,
+	MapService,
+	PlayerService,
+	ServerService,
+	SteamService,
+};
 
 pub const ALPHAKEKS_ID: SteamID = match SteamID::new(76561198282622073_u64) {
 	Some(id) => id,
@@ -55,6 +62,13 @@ pub fn server_svc(database: Pool<MySql>) -> ServerService
 	let auth_svc = auth_svc(database.clone());
 
 	ServerService::new(database, auth_svc)
+}
+
+pub fn ban_svc(database: Pool<MySql>) -> BanService
+{
+	let auth_svc = auth_svc(database.clone());
+
+	BanService::new(database, auth_svc)
 }
 
 pub async fn parse_body<T>(body: axum::body::Body) -> color_eyre::Result<T>
