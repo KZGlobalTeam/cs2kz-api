@@ -71,6 +71,13 @@ path = "./logs"
 # Additional filter directives for this layer.
 filter = ""
 
+[tracing.journald]
+# Write trace data to journald.
+enable = false
+
+# Additional filter directives for this layer.
+filter = ""
+
 # tokio-console is enabled by the `console` feature flag, so there's no
 # `enable` option here.
 [tracing.console]

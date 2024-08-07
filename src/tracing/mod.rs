@@ -9,6 +9,9 @@ use tracing_subscriber::Layer;
 mod stderr;
 mod files;
 
+#[cfg(target_os = "linux")]
+mod journald;
+
 #[cfg(feature = "console")]
 mod console;
 
@@ -35,8 +38,20 @@ pub fn init(config: TracingConfig) -> color_eyre::Result<Option<Guard>>
 	let (files, appender_guard) =
 		files::layer(config.files).context("initialize files tracing layer")?;
 
-	let layer = Layer::and_then(stderr, files).with_filter(config.filter);
-	let registry = tracing_subscriber::registry().with(layer);
+	let layer = Layer::and_then(stderr, files);
+
+	#[cfg(target_os = "linux")]
+	let layer = {
+		let journald = config
+			.journald
+			.enable
+			.then(|| journald::layer(config.journald))
+			.transpose()?;
+
+		Layer::and_then(layer, journald)
+	};
+
+	let registry = tracing_subscriber::registry().with(layer.with_filter(config.filter));
 
 	#[cfg(feature = "console")]
 	let registry = registry.with(console::layer(config.console)?);

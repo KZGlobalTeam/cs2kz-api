@@ -57,6 +57,9 @@ features = ["ansi", "env-filter"]
 [dependencies.tracing-appender]
 version = "0.2"
 
+[dependencies.tracing-journald]
+version = "0.3"
+
 [dependencies.console-subscriber]
 version = "0.4"
 optional = true

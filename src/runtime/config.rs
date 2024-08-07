@@ -102,6 +102,10 @@ pub struct TracingConfig
 	/// Configuration for writing trace data to files.
 	pub files: TracingFilesConfig,
 
+	/// Configuration for writing trace data to journald.
+	#[cfg(target_os = "linux")]
+	pub journald: TracingJournaldConfig,
+
 	/// Configuration for collecting trace data with tokio-console.
 	#[cfg(feature = "console")]
 	pub console: TracingConsoleConfig,
@@ -130,6 +134,20 @@ pub struct TracingFilesConfig
 {
 	/// Path to the directory to store logs in.
 	pub path: PathBuf,
+
+	/// Additional filter directives for this layer.
+	#[serde(deserialize_with = "deserialize_env_filter_opt")]
+	pub filter: Option<EnvFilter>,
+}
+
+/// Configuration for writing trace data to journald.
+#[cfg(target_os = "linux")]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub struct TracingJournaldConfig
+{
+	/// Write trace data to journald.
+	pub enable: bool,
 
 	/// Additional filter directives for this layer.
 	#[serde(deserialize_with = "deserialize_env_filter_opt")]
