@@ -33,3 +33,8 @@ VALUES
     76561198282622073,
     "a107320d-ad7e-40f5-98e5-aa0e15171bc0"
   );
+
+INSERT INTO
+  `ServerTags` (`server_id`, `name`)
+VALUES
+  (1, "private");

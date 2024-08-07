@@ -115,6 +115,15 @@ CREATE TABLE IF NOT EXISTS `Servers` (
   UNIQUE (`key`)
 );
 
+CREATE TABLE IF NOT EXISTS `ServerTags` (
+  `id` INT1 UNSIGNED NOT NULL AUTO_INCREMENT,
+  `server_id` INT2 UNSIGNED NOT NULL,
+  `name` VARCHAR(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`server_id`) REFERENCES `Servers` (`id`),
+  UNIQUE (`server_id`, `name`)
+);
+
 CREATE TABLE IF NOT EXISTS `Jumpstats` (
   `id` INT8 UNSIGNED NOT NULL AUTO_INCREMENT,
   `type` INT1 UNSIGNED NOT NULL,
