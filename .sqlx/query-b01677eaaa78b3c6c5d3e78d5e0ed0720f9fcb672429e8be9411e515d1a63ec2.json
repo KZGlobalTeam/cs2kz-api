@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tINSERT INTO\n\t\t\t  Jumpstats (\n\t\t\t    type,\n\t\t\t    mode,\n\t\t\t    strafes,\n\t\t\t    distance,\n\t\t\t    sync,\n\t\t\t    pre,\n\t\t\t    max,\n\t\t\t    overlap,\n\t\t\t    bad_angles,\n\t\t\t    dead_air,\n\t\t\t    height,\n\t\t\t    airpath,\n\t\t\t    deviation,\n\t\t\t    average_width,\n\t\t\t    airtime,\n\t\t\t    player_id,\n\t\t\t    server_id,\n\t\t\t    plugin_version_id\n\t\t\t  )\n\t\t\tVALUES\n\t\t\t  (\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?,\n\t\t\t    ?\n\t\t\t  )\n\t\t\tRETURNING id\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 18
+    },
+    "nullable": []
+  },
+  "hash": "b01677eaaa78b3c6c5d3e78d5e0ed0720f9fcb672429e8be9411e515d1a63ec2"
+}

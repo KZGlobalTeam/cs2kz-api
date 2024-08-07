@@ -4,8 +4,8 @@ use std::fmt;
 use std::time::Duration;
 
 use axum::extract::FromRef;
-use sqlx::{MySql, Pool};
-use tap::{Pipe, TryConv};
+use sqlx::{MySql, Pool, Row};
+use tap::Pipe;
 
 use crate::database::{SqlErrorExt, TransactionExt};
 use crate::services::auth::{jwt, Jwt};
@@ -149,6 +149,7 @@ impl ServerService
 			  Servers (name, host, port, owner_id, `key`)
 			VALUES
 			  (?, ?, ?, ?, ?)
+			RETURNING id
 			",
 			req.name,
 			req.host,
@@ -156,18 +157,16 @@ impl ServerService
 			req.owner_id,
 			api_key,
 		}
-		.execute(txn.as_mut())
+		.fetch_one(txn.as_mut())
 		.await
+		.and_then(|row| row.try_get(0))
 		.map_err(|error| {
 			if error.is_fk_violation("owner_id") {
 				Error::ServerOwnerDoesNotExist { steam_id: req.owner_id }
 			} else {
 				Error::Database(error)
 			}
-		})?
-		.last_insert_id()
-		.try_conv::<ServerID>()
-		.expect("in-range ID");
+		})?;
 
 		txn.commit().await?;
 

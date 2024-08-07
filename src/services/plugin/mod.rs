@@ -3,8 +3,7 @@
 use std::fmt;
 
 use axum::extract::FromRef;
-use sqlx::{MySql, Pool};
-use tap::TryConv;
+use sqlx::{MySql, Pool, Row};
 
 use crate::database::TransactionExt;
 
@@ -159,15 +158,14 @@ impl PluginService
 			  PluginVersions (semver, git_revision)
 			VALUES
 			  (?, ?)
+			RETURNING id
 			",
 			req.semver,
 			req.git_revision,
 		}
-		.execute(txn.as_mut())
-		.await?
-		.last_insert_id()
-		.try_conv::<PluginVersionID>()
-		.expect("in-range ID");
+		.fetch_one(txn.as_mut())
+		.await
+		.and_then(|row| row.try_get(0))?;
 
 		txn.commit().await?;
 

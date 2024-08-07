@@ -3,8 +3,8 @@
 use std::fmt;
 
 use axum::extract::FromRef;
-use sqlx::{MySql, Pool, QueryBuilder, Transaction};
-use tap::{Conv, Tap};
+use sqlx::{MySql, Pool, QueryBuilder, Row, Transaction};
+use tap::Tap;
 
 use crate::database::TransactionExt;
 use crate::services::AuthService;
@@ -244,6 +244,7 @@ impl RecordService
 				1
 			    ), ?, ?, ?, ?, ?, ?, ?, ?, ?
 			  )
+			RETURNING id
 			",
 			req.course_id,
 			req.mode,
@@ -258,10 +259,9 @@ impl RecordService
 			req.bhop_stats.perfect_perfs,
 			req.plugin_version_id,
 		}
-		.execute(&self.database)
-		.await?
-		.last_insert_id()
-		.conv::<RecordID>();
+		.fetch_one(&self.database)
+		.await
+		.and_then(|row| row.try_get(0))?;
 
 		Ok(SubmitRecordResponse { record_id })
 	}

@@ -7,7 +7,7 @@ use axum::extract::FromRef;
 use cs2kz::{GlobalStatus, SteamID};
 use futures::{TryFutureExt, TryStreamExt};
 use itertools::Itertools;
-use sqlx::{MySql, Pool, QueryBuilder, Transaction};
+use sqlx::{MySql, Pool, QueryBuilder, Row, Transaction};
 use tap::{Pipe, Tap, TryConv};
 
 use crate::database::SqlErrorExt;
@@ -317,6 +317,7 @@ async fn create_map(
 		  )
 		VALUES
 		  (?, ?, ?, ?, ?)
+		RETURNING id
 		",
 		map_name,
 		req.description,
@@ -324,11 +325,9 @@ async fn create_map(
 		req.workshop_id,
 		checksum,
 	}
-	.execute(txn.as_mut())
-	.await?
-	.last_insert_id()
-	.try_conv::<MapID>()
-	.expect("in-range ID");
+	.fetch_one(txn.as_mut())
+	.await
+	.and_then(|row| row.try_get(0))?;
 
 	tracing::debug! {
 		target: "cs2kz_api::audit_log",
@@ -379,7 +378,7 @@ async fn create_courses(
 	txn: &mut Transaction<'_, MySql>,
 ) -> Result<Vec<CreatedCourse>>
 {
-	QueryBuilder::new(queries::INSERT_COURSES)
+	let course_ids = QueryBuilder::new(queries::INSERT_COURSES)
 		.tap_mut(|query| {
 			query.push_values(courses.iter().enumerate(), |mut query, (idx, course)| {
 				if let Some(name) = course.name.as_deref() {
@@ -391,26 +390,12 @@ async fn create_courses(
 				query.push_bind(course.description.as_deref());
 				query.push_bind(map_id);
 			});
-		})
-		.build()
-		.execute(txn.as_mut())
-		.await?;
 
-	let course_ids = sqlx::query_scalar! {
-		r"
-		SELECT
-		  id `id: CourseID`
-		FROM
-		  Courses
-		WHERE
-		  id >= (
-		    SELECT
-		      LAST_INSERT_ID()
-		  )
-		",
-	}
-	.fetch_all(txn.as_mut())
-	.await?;
+			query.push(" RETURNING id ");
+		})
+		.build_query_scalar::<CourseID>()
+		.fetch_all(txn.as_mut())
+		.await?;
 
 	let mut created_courses = Vec::with_capacity(courses.len());
 
@@ -420,6 +405,13 @@ async fn create_courses(
 			.await?
 			.pipe(|filter_ids| created_courses.push(CreatedCourse { id, filter_ids }));
 	}
+
+	tracing::debug! {
+		target: "cs2kz_api::audit_log",
+		%map_id,
+		?created_courses,
+		"created map courses",
+	};
 
 	Ok(created_courses)
 }
@@ -468,7 +460,7 @@ async fn create_course_filters(
 	txn: &mut Transaction<'_, MySql>,
 ) -> Result<[FilterID; 4]>
 {
-	QueryBuilder::new(queries::INSERT_COURSE_FILTERS)
+	let filter_ids = QueryBuilder::new(queries::INSERT_COURSE_FILTERS)
 		.tap_mut(|query| {
 			query.push_values(filters, |mut query, filter| {
 				query.push_bind(course_id);
@@ -478,28 +470,14 @@ async fn create_course_filters(
 				query.push_bind(filter.ranked_status);
 				query.push_bind(filter.notes.as_deref());
 			});
-		})
-		.build()
-		.execute(txn.as_mut())
-		.await?;
 
-	let filter_ids = sqlx::query_scalar! {
-		r"
-		SELECT
-		  id `id: FilterID`
-		FROM
-		  CourseFilters
-		WHERE
-		  id >= (
-		    SELECT
-		      LAST_INSERT_ID()
-		  )
-		",
-	}
-	.fetch_all(txn.as_mut())
-	.await?
-	.try_conv::<[FilterID; 4]>()
-	.expect("exactly 4 filters");
+			query.push(" RETURNING id ");
+		})
+		.build_query_scalar()
+		.fetch_all(txn.as_mut())
+		.await?
+		.try_conv::<[FilterID; 4]>()
+		.expect("exactly 4 filters");
 
 	tracing::debug! {
 		target: "cs2kz_api::audit_log",
@@ -1204,8 +1182,6 @@ mod tests
 
 		let map_id = create_map("kz_foobar", Checksum::new(b"foobar"), &req, &mut txn).await?;
 
-		txn.commit().await?;
-
 		let map = sqlx::query! {
 			r"
 			SELECT
@@ -1220,13 +1196,23 @@ mod tests
 			",
 			map_id,
 		}
-		.fetch_one(&database)
+		.fetch_one(txn.as_mut())
 		.await?;
 
 		testing::assert_eq!(map.name, "kz_foobar");
 		testing::assert_eq!(map.workshop_id, 69);
 		testing::assert!(map.description.is_none());
 		testing::assert_eq!(map.global_status, GlobalStatus::InTesting);
+
+		let create_mappers_result = create_mappers(map_id, &req.mappers, &mut txn).await;
+
+		testing::assert!(create_mappers_result.is_ok());
+
+		let courses = create_courses(map_id, &req.courses, &mut txn).await?;
+
+		testing::assert_eq!(courses.len(), 1);
+
+		txn.commit().await?;
 
 		Ok(())
 	}

@@ -102,7 +102,7 @@ fn ctor()
 		.with_test_writer()
 		.with_thread_ids(true)
 		.with_thread_names(true)
-		.with_env_filter(EnvFilter::from_default_env())
+		.with_env_filter(EnvFilter::new("cs2kz_api=trace,sqlx=debug,info"))
 		.init();
 
 	// so `#[sqlx::test]` can create new databases

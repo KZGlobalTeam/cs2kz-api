@@ -3,8 +3,7 @@
 use std::{fmt, iter};
 
 use axum::extract::FromRef;
-use sqlx::{MySql, Pool};
-use tap::Conv;
+use sqlx::{MySql, Pool, Row};
 
 use crate::database::{SqlErrorExt, TransactionExt};
 use crate::services::{AuthService, SteamService};
@@ -236,6 +235,7 @@ impl PlayerService
 			  )
 			VALUES
 			  (?, ?, ?, ?, ?, ?, ?)
+			RETURNING id
 			",
 			req.player_id,
 			req.server_id,
@@ -245,10 +245,9 @@ impl PlayerService
 			req.session.bhop_stats.total,
 			req.session.bhop_stats.perfs,
 		}
-		.execute(txn.as_mut())
-		.await?
-		.last_insert_id()
-		.conv::<SessionID>();
+		.fetch_one(txn.as_mut())
+		.await
+		.and_then(|row| row.try_get(0))?;
 
 		tracing::info! {
 			target: "cs2kz_api::audit_log",
@@ -280,6 +279,7 @@ impl PlayerService
 				  )
 				VALUES
 				  (?, ?, ?, ?, ?, ?, ?, ?, ?)
+				RETURNING id
 				",
 				req.player_id,
 				course_id,
@@ -291,10 +291,9 @@ impl PlayerService
 				session_data.bhop_stats.total,
 				session_data.bhop_stats.perfs,
 			}
-			.execute(txn.as_mut())
-			.await?
-			.last_insert_id()
-			.conv::<CourseSessionID>();
+			.fetch_one(txn.as_mut())
+			.await
+			.and_then(|row| row.try_get(0))?;
 
 			tracing::info! {
 				target: "cs2kz_api::audit_log",

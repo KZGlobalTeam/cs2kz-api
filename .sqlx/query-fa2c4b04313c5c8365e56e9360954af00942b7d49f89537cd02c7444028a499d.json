@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tINSERT INTO\n\t\t\t  GameSessions (\n\t\t\t    player_id,\n\t\t\t    server_id,\n\t\t\t    time_active,\n\t\t\t    time_spectating,\n\t\t\t    time_afk,\n\t\t\t    bhops,\n\t\t\t    perfs\n\t\t\t  )\n\t\t\tVALUES\n\t\t\t  (?, ?, ?, ?, ?, ?, ?)\n\t\t\tRETURNING id\n\t\t\t",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "fa2c4b04313c5c8365e56e9360954af00942b7d49f89537cd02c7444028a499d"
+}

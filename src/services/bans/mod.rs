@@ -12,8 +12,7 @@ use std::time::Duration;
 use axum::extract::FromRef;
 use chrono::{DateTime, Utc};
 use cs2kz::SteamID;
-use sqlx::{MySql, Pool, Transaction};
-use tap::Conv;
+use sqlx::{MySql, Pool, Row, Transaction};
 
 use crate::database::{SqlErrorExt, TransactionExt};
 use crate::net::IpAddr;
@@ -301,15 +300,15 @@ impl BanService
 			  Unbans (ban_id, reason, admin_id)
 			VALUES
 			  (?, ?, ?)
+			RETURNING id
 			",
 			req.ban_id,
 			req.reason,
 			req.admin_id,
 		}
-		.execute(txn.as_mut())
-		.await?
-		.last_insert_id()
-		.conv::<UnbanID>();
+		.fetch_one(txn.as_mut())
+		.await
+		.and_then(|row| row.try_get(0))?;
 
 		txn.commit().await?;
 
@@ -482,7 +481,7 @@ async fn create_ban(
 	txn: &mut Transaction<'_, MySql>,
 ) -> Result<BanID>
 {
-	Ok(sqlx::query! {
+	sqlx::query! {
 		r"
 		INSERT INTO
 		  Bans(
@@ -495,7 +494,8 @@ async fn create_ban(
 		    expires_on
 		  )
 		VALUES
-		(?, ?, ?, ?, ?, ?, ?)
+		  (?, ?, ?, ?, ?, ?, ?)
+		RETURNING id
 		",
 		player_id,
 		player_ip,
@@ -505,8 +505,9 @@ async fn create_ban(
 		banned_by_details.plugin_version_id,
 		Utc::now() + ban_duration,
 	}
-	.execute(txn.as_mut())
+	.fetch_one(txn.as_mut())
 	.await
+	.and_then(|row| row.try_get(0))
 	.map_err(|error| {
 		if error.is_fk_violation("player_id") {
 			Error::PlayerDoesNotExist { steam_id: player_id }
@@ -519,9 +520,7 @@ async fn create_ban(
 		} else {
 			Error::Database(error)
 		}
-	})?
-	.last_insert_id()
-	.conv::<BanID>())
+	})
 }
 
 #[cfg(test)]

@@ -9,8 +9,7 @@
 use std::fmt;
 
 use axum::extract::FromRef;
-use sqlx::{MySql, Pool};
-use tap::Conv;
+use sqlx::{MySql, Pool, Row};
 
 pub(crate) mod http;
 mod queries;
@@ -189,6 +188,7 @@ impl JumpstatService
 			    ?,
 			    ?
 			  )
+			RETURNING id
 			"#,
 			req.jump_type,
 			req.mode,
@@ -209,17 +209,16 @@ impl JumpstatService
 			req.server_id,
 			req.server_plugin_version_id,
 		}
-		.execute(txn.as_mut())
+		.fetch_one(txn.as_mut())
 		.await
+		.and_then(|row| row.try_get(0))
 		.map_err(|error| {
 			if error.is_fk_violation("player_id") {
 				Error::PlayerDoesNotExist { steam_id: req.player_id }
 			} else {
 				Error::Database(error)
 			}
-		})?
-		.last_insert_id()
-		.conv::<JumpstatID>();
+		})?;
 
 		txn.commit().await?;
 
