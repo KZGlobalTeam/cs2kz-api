@@ -33,8 +33,6 @@ macro_rules! sqlx_scalar_forward {
 
 			fn compatible(ty: &<DB as sqlx::Database>::TypeInfo) -> bool
 			{
-				dbg!(ty);
-				dbg!(<$as as sqlx::Type<DB>>::type_info());
 				<$as as sqlx::Type<DB>>::compatible(ty)
 			}
 		}
