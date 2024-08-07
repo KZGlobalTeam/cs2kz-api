@@ -1,0 +1,34 @@
+{
+  "db_name": "MySQL",
+  "query": "\n\t\t\tSELECT\n\t\t\t  s.`key` `key!: ApiKey`,\n\t\t\t  v.semver `plugin_version: PluginVersion`\n\t\t\tFROM\n\t\t\t  Servers s\n\t\t\t  JOIN PluginVersions v\n\t\t\tWHERE\n\t\t\t  s.id = 1\n\t\t\tORDER BY\n\t\t\t  v.created_on DESC\n\t\t\t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "key!: ApiKey",
+        "type_info": {
+          "type": "String",
+          "flags": "UNIQUE_KEY | UNSIGNED | BINARY",
+          "max_size": 144
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "plugin_version: PluginVersion",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | UNIQUE_KEY | NO_DEFAULT_VALUE",
+          "max_size": 56
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false
+    ]
+  },
+  "hash": "7a0ef27b245cd4783cc75a756bcfea5d12c3e85bafc1a7d52f5e5dec011b6fe8"
+}
