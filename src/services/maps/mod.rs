@@ -221,7 +221,7 @@ impl MapService
 
 		txn.commit().await?;
 
-		tracing::info!(target: "cs2kz_api::audit_log", map_id = %req.map_id, "updated map");
+		tracing::info!(map_id = %req.map_id, "updated map");
 
 		Ok(response)
 	}
@@ -294,7 +294,6 @@ async fn create_map(
 	match deglobal_result.rows_affected() {
 		0 => { /* all good, this is a new map */ }
 		1 => tracing::info! {
-			target: "cs2kz_api::audit_log",
 			%map_name,
 			"degloballed old version of map",
 		},
@@ -330,10 +329,9 @@ async fn create_map(
 	.and_then(|row| row.try_get(0))?;
 
 	tracing::debug! {
-		target: "cs2kz_api::audit_log",
 		id = %map_id,
 		name = %map_name,
-		new = %(deglobal_result.rows_affected() == 0),
+		new = deglobal_result.rows_affected() == 0,
 		"created map",
 	};
 
@@ -365,7 +363,7 @@ async fn create_mappers(
 			}
 		})?;
 
-	tracing::debug!(target: "cs2kz_api::audit_log", ?mapper_ids, "created mappers");
+	tracing::debug!(?mapper_ids, "created mappers");
 
 	Ok(())
 }
@@ -406,12 +404,7 @@ async fn create_courses(
 			.pipe(|filter_ids| created_courses.push(CreatedCourse { id, filter_ids }));
 	}
 
-	tracing::debug! {
-		target: "cs2kz_api::audit_log",
-		%map_id,
-		?created_courses,
-		"created map courses",
-	};
+	tracing::debug!(%map_id, ?created_courses, "created map courses");
 
 	Ok(created_courses)
 }
@@ -441,12 +434,7 @@ async fn create_course_mappers(
 			}
 		})?;
 
-	tracing::debug! {
-		target: "cs2kz_api::audit_log",
-		%course_id,
-		?mapper_ids,
-		"created course mappers",
-	};
+	tracing::debug!(%course_id, ?mapper_ids, "created course mappers");
 
 	Ok(())
 }
@@ -479,12 +467,7 @@ async fn create_course_filters(
 		.try_conv::<[FilterID; 4]>()
 		.expect("exactly 4 filters");
 
-	tracing::debug! {
-		target: "cs2kz_api::audit_log",
-		%course_id,
-		?filter_ids,
-		"created course filters",
-	};
+	tracing::debug!(%course_id, ?filter_ids, "created course filters");
 
 	Ok(filter_ids)
 }
@@ -521,7 +504,7 @@ async fn update_metadata(req: &UpdateMapRequest, txn: &mut Transaction<'_, MySql
 		n => assert_eq!(n, 1, "updated more than 1 map"),
 	}
 
-	tracing::info!(target: "cs2kz_api::audit_log", map_id = %req.map_id, "updated map metadata");
+	tracing::info!(map_id = %req.map_id, "updated map metadata");
 
 	Ok(())
 }
@@ -592,13 +575,7 @@ async fn check_steam(
 		n => assert_eq!(n, 1, "updated more than 1 map"),
 	}
 
-	tracing::info! {
-		target: "cs2kz_api::audit_log",
-		map_id = %req.map_id,
-		%map_name,
-		%checksum,
-		"updated map name and checksum",
-	};
+	tracing::info!(map_id = %req.map_id, %map_name, %checksum, "updated map name and checksum");
 
 	Ok(())
 }
@@ -658,7 +635,7 @@ async fn remove_mappers(
 		return Err(Error::MapMustHaveMappers);
 	}
 
-	tracing::info!(target: "cs2kz_api::audit_log", %map_id, ?mapper_ids, "removed mappers");
+	tracing::info!(%map_id, ?mapper_ids, "removed mappers");
 
 	Ok(())
 }
@@ -710,12 +687,7 @@ async fn update_courses(
 
 	updated_courses.sort_unstable();
 
-	tracing::info! {
-		target: "cs2kz_api::audit_log",
-		%map_id,
-		?updated_courses,
-		"updated courses",
-	};
+	tracing::info!(%map_id, ?updated_courses, "updated courses");
 
 	Ok(updated_courses)
 }
@@ -826,7 +798,7 @@ async fn remove_course_mappers(
 		return Err(Error::CourseMustHaveMappers { course_id: Some(course_id) });
 	}
 
-	tracing::info!(target: "cs2kz_api::audit_log", %course_id, ?mapper_ids, "removed course mappers");
+	tracing::info!(%course_id, ?mapper_ids, "removed course mappers");
 
 	Ok(())
 }
@@ -878,12 +850,7 @@ async fn update_filters(
 
 	updated_filter_ids.sort_unstable();
 
-	tracing::info! {
-		target: "cs2kz_api::audit_log",
-		%course_id,
-		?updated_filter_ids,
-		"updated course filters",
-	};
+	tracing::info!(%course_id, ?updated_filter_ids, "updated course filters");
 
 	Ok(updated_filter_ids)
 }

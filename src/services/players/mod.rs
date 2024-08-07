@@ -183,7 +183,7 @@ impl PlayerService
 			false => Error::Database(error),
 		})?;
 
-		tracing::info!(target: "cs2kz_api::audit_log", "registered new player");
+		tracing::info!("registered new player");
 
 		Ok(RegisterPlayerResponse { player_id: req.steam_id })
 	}
@@ -219,7 +219,7 @@ impl PlayerService
 			n => assert_eq!(n, 1, "updated more than one player"),
 		}
 
-		tracing::info!(target: "cs2kz_api::audit_log", "updated player");
+		tracing::info!("updated player");
 
 		let session_id = sqlx::query! {
 			r"
@@ -249,11 +249,7 @@ impl PlayerService
 		.await
 		.and_then(|row| row.try_get(0))?;
 
-		tracing::info! {
-			target: "cs2kz_api::audit_log",
-			%session_id,
-			"recorded in-game session",
-		};
+		tracing::info!(%session_id, "recorded in-game session");
 
 		let mut course_session_ids = Vec::with_capacity(req.session.course_sessions.len() * 2);
 
@@ -295,13 +291,7 @@ impl PlayerService
 			.await
 			.and_then(|row| row.try_get(0))?;
 
-			tracing::info! {
-				target: "cs2kz_api::audit_log",
-				%course_id,
-				%mode,
-				%course_session_id,
-				"recorded course session",
-			};
+			tracing::info!(%course_id, %mode, %course_session_id, "recorded course session");
 
 			course_session_ids.push(course_session_id);
 		}

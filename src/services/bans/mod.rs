@@ -173,7 +173,6 @@ impl BanService
 		txn.commit().await?;
 
 		tracing::trace! {
-			target: "cs2kz_api::audit_log",
 			%ban_id,
 			player_id = %req.player_id,
 			reason = %req.reason,
@@ -246,7 +245,7 @@ impl BanService
 
 		txn.commit().await?;
 
-		tracing::debug!(target: "cs2kz_api::audit_log", ban_id = %req.ban_id, "updated ban");
+		tracing::debug!(ban_id = %req.ban_id, "updated ban");
 
 		Ok(UpdateBanResponse { _priv: () })
 	}
@@ -312,13 +311,7 @@ impl BanService
 
 		txn.commit().await?;
 
-		tracing::debug! {
-			target: "cs2kz_api::audit_log",
-			ban_id = %req.ban_id,
-			%unban_id,
-			admin_id = %req.admin_id,
-			"reverted ban",
-		};
+		tracing::debug!(ban_id = %req.ban_id, %unban_id, admin_id = %req.admin_id, "reverted ban");
 
 		Ok(UnbanResponse { ban_id: req.ban_id, unban_id })
 	}

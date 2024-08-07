@@ -76,16 +76,16 @@ pub(crate) fn on_failure(
 {
 	match failure {
 		ServerErrorsFailureClass::Error(error) => {
-			tracing::error!(target: "cs2kz_api::audit_log", %error, "error occurred during request");
+			tracing::error!(target: "cs2kz_api::runtime::errors", %error, "error occurred during request");
 		}
 		ServerErrorsFailureClass::StatusCode(status) if status.is_server_error() => {
-			tracing::error!(target: "cs2kz_api::audit_log", %status, "error occurred during request");
+			tracing::error!(target: "cs2kz_api::runtime::errors", %status, "error occurred during request");
 		}
 		ServerErrorsFailureClass::StatusCode(status) if status.is_client_error() => {
-			tracing::debug!(target: "cs2kz_api::audit_log", %status, "error occurred during request");
+			tracing::debug!(target: "cs2kz_api::runtime::errors", %status, "error occurred during request");
 		}
 		ServerErrorsFailureClass::StatusCode(status) => {
-			tracing::warn!(target: "cs2kz_api::audit_log", %status, "error occurred during request");
+			tracing::warn!(target: "cs2kz_api::runtime::errors", %status, "error occurred during request");
 		}
 	}
 }

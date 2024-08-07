@@ -143,12 +143,7 @@ impl AdminService
 
 		txn.commit().await?;
 
-		tracing::info! {
-			target: "cs2kz_api::audit_log",
-			user_id = %req.user_id,
-			permissions = %req.permissions,
-			"set permissions for user",
-		};
+		tracing::info!(user_id = %req.user_id, permissions = %req.permissions, "set permissions for user");
 
 		Ok(SetPermissionsResponse { _priv: () })
 	}

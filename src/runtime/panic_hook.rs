@@ -18,7 +18,7 @@ pub fn install()
 			let backtrace = Backtrace::force_capture();
 
 			tracing::error! {
-				target: "cs2kz_api::audit_log",
+				target: "cs2kz_api::runtime::panics",
 				"\n{info}\n---\nbacktrace:\n{backtrace}",
 			};
 		});

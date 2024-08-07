@@ -59,7 +59,7 @@ impl MapFile
 
 		if let Err(error) = tokio::try_join!(stdout.flush(), stderr.flush()) {
 			tracing::error! {
-				target: "cs2kz_api::audit_log",
+				target: "cs2kz_api::runtime::errors",
 				%error,
 				"failed to flush stdout/stderr",
 			};
@@ -72,7 +72,7 @@ impl MapFile
 		let out_file_path = out_dir.join(format!("{id}.vpk"));
 		let handle = File::open(&out_file_path).await.inspect_err(|err| {
 			tracing::error! {
-				target: "cs2kz_api::audit_log",
+				target: "cs2kz_api::runtime::errors",
 				%err,
 				path = ?out_file_path,
 				"failed to open map file",

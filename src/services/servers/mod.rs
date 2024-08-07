@@ -170,13 +170,7 @@ impl ServerService
 
 		txn.commit().await?;
 
-		tracing::info! {
-			target: "cs2kz_api::audit_log",
-			%api_key,
-			%server_id,
-			owner_id = %req.owner_id,
-			"registered new server",
-		};
+		tracing::info!(%api_key, %server_id, owner_id = %req.owner_id, "registered new server");
 
 		Ok(RegisterServerResponse { server_id, api_key })
 	}
@@ -219,11 +213,7 @@ impl ServerService
 
 		txn.commit().await?;
 
-		tracing::info! {
-			target: "cs2kz_api::audit_log",
-			server_id = %req.server_id,
-			"updated server",
-		};
+		tracing::info!(server_id = %req.server_id, "updated server");
 
 		Ok(UpdateServerResponse { _priv: () })
 	}
@@ -258,12 +248,7 @@ impl ServerService
 
 		txn.commit().await?;
 
-		tracing::info! {
-			target: "cs2kz_api::audit_log",
-			server_id = %req.server_id,
-			%new_key,
-			"reset API key for server",
-		};
+		tracing::info!(server_id = %req.server_id, %new_key, "reset API key for server");
 
 		Ok(ResetKeyResponse { key: new_key })
 	}
@@ -295,11 +280,7 @@ impl ServerService
 
 		txn.commit().await?;
 
-		tracing::info! {
-			target: "cs2kz_api::audit_log",
-			server_id = %req.server_id,
-			"deleted API key of server",
-		};
+		tracing::info!(server_id = %req.server_id, "deleted API key of server");
 
 		Ok(DeleteKeyResponse { _priv: () })
 	}

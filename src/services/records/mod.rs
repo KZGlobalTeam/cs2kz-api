@@ -362,7 +362,7 @@ async fn move_record(
 		n => panic!("did not delete exactly 1 record, but {n}"),
 	}
 
-	tracing::info!(target: "cs2kz_api::audit_log", from, to, "moved record");
+	tracing::info!(from, to, "moved record");
 
 	Ok(())
 }

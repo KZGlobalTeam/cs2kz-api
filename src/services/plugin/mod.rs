@@ -142,12 +142,7 @@ impl PluginService
 		.map(|row| row.semver);
 
 		if let Some(latest) = latest_version.filter(|v| v >= &req.semver) {
-			tracing::warn! {
-				target: "cs2kz_api::audit_log",
-				%latest,
-				%req.semver,
-				"submitted outdated plugin version",
-			};
+			tracing::warn!(%latest, %req.semver, "submitted outdated plugin version");
 
 			return Err(Error::OutdatedVersion { latest, actual: req.semver });
 		}
@@ -169,12 +164,7 @@ impl PluginService
 
 		txn.commit().await?;
 
-		tracing::info! {
-			target: "cs2kz_api::audit_log",
-			version = %req.semver,
-			revision = req.git_revision,
-			"registered new plugin version",
-		};
+		tracing::info!(version = %req.semver, revision = req.git_revision, "registered new plugin version");
 
 		Ok(SubmitPluginVersionResponse { plugin_version_id })
 	}

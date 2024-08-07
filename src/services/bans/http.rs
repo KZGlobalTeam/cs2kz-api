@@ -117,12 +117,7 @@ async fn create(
 			return Err(Error::Unauthorized)?;
 		}
 		(Some(server), Some(session)) => {
-			tracing::warn! {
-				target: "cs2kz_api::audit_log",
-				?server,
-				?session,
-				"ban request is doubly authorized",
-			};
+			tracing::warn!(?server, ?session, "ban request is doubly authorized");
 
 			return Err(Error::DoublyAuthorized {
 				server_id: server.id(),
