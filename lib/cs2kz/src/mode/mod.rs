@@ -22,7 +22,7 @@ mod tests;
 
 /// The two gamemodes officially supported by CS2KZ.
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Mode
 {
 	/// The VNL gamemode.
@@ -85,6 +85,17 @@ impl Mode
 			Self::Vanilla => "VNL",
 			Self::Classic => "CKZ",
 		}
+	}
+}
+
+impl fmt::Debug for Mode
+{
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+	{
+		f.write_str(match f.alternate() {
+			false => self.as_str_short(),
+			true => self.as_str_capitalized(),
+		})
 	}
 }
 
