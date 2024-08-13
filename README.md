@@ -13,7 +13,7 @@ Questions and feedback are appreciated! Feel free to open an issue or join [our 
 
 ## Local Setup
 
-> [!IMPORTANT]
+> \[!IMPORTANT\]
 > It is expected you have the required tools described in [tooling](#tooling) installed on your system.
 
 The API uses a configuration file located in `.config/config.toml`. An example configuration file is provided in the
@@ -48,7 +48,7 @@ The nix flake in the repository root also outputs the API binary as its default 
 
 ### Testing
 
-> [!IMPORTANT]
+> \[!IMPORTANT\]
 > Most of the tests in the `cs2kz-api` crate require a live database to run.
 
 You can run the test suite for the whole workspace using:
