@@ -23,8 +23,15 @@ fn into_u8()
 #[test]
 fn parse_u8()
 {
-	assert_eq!("1".parse::<Mode>(), Ok(Mode::Vanilla));
-	assert_eq!("2".parse::<Mode>(), Ok(Mode::Classic));
+	for x in (u8::MIN..=u8::MAX).map(|x| x.to_string()) {
+		let result = x.parse::<Mode>();
+
+		match x.as_str() {
+			"1" => assert_eq!(result, Ok(Mode::Vanilla)),
+			"2" => assert_eq!(result, Ok(Mode::Classic)),
+			_ => assert!(result.is_err()),
+		}
+	}
 }
 
 #[test]
@@ -34,4 +41,13 @@ fn parse_str()
 	assert_eq!("vaNilLa".parse::<Mode>(), Ok(Mode::Vanilla));
 	assert_eq!("CKZ".parse::<Mode>(), Ok(Mode::Classic));
 	assert_eq!("classic".parse::<Mode>(), Ok(Mode::Classic));
+}
+
+#[test]
+fn fmt_debug()
+{
+	for mode in [Mode::Vanilla, Mode::Classic] {
+		assert_eq!(format!("{:?}", mode), mode.as_str_short());
+		assert_eq!(format!("{:#?}", mode), mode.as_str_capitalized());
+	}
 }
