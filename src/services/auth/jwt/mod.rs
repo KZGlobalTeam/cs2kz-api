@@ -13,9 +13,9 @@ use axum::{async_trait, RequestPartsExt};
 use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::Authorization;
 use axum_extra::TypedHeader;
-use chrono::{DateTime, Utc};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 use crate::services::AuthService;
 
@@ -84,12 +84,12 @@ impl<T> Jwt<T>
 		self.expiration_timestamp
 	}
 
-	/// Returns a [`chrono::DateTime`] of when this token will expire.
-	pub fn expires_on(&self) -> DateTime<Utc>
+	/// Returns a [`time::OffsetDateTime`] of when this token will expire.
+	pub fn expires_on(&self) -> OffsetDateTime
 	{
 		let secs = i64::try_from(self.expiration_timestamp).expect("sensible expiration date");
 
-		DateTime::from_timestamp(secs, 0).expect("valid expiration date")
+		OffsetDateTime::from_unix_timestamp(secs).expect("valid expiration date")
 	}
 
 	/// Checks if this token has expired.
@@ -107,7 +107,7 @@ where
 	{
 		f.debug_struct("Jwt")
 			.field("payload", self.payload())
-			.field("expires_on", &format_args!("{}", self.expires_on().format("%Y/%m/%d %H:%M:%S")))
+			.field("expires_on", &self.expires_on())
 			.finish()
 	}
 }

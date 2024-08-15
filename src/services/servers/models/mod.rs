@@ -1,9 +1,9 @@
 //! A service for managing KZ servers.
 
 use axum::response::{AppendHeaders, IntoResponse, Response};
-use chrono::{DateTime, Utc};
 use cs2kz::SteamID;
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 use crate::num::ClampedU64;
 use crate::services::plugin::PluginVersion;
@@ -66,7 +66,8 @@ pub struct FetchServerResponse
 	pub owner: ServerOwner,
 
 	/// When this server was approved.
-	pub created_on: DateTime<Utc>,
+	#[serde(with = "time::serde::rfc3339")]
+	pub created_on: OffsetDateTime,
 }
 
 impl IntoResponse for FetchServerResponse
@@ -104,10 +105,12 @@ pub struct FetchServersRequest
 	pub owned_by: Option<PlayerIdentifier>,
 
 	/// Filter by approval date.
-	pub created_after: Option<DateTime<Utc>>,
+	#[serde(default, with = "time::serde::rfc3339::option")]
+	pub created_after: Option<OffsetDateTime>,
 
 	/// Filter by approval date.
-	pub created_before: Option<DateTime<Utc>>,
+	#[serde(default, with = "time::serde::rfc3339::option")]
+	pub created_before: Option<OffsetDateTime>,
 
 	/// The maximum amount of servers to return.
 	#[serde(default)]

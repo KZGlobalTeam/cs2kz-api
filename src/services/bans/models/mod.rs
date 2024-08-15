@@ -1,9 +1,9 @@
 //! Request / Response types for this service.
 
 use axum::response::{AppendHeaders, IntoResponse, Response};
-use chrono::{DateTime, Utc};
 use cs2kz::SteamID;
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 use crate::net::IpAddr;
 use crate::num::ClampedU64;
@@ -60,12 +60,14 @@ pub struct FetchBanResponse
 	pub reason: BanReason,
 
 	/// When this ban was created.
-	pub created_on: DateTime<Utc>,
+	#[serde(with = "time::serde::rfc3339")]
+	pub created_on: OffsetDateTime,
 
 	/// When this ban will expire.
 	///
 	/// This is `null` for permanent bans.
-	pub expires_on: Option<DateTime<Utc>>,
+	#[serde(default, with = "time::serde::rfc3339::option")]
+	pub expires_on: Option<OffsetDateTime>,
 
 	/// The corresponding unban for this ban.
 	#[serde(skip_serializing_if = "Option::is_none")]
@@ -84,7 +86,7 @@ where
 	String: sqlx::Type<R::Database> + sqlx::Decode<'r, R::Database>,
 	BanReason: sqlx::Type<R::Database> + sqlx::Decode<'r, R::Database>,
 	UnbanReason: sqlx::Type<R::Database> + sqlx::Decode<'r, R::Database>,
-	DateTime<Utc>: sqlx::Type<R::Database> + sqlx::Decode<'r, R::Database>,
+	OffsetDateTime: sqlx::Type<R::Database> + sqlx::Decode<'r, R::Database>,
 {
 	fn from_row(row: &'r R) -> sqlx::Result<Self>
 	{
@@ -148,7 +150,8 @@ pub struct Unban
 	pub admin: Option<PlayerInfo>,
 
 	/// When the ban was reverted.
-	pub created_on: DateTime<Utc>,
+	#[serde(with = "time::serde::rfc3339")]
+	pub created_on: OffsetDateTime,
 }
 
 /// Request payload for fetching bans.
@@ -174,10 +177,12 @@ pub struct FetchBansRequest
 	pub unbanned_by: Option<PlayerIdentifier>,
 
 	/// Filter by creation date.
-	pub created_after: Option<DateTime<Utc>>,
+	#[serde(default, with = "time::serde::rfc3339::option")]
+	pub created_after: Option<OffsetDateTime>,
 
 	/// Filter by creation date.
-	pub created_before: Option<DateTime<Utc>>,
+	#[serde(default, with = "time::serde::rfc3339::option")]
+	pub created_before: Option<OffsetDateTime>,
 
 	/// The maximum amount of bans to return.
 	#[serde(default)]
@@ -284,7 +289,7 @@ pub struct UpdateBanRequest
 	pub new_reason: Option<String>,
 
 	/// A new expiration date.
-	pub new_expiration_date: Option<DateTime<Utc>>,
+	pub new_expiration_date: Option<OffsetDateTime>,
 }
 
 impl UpdateBanRequest

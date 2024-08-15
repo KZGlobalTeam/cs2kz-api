@@ -2,9 +2,9 @@
 
 use axum::extract::State;
 use axum::{routing, Router};
-use chrono::{DateTime, Utc};
 use cs2kz::SteamID;
 use serde::Deserialize;
+use time::OffsetDateTime;
 use tower::ServiceBuilder;
 
 use super::models::UnbanReason;
@@ -169,7 +169,8 @@ pub(crate) struct UpdateBanRequestPayload
 	new_reason: Option<String>,
 
 	/// A new expiration date.
-	new_expiration_date: Option<DateTime<Utc>>,
+	#[serde(default, with = "time::serde::rfc3339::option")]
+	new_expiration_date: Option<OffsetDateTime>,
 }
 
 /// Update a ban.

@@ -10,9 +10,9 @@ use std::fmt;
 use std::time::Duration;
 
 use axum::extract::FromRef;
-use chrono::{DateTime, Utc};
 use cs2kz::SteamID;
 use sqlx::{MySql, Pool, Row, Transaction};
+use time::OffsetDateTime;
 
 use crate::database::{SqlErrorExt, TransactionExt};
 use crate::net::IpAddr;
@@ -198,7 +198,7 @@ impl BanService
 		let (created_on, unban_id) = sqlx::query! {
 			r"
 			SELECT
-			  b.created_on `created_on: DateTime<Utc>`,
+			  b.created_on `created_on: OffsetDateTime`,
 			  ub.id `unban_id: UnbanID`
 			FROM
 			  Bans b
@@ -496,7 +496,7 @@ async fn create_ban(
 		reason,
 		banned_by_details.admin_id,
 		banned_by_details.plugin_version_id,
-		Utc::now() + ban_duration,
+		OffsetDateTime::now_utc() + ban_duration,
 	}
 	.fetch_one(txn.as_mut())
 	.await

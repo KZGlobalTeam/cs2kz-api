@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "\n\t\t\tSELECT\n\t\t\t  b.created_on `created_on: DateTime<Utc>`,\n\t\t\t  ub.id `unban_id: UnbanID`\n\t\t\tFROM\n\t\t\t  Bans b\n\t\t\t  LEFT JOIN Unbans ub ON ub.ban_id = b.id\n\t\t\tWHERE\n\t\t\t  b.id = ?\n\t\t\t",
+  "query": "\n\t\t\tSELECT\n\t\t\t  b.created_on `created_on: OffsetDateTime`,\n\t\t\t  ub.id `unban_id: UnbanID`\n\t\t\tFROM\n\t\t\t  Bans b\n\t\t\t  LEFT JOIN Unbans ub ON ub.ban_id = b.id\n\t\t\tWHERE\n\t\t\t  b.id = ?\n\t\t\t",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "created_on: DateTime<Utc>",
+        "name": "created_on: OffsetDateTime",
         "type_info": {
           "type": "Timestamp",
           "flags": "NOT_NULL | UNSIGNED | BINARY | TIMESTAMP",
@@ -30,5 +30,5 @@
       true
     ]
   },
-  "hash": "8ec3da010d46123743310ac1fff49f90332559b5ab103dc81d0fdb8a05d445e8"
+  "hash": "7fe2f7f591505bbb9165ada358fccbef364f8bee091271a04e1724cbb91a2eff"
 }

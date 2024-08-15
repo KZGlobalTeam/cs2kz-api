@@ -4,10 +4,10 @@ use std::collections::{BTreeMap, HashSet};
 use std::{cmp, iter};
 
 use axum::response::{AppendHeaders, IntoResponse, Response};
-use chrono::{DateTime, Utc};
 use cs2kz::{GlobalStatus, Mode, RankedStatus, SteamID, Tier};
 use serde::{Deserialize, Deserializer, Serialize};
 use tap::{Conv, Tap};
+use time::OffsetDateTime;
 
 use crate::num::ClampedU64;
 use crate::services::players::PlayerInfo;
@@ -73,7 +73,8 @@ pub struct FetchMapResponse
 	pub courses: Vec<Course>,
 
 	/// When this map was approved.
-	pub created_on: DateTime<Utc>,
+	#[serde(with = "time::serde::rfc3339")]
+	pub created_on: OffsetDateTime,
 }
 
 // We can't derive this because of how we use `Vec` here. We aren't _actually_
@@ -91,7 +92,7 @@ where
 	Checksum: sqlx::Type<R::Database> + sqlx::Decode<'r, R::Database>,
 	SteamID: sqlx::Type<R::Database> + sqlx::Decode<'r, R::Database>,
 	Course: sqlx::FromRow<'r, R>,
-	DateTime<Utc>: sqlx::Type<R::Database> + sqlx::Decode<'r, R::Database>,
+	OffsetDateTime: sqlx::Type<R::Database> + sqlx::Decode<'r, R::Database>,
 {
 	fn from_row(row: &'r R) -> sqlx::Result<Self>
 	{
@@ -224,10 +225,12 @@ pub struct FetchMapsRequest
 	pub global_status: Option<GlobalStatus>,
 
 	/// Only include maps approved after this date.
-	pub created_after: Option<DateTime<Utc>>,
+	#[serde(default, with = "time::serde::rfc3339::option")]
+	pub created_after: Option<OffsetDateTime>,
 
 	/// Only include maps approved before this date.
-	pub created_before: Option<DateTime<Utc>>,
+	#[serde(default, with = "time::serde::rfc3339::option")]
+	pub created_before: Option<OffsetDateTime>,
 
 	/// Maximum number of results to return.
 	#[serde(default)]
