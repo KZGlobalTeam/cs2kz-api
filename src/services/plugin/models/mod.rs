@@ -1,8 +1,8 @@
 //! Request / Response types for this service.
 
 use axum::response::{AppendHeaders, IntoResponse, Response};
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use time::OffsetDateTime;
 
 use crate::num::ClampedU64;
 
@@ -86,7 +86,8 @@ pub struct FetchPluginVersionResponse
 	pub git_revision: String,
 
 	/// When this version was submitted.
-	pub created_on: DateTime<Utc>,
+	#[serde(with = "time::serde::rfc3339")]
+	pub created_on: OffsetDateTime,
 }
 
 impl IntoResponse for FetchPluginVersionResponse

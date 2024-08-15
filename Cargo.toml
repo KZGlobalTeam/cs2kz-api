@@ -101,7 +101,6 @@ features = [
   "mysql",
   "migrate",
   "uuid",
-  "chrono",
   "time",
   "json",
 ]
@@ -111,7 +110,7 @@ version = "4.2"
 features = [
   "auto_into_responses",
   "axum_extras",
-  "chrono",
+  "time",
   "non_strict_integers",
   "preserve_order",
   "preserve_path_order",
@@ -144,13 +143,9 @@ version = "0.7"
 [dependencies.jsonwebtoken]
 version = "9.3"
 
-[dependencies.chrono]
-version = "0.4"
-default-features = false
-features = ["serde"]
-
 [dependencies.time]
 version = "0.3"
+features = ["serde-human-readable"]
 
 [dependencies.url]
 version = "2.5"
