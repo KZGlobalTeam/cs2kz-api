@@ -36,6 +36,10 @@ fn main() -> color_eyre::Result<ExitCode>
 
 	match Args::parse().action {
 		Action::Serve { ip_address, port, config } => {
+			if dotenvy::dotenv().is_err() {
+				eprintln!("WARNING: no `.env` file found");
+			}
+
 			let mut config = cs2kz_api::runtime::Config::load(config).context("load config")?;
 
 			if let Some(ip) = ip_address {
