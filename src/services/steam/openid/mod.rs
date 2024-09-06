@@ -35,6 +35,8 @@ use serde::{Deserialize, Serialize};
 use tap::Tap;
 use url::Url;
 
+use crate::services::SteamService;
+
 mod rejection;
 pub use rejection::OpenIDRejection;
 
@@ -162,8 +164,16 @@ impl OpenIDPayload
 		skip_all,
 		fields(redirect_to = %self.redirect_to),
 	)]
-	async fn verify(mut self, http_client: &reqwest::Client) -> Result<Self, OpenIDRejection>
+	async fn verify(
+		mut self,
+		public_url: &Url,
+		http_client: &reqwest::Client,
+	) -> Result<Self, OpenIDRejection>
 	{
+		if self.return_to != *public_url {
+			return Err(OpenIDRejection::VerifyOpenIDPayload);
+		}
+
 		self.mode = String::from("check_authentication");
 
 		let response = http_client
@@ -204,7 +214,7 @@ impl OpenIDPayload
 impl<S> FromRequestParts<S> for OpenIDPayload
 where
 	S: Send + Sync + 'static,
-	reqwest::Client: FromRef<S>,
+	SteamService: FromRef<S>,
 {
 	type Rejection = OpenIDRejection;
 
@@ -219,11 +229,11 @@ where
 		state: &S,
 	) -> Result<Self, Self::Rejection>
 	{
-		let http_client = reqwest::Client::from_ref(state);
+		let steam_service = SteamService::from_ref(state);
 		let payload = Query::<Self>::from_request_parts(req, state)
 			.await?
 			.0
-			.verify(&http_client)
+			.verify(&steam_service.api_url, &steam_service.http_client)
 			.await?;
 
 		Ok(payload)

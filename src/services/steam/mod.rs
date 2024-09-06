@@ -35,11 +35,11 @@ const MAP_URL: &str = "https://api.steampowered.com/ISteamRemoteStorage/GetPubli
 #[allow(clippy::missing_docs_in_private_items)]
 pub struct SteamService
 {
-	api_url: Arc<Url>,
+	pub(crate) api_url: Arc<Url>,
 	steam_api_key: Arc<str>,
 	workshop_artifacts_path: Arc<Path>,
 	depot_downloader_path: Arc<Path>,
-	http_client: reqwest::Client,
+	pub(crate) http_client: reqwest::Client,
 }
 
 impl fmt::Debug for SteamService
