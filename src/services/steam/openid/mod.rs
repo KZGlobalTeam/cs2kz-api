@@ -170,7 +170,7 @@ impl OpenIDPayload
 		http_client: &reqwest::Client,
 	) -> Result<Self, OpenIDRejection>
 	{
-		if self.return_to != *public_url {
+		if self.return_to.host() != public_url.host() {
 			return Err(OpenIDRejection::VerifyOpenIDPayload);
 		}
 
