@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS `CourseFilters` (
     (`ranked_status` BETWEEN -1 AND 1)
     AND (
       `tier` <= 8
-      OR `ranked_status` = -1
+      OR `ranked_status` = 0
     )
   ),
   CONSTRAINT `non_empty_notes` CHECK(`notes` != ''),
