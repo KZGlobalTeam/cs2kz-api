@@ -3853,6 +3853,7 @@
               "$ref": "#/components/schemas/SteamID"
             },
             "description": "List of SteamIDs of players to add as mappers to this course.",
+            "uniqueItems": true,
             "nullable": true
           },
           "removed_mappers": {
@@ -3861,6 +3862,7 @@
               "$ref": "#/components/schemas/SteamID"
             },
             "description": "List of SteamIDs of players to remove as mappers from this course.",
+            "uniqueItems": true,
             "nullable": true
           },
           "filter_updates": {
@@ -4518,7 +4520,8 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of SteamIDs of the players who contributed to the creation of this\ncourse."
+            "description": "List of SteamIDs of the players who contributed to the creation of this\ncourse.",
+            "uniqueItems": true
           },
           "filters": {
             "type": "array",
@@ -5092,7 +5095,8 @@
             "items": {
               "$ref": "#/components/schemas/SteamID"
             },
-            "description": "List of SteamIDs of the players who contributed to the creation of this\nmap."
+            "description": "List of SteamIDs of the players who contributed to the creation of this\nmap.",
+            "uniqueItems": true
           },
           "courses": {
             "type": "array",
@@ -5349,6 +5353,7 @@
               "$ref": "#/components/schemas/SteamID"
             },
             "description": "List of SteamIDs of players to add as mappers to this map.",
+            "uniqueItems": true,
             "nullable": true
           },
           "removed_mappers": {
@@ -5357,6 +5362,7 @@
               "$ref": "#/components/schemas/SteamID"
             },
             "description": "List of SteamIDs of players to remove as mappers from this map.",
+            "uniqueItems": true,
             "nullable": true
           },
           "course_updates": {
