@@ -1,6 +1,6 @@
 //! Request / Response types for this service.
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::{cmp, iter};
 
 use axum::response::{AppendHeaders, IntoResponse, Response};
@@ -320,7 +320,7 @@ pub struct SubmitMapRequest
 	/// List of SteamIDs of the players who contributed to the creation of this
 	/// map.
 	#[serde(deserialize_with = "crate::serde::deserialize_non_empty")]
-	pub mappers: Vec<SteamID>,
+	pub mappers: BTreeSet<SteamID>,
 
 	/// The map's courses.
 	#[serde(deserialize_with = "SubmitMapRequest::deserialize_courses")]
@@ -400,7 +400,7 @@ pub struct NewCourse
 	/// List of SteamIDs of the players who contributed to the creation of this
 	/// course.
 	#[serde(deserialize_with = "crate::serde::deserialize_non_empty")]
-	pub mappers: Vec<SteamID>,
+	pub mappers: BTreeSet<SteamID>,
 
 	/// The course's filters.
 	#[serde(deserialize_with = "NewCourse::deserialize_filters")]
@@ -537,10 +537,10 @@ pub struct UpdateMapRequest
 	pub check_steam: bool,
 
 	/// List of SteamIDs of players to add as mappers to this map.
-	pub added_mappers: Option<Vec<SteamID>>,
+	pub added_mappers: Option<BTreeSet<SteamID>>,
 
 	/// List of SteamIDs of players to remove as mappers from this map.
-	pub removed_mappers: Option<Vec<SteamID>>,
+	pub removed_mappers: Option<BTreeSet<SteamID>>,
 
 	/// Updates to this map's courses.
 	pub course_updates: Option<BTreeMap<CourseID, CourseUpdate>>,
@@ -634,11 +634,11 @@ pub struct CourseUpdate
 
 	/// List of SteamIDs of players to add as mappers to this course.
 	#[serde(default, deserialize_with = "crate::serde::deserialize_empty_as_none")]
-	pub added_mappers: Option<Vec<SteamID>>,
+	pub added_mappers: Option<BTreeSet<SteamID>>,
 
 	/// List of SteamIDs of players to remove as mappers from this course.
 	#[serde(default, deserialize_with = "crate::serde::deserialize_empty_as_none")]
-	pub removed_mappers: Option<Vec<SteamID>>,
+	pub removed_mappers: Option<BTreeSet<SteamID>>,
 
 	/// Updates to this course's filters.
 	#[serde(default, deserialize_with = "crate::serde::deserialize_empty_as_none")]

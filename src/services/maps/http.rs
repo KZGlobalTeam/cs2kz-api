@@ -1,6 +1,6 @@
 //! HTTP handlers for this service.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use axum::extract::State;
 use axum::{routing, Router};
@@ -137,10 +137,10 @@ pub(crate) struct UpdateMapRequestPayload
 	pub check_steam: bool,
 
 	/// List of SteamIDs of players to add as mappers to this map.
-	pub added_mappers: Option<Vec<SteamID>>,
+	pub added_mappers: Option<BTreeSet<SteamID>>,
 
 	/// List of SteamIDs of players to remove as mappers from this map.
-	pub removed_mappers: Option<Vec<SteamID>>,
+	pub removed_mappers: Option<BTreeSet<SteamID>>,
 
 	/// Updates to this map's courses.
 	pub course_updates: Option<BTreeMap<CourseID, CourseUpdate>>,

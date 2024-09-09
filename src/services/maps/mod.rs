@@ -1,6 +1,6 @@
 //! A service for managing KZ maps.
 
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::{fmt, iter};
 
 use axum::extract::FromRef;
@@ -342,7 +342,7 @@ async fn create_map(
 #[tracing::instrument(level = "trace", err(Debug, level = "debug"), skip(txn))]
 async fn create_mappers(
 	map_id: MapID,
-	mapper_ids: &[SteamID],
+	mapper_ids: &BTreeSet<SteamID>,
 	txn: &mut Transaction<'_, MySql>,
 ) -> Result<()>
 {
@@ -413,7 +413,7 @@ async fn create_courses(
 #[tracing::instrument(level = "trace", err(Debug, level = "debug"), skip(txn))]
 async fn create_course_mappers(
 	course_id: CourseID,
-	mapper_ids: &[SteamID],
+	mapper_ids: &BTreeSet<SteamID>,
 	txn: &mut Transaction<'_, MySql>,
 ) -> Result<()>
 {
@@ -592,7 +592,7 @@ async fn check_steam(
 #[tracing::instrument(level = "trace", err(Debug, level = "debug"), skip(txn))]
 async fn remove_mappers(
 	map_id: MapID,
-	mapper_ids: &[SteamID],
+	mapper_ids: &BTreeSet<SteamID>,
 	txn: &mut Transaction<'_, MySql>,
 ) -> Result<()>
 {
@@ -755,7 +755,7 @@ async fn update_course(
 #[tracing::instrument(level = "trace", err(Debug, level = "debug"), skip(txn))]
 async fn remove_course_mappers(
 	course_id: CourseID,
-	mapper_ids: &[SteamID],
+	mapper_ids: &BTreeSet<SteamID>,
 	txn: &mut Transaction<'_, MySql>,
 ) -> Result<()>
 {
@@ -1109,11 +1109,11 @@ mod tests
 			workshop_id: 69.into(),
 			description: None,
 			global_status: GlobalStatus::InTesting,
-			mappers: vec![ALPHAKEKS_ID],
+			mappers: FromIterator::from_iter([ALPHAKEKS_ID]),
 			courses: vec![NewCourse {
 				name: None,
 				description: Some(String::from("course description!")),
-				mappers: vec![ALPHAKEKS_ID],
+				mappers: FromIterator::from_iter([ALPHAKEKS_ID]),
 				filters: [
 					NewFilter {
 						mode: Mode::Vanilla,
@@ -1193,11 +1193,11 @@ mod tests
 			workshop_id: 69.into(),
 			description: None,
 			global_status: GlobalStatus::InTesting,
-			mappers: Vec::new(),
+			mappers: Default::default(),
 			courses: vec![NewCourse {
 				name: None,
 				description: Some(String::from("course description!")),
-				mappers: vec![ALPHAKEKS_ID],
+				mappers: FromIterator::from_iter([ALPHAKEKS_ID]),
 				filters: [
 					NewFilter {
 						mode: Mode::Vanilla,
@@ -1247,7 +1247,7 @@ mod tests
 			workshop_id: 69.into(),
 			description: None,
 			global_status: GlobalStatus::InTesting,
-			mappers: vec![ALPHAKEKS_ID],
+			mappers: FromIterator::from_iter([ALPHAKEKS_ID]),
 			courses: Vec::new(),
 		};
 
@@ -1267,11 +1267,11 @@ mod tests
 			workshop_id: 69.into(),
 			description: None,
 			global_status: GlobalStatus::InTesting,
-			mappers: vec![ALPHAKEKS_ID],
+			mappers: FromIterator::from_iter([ALPHAKEKS_ID]),
 			courses: vec![NewCourse {
 				name: None,
 				description: Some(String::from("course description!")),
-				mappers: Vec::new(),
+				mappers: Default::default(),
 				filters: [
 					NewFilter {
 						mode: Mode::Vanilla,

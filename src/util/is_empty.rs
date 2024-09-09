@@ -1,6 +1,6 @@
 //! This module contains the [`IsEmpty`] trait.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// This trait abstracts over containers that can be "empty".
 ///
@@ -39,6 +39,15 @@ impl<T> IsEmpty for Vec<T>
 
 #[sealed]
 impl<K, V> IsEmpty for BTreeMap<K, V>
+{
+	fn is_empty(&self) -> bool
+	{
+		<Self>::is_empty(self)
+	}
+}
+
+#[sealed]
+impl<T> IsEmpty for BTreeSet<T>
 {
 	fn is_empty(&self) -> bool
 	{
