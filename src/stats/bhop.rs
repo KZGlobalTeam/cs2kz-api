@@ -25,7 +25,7 @@ pub struct BhopStats
 	/// The total count.
 	///
 	/// This includes `perfs` and `perfect_perfs`.
-	pub total: u16,
+	pub total: u32,
 
 	/// The "perf" count.
 	///
@@ -34,10 +34,10 @@ pub struct BhopStats
 	/// `perfect_perfs` is for.
 	///
 	/// [mode]: cs2kz::Mode
-	pub perfs: u16,
+	pub perfs: u32,
 
 	/// The tick-perfect-bhop count.
-	pub perfect_perfs: u16,
+	pub perfect_perfs: u32,
 }
 
 impl BhopStats
