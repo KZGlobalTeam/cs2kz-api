@@ -20,17 +20,24 @@ use super::{
 	Session,
 };
 use crate::http::ProblemDetails;
+use crate::middleware;
 use crate::services::steam;
 
 impl From<AuthService> for Router
 {
 	fn from(svc: AuthService) -> Self
 	{
-		Router::new()
+		let no_cors = Router::new()
 			.route("/login", routing::get(login))
-			.route("/logout", routing::get(logout))
 			.route("/callback", routing::get(callback))
-			.with_state(svc)
+			.with_state(svc.clone());
+
+		let cors = Router::new()
+			.route("/logout", routing::get(logout))
+			.route_layer(middleware::cors::dashboard([http::Method::OPTIONS, http::Method::GET]))
+			.with_state(svc);
+
+		no_cors.merge(cors)
 	}
 }
 
