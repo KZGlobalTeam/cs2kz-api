@@ -105,7 +105,7 @@ impl TryFrom<i8> for RankedStatus
 
 impl From<RankedStatus> for i8
 {
-	#[allow(clippy::as_conversions)]
+	#[expect(clippy::as_conversions, reason = "casts are required to turn enums into integers")]
 	fn from(value: RankedStatus) -> Self
 	{
 		value as i8

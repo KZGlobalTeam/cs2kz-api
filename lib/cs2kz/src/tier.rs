@@ -149,7 +149,7 @@ impl TryFrom<u8> for Tier
 
 impl From<Tier> for u8
 {
-	#[allow(clippy::as_conversions)]
+	#[expect(clippy::as_conversions, reason = "casts are required to turn enums into integers")]
 	fn from(value: Tier) -> Self
 	{
 		value as u8

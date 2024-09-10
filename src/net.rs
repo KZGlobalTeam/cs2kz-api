@@ -1,7 +1,6 @@
 //! This module contains extensions for [`std::net`].
 
-// this module implements the wrapper around the disallowed types
-#![allow(clippy::disallowed_types)]
+#![expect(clippy::disallowed_types, reason = "this module implements the replacement wrappers")]
 
 use std::fmt;
 use std::net::{Ipv4Addr, Ipv6Addr};

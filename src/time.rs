@@ -8,7 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 /// Extension trait for [`std::time::Duration`] which adds useful associated
 /// constants.
 #[sealed]
-#[allow(dead_code)]
+#[expect(dead_code, reason = "some of these constants might be used later")]
 pub trait DurationExt
 {
 	/// One minute.

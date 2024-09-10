@@ -1,5 +1,5 @@
 #![doc = include_str!("../README.md")]
-#![allow(clippy::blocks_in_conditions)] // TODO: remove when tokio-rs/tracing#2912 is fixed
+#![expect(clippy::blocks_in_conditions, reason = "`#[tracing::instrument] bug, see #2912")]
 
 /*
  * CS2KZ API - the core infrastructure for CS2KZ.

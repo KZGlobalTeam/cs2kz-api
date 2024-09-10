@@ -119,7 +119,7 @@ impl TryFrom<u8> for JumpType
 
 impl From<JumpType> for u8
 {
-	#[allow(clippy::as_conversions)]
+	#[expect(clippy::as_conversions, reason = "casts are required to turn enums into integers")]
 	fn from(value: JumpType) -> Self
 	{
 		value as u8

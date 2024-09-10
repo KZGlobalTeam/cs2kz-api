@@ -19,7 +19,10 @@ mod console;
 pub struct Guard
 {
 	/// The guard returned by [`tracing-appender`]'s logging thread.
-	#[allow(dead_code)]
+	#[expect(
+		dead_code,
+		reason = "`WorkerGuard` has a non-trivial destructor which we need to run"
+	)]
 	appender_guard: tracing_appender::non_blocking::WorkerGuard,
 }
 

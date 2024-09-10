@@ -117,7 +117,7 @@ impl TryFrom<i8> for GlobalStatus
 
 impl From<GlobalStatus> for i8
 {
-	#[allow(clippy::as_conversions)]
+	#[expect(clippy::as_conversions, reason = "casts are required to turn enums into integers")]
 	fn from(value: GlobalStatus) -> Self
 	{
 		value as i8

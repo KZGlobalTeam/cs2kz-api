@@ -1,8 +1,7 @@
 //! This module contains wrappers around [`axum`]'s extractors, customizing
 //! error responses.
 
-// This module implements the replacement wrappers.
-#![allow(clippy::disallowed_types)]
+#![expect(clippy::disallowed_types, reason = "this module implements the replacement wrappers")]
 
 mod path;
 pub use path::{Path, PathRejection};
