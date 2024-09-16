@@ -9,8 +9,10 @@ pub const SELECT: &str = r#"
 	  s.port,
 	  o.name owner_name,
 	  o.id owner_id,
+	  t.name tag_name,
 	  s.created_on
 	FROM
 	  Servers s
 	  JOIN Players o ON o.id = s.owner_id
+	  JOIN ServerTags t ON t.server_id = s.id
 "#;

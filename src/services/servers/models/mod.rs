@@ -65,9 +65,46 @@ pub struct FetchServerResponse
 	#[sqlx(flatten)]
 	pub owner: ServerOwner,
 
+	/// Tags categorizing the server.
+	#[sqlx(rename = "tag_name")]
+	pub tags: ServerTags,
+
 	/// When this server was approved.
 	#[serde(with = "time::serde::rfc3339")]
 	pub created_on: OffsetDateTime,
+}
+
+/// Tags categorizing a server.
+#[derive(Debug, Serialize, utoipa::ToSchema)]
+#[serde(transparent)]
+pub struct ServerTags(pub Vec<String>);
+
+impl<DB> sqlx::Type<DB> for ServerTags
+where
+	DB: sqlx::Database,
+	str: sqlx::Type<DB>,
+{
+	fn type_info() -> <DB as sqlx::Database>::TypeInfo
+	{
+		<str as sqlx::Type<DB>>::type_info()
+	}
+
+	fn compatible(ty: &<DB as sqlx::Database>::TypeInfo) -> bool
+	{
+		<str as sqlx::Type<DB>>::compatible(ty)
+	}
+}
+
+impl<'r, DB> sqlx::Decode<'r, DB> for ServerTags
+where
+	DB: sqlx::Database,
+	String: sqlx::Decode<'r, DB>,
+{
+	fn decode(value: <DB as sqlx::Database>::ValueRef<'r>)
+	-> Result<Self, sqlx::error::BoxDynError>
+	{
+		String::decode(value).map(|s| vec![s]).map(Self)
+	}
 }
 
 impl IntoResponse for FetchServerResponse

@@ -4,10 +4,11 @@ use std::fmt;
 use std::time::Duration;
 
 use axum::extract::FromRef;
+use itertools::Itertools;
 use sqlx::{MySql, Pool, Row};
-use tap::Pipe;
+use tap::{Pipe, Tap, TryConv};
 
-use crate::database::{SqlErrorExt, TransactionExt};
+use crate::database::SqlErrorExt;
 use crate::services::auth::{jwt, Jwt};
 use crate::services::plugin::PluginVersionID;
 use crate::services::AuthService;
@@ -73,36 +74,53 @@ impl ServerService
 	pub async fn fetch_server(&self, req: FetchServerRequest)
 	-> Result<Option<FetchServerResponse>>
 	{
-		let res = sqlx::query_as::<_, FetchServerResponse>(&format!(
+		let raw_servers = sqlx::query_as::<_, FetchServerResponse>(&format!(
 			r"
 			{}
 			WHERE
 			  s.id = COALESCE(?, s.id)
 			  AND s.name LIKE COALESCE(?, s.name)
-			LIMIT
-			  1
 			",
 			queries::SELECT,
 		))
 		.bind(req.identifier.as_id())
 		.bind(req.identifier.as_name().map(|name| format!("%{name}%")))
-		.fetch_optional(&self.database)
+		.fetch_all(&self.database)
 		.await?;
 
-		Ok(res)
+		let Some(server_id) = raw_servers.first().map(|s| s.id) else {
+			return Ok(None);
+		};
+
+		let server = raw_servers
+			.into_iter()
+			.filter(|s| s.id == server_id)
+			.reduce(reduce_chunk)
+			.expect("we got the id we're filtering by from the original list");
+
+		Ok(Some(server))
 	}
 
 	/// Fetch information about servers.
 	#[tracing::instrument(level = "debug", err(Debug, level = "debug"))]
 	pub async fn fetch_servers(&self, req: FetchServersRequest) -> Result<FetchServersResponse>
 	{
-		let mut txn = self.database.begin().await?;
 		let owner_id = match req.owned_by {
 			None => None,
-			Some(player) => Some(player.resolve_id(txn.as_mut()).await?),
+			Some(player) => Some(player.resolve_id(&self.database).await?),
 		};
 
-		let servers = sqlx::query_as::<_, FetchServerResponse>(&format!(
+		let server_count = sqlx::query_scalar!("SELECT COUNT(id) FROM Servers")
+			.fetch_one(&self.database)
+			.await?
+			.try_conv::<u64>()
+			.expect("positive count");
+
+		if *req.offset >= server_count {
+			return Ok(FetchServersResponse { servers: Vec::new(), total: server_count });
+		}
+
+		let server_chunks = sqlx::query_as::<_, FetchServerResponse>(&format!(
 			r"
 			{}
 			WHERE
@@ -111,8 +129,6 @@ impl ServerService
 			  AND s.owner_id = COALESCE(?, s.owner_id)
 			  AND s.created_on > COALESCE(?, '1970-01-01 00:00:01')
 			  AND s.created_on < COALESCE(?, '2038-01-19 03:14:07')
-			LIMIT
-			  ? OFFSET ?
 			",
 			queries::SELECT,
 		))
@@ -121,14 +137,23 @@ impl ServerService
 		.bind(owner_id)
 		.bind(req.created_after)
 		.bind(req.created_before)
-		.bind(*req.limit)
-		.bind(*req.offset)
-		.fetch_all(txn.as_mut())
-		.await?;
+		.fetch_all(&self.database)
+		.await?
+		.into_iter()
+		.chunk_by(|s| s.id);
 
-		let total = txn.total_rows().await?;
+		// Take into account how many maps we're gonna skip over
+		let mut total = *req.offset;
 
-		txn.commit().await?;
+		let servers = server_chunks
+			.into_iter()
+			.map(|(_, chunk)| chunk.reduce(reduce_chunk).expect("chunk can't be empty"))
+			.skip(*req.offset as usize)
+			.take(*req.limit as usize)
+			.collect_vec();
+
+		total += servers.len() as u64;
+		total += server_chunks.into_iter().count() as u64;
 
 		Ok(FetchServersResponse { servers, total })
 	}
@@ -335,6 +360,21 @@ impl ServerService
 
 		Ok(GenerateAccessTokenResponse { token })
 	}
+}
+
+/// Reduce function for merging multiple database results for the same server
+/// with different tags.
+///
+/// When we fetch servers from the DB, we get "duplicates" for servers with
+/// different tags, since SQL doesn't support arrays. All the other information
+/// is the same, except for the tags. We group results by their ID and then
+/// reduce each chunk down into a single server that contains all the tags using
+/// this function.
+fn reduce_chunk(acc: FetchServerResponse, curr: FetchServerResponse) -> FetchServerResponse
+{
+	assert_eq!(acc.id, curr.id, "merging two unrelated servers");
+
+	acc.tap_mut(|acc| acc.tags.0.extend(curr.tags.0))
 }
 
 #[cfg(test)]
