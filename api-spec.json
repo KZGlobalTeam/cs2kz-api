@@ -3662,19 +3662,19 @@
         "properties": {
           "total": {
             "type": "integer",
-            "format": "uint16",
+            "format": "uint32",
             "description": "The total count.\n\nThis includes `perfs` and `perfect_perfs`.",
             "minimum": 0
           },
           "perfs": {
             "type": "integer",
-            "format": "uint16",
+            "format": "uint32",
             "description": "The \"perf\" count.\n\nA \"perf\" is whatever the current [mode] considers to be a \"perfect\"\nbhop. This does **not** mean \"tick-perfect\"! That's what\n`perfect_perfs` is for.\n\n[mode]: cs2kz::Mode",
             "minimum": 0
           },
           "perfect_perfs": {
             "type": "integer",
-            "format": "uint16",
+            "format": "uint32",
             "description": "The tick-perfect-bhop count.",
             "minimum": 0
           }
