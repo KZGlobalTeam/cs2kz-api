@@ -42,6 +42,8 @@ pub use models::{
 	UpdateServerResponse,
 };
 
+mod monitor;
+
 /// A service for managing KZ servers.
 #[derive(Clone, FromRef)]
 #[allow(clippy::missing_docs_in_private_items)]
