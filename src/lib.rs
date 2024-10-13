@@ -1,5 +1,4 @@
 #![doc = include_str!("../README.md")]
-#![expect(clippy::blocks_in_conditions, reason = "`#[tracing::instrument] bug, see #2912")]
 
 /*
  * CS2KZ API - the core infrastructure for CS2KZ.
