@@ -25,6 +25,7 @@ pub struct BhopStats
 	/// The total count.
 	///
 	/// This includes `perfs` and `perfect_perfs`.
+	#[sqlx(rename = "bhops_total")]
 	pub total: u32,
 
 	/// The "perf" count.
@@ -34,9 +35,11 @@ pub struct BhopStats
 	/// `perfect_perfs` is for.
 	///
 	/// [mode]: cs2kz::Mode
+	#[sqlx(rename = "bhops_perfs")]
 	pub perfs: u32,
 
 	/// The tick-perfect-bhop count.
+	#[sqlx(rename = "bhops_perfect_perfs")]
 	pub perfect_perfs: u32,
 }
 

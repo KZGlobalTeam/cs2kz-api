@@ -138,7 +138,7 @@ impl RecordService
 		// - handle `req.top`
 		let records = sqlx::query_as(
 			r"
-			SELECT
+			SELECT SQL_CALC_FOUND_ROWS
 			  r.id,
 			  f.mode,
 			  r.styles,
@@ -154,9 +154,9 @@ impl RecordService
 			  p.name player_name,
 			  s.id server_id,
 			  s.name server_name,
-			  r.bhops,
-			  r.perfs,
-			  r.perfect_perfs,
+			  r.bhops bhops_total,
+			  r.perfs bhops_perfs,
+			  r.perfect_perfs bhops_perfect_perfs,
 			  r.created_on
 			FROM
 			  Records r
