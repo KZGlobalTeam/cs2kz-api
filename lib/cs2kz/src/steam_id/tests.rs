@@ -72,19 +72,15 @@ fn parse_u32()
 	assert!("0".parse::<SteamID>().is_err());
 	assert!("1".parse::<SteamID>().is_ok());
 
-	assert!(
-		((super::MAX - super::MAGIC_OFFSET) as u32)
-			.to_string()
-			.parse::<SteamID>()
-			.is_ok()
-	);
+	assert!(((super::MAX - super::MAGIC_OFFSET) as u32)
+		.to_string()
+		.parse::<SteamID>()
+		.is_ok());
 
-	assert!(
-		((super::MAX - super::MAGIC_OFFSET + 1) as u32)
-			.to_string()
-			.parse::<SteamID>()
-			.is_err()
-	);
+	assert!(((super::MAX - super::MAGIC_OFFSET + 1) as u32)
+		.to_string()
+		.parse::<SteamID>()
+		.is_err());
 }
 
 #[test]

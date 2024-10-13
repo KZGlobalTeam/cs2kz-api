@@ -69,7 +69,7 @@ impl PlayerService
 	/// else went fine.
 	#[tracing::instrument(level = "debug", err(Debug, level = "debug"))]
 	pub async fn fetch_player(&self, req: FetchPlayerRequest)
-	-> Result<Option<FetchPlayerResponse>>
+		-> Result<Option<FetchPlayerResponse>>
 	{
 		let res = sqlx::query_as(
 			r"

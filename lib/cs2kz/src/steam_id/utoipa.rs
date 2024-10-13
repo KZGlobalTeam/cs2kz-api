@@ -61,14 +61,12 @@ impl IntoParams for SteamID
 {
 	fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter>
 	{
-		vec![
-			ParameterBuilder::new()
-				.name("steam_id")
-				.parameter_in(parameter_in_provider().unwrap_or_default())
-				.description(Some("a player's SteamID"))
-				.schema(Some(<Self as PartialSchema>::schema()))
-				.example(Some("76561198282622073".into()))
-				.build(),
-		]
+		vec![ParameterBuilder::new()
+			.name("steam_id")
+			.parameter_in(parameter_in_provider().unwrap_or_default())
+			.description(Some("a player's SteamID"))
+			.schema(Some(<Self as PartialSchema>::schema()))
+			.example(Some("76561198282622073".into()))
+			.build()]
 	}
 }

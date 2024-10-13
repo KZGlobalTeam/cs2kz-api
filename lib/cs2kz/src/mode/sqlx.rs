@@ -58,7 +58,7 @@ where
 	u8: sqlx::Decode<'r, DB>,
 {
 	fn decode(value: <DB as sqlx::Database>::ValueRef<'r>)
-	-> Result<Self, sqlx::error::BoxDynError>
+		-> Result<Self, sqlx::error::BoxDynError>
 	{
 		<u8 as sqlx::Decode<'r, DB>>::decode(value)?
 			.try_into()

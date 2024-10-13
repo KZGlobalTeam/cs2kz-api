@@ -58,7 +58,7 @@ where
 	u32: sqlx::Decode<'r, DB>,
 {
 	fn decode(value: <DB as sqlx::Database>::ValueRef<'r>)
-	-> Result<Self, sqlx::error::BoxDynError>
+		-> Result<Self, sqlx::error::BoxDynError>
 	{
 		<u32 as sqlx::Decode<'r, DB>>::decode(value).map(Styles::new)
 	}

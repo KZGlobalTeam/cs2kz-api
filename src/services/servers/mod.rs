@@ -71,7 +71,7 @@ impl ServerService
 	/// Fetch information about a server.
 	#[tracing::instrument(level = "debug", err(Debug, level = "debug"))]
 	pub async fn fetch_server(&self, req: FetchServerRequest)
-	-> Result<Option<FetchServerResponse>>
+		-> Result<Option<FetchServerResponse>>
 	{
 		let res = sqlx::query_as::<_, FetchServerResponse>(&format!(
 			r"
@@ -426,7 +426,7 @@ mod tests
 
 	#[sqlx::test(migrations = "database/migrations")]
 	async fn register_server_rejects_unknown_owner(database: Pool<MySql>)
-	-> color_eyre::Result<()>
+		-> color_eyre::Result<()>
 	{
 		let svc = testing::server_svc(database);
 		let ibrahizy_id = SteamID::new(76561198264939817).unwrap();

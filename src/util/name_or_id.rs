@@ -301,14 +301,12 @@ mod utoipa_impls
 	{
 		fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter>
 		{
-			vec![
-				ParameterBuilder::new()
-					.name("player")
-					.description(Some("A SteamID or name"))
-					.parameter_in(parameter_in_provider().unwrap_or_default())
-					.schema(Some(Self::schema().1))
-					.build(),
-			]
+			vec![ParameterBuilder::new()
+				.name("player")
+				.description(Some("A SteamID or name"))
+				.parameter_in(parameter_in_provider().unwrap_or_default())
+				.schema(Some(Self::schema().1))
+				.build()]
 		}
 	}
 
@@ -345,14 +343,12 @@ mod utoipa_impls
 	{
 		fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter>
 		{
-			vec![
-				ParameterBuilder::new()
-					.name("server")
-					.description(Some("A server's ID or name"))
-					.parameter_in(parameter_in_provider().unwrap_or_default())
-					.schema(Some(Self::schema().1))
-					.build(),
-			]
+			vec![ParameterBuilder::new()
+				.name("server")
+				.description(Some("A server's ID or name"))
+				.parameter_in(parameter_in_provider().unwrap_or_default())
+				.schema(Some(Self::schema().1))
+				.build()]
 		}
 	}
 
@@ -389,14 +385,12 @@ mod utoipa_impls
 	{
 		fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter>
 		{
-			vec![
-				ParameterBuilder::new()
-					.name("server")
-					.description(Some("A map's ID or name"))
-					.parameter_in(parameter_in_provider().unwrap_or_default())
-					.schema(Some(Self::schema().1))
-					.build(),
-			]
+			vec![ParameterBuilder::new()
+				.name("server")
+				.description(Some("A map's ID or name"))
+				.parameter_in(parameter_in_provider().unwrap_or_default())
+				.schema(Some(Self::schema().1))
+				.build()]
 		}
 	}
 
@@ -433,14 +427,12 @@ mod utoipa_impls
 	{
 		fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter>
 		{
-			vec![
-				ParameterBuilder::new()
-					.name("course")
-					.description(Some("A course's ID or name"))
-					.parameter_in(parameter_in_provider().unwrap_or_default())
-					.schema(Some(Self::schema().1))
-					.build(),
-			]
+			vec![ParameterBuilder::new()
+				.name("course")
+				.description(Some("A course's ID or name"))
+				.parameter_in(parameter_in_provider().unwrap_or_default())
+				.schema(Some(Self::schema().1))
+				.build()]
 		}
 	}
 }

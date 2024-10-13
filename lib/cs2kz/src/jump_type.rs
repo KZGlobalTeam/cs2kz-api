@@ -271,13 +271,11 @@ mod utoipa_impls
 	{
 		fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter>
 		{
-			vec![
-				ParameterBuilder::new()
-					.name("jump_type")
-					.parameter_in(parameter_in_provider().unwrap_or_default())
-					.schema(Some(Self::schema().1))
-					.build(),
-			]
+			vec![ParameterBuilder::new()
+				.name("jump_type")
+				.parameter_in(parameter_in_provider().unwrap_or_default())
+				.schema(Some(Self::schema().1))
+				.build()]
 		}
 	}
 }

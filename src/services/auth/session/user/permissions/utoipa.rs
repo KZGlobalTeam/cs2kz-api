@@ -44,12 +44,10 @@ impl IntoParams for Permissions
 {
 	fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter>
 	{
-		vec![
-			ParameterBuilder::new()
-				.parameter_in(parameter_in_provider().unwrap_or_default())
-				.name("permissions")
-				.schema(Some(Self::schema().1))
-				.build(),
-		]
+		vec![ParameterBuilder::new()
+			.parameter_in(parameter_in_provider().unwrap_or_default())
+			.name("permissions")
+			.schema(Some(Self::schema().1))
+			.build()]
 	}
 }

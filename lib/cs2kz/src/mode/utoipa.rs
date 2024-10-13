@@ -49,14 +49,12 @@ impl IntoParams for Mode
 {
 	fn into_params(parameter_in_provider: impl Fn() -> Option<ParameterIn>) -> Vec<Parameter>
 	{
-		vec![
-			ParameterBuilder::new()
-				.name("mode")
-				.parameter_in(parameter_in_provider().unwrap_or_default())
-				.description(Some("a KZ mode"))
-				.schema(Some(<Self as PartialSchema>::schema()))
-				.example(Some("classic".into()))
-				.build(),
-		]
+		vec![ParameterBuilder::new()
+			.name("mode")
+			.parameter_in(parameter_in_provider().unwrap_or_default())
+			.description(Some("a KZ mode"))
+			.schema(Some(<Self as PartialSchema>::schema()))
+			.example(Some("classic".into()))
+			.build()]
 	}
 }

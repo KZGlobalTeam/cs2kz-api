@@ -1,7 +1,7 @@
 # See https://rust-lang.github.io/rustfmt/?version=v1.7.1 for a reference on all the options.
 
 edition = "2021"
-version = "Two"
+style_edition = "2021"
 unstable_features = true
 
 array_width = 100

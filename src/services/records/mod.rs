@@ -60,7 +60,7 @@ impl RecordService
 	/// Fetch a record by its ID.
 	#[tracing::instrument(level = "debug", err(Debug, level = "debug"))]
 	pub async fn fetch_record(&self, req: FetchRecordRequest)
-	-> Result<Option<FetchRecordResponse>>
+		-> Result<Option<FetchRecordResponse>>
 	{
 		let res = sqlx::query_as(
 			r"

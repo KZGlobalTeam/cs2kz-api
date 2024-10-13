@@ -2,7 +2,7 @@
 
 let
   rust-stable = pkgs.rust-bin.stable."1.81.0";
-  rust-nightly = pkgs.rust-bin.nightly."2024-09-10";
+  rust-nightly = pkgs.rust-bin.nightly."2024-10-13";
 
   mkToolchain = extensions: rust-stable.minimal.override {
     inherit extensions;

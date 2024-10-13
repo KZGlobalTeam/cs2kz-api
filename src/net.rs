@@ -116,7 +116,7 @@ where
 	Ipv6Addr: sqlx::Decode<'r, DB>,
 {
 	fn decode(value: <DB as sqlx::Database>::ValueRef<'r>)
-	-> Result<Self, sqlx::error::BoxDynError>
+		-> Result<Self, sqlx::error::BoxDynError>
 	{
 		<Ipv6Addr as sqlx::Decode<'r, DB>>::decode(value).map(Self)
 	}

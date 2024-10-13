@@ -24,7 +24,7 @@ impl Checksum
 	/// Returns the raw bytes of the checksum.
 	pub fn as_bytes(&self) -> &[u8]
 	{
-		&self.0.0[..]
+		&self.0 .0[..]
 	}
 
 	/// Returns an element or range of the checksum's bytes, if the provided
@@ -165,7 +165,7 @@ where
 	&'r [u8]: sqlx::Decode<'r, DB>,
 {
 	fn decode(value: <DB as sqlx::Database>::ValueRef<'r>)
-	-> Result<Self, sqlx::error::BoxDynError>
+		-> Result<Self, sqlx::error::BoxDynError>
 	{
 		<&'r [u8] as sqlx::Decode<'r, DB>>::decode(value)?
 			.try_into()
