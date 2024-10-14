@@ -65,7 +65,7 @@ version = "0.4"
 optional = true
 
 [dependencies.axum]
-version = "0.7"
+version = "0.7.7"
 default-features = false
 features = ["macros", "http1", "http2", "tokio", "json"]
 

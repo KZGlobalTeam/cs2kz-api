@@ -16,8 +16,6 @@
 //!
 //! [`AuthorizeSession`]: session::AuthorizeSession
 
-#![expect(clippy::clone_on_ref_ptr, reason = "axum bug that will be fixed in 0.8")]
-
 use std::fmt;
 use std::sync::Arc;
 
