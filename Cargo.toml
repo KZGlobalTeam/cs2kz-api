@@ -177,7 +177,7 @@ version = "0.13"
 version = "1.0"
 
 [dependencies.sealed]
-version = "0.5"
+version = "0.6"
 
 [dev-dependencies.ctor]
 version = "0.2"
