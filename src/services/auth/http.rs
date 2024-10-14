@@ -34,6 +34,7 @@ impl From<AuthService> for Router
 
 		let cors = Router::new()
 			.route("/logout", routing::get(logout))
+			.route("/verify-session", routing::get(verify_session))
 			.route_layer(middleware::cors::dashboard([http::Method::OPTIONS, http::Method::GET]))
 			.with_state(svc);
 
@@ -93,6 +94,19 @@ async fn logout(
 	let cookies = cookies.add(user_cookie).add(session_cookie);
 
 	Ok(LogoutResponse { cookies })
+}
+
+/// Verify whether a session token is still valid.
+///
+/// This endpoint will return a status in the 4xx range if you do not have a
+/// valid session token, and a `200 OK` if you do.
+#[tracing::instrument]
+#[utoipa::path(get, path = "/auth/verify-session", tag = "Auth")]
+async fn verify_session(session: Session)
+{
+	// We don't actually need to do anything here; the middleware will reject
+	// any unauthorized requests, and `()` turns into an empty `200 OK`
+	// response.
 }
 
 /// Hit by Steam after a successful login.

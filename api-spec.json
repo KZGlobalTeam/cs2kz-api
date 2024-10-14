@@ -3603,6 +3603,17 @@
           }
         }
       }
+    },
+    "/auth/verify-session": {
+      "get": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Verify whether a session token is still valid.",
+        "description": "This endpoint will return a status in the 4xx range if you do not have a\nvalid session token, and a `200 OK` if you do.",
+        "operationId": "verify_session",
+        "responses": {}
+      }
     }
   },
   "components": {
