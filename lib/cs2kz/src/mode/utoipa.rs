@@ -2,7 +2,7 @@
 
 use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};
 use utoipa::openapi::schema::Schema;
-use utoipa::openapi::{ObjectBuilder, OneOfBuilder, RefOr, SchemaType};
+use utoipa::openapi::{ObjectBuilder, RefOr, SchemaType};
 use utoipa::{IntoParams, PartialSchema, ToSchema};
 
 use crate::Mode;
@@ -11,26 +11,12 @@ impl PartialSchema for Mode
 {
 	fn schema() -> RefOr<Schema>
 	{
-		Schema::OneOf(
-			OneOfBuilder::new()
-				.description(Some("a KZ Mode"))
-				.example(Some("ckz".into()))
-				.item(Schema::Object(
-					ObjectBuilder::new()
-						.schema_type(SchemaType::String)
-						.title(Some("Name"))
-						.example(Some("classic".into()))
-						.enum_values(Some(["vanilla", "classic"]))
-						.build(),
-				))
-				.item(Schema::Object(
-					ObjectBuilder::new()
-						.schema_type(SchemaType::Integer)
-						.title(Some("ID"))
-						.example(Some("1".into()))
-						.enum_values(Some([1, 2]))
-						.build(),
-				))
+		Schema::Object(
+			ObjectBuilder::new()
+				.schema_type(SchemaType::String)
+				.title(Some("Name"))
+				.example(Some("classic".into()))
+				.enum_values(Some(["vanilla", "classic"]))
 				.build(),
 		)
 		.into()

@@ -251,7 +251,6 @@ mod sqlx_impls
 mod utoipa_impls
 {
 	use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};
-	use utoipa::openapi::schema::OneOfBuilder;
 	use utoipa::openapi::{ObjectBuilder, RefOr, Schema, SchemaType};
 	use utoipa::{IntoParams, ToSchema};
 
@@ -263,37 +262,23 @@ mod utoipa_impls
 		{
 			(
 				"Tier",
-				Schema::OneOf(
-					OneOfBuilder::new()
-						.nullable(false)
+				Schema::Object(
+					ObjectBuilder::new()
+						.title(Some("Name"))
+						.schema_type(SchemaType::String)
 						.example(Some("hard".into()))
-						.item(Schema::Object(
-							ObjectBuilder::new()
-								.title(Some("Name"))
-								.schema_type(SchemaType::String)
-								.example(Some("hard".into()))
-								.enum_values(Some([
-									"very_easy",
-									"easy",
-									"medium",
-									"advanced",
-									"hard",
-									"very_hard",
-									"extreme",
-									"death",
-									"unfeasible",
-									"impossible",
-								]))
-								.build(),
-						))
-						.item(Schema::Object(
-							ObjectBuilder::new()
-								.title(Some("Numeric Value"))
-								.schema_type(SchemaType::Integer)
-								.example(Some(1.into()))
-								.enum_values(Some(1..=10))
-								.build(),
-						))
+						.enum_values(Some([
+							"very_easy",
+							"easy",
+							"medium",
+							"advanced",
+							"hard",
+							"very_hard",
+							"extreme",
+							"death",
+							"unfeasible",
+							"impossible",
+						]))
 						.build(),
 				)
 				.into(),

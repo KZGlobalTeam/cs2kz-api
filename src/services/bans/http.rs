@@ -69,7 +69,13 @@ impl From<BanService> for Router
 
 /// Fetch many bans.
 #[tracing::instrument(err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/bans", tag = "Bans", params(FetchBansRequest))]
+#[utoipa::path(
+	get,
+	path = "/bans",
+	tag = "Bans",
+	operation_id = "get_bans",
+	params(FetchBansRequest)
+)]
 async fn get_many(
 	State(svc): State<BanService>,
 	Query(req): Query<FetchBansRequest>,
@@ -101,7 +107,7 @@ pub(crate) struct BanRequestPayload
 
 /// Ban a player.
 #[tracing::instrument(err(Debug, level = "debug"))]
-#[utoipa::path(post, path = "/bans", tag = "Bans", security(
+#[utoipa::path(post, path = "/bans", tag = "Bans", operation_id = "submit_ban", security(
   ("CS2 Server" = []),
   ("Browser Session" = ["bans"]),
 ))]
@@ -144,7 +150,7 @@ async fn create(
 
 /// Fetch a specific ban by its ID.
 #[tracing::instrument(err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/bans/{ban_id}", tag = "Bans", params(
+#[utoipa::path(get, path = "/bans/{ban_id}", tag = "Bans", operation_id = "get_ban", params(
   ("ban_id" = BanID, Path, description = "a ban's ID"),
 ))]
 async fn get_single(
@@ -179,6 +185,7 @@ pub(crate) struct UpdateBanRequestPayload
   patch,
   path = "/bans/{ban_id}",
   tag = "Bans",
+  operation_id = "update_ban",
   params(("ban_id" = BanID, Path, description = "a ban's ID")),
   security(("Browser Session" = ["bans"])),
 )]
@@ -212,6 +219,7 @@ pub(crate) struct UnbanRequestPayload
   delete,
   path = "/bans/{ban_id}",
   tag = "Bans",
+  operation_id = "revert_ban",
   params(("ban_id" = BanID, Path, description = "a ban's ID")),
   security(("Browser Session" = ["bans"])),
 )]

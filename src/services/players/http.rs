@@ -51,7 +51,13 @@ impl From<PlayerService> for Router
 }
 
 #[tracing::instrument(err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/players", tag = "Players", params(FetchPlayersRequest))]
+#[utoipa::path(
+	get,
+	path = "/players",
+	tag = "Players",
+	operation_id = "get_players",
+	params(FetchPlayersRequest)
+)]
 async fn get_many(
 	session: Option<Session>,
 	State(svc): State<PlayerService>,
@@ -92,7 +98,7 @@ async fn register_player(
 }
 
 #[tracing::instrument(err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/players/{player}", tag = "Players", params(
+#[utoipa::path(get, path = "/players/{player}", tag = "Players", operation_id = "get_player", params(
   ("player" = PlayerIdentifier, Path, description = "a player's SteamID or name"),
 ))]
 async fn get_single(

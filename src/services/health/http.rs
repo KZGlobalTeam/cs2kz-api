@@ -15,7 +15,7 @@ impl From<HealthService> for Router
 
 /// (͡ ͡° ͜ つ ͡͡°)
 #[tracing::instrument]
-#[utoipa::path(get, path = "/", tag = "Health", responses(
+#[utoipa::path(get, path = "/", tag = "Health", operation_id = "healthcheck", responses(
   (status = OK, description = "The API is healthy.", body = str),
 ))]
 async fn get(State(svc): State<HealthService>) -> &'static str

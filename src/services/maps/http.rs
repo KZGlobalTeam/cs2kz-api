@@ -61,7 +61,13 @@ impl From<MapService> for Router
 }
 
 #[tracing::instrument(err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/maps", tag = "Maps", params(FetchMapsRequest))]
+#[utoipa::path(
+	get,
+	path = "/maps",
+	tag = "Maps",
+	operation_id = "get_maps",
+	params(FetchMapsRequest)
+)]
 async fn get_many(
 	State(svc): State<MapService>,
 	Query(req): Query<FetchMapsRequest>,
@@ -90,7 +96,7 @@ async fn submit_map(
 }
 
 #[tracing::instrument(err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/maps/{map}", tag = "Maps", params(
+#[utoipa::path(get, path = "/maps/{map}", tag = "Maps", operation_id = "get_map", params(
   ("map" = MapIdentifier, Path, description = "a map's ID or name"),
 ))]
 async fn get_single(

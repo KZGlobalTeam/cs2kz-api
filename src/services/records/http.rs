@@ -69,7 +69,13 @@ impl From<RecordService> for Router
 }
 
 #[tracing::instrument(err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/records", tag = "Records", params(FetchRecordsRequest))]
+#[utoipa::path(
+	get,
+	path = "/records",
+	tag = "Records",
+	operation_id = "get_records",
+	params(FetchRecordsRequest)
+)]
 async fn get_many(
 	State(svc): State<RecordService>,
 	Query(req): Query<FetchRecordsRequest>,
@@ -145,7 +151,7 @@ async fn submit_record(
 }
 
 #[tracing::instrument(err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/records/{record_id}", tag = "Records", params(
+#[utoipa::path(get, path = "/records/{record_id}", tag = "Records", operation_id = "get_record", params(
   ("record_id" = RecordID, Path, description = "a record ID"),
 ))]
 async fn get_single(

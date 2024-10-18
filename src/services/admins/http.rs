@@ -52,7 +52,13 @@ impl From<AdminService> for Router
 
 /// Fetch many bans.
 #[tracing::instrument(level = "trace", err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/admins", tag = "Admins", params(FetchAdminsRequest))]
+#[utoipa::path(
+	get,
+	path = "/admins",
+	tag = "Admins",
+	operation_id = "get_admins",
+	params(FetchAdminsRequest)
+)]
 async fn get_many(
 	State(svc): State<AdminService>,
 	Query(req): Query<FetchAdminsRequest>,
@@ -69,7 +75,7 @@ async fn get_many(
 
 /// Fetch a specific ban by its ID.
 #[tracing::instrument(level = "trace", err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/admins/{admin_id}", tag = "Admins", params(
+#[utoipa::path(get, path = "/admins/{admin_id}", tag = "Admins", operation_id = "get_admin", params(
   ("admin_id" = SteamID, Path, description = "an admin's SteamID"),
 ))]
 async fn get_single(
@@ -102,6 +108,7 @@ pub(crate) struct SetPermissionsPayload
   put,
   path = "/admins/{admin_id}",
   tag = "Admins",
+  operation_id = "update_admin",
   params(("admin_id" = SteamID, Path, description = "an admin's SteamID")),
   security(("Browser Session" = ["admin"])),
 )]

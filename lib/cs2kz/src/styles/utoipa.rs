@@ -1,7 +1,6 @@
 //! Trait implementations for the [`utoipa`] crate.
 
 use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};
-use utoipa::openapi::schema::{Array, OneOfBuilder};
 use utoipa::openapi::{ObjectBuilder, RefOr, Schema, SchemaType};
 use utoipa::{IntoParams, ToSchema};
 
@@ -13,28 +12,14 @@ impl<'s> ToSchema<'s> for Styles
 	{
 		(
 			"Styles",
-			Schema::Array(Array::new(Schema::OneOf(
-				OneOfBuilder::new()
-					.nullable(false)
+			Schema::Object(
+				ObjectBuilder::new()
+					.title(Some("Name"))
+					.schema_type(SchemaType::String)
 					.example(Some("auto_bhop".into()))
-					.item(Schema::Object(
-						ObjectBuilder::new()
-							.title(Some("Name"))
-							.schema_type(SchemaType::String)
-							.example(Some("auto_bhop".into()))
-							.enum_values(Some(Styles::ALL.iter_names()))
-							.build(),
-					))
-					.item(Schema::Object(
-						ObjectBuilder::new()
-							.title(Some("ID"))
-							.schema_type(SchemaType::Integer)
-							.example(Some(1.into()))
-							.enum_values(Some(Styles::ALL.iter_bits()))
-							.build(),
-					))
+					.enum_values(Some(Styles::ALL.iter_names()))
 					.build(),
-			)))
+			)
 			.into(),
 		)
 	}

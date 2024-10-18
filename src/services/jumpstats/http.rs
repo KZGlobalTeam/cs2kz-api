@@ -48,7 +48,13 @@ impl From<JumpstatService> for Router
 
 /// Fetch many jumpstats.
 #[tracing::instrument(level = "trace", err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/jumpstats", tag = "Jumpstats", params(FetchJumpstatsRequest))]
+#[utoipa::path(
+	get,
+	path = "/jumpstats",
+	tag = "Jumpstats",
+	operation_id = "get_jumpstats",
+	params(FetchJumpstatsRequest)
+)]
 async fn get_many(
 	State(svc): State<JumpstatService>,
 	Query(req): Query<FetchJumpstatsRequest>,
@@ -120,7 +126,7 @@ pub(crate) struct SubmitJumpstatRequestPayload
 }
 
 #[tracing::instrument(level = "trace", err(Debug, level = "debug"))]
-#[utoipa::path(post, path = "/jumpstats", tag = "Jumpstats", security(("CS2 Server" = [])))]
+#[utoipa::path(post, path = "/jumpstats", tag = "Jumpstats", operation_id = "submit_jumpstat", security(("CS2 Server" = [])))]
 async fn submit(
 	server: Jwt<jwt::ServerInfo>,
 	State(svc): State<JumpstatService>,
@@ -172,7 +178,7 @@ async fn submit(
 
 /// Fetch a jumpstat by its ID.
 #[tracing::instrument(level = "trace", err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/jumpstats/{jumpstat_id}", tag = "Jumpstats", params(
+#[utoipa::path(get, path = "/jumpstats/{jumpstat_id}", tag = "Jumpstats", operation_id = "get_jumpstat", params(
   ("jumpstat_id" = JumpstatID, Path, description = "a jumpstat's ID"),
 ))]
 async fn get_single(

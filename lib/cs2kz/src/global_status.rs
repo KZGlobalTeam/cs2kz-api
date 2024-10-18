@@ -209,7 +209,6 @@ mod sqlx_impls
 mod utoipa_impls
 {
 	use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};
-	use utoipa::openapi::schema::OneOfBuilder;
 	use utoipa::openapi::{ObjectBuilder, RefOr, Schema, SchemaType};
 	use utoipa::{IntoParams, ToSchema};
 
@@ -221,27 +220,12 @@ mod utoipa_impls
 		{
 			(
 				"GlobalStatus",
-				Schema::OneOf(
-					OneOfBuilder::new()
-						.nullable(false)
+				Schema::Object(
+					ObjectBuilder::new()
+						.title(Some("Name"))
+						.schema_type(SchemaType::String)
 						.example(Some("global".into()))
-						.default(Some("global".into()))
-						.item(Schema::Object(
-							ObjectBuilder::new()
-								.title(Some("Name"))
-								.schema_type(SchemaType::String)
-								.example(Some("global".into()))
-								.enum_values(Some(["not_global", "in_testing", "global"]))
-								.build(),
-						))
-						.item(Schema::Object(
-							ObjectBuilder::new()
-								.title(Some("Integer"))
-								.schema_type(SchemaType::Integer)
-								.example(Some(1.into()))
-								.enum_values(Some(-1..=1))
-								.build(),
-						))
+						.enum_values(Some(["not_global", "in_testing", "global"]))
 						.build(),
 				)
 				.into(),

@@ -20,7 +20,7 @@
           "Health"
         ],
         "summary": "(͡ ͡° ͜ つ ͡͡°)",
-        "operationId": "get",
+        "operationId": "healthcheck",
         "responses": {
           "200": {
             "description": "The API is healthy.",
@@ -40,7 +40,7 @@
         "tags": [
           "Players"
         ],
-        "operationId": "get_many",
+        "operationId": "get_players",
         "parameters": [
           {
             "name": "limit",
@@ -205,7 +205,7 @@
         "tags": [
           "Players"
         ],
-        "operationId": "get_single",
+        "operationId": "get_player",
         "parameters": [
           {
             "name": "player",
@@ -541,7 +541,7 @@
         "tags": [
           "Maps"
         ],
-        "operationId": "get_many",
+        "operationId": "get_maps",
         "parameters": [
           {
             "name": "name",
@@ -767,7 +767,7 @@
         "tags": [
           "Maps"
         ],
-        "operationId": "get_single",
+        "operationId": "get_map",
         "parameters": [
           {
             "name": "map",
@@ -961,7 +961,7 @@
         "tags": [
           "Servers"
         ],
-        "operationId": "get_many",
+        "operationId": "get_servers",
         "parameters": [
           {
             "name": "name",
@@ -1257,7 +1257,7 @@
         "tags": [
           "Servers"
         ],
-        "operationId": "get_single",
+        "operationId": "get_server",
         "parameters": [
           {
             "name": "server",
@@ -1531,7 +1531,7 @@
         "tags": [
           "Records"
         ],
-        "operationId": "get_many",
+        "operationId": "get_records",
         "parameters": [
           {
             "name": "mode",
@@ -1844,7 +1844,7 @@
         "tags": [
           "Records"
         ],
-        "operationId": "get_single",
+        "operationId": "get_record",
         "parameters": [
           {
             "name": "record_id",
@@ -2076,7 +2076,7 @@
           "Jumpstats"
         ],
         "summary": "Fetch many jumpstats.",
-        "operationId": "get_many",
+        "operationId": "get_jumpstats",
         "parameters": [
           {
             "name": "type",
@@ -2253,7 +2253,7 @@
         "tags": [
           "Jumpstats"
         ],
-        "operationId": "submit",
+        "operationId": "submit_jumpstat",
         "requestBody": {
           "description": "",
           "content": {
@@ -2331,7 +2331,7 @@
           "Jumpstats"
         ],
         "summary": "Fetch a jumpstat by its ID.",
-        "operationId": "get_single",
+        "operationId": "get_jumpstat",
         "parameters": [
           {
             "name": "jumpstat_id",
@@ -2489,7 +2489,7 @@
           "Bans"
         ],
         "summary": "Fetch many bans.",
-        "operationId": "get_many",
+        "operationId": "get_bans",
         "parameters": [
           {
             "name": "player",
@@ -2680,7 +2680,7 @@
           "Bans"
         ],
         "summary": "Ban a player.",
-        "operationId": "create",
+        "operationId": "submit_ban",
         "requestBody": {
           "description": "",
           "content": {
@@ -2763,7 +2763,7 @@
           "Bans"
         ],
         "summary": "Fetch a specific ban by its ID.",
-        "operationId": "get_single",
+        "operationId": "get_ban",
         "parameters": [
           {
             "name": "ban_id",
@@ -2870,7 +2870,7 @@
           "Bans"
         ],
         "summary": "Update a ban.",
-        "operationId": "update",
+        "operationId": "update_ban",
         "parameters": [
           {
             "name": "ban_id",
@@ -2932,7 +2932,7 @@
           "Bans"
         ],
         "summary": "Unban a player.",
-        "operationId": "revert",
+        "operationId": "revert_ban",
         "parameters": [
           {
             "name": "ban_id",
@@ -3023,7 +3023,7 @@
           "Admins"
         ],
         "summary": "Fetch many bans.",
-        "operationId": "get_many",
+        "operationId": "get_admins",
         "parameters": [
           {
             "name": "required_permissions",
@@ -3121,7 +3121,7 @@
           "Admins"
         ],
         "summary": "Fetch a specific ban by its ID.",
-        "operationId": "get_single",
+        "operationId": "get_admin",
         "parameters": [
           {
             "name": "admin_id",
@@ -3193,7 +3193,7 @@
           "Admins"
         ],
         "summary": "Set a user's permissions.",
-        "operationId": "set_permissions",
+        "operationId": "update_admin",
         "parameters": [
           {
             "name": "admin_id",
@@ -4386,29 +4386,13 @@
         }
       },
       "GlobalStatus": {
-        "oneOf": [
-          {
-            "type": "string",
-            "title": "Name",
-            "enum": [
-              "not_global",
-              "in_testing",
-              "global"
-            ],
-            "example": "global"
-          },
-          {
-            "type": "integer",
-            "title": "Integer",
-            "enum": [
-              -1,
-              0,
-              1
-            ],
-            "example": 1
-          }
+        "type": "string",
+        "title": "Name",
+        "enum": [
+          "not_global",
+          "in_testing",
+          "global"
         ],
-        "default": "global",
         "example": "global"
       },
       "Host": {
@@ -4429,33 +4413,15 @@
         "description": "A wrapper around [`std::net::Ipv6Addr`] that correctly takes care of mapped\nIPv4 addresses when encoding/decoding."
       },
       "JumpType": {
-        "oneOf": [
-          {
-            "type": "string",
-            "title": "Name",
-            "enum": [
-              "longjump",
-              "single_bhop",
-              "multi_bhop",
-              "weirdjump",
-              "ladderjump",
-              "ladderhop"
-            ],
-            "example": "longjump"
-          },
-          {
-            "type": "integer",
-            "title": "ID",
-            "enum": [
-              1,
-              2,
-              3,
-              4,
-              5,
-              6
-            ],
-            "example": 1
-          }
+        "type": "string",
+        "title": "Name",
+        "enum": [
+          "longjump",
+          "single_bhop",
+          "multi_bhop",
+          "weirdjump",
+          "ladderjump",
+          "ladderhop"
         ],
         "example": "longjump"
       },
@@ -4485,28 +4451,13 @@
         "description": "A map's ID or name"
       },
       "Mode": {
-        "oneOf": [
-          {
-            "type": "string",
-            "title": "Name",
-            "enum": [
-              "vanilla",
-              "classic"
-            ],
-            "example": "classic"
-          },
-          {
-            "type": "integer",
-            "title": "ID",
-            "enum": [
-              1,
-              2
-            ],
-            "example": "1"
-          }
+        "type": "string",
+        "title": "Name",
+        "enum": [
+          "vanilla",
+          "classic"
         ],
-        "description": "a KZ Mode",
-        "example": "ckz"
+        "example": "classic"
       },
       "NewCourse": {
         "type": "object",
@@ -4617,31 +4568,14 @@
       "Permissions": {
         "type": "array",
         "items": {
-          "oneOf": [
-            {
-              "type": "string",
-              "title": "Name",
-              "enum": [
-                "bans",
-                "records",
-                "servers",
-                "maps",
-                "admin"
-              ],
-              "example": "maps"
-            },
-            {
-              "type": "integer",
-              "title": "ID",
-              "enum": [
-                1,
-                2,
-                256,
-                65536,
-                2147483648
-              ],
-              "example": 65536
-            }
+          "type": "string",
+          "title": "Name",
+          "enum": [
+            "bans",
+            "records",
+            "servers",
+            "maps",
+            "admin"
           ],
           "example": "maps"
         }
@@ -4712,27 +4646,12 @@
         "minimum": 0
       },
       "RankedStatus": {
-        "oneOf": [
-          {
-            "type": "string",
-            "title": "Name",
-            "enum": [
-              "never",
-              "unranked",
-              "ranked"
-            ],
-            "example": "ranked"
-          },
-          {
-            "type": "integer",
-            "title": "Integer",
-            "enum": [
-              -1,
-              0,
-              1
-            ],
-            "example": 1
-          }
+        "type": "string",
+        "title": "Name",
+        "enum": [
+          "never",
+          "unranked",
+          "ranked"
         ],
         "example": "ranked"
       },
@@ -4966,28 +4885,12 @@
         "example": "STEAM_1:1:161178172"
       },
       "Styles": {
-        "type": "array",
-        "items": {
-          "oneOf": [
-            {
-              "type": "string",
-              "title": "Name",
-              "enum": [
-                "auto_bhop"
-              ],
-              "example": "auto_bhop"
-            },
-            {
-              "type": "integer",
-              "title": "ID",
-              "enum": [
-                1
-              ],
-              "example": 1
-            }
-          ],
-          "example": "auto_bhop"
-        }
+        "type": "string",
+        "title": "Name",
+        "enum": [
+          "auto_bhop"
+        ],
+        "example": "auto_bhop"
       },
       "SubmitJumpstatRequestPayload": {
         "type": "object",
@@ -5220,41 +5123,19 @@
         }
       },
       "Tier": {
-        "oneOf": [
-          {
-            "type": "string",
-            "title": "Name",
-            "enum": [
-              "very_easy",
-              "easy",
-              "medium",
-              "advanced",
-              "hard",
-              "very_hard",
-              "extreme",
-              "death",
-              "unfeasible",
-              "impossible"
-            ],
-            "example": "hard"
-          },
-          {
-            "type": "integer",
-            "title": "Numeric Value",
-            "enum": [
-              1,
-              2,
-              3,
-              4,
-              5,
-              6,
-              7,
-              8,
-              9,
-              10
-            ],
-            "example": 1
-          }
+        "type": "string",
+        "title": "Name",
+        "enum": [
+          "very_easy",
+          "easy",
+          "medium",
+          "advanced",
+          "hard",
+          "very_hard",
+          "extreme",
+          "death",
+          "unfeasible",
+          "impossible"
         ],
         "example": "hard"
       },

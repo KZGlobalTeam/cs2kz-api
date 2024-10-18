@@ -81,7 +81,13 @@ impl From<ServerService> for Router
 }
 
 #[tracing::instrument(err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/servers", tag = "Servers", params(FetchServersRequest))]
+#[utoipa::path(
+	get,
+	path = "/servers",
+	tag = "Servers",
+	operation_id = "get_servers",
+	params(FetchServersRequest)
+)]
 async fn get_many(
 	State(svc): State<ServerService>,
 	Query(req): Query<FetchServersRequest>,
@@ -122,7 +128,7 @@ async fn generate_access_token(
 }
 
 #[tracing::instrument(err(Debug, level = "debug"))]
-#[utoipa::path(get, path = "/servers/{server}", tag = "Servers", params(
+#[utoipa::path(get, path = "/servers/{server}", tag = "Servers", operation_id = "get_server", params(
   ("server" = ServerIdentifier, Path, description = "a server's ID or name"),
 ))]
 async fn get_single(

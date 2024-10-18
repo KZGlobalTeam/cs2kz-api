@@ -221,7 +221,6 @@ mod sqlx_impls
 mod utoipa_impls
 {
 	use utoipa::openapi::path::{Parameter, ParameterBuilder, ParameterIn};
-	use utoipa::openapi::schema::OneOfBuilder;
 	use utoipa::openapi::{ObjectBuilder, RefOr, Schema, SchemaType};
 	use utoipa::{IntoParams, ToSchema};
 
@@ -233,33 +232,19 @@ mod utoipa_impls
 		{
 			(
 				"JumpType",
-				Schema::OneOf(
-					OneOfBuilder::new()
-						.nullable(false)
+				Schema::Object(
+					ObjectBuilder::new()
+						.title(Some("Name"))
+						.schema_type(SchemaType::String)
 						.example(Some("longjump".into()))
-						.item(Schema::Object(
-							ObjectBuilder::new()
-								.title(Some("Name"))
-								.schema_type(SchemaType::String)
-								.example(Some("longjump".into()))
-								.enum_values(Some([
-									"longjump",
-									"single_bhop",
-									"multi_bhop",
-									"weirdjump",
-									"ladderjump",
-									"ladderhop",
-								]))
-								.build(),
-						))
-						.item(Schema::Object(
-							ObjectBuilder::new()
-								.title(Some("ID"))
-								.schema_type(SchemaType::Integer)
-								.example(Some(1.into()))
-								.enum_values(Some(1..=6))
-								.build(),
-						))
+						.enum_values(Some([
+							"longjump",
+							"single_bhop",
+							"multi_bhop",
+							"weirdjump",
+							"ladderjump",
+							"ladderhop",
+						]))
 						.build(),
 				)
 				.into(),
