@@ -3700,6 +3700,7 @@
         "description": "A KZ map course.",
         "required": [
           "id",
+          "name",
           "mappers",
           "filters"
         ],
@@ -3709,8 +3710,7 @@
           },
           "name": {
             "type": "string",
-            "description": "The course's name.",
-            "nullable": true
+            "description": "The course's name."
           },
           "description": {
             "type": "string",

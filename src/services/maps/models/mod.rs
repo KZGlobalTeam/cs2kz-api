@@ -140,8 +140,7 @@ pub struct Course
 	pub id: CourseID,
 
 	/// The course's name.
-	#[serde(skip_serializing_if = "Option::is_none")]
-	pub name: Option<String>,
+	pub name: String,
 
 	/// Description of the course.
 	#[serde(skip_serializing_if = "Option::is_none")]
