@@ -153,7 +153,7 @@ version = "2.5"
 features = ["serde"]
 
 [dependencies.uuid]
-version = "1.10"
+version = "1.11"
 features = ["v4", "v7", "serde"]
 
 [dependencies.md5]
