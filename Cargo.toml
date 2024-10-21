@@ -183,7 +183,7 @@ version = "0.6"
 version = "0.2"
 
 [dev-dependencies.fake]
-version = "2.9"
+version = "2.10"
 features = ["derive", "time"]
 
 [dev-dependencies.rand]
