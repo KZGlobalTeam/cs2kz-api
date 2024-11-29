@@ -1,5 +1,0 @@
-[build]
-rustdocflags = "-D warnings"
-
-[profile.dev.package."*"]
-opt-level = 3
