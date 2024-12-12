@@ -106,6 +106,16 @@ impl MapService
 	#[tracing::instrument(level = "debug", err(Debug, level = "debug"))]
 	pub async fn fetch_maps(&self, req: FetchMapsRequest) -> Result<FetchMapsResponse>
 	{
+		let map_count = sqlx::query_scalar!("SELECT COUNT(id) FROM Maps")
+			.fetch_one(&self.database)
+			.await?
+			.try_conv::<u64>()
+			.expect("positive count");
+
+		if *req.offset >= map_count {
+			return Ok(FetchMapsResponse { maps: Vec::new(), total: map_count });
+		}
+
 		let map_chunks = sqlx::query_as::<_, FetchMapResponse>(&format!(
 			r"
 			{}
