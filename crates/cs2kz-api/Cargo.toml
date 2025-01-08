@@ -23,6 +23,14 @@ repository = "https://github.com/KZGlobalTeam/cs2kz-api"
 license-file = "../LICENSE.md"
 publish = false
 
+[[bin]]
+name = "cs2kz-api"
+path = "src/bin/server/main.rs"
+
+[[bin]]
+name = "openapi"
+path = "src/bin/openapi.rs"
+
 [features]
 production = ["cs2kz/production"]
 

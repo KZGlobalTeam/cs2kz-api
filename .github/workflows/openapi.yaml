@@ -1,0 +1,29 @@
+name: OpenAPI Schema
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: ['master', 'take1337']
+
+jobs:
+  openapi:
+    name: OpenAPI Schema
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust Nightly
+        uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      - name: generate schema
+        run: cargo +nightly run --package=cs2kz-api --bin=openapi > openapi.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openapi.json
+          path: openapi.json

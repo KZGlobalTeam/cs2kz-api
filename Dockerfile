@@ -11,7 +11,7 @@ COPY .sqlx .sqlx
 
 RUN apt-get update -y && apt-get install -y pkg-config python3 python3.11-dev
 ENV SQLX_OFFLINE 1
-RUN cargo +nightly-2024-11-28 build --release --locked --package=cs2kz-api
+RUN cargo +nightly-2024-11-28 build --release --locked --package=cs2kz-api --bin=cs2kz-api
 
 FROM debian:bookworm-slim AS runtime
 
