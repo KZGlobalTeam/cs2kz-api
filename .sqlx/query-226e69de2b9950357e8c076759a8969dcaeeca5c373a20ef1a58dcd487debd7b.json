@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE Bans\n         SET reason = COALESCE(?, reason),\n             expires_at = COALESCE(?, expires_at)\n         WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "226e69de2b9950357e8c076759a8969dcaeeca5c373a20ef1a58dcd487debd7b"
+}

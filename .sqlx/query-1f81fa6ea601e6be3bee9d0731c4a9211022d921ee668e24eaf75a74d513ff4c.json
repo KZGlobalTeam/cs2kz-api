@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO PluginVersions (\n           major,\n           minor,\n           patch,\n           pre,\n           build,\n           git_revision\n         )\n         VALUES (?, ?, ?, ?, ?, ?)\n         RETURNING id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "1f81fa6ea601e6be3bee9d0731c4a9211022d921ee668e24eaf75a74d513ff4c"
+}

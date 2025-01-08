@@ -1,0 +1,35 @@
+# https://rust-lang.github.io/rustfmt/?version=master
+
+# meta
+edition = "2024"
+style_edition = "2024"
+unstable_features = true
+
+# max widths
+max_width = 100
+array_width = 50
+attr_fn_like_width = 100
+chain_width = 60
+fn_call_width = 100
+doc_comment_code_block_width = 80
+single_line_if_else_max_width = 55
+single_line_let_else_max_width = 0
+struct_lit_width = 45
+struct_variant_width = 60
+
+# imports
+imports_layout = "HorizontalVertical"
+imports_granularity = "Module"
+group_imports = "StdExternalCrate"
+
+# other
+condense_wildcard_suffixes = true
+format_code_in_doc_comments = true
+skip_macro_invocations = ["assert", "assert_eq", "assert_ne", "assert_matches"]
+hex_literal_case = "Lower"
+match_block_trailing_comma = true
+merge_derives = false
+newline_style = "Unix"
+overflow_delimited_expr = true
+reorder_modules = false
+use_field_init_shorthand = true

@@ -1,0 +1,64 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT a, b, loc, scale, top_scale\n                 FROM PointDistributionData\n                 WHERE filter_id = ?\n                 AND (is_pro_leaderboard)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "a",
+        "type_info": {
+          "type": "Double",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 22
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "b",
+        "type_info": {
+          "type": "Double",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 22
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "loc",
+        "type_info": {
+          "type": "Double",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 22
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "scale",
+        "type_info": {
+          "type": "Double",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 22
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "top_scale",
+        "type_info": {
+          "type": "Double",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 22
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1398040e70af2415e2f843431d660592124a8e3d4f933fa403ebb49a3a3bb524"
+}

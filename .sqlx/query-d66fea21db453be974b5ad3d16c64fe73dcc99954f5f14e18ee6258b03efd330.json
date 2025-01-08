@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT data FROM RecordReplays WHERE record_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "data",
+        "type_info": {
+          "type": "Blob",
+          "flags": "NOT_NULL | BLOB | BINARY | NO_DEFAULT_VALUE",
+          "max_size": 65535
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d66fea21db453be974b5ad3d16c64fe73dcc99954f5f14e18ee6258b03efd330"
+}

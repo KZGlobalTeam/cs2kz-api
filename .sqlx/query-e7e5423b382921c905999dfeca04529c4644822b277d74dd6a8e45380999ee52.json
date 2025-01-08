@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE Users\n             SET email_address = COALESCE(?, email_address),\n                 permissions = COALESCE(?, permissions),\n                 last_login_at = COALESCE(?, last_login_at)\n             WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "e7e5423b382921c905999dfeca04529c4644822b277d74dd6a8e45380999ee52"
+}

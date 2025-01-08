@@ -1,0 +1,214 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT\n                   m.id AS `id: MapId`,\n                   m.workshop_id AS `workshop_id: WorkshopId`,\n                   m.name,\n                   m.description,\n                   m.state AS `state: MapState`,\n                   m.vpk_checksum AS `vpk_checksum: MapChecksum`,\n                   mapper.id AS `mapper_id: PlayerId`,\n                   mapper.name AS mapper_name,\n                   c.id AS `course_id: CourseId`,\n                   c.name AS course_name,\n                   c.description AS course_description,\n                   cmapper.id AS `course_mapper_id: PlayerId`,\n                   cmapper.name AS course_mapper_name,\n                   cf.id AS `filter_id: CourseFilterId`,\n                   cf.mode AS `filter_mode: Mode`,\n                   cf.nub_tier AS `nub_tier: Tier`,\n                   cf.pro_tier AS `pro_tier: Tier`,\n                   cf.state AS `filter_state: CourseFilterState`,\n                   cf.notes AS filter_notes,\n                   m.approved_at\n                 FROM Maps AS m\n                 JOIN Mappers ON Mappers.map_id = m.id\n                 JOIN Players AS mapper ON mapper.id = Mappers.player_id\n                 JOIN Courses AS c ON c.map_id = m.id\n                 JOIN CourseMappers ON CourseMappers.course_id = c.id\n                 JOIN Players AS cmapper ON cmapper.id = CourseMappers.player_id\n                 JOIN CourseFilters AS cf ON cf.course_id = c.id WHERE m.id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: MapId",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "workshop_id: WorkshopId",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 10
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": {
+          "type": "Blob",
+          "flags": "BLOB",
+          "max_size": 262140
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "state: MapState",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "vpk_checksum: MapChecksum",
+        "type_info": {
+          "type": "String",
+          "flags": "NOT_NULL | BINARY | NO_DEFAULT_VALUE",
+          "max_size": 16
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "mapper_id: PlayerId",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 20
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "mapper_name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "course_id: CourseId",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "course_name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "course_description",
+        "type_info": {
+          "type": "Blob",
+          "flags": "BLOB",
+          "max_size": 262140
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "course_mapper_id: PlayerId",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 20
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "course_mapper_name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "filter_id: CourseFilterId",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "filter_mode: Mode",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "nub_tier: Tier",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "pro_tier: Tier",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "filter_state: CourseFilterState",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "filter_notes",
+        "type_info": {
+          "type": "Blob",
+          "flags": "BLOB",
+          "max_size": 262140
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "approved_at",
+        "type_info": {
+          "type": "Timestamp",
+          "flags": "NOT_NULL | UNSIGNED | BINARY | TIMESTAMP",
+          "max_size": 19
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "803764702a65fe5112b493b399e988b2039bde15a0397b798564ad01b2410b2c"
+}

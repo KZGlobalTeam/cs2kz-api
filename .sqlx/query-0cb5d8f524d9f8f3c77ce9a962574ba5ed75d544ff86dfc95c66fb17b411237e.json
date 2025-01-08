@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT COUNT(*) FROM Records AS r\n             LEFT JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id\n             LEFT JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id JOIN CourseFilters AS cf ON cf.id = r.filter_id\n                        JOIN Courses AS c ON c.id = cf.course_id\n                        JOIN Maps AS m ON m.id = c.map_id\n                        WHERE r.player_id = COALESCE(?, r.player_id)\n                        AND r.server_id = COALESCE(?, r.server_id)\n                        AND m.id = COALESCE(?, m.id)\n                        AND c.id = COALESCE(?, c.id)\n                        AND cf.mode = COALESCE(?, cf.mode)\n                        AND r.teleports >= COALESCE(?, 0)\n                        AND r.teleports <= COALESCE(?, (2 << 32) - 1)AND (NOT ((NubRecords.points IS NULL) AND (ProRecords.points IS NULL)))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "COUNT(*)",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "max_size": 21
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0cb5d8f524d9f8f3c77ce9a962574ba5ed75d544ff86dfc95c66fb17b411237e"
+}

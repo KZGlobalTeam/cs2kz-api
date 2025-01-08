@@ -1,0 +1,214 @@
+{
+  "db_name": "MySQL",
+  "query": "WITH NubLeaderboard AS (\n                   SELECT\n                     r.id AS record_id,\n                     NubRecords.points,\n                     RANK() OVER (\n                       PARTITION BY r.filter_id\n                       ORDER BY\n                         r.time ASC,\n                         r.submitted_at ASC\n                     ) AS rank\n                   FROM Records AS r\n                   JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id\n                   JOIN Players AS p ON p.id = r.player_id\n                   JOIN Servers AS s ON s.id = r.server_id\n                   JOIN CourseFilters AS cf ON cf.id = r.filter_id\n                   JOIN Courses AS c ON c.id = cf.course_id\n                   JOIN Maps AS m ON m.id = c.map_id WHERE r.id = ?),ProLeaderboard AS (\n                   SELECT\n                     r.id AS record_id,\n                     ProRecords.points,\n                     RANK() OVER (\n                       PARTITION BY r.filter_id\n                       ORDER BY\n                         r.time ASC,\n                         r.submitted_at ASC\n                     ) AS rank\n                   FROM Records AS r\n                   JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id\n                   JOIN Players AS p ON p.id = r.player_id\n                   JOIN Servers AS s ON s.id = r.server_id\n                   JOIN CourseFilters AS cf ON cf.id = r.filter_id\n                   JOIN Courses AS c ON c.id = cf.course_id\n                   JOIN Maps AS m ON m.id = c.map_id WHERE r.id = ?)\n                   SELECT\n                     r.id AS `id: RecordId`,\n                     p.id AS `player_id: PlayerId`,\n                     p.name AS player_name,\n                     s.id AS `server_id: ServerId`,\n                     s.name AS server_name,\n                     m.id AS `map_id: MapId`,\n                     m.name AS map_name,\n                     c.id AS `course_id: CourseId`,\n                     c.name AS course_name,\n                     cf.mode AS `mode: Mode`,\n                     cf.nub_tier AS `nub_tier: Tier`,\n                     cf.pro_tier AS `pro_tier: Tier`,\n                     r.styles AS `styles: Styles`,\n                     r.teleports,\n                     r.time AS `time: Seconds`,\n                     NubLeaderboard.rank AS nub_rank,\n                     NubLeaderboard.points AS nub_points,\n                     ProLeaderboard.rank AS pro_rank,\n                     ProLeaderboard.points AS pro_points,\n                     r.submitted_at\n                   FROM Records AS r\n                   LEFT JOIN NubLeaderboard ON NubLeaderboard.record_id = r.id\n                   LEFT JOIN ProLeaderboard ON ProLeaderboard.record_id = r.id\n                   JOIN Players AS p ON p.id = r.player_id\n                   JOIN Servers AS s ON s.id = r.server_id\n                   JOIN CourseFilters AS cf ON cf.id = r.filter_id\n                   JOIN Courses AS c ON c.id = cf.course_id\n                   JOIN Maps AS m ON m.id = c.map_id ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: RecordId",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 10
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "player_id: PlayerId",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 20
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "player_name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "server_id: ServerId",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "server_name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | UNIQUE_KEY | NO_DEFAULT_VALUE",
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "map_id: MapId",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "map_name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "course_id: CourseId",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "course_name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "mode: Mode",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "nub_tier: Tier",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "pro_tier: Tier",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "styles: Styles",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 10
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "teleports",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 10
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "time: Seconds",
+        "type_info": {
+          "type": "Double",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 22
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "nub_rank",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "",
+          "max_size": 21
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "nub_points",
+        "type_info": {
+          "type": "Double",
+          "flags": "NO_DEFAULT_VALUE",
+          "max_size": 22
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "pro_rank",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "",
+          "max_size": 21
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "pro_points",
+        "type_info": {
+          "type": "Double",
+          "flags": "NO_DEFAULT_VALUE",
+          "max_size": 22
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "submitted_at",
+        "type_info": {
+          "type": "Timestamp",
+          "flags": "NOT_NULL | UNSIGNED | BINARY | TIMESTAMP",
+          "max_size": 19
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "c2730d12ffec81d4b40e079087faceb1f3f278d9dbe242bb41b2acdd8c95ec18"
+}

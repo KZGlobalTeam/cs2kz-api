@@ -1,0 +1,103 @@
+# HTTP server
+[server]
+# IP address to listen on
+ip-addr = "127.0.0.1"
+
+# Port to listen on
+#
+# 0 will let the OS choose a port
+port = 42069
+
+[tracing]
+# Whether to enable tracing at all
+enable = false
+
+# STDERR as a tracing output
+[tracing.stderr]
+# Whether to emit traces to STDERR
+enable = false
+
+# Whether to emit ANSI escape codes for colors and such
+ansi = true
+
+# log files as a tracing output
+[tracing.files]
+# Whether to emit traces to log files
+enable = false
+
+# Directory to store log files in
+directory = "/var/log/cs2kz-api"
+
+# `tokio-console` as a tracing output
+[tracing.console]
+# Whether to emit traces to `tokio-console`
+enable = false
+
+# Address to bind the gRPC server to
+server-addr = "127.0.0.1:6669"
+
+# Tokio configuration
+[runtime]
+# How many worker threads to spin up
+#
+# 0 will let Tokio choose the amount
+worker-threads = 0
+
+# Upper limit on how many threads to spawn in the blocking pool
+#
+# 0 will let Tokio choose the amount
+max-blocking-threads = 0
+
+# Names of known API credentials
+[access-keys]
+# Key used by GitHub Actions to release new versions of cs2kz-metamod
+cs2kz-metamod-release-key = "github:cs2kz-metamod:release-version"
+
+# HTTP cookies
+[cookies]
+# The default value for the `Domain` field.
+#
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#domaindomain-value
+domain = ".cs2kz.org"
+
+# The default value for the `Max-Age` field (in seconds).
+#
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#max-agenumber
+max-age = 2629800 # 1 month
+
+# The default value for the `Max-Age` field (in seconds), but for session cookies.
+#
+# https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#max-agenumber
+max-age-auth = 1209600 # 2 weeks
+
+[steam-auth]
+# URL Steam should redirect back to when authenticating
+public-url = "https://api.cs2kz.org"
+
+# Where the API should (by default) redirect to after a successful login
+redirect-to-after-login = "https://cs2kz.org"
+
+# Steam Web API key
+#
+# https://steamcommunity.com/dev/apikey
+web-api-key = ""
+
+# https://github.com/SteamRE/DepotDownloader
+[depot-downloader]
+# Path to a `DepotDownloader` executable
+exe-path = "DepotDownloader"
+
+# Path to a directory where `DepotDownloader` should put downloaded files
+out-dir = "/tmp/workshop"
+
+[database]
+# URL to connect to
+url = "mysql://schnose:csgo-kz-is-dead-boys@localhost:8070/cs2kz"
+
+# How many connections to open right at startup
+min-connections = 1
+
+# Upper limit on how many connections to open
+#
+# 0 will let the API choose an amount
+max-connections = 0

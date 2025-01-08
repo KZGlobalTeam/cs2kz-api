@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO Users (id, name)\n             VALUES (?, ?)\n             ON DUPLICATE KEY\n             UPDATE name = VALUES(name),\n                    last_login_at = NOW()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "49214f64969471b9dd61bf869810d2bbc5c857ecf6af9e66f8f7933630d219e3"
+}

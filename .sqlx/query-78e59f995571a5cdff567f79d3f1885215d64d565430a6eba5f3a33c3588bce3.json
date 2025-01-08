@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT nub_tier AS `tier: Tier`\n                 FROM CourseFilters\n                 WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tier: Tier",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 3
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "78e59f995571a5cdff567f79d3f1885215d64d565430a6eba5f3a33c3588bce3"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE Bans SET expires_at = NOW() WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "1cfe564d95bc3da47a03fef89419d2d39bf93b2c4ce905aef2cb42bbc96f0248"
+}

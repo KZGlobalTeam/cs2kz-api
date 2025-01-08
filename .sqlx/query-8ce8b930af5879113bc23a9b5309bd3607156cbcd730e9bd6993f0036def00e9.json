@@ -1,0 +1,64 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT\n                   id AS `id: PlayerId`,\n                   name,\n                   ip_address AS `ip_address: Ipv4Addr`,\n                   first_joined_at,\n                   last_joined_at\n                 FROM Players WHERE name LIKE ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: PlayerId",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 20
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "ip_address: Ipv4Addr",
+        "type_info": {
+          "type": "String",
+          "flags": "UNSIGNED | BINARY",
+          "max_size": 60
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "first_joined_at",
+        "type_info": {
+          "type": "Timestamp",
+          "flags": "NOT_NULL | UNSIGNED | BINARY | TIMESTAMP",
+          "max_size": 19
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "last_joined_at",
+        "type_info": {
+          "type": "Timestamp",
+          "flags": "NOT_NULL | UNSIGNED | BINARY | TIMESTAMP",
+          "max_size": 19
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "8ce8b930af5879113bc23a9b5309bd3607156cbcd730e9bd6993f0036def00e9"
+}

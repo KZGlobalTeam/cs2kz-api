@@ -1,0 +1,136 @@
+# Copyright (C) 2024  AlphaKeks <alphakeks@dawn.sh>
+#
+# This library is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this repository.  If not, see <https://www.gnu.org/licenses/>.
+
+[package]
+name = "cs2kz-api"
+version = "0.0.0"
+authors = ["AlphaKeks <alphakeks@dawn.sh>"]
+edition = "2024"
+homepage = "https://cs2kz.org"
+repository = "https://github.com/KZGlobalTeam/cs2kz-api"
+license-file = "../LICENSE.md"
+publish = false
+
+[features]
+production = ["cs2kz/production"]
+
+[lints]
+workspace = true
+
+[dependencies]
+derive_more.workspace = true
+time.workspace = true
+ulid.workspace = true
+semver.workspace = true
+url.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+futures-util.workspace = true
+bytes.workspace = true
+tokio-util.workspace = true
+http.workspace = true
+http-body-util.workspace = true
+mime.workspace = true
+lettre.workspace = true
+pyo3.workspace = true
+clap.workspace = true
+
+[dependencies.steam-id]
+path = "../steam-id"
+
+[dependencies.cs2kz]
+path = "../cs2kz"
+
+[dependencies.problem-details]
+path = "../problem-details"
+
+[dependencies.steam-openid]
+path = "../steam-openid"
+
+[dependencies.anyhow]
+version = "1.0.95"
+
+[dependencies.tracing-appender]
+version = "0.2.3"
+
+[dependencies.console-subscriber]
+version = "0.4.1"
+
+[dependencies.tokio]
+workspace = true
+features = ["signal"]
+
+[dependencies.headers]
+version = "0.4.0"
+
+[dependencies.cookie]
+version = "0.18.1"
+
+[dependencies.tower]
+version = "0.5.1"
+
+[dependencies.tower-http]
+version = "0.6.2"
+features = [
+  "catch-panic",
+  "cors",
+  "map-response-body",
+  "metrics",
+  "request-id",
+  "trace",
+  "util",
+]
+
+[dependencies.axum]
+version = "0.8.1"
+default-features = false
+features = ["macros", "tokio", "http1", "http2", "ws"]
+
+[dependencies.axum-extra]
+version = "0.10.0"
+default-features = false
+features = ["cookie"]
+
+[dependencies.utoipa]
+version = "5.3.0"
+features = [
+  "time",
+  "ulid",
+  "url",
+  "preserve_order",
+  "preserve_path_order",
+  "non_strict_integers",
+]
+
+[dependencies.utoipa-swagger-ui]
+version = "8.1.0"
+features = ["vendored"]
+
+[dependencies.reqwest]
+version = "0.12.9"
+default-features = false
+features = ["rustls-tls", "http2"]
+
+[dependencies.serde_html_form]
+version = "0.2.6"
+
+[dependencies.toml]
+version = "0.8.19"
+
+[dev-dependencies]
+
+[build-dependencies]

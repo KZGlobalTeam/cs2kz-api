@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE Maps SET state = -1 WHERE name = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "a001be53334f8ef5b2d17ef6d9809e047d24a212734c352e0da64ec59e331b3a"
+}

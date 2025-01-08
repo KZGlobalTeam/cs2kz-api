@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT (COUNT(*) > 0) AS `is_banned: bool`\n         FROM Bans AS b\n         RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id\n         WHERE b.player_id = ?\n         AND (b.id IS NULL OR b.expires_at > NOW())",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "is_banned: bool",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | BINARY",
+          "max_size": 1
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "efbac6ea42dbbedf3ecd686f53930cf23bfb1d7697854587d2877e4958b3fbb3"
+}

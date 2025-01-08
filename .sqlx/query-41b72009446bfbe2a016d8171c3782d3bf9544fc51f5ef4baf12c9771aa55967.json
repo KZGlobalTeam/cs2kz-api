@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT access_key FROM Servers WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "access_key",
+        "type_info": {
+          "type": "String",
+          "flags": "UNIQUE_KEY | BINARY",
+          "max_size": 16
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "41b72009446bfbe2a016d8171c3782d3bf9544fc51f5ef4baf12c9771aa55967"
+}

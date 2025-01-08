@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE Servers\n         SET name = COALESCE(?, name),\n             host = COALESCE(?, host),\n             port = COALESCE(?, port),\n             owner_id = COALESCE(?, owner_id)\n         WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "f21f06aa5677cbb20c1fefe1b6d0034c375c149abb188d98e2a201144f2a8a44"
+}

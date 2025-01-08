@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT preferences AS `preferences: SqlJson<Preferences>`\n         FROM Players\n         WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "preferences: SqlJson<Preferences>",
+        "type_info": {
+          "type": "Blob",
+          "flags": "NOT_NULL | BLOB | BINARY",
+          "max_size": 4294967295
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "dffa8278a703a768f24bb223cd1c072b1ee1f2cc9a6f437ce22c8591e857f569"
+}

@@ -1,0 +1,39 @@
+# Copyright (C) 2024  AlphaKeks <alphakeks@dawn.sh>
+#
+# This library is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this repository.  If not, see <https://www.gnu.org/licenses/>.
+
+[package]
+name = "problem-details"
+version = "0.0.0"
+authors = ["AlphaKeks <alphakeks@dawn.sh>"]
+edition = "2024"
+homepage = "https://cs2kz.org"
+repository = "https://github.com/KZGlobalTeam/cs2kz-api"
+license-file = "../LICENSE.md"
+publish = false
+
+[features]
+
+[lints]
+workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+http.workspace = true
+mime.workspace = true
+
+[dev-dependencies]
+
+[build-dependencies]
