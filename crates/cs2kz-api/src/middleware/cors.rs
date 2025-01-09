@@ -15,7 +15,6 @@ pub fn layer() -> CorsLayer {
 }
 
 fn allow_credentials(_header: &HeaderValue, request: &request::Parts) -> bool {
-    dbg!(_header);
     match request.method {
         Method::POST | Method::PUT | Method::PATCH | Method::DELETE => true,
         Method::GET => request.uri.path().starts_with("/auth"),
