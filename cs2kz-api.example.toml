@@ -92,7 +92,7 @@ out-dir = "/tmp/workshop"
 
 [database]
 # URL to connect to
-url = "mysql://schnose:csgo-kz-is-dead-boys@localhost:8070/cs2kz"
+url = "mysql://schnose:csgo-kz-is-dead-boys@localhost:3306/cs2kz"
 
 # How many connections to open right at startup
 min-connections = 1
