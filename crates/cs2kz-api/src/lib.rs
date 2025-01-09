@@ -152,6 +152,7 @@ pub fn run(config: Config) -> Result<(), Error> {
                 .set_x_request_id(middleware::request_id::make_request_id())
                 .propagate_x_request_id()
                 .layer(middleware::trace::layer())
+                .layer(middleware::cors::layer())
                 .layer(middleware::trim_trailing_slash::layer())
                 .layer(middleware::catch_panic::layer())
                 .service(router.with_state(cx.clone()).into_service())
