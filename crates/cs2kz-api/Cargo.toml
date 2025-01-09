@@ -103,6 +103,10 @@ features = [
   "util",
 ]
 
+[dependencies.tungstenite]
+version = "0.26.1"
+default-features = false
+
 [dependencies.axum]
 version = "0.8.1"
 default-features = false

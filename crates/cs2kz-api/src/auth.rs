@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::sync::Arc;
 
 use axum::extract::ws::WebSocketUpgrade;
@@ -130,12 +131,46 @@ async fn cs2_server_auth(
                 ws::handle_connection(cx, shutdown_signal, server.id, socket)
             });
 
-            match connection.await {
-                Ok(()) => info!("server disconnected"),
-                Err(error) => error!(
-                    error = &error as &dyn std::error::Error,
-                    "failed to handle websocket connection",
-                ),
+            let Err(error) = connection.await else {
+                info!("server disconnected");
+                return;
+            };
+
+            let Some(source) = error
+                .source()
+                .and_then(<dyn Error>::downcast_ref::<tungstenite::Error>)
+            else {
+                error!(%error, "failed to handle websocket connection");
+                return;
+            };
+
+            match source {
+                tungstenite::Error::ConnectionClosed => {
+                    info!("server disconnected");
+                },
+                tungstenite::Error::AlreadyClosed => {
+                    error!("tried to interact with connection after it was already closed");
+                },
+                tungstenite::Error::Protocol(
+                    tungstenite::error::ProtocolError::HandshakeIncomplete
+                    | tungstenite::error::ProtocolError::ResetWithoutClosingHandshake,
+                ) => {
+                    warn!("client reset connection unexpectedly");
+                },
+                tungstenite::Error::AttackAttempt => {
+                    warn!("attack attempt detected");
+                },
+                error @ (tungstenite::Error::Io(_)
+                | tungstenite::Error::Tls(_)
+                | tungstenite::Error::Capacity(_)
+                | tungstenite::Error::Protocol(_)
+                | tungstenite::Error::WriteBufferFull(_)
+                | tungstenite::Error::Utf8
+                | tungstenite::Error::Url(_)
+                | tungstenite::Error::Http(_)
+                | tungstenite::Error::HttpFormat(_)) => {
+                    error!(%error);
+                },
             }
         }
         .instrument(info_span!("cs2_server_connection", %server.id, server.name))
