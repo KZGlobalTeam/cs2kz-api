@@ -10,12 +10,12 @@ port = 42069
 
 [tracing]
 # Whether to enable tracing at all
-enable = false
+enable = true
 
 # STDERR as a tracing output
 [tracing.stderr]
 # Whether to emit traces to STDERR
-enable = false
+enable = true
 
 # Whether to emit ANSI escape codes for colors and such
 ansi = true
