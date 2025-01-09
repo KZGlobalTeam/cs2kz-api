@@ -74,6 +74,7 @@ pub enum ConsoleServerAddr {
     Tcp(SocketAddr),
 
     /// Path to a UDS.
+    #[cfg(unix)]
     Unix(PathBuf),
 }
 
@@ -81,6 +82,8 @@ impl From<ConsoleServerAddr> for console_subscriber::ServerAddr {
     fn from(addr: ConsoleServerAddr) -> Self {
         match addr {
             ConsoleServerAddr::Tcp(addr) => Self::Tcp(addr),
+
+            #[cfg(unix)]
             ConsoleServerAddr::Unix(path) => Self::Unix(path),
         }
     }
