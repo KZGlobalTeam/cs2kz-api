@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT\n                   COUNT(r.id) AS size,\n                   MIN(r.time) AS top_time\n                 FROM Records AS r\n                 JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id\n                 WHERE r.filter_id = ?\n                 GROUP BY r.filter_id",
+  "query": "SELECT\n                           COUNT(r.id) AS size,\n                           MIN(r.time) AS top_time\n                         FROM Records AS r\n                         JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id\n                         WHERE r.filter_id = ?\n                         GROUP BY r.filter_id",
   "describe": {
     "columns": [
       {
@@ -30,5 +30,5 @@
       true
     ]
   },
-  "hash": "8edd0364b755a20d0a865625fe0707273c680ddcad9c166e973c9fd9e87920b5"
+  "hash": "a670b419d50f9294ac5a25f9274bbebe814a46a1cfbc6145a563bbe796673d6d"
 }

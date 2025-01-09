@@ -154,16 +154,16 @@ pub async fn submit(
         .database_transaction(async move |conn| {
             let record_id = sqlx::query!(
                 "INSERT INTO Records (
-               player_id,
-               server_id,
-               filter_id,
-               styles,
-               teleports,
-               time,
-               plugin_version_id
-             )
-             VALUES (?, ?, ?, ?, ?, ?, ?)
-             RETURNING id",
+                   player_id,
+                   server_id,
+                   filter_id,
+                   styles,
+                   teleports,
+                   time,
+                   plugin_version_id
+                 )
+                 VALUES (?, ?, ?, ?, ?, ?, ?)
+                 RETURNING id",
                 player_id,
                 server_id,
                 filter_id,
@@ -178,14 +178,14 @@ pub async fn submit(
 
             let old_nub = sqlx::query!(
                 "SELECT
-               r.id,
-               r.teleports,
-               r.time,
-               NubRecords.points
-             FROM Records AS r
-             JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
-             WHERE r.filter_id = ?
-             AND r.player_id = ?",
+                   r.id,
+                   r.teleports,
+                   r.time,
+                   NubRecords.points
+                 FROM Records AS r
+                 JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
+                 WHERE r.filter_id = ?
+                 AND r.player_id = ?",
                 filter_id,
                 player_id,
             )
@@ -194,14 +194,14 @@ pub async fn submit(
 
             let old_pro = sqlx::query!(
                 "SELECT
-               r.id,
-               r.teleports,
-               r.time,
-               ProRecords.points
-             FROM Records AS r
-             JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id
-             WHERE r.filter_id = ?
-             AND r.player_id = ?",
+                   r.id,
+                   r.teleports,
+                   r.time,
+                   ProRecords.points
+                 FROM Records AS r
+                 JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id
+                 WHERE r.filter_id = ?
+                 AND r.player_id = ?",
                 filter_id,
                 player_id,
             )
@@ -213,9 +213,9 @@ pub async fn submit(
                     let dist = sqlx::query_as!(
                         Distribution,
                         "SELECT a, b, loc, scale, top_scale
-                 FROM PointDistributionData
-                 WHERE filter_id = ?
-                 AND (NOT is_pro_leaderboard)",
+                         FROM PointDistributionData
+                         WHERE filter_id = ?
+                         AND (NOT is_pro_leaderboard)",
                         filter_id,
                     )
                     .fetch_optional(&mut *conn)
@@ -223,8 +223,8 @@ pub async fn submit(
 
                     let tier = sqlx::query_scalar!(
                         "SELECT nub_tier AS `tier: Tier`
-                 FROM CourseFilters
-                 WHERE id = ?",
+                         FROM CourseFilters
+                         WHERE id = ?",
                         filter_id,
                     )
                     .fetch_one(&mut *conn)
@@ -232,23 +232,17 @@ pub async fn submit(
 
                     let (leaderboard_size, top_time) = sqlx::query!(
                         "SELECT
-                   COUNT(r.id) AS size,
-                   MIN(r.time) AS top_time
-                 FROM Records AS r
-                 JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
-                 WHERE r.filter_id = ?
-                 GROUP BY r.filter_id",
+                           COUNT(r.id) AS size,
+                           MIN(r.time) AS top_time
+                         FROM Records AS r
+                         JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
+                         WHERE r.filter_id = ?
+                         GROUP BY r.filter_id",
                         filter_id,
                     )
                     .fetch_optional(&mut *conn)
                     .await
                     .map(|row| row.map_or((0, None), |row| (row.size as usize, row.top_time)))?;
-
-                    if top_time.is_some_and(|top_time| top_time < time)
-                        && leaderboard_size <= points::SMALL_LEADERBOARD_THRESHOLD
-                    {
-                        // TODO: recalc points for everyone
-                    }
 
                     let dist_points =
                         if let Some(top_time) = top_time.filter(|&top_time| top_time < time) {
@@ -261,22 +255,70 @@ pub async fn submit(
 
                     sqlx::query!(
                         "INSERT INTO BestNubRecords (
-                   filter_id,
-                   player_id,
-                   record_id,
-                   points
-                 )
-                 VALUES (?, ?, ?, ?)
-                 ON DUPLICATE KEY
-                 UPDATE record_id = VALUES(record_id),
-                        points = VALUES(points)",
+                           filter_id,
+                           player_id,
+                           record_id,
+                           points
+                         )
+                         VALUES (?, ?, ?, ?)
+                         ON DUPLICATE KEY
+                         UPDATE record_id = VALUES(record_id),
+                                points = VALUES(points)",
                         filter_id,
                         player_id,
                         record_id,
                         dist_points,
                     )
-                    .execute(conn)
+                    .execute(&mut *conn)
                     .await?;
+
+                    if leaderboard_size <= points::SMALL_LEADERBOARD_THRESHOLD {
+                        let mut top_time = None;
+                        let leaderboard = sqlx::query!(
+                            "SELECT
+                               r.player_id,
+                               r.id,
+                               r.time
+                             FROM Records AS r
+                             JOIN BestNubRecords ON BestNubRecords.record_id = r.id
+                             WHERE BestNubRecords.filter_id = ?",
+                             filter_id,
+                            )
+                            .fetch(&mut *conn)
+                            .map_ok(|row| {
+                                (row.player_id, row.id, points::for_small_leaderboard(
+                                    tier,
+                                    *top_time.get_or_insert(row.time),
+                                    row.time,
+                                ))
+                            })
+                            .try_collect::<Vec<_>>()
+                            .await?;
+
+                        let mut query = QueryBuilder::new(
+                            "INSERT INTO BestNubRecords (
+                               filter_id,
+                               player_id,
+                               record_id,
+                               points
+                             )",
+                        );
+
+                        query.push_values(leaderboard, |mut query, (player_id, record_id, points)| {
+                            query.push_bind(filter_id);
+                            query.push_bind(player_id);
+                            query.push_bind(record_id);
+                            query.push_bind(points);
+                        });
+
+                        query.push("ON DUPLICATE KEY UPDATE points = VALUES(points)");
+
+                        query
+                            .build()
+                            .persistent(false)
+                            .execute(&mut *conn)
+                            .await?;
+                    }
 
                     Ok(move |rank| points::complete(tier, false, rank, dist_points))
                 };
@@ -286,9 +328,9 @@ pub async fn submit(
                     let dist = sqlx::query_as!(
                         Distribution,
                         "SELECT a, b, loc, scale, top_scale
-                 FROM PointDistributionData
-                 WHERE filter_id = ?
-                 AND (is_pro_leaderboard)",
+                         FROM PointDistributionData
+                         WHERE filter_id = ?
+                         AND (is_pro_leaderboard)",
                         filter_id,
                     )
                     .fetch_optional(&mut *conn)
@@ -296,8 +338,8 @@ pub async fn submit(
 
                     let tier = sqlx::query_scalar!(
                         "SELECT pro_tier AS `tier: Tier`
-                 FROM CourseFilters
-                 WHERE id = ?",
+                         FROM CourseFilters
+                         WHERE id = ?",
                         filter_id,
                     )
                     .fetch_one(&mut *conn)
@@ -305,23 +347,17 @@ pub async fn submit(
 
                     let (leaderboard_size, top_time) = sqlx::query!(
                         "SELECT
-                   COUNT(r.id) AS size,
-                   MIN(r.time) AS top_time
-                 FROM Records AS r
-                 JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id
-                 WHERE r.filter_id = ?
-                 GROUP BY r.filter_id",
+                           COUNT(r.id) AS size,
+                           MIN(r.time) AS top_time
+                         FROM Records AS r
+                         JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id
+                         WHERE r.filter_id = ?
+                         GROUP BY r.filter_id",
                         filter_id,
                     )
                     .fetch_optional(&mut *conn)
                     .await
                     .map(|row| row.map_or((0, None), |row| (row.size as usize, row.top_time)))?;
-
-                    if top_time.is_some_and(|top_time| top_time < time)
-                        && leaderboard_size <= points::SMALL_LEADERBOARD_THRESHOLD
-                    {
-                        // TODO: recalc points for everyone
-                    }
 
                     let dist_points =
                         if let Some(top_time) = top_time.filter(|&top_time| top_time < time) {
@@ -334,23 +370,71 @@ pub async fn submit(
 
                     sqlx::query!(
                         "INSERT INTO BestProRecords (
-                   filter_id,
-                   player_id,
-                   record_id,
-                   points,
-                   points_based_on_pro_leaderboard
-                 )
-                 VALUES (?, ?, ?, ?, true)
-                 ON DUPLICATE KEY
-                 UPDATE record_id = VALUES(record_id),
-                        points = VALUES(points)",
+                           filter_id,
+                           player_id,
+                           record_id,
+                           points,
+                           points_based_on_pro_leaderboard
+                         )
+                         VALUES (?, ?, ?, ?, true)
+                         ON DUPLICATE KEY
+                         UPDATE record_id = VALUES(record_id),
+                                points = VALUES(points)",
                         filter_id,
                         player_id,
                         record_id,
                         dist_points,
                     )
-                    .execute(conn)
+                    .execute(&mut *conn)
                     .await?;
+
+                    if leaderboard_size <= points::SMALL_LEADERBOARD_THRESHOLD {
+                        let mut top_time = None;
+                        let leaderboard = sqlx::query!(
+                            "SELECT
+                               r.player_id,
+                               r.id,
+                               r.time
+                             FROM Records AS r
+                             JOIN BestProRecords ON BestProRecords.record_id = r.id
+                             WHERE BestProRecords.filter_id = ?",
+                             filter_id,
+                            )
+                            .fetch(&mut *conn)
+                            .map_ok(|row| {
+                                (row.player_id, row.id, points::for_small_leaderboard(
+                                    tier,
+                                    *top_time.get_or_insert(row.time),
+                                    row.time,
+                                ))
+                            })
+                            .try_collect::<Vec<_>>()
+                            .await?;
+
+                        let mut query = QueryBuilder::new(
+                            "INSERT INTO BestProRecords (
+                               filter_id,
+                               player_id,
+                               record_id,
+                               points
+                             )",
+                        );
+
+                        query.push_values(leaderboard, |mut query, (player_id, record_id, points)| {
+                            query.push_bind(filter_id);
+                            query.push_bind(player_id);
+                            query.push_bind(record_id);
+                            query.push_bind(points);
+                        });
+
+                        query.push("ON DUPLICATE KEY UPDATE points = VALUES(points)");
+
+                        query
+                            .build()
+                            .persistent(false)
+                            .execute(&mut *conn)
+                            .await?;
+                    }
 
                     Ok(move |rank| points::complete(tier, true, rank, dist_points))
                 };
@@ -423,8 +507,8 @@ pub async fn submit(
 
             let mode = sqlx::query_scalar!(
                 "SELECT mode AS `mode: Mode`
-             FROM CourseFilters
-             WHERE id = ?",
+                 FROM CourseFilters
+                 WHERE id = ?",
                 filter_id,
             )
             .fetch_one(&mut *conn)
@@ -432,114 +516,114 @@ pub async fn submit(
 
             sqlx::query!(
                 r#"WITH RankedPoints AS (
-                 SELECT
-                   source,
-                   record_id,
-                   ROW_NUMBER() OVER (
-                     PARTITION BY player_id
-                     ORDER BY points DESC
-                   ) AS n
-                 FROM ((
-                   SELECT "nub" AS source, record_id, player_id, points
-                   FROM BestNubRecords
-                   WHERE player_id = ?
-                 ) UNION ALL (
-                   SELECT "pro" AS source, record_id, player_id, points
-                   FROM BestProRecords
-                   WHERE player_id = ?
-                 )) AS _
-               ),
-               NubRecords AS (
-                 SELECT
-                   r.id AS record_id,
-                   r.player_id,
-                   cf.nub_tier AS tier,
-                   BestNubRecords.points,
-                   RANK() OVER (
-                     PARTITION BY r.filter_id
-                     ORDER BY
-                       r.time ASC,
-                       r.submitted_at ASC
-                   ) AS rank
-                 FROM Records AS r
-                 JOIN BestNubRecords ON BestNubRecords.record_id = r.id
-                 JOIN CourseFilters AS cf ON cf.id = r.filter_id
-                 WHERE r.player_id = ?
-                 AND cf.mode = ?
-               ),
-               ProRecords AS (
-                 SELECT
-                   r.id AS record_id,
-                   r.player_id,
-                   cf.pro_tier AS tier,
-                   BestProRecords.points,
-                   RANK() OVER (
-                     PARTITION BY r.filter_id
-                     ORDER BY
-                       r.time ASC,
-                       r.submitted_at ASC
-                   ) AS rank
-                 FROM Records AS r
-                 JOIN BestProRecords ON BestProRecords.record_id = r.id
-                 JOIN CourseFilters AS cf ON cf.id = r.filter_id
-                 WHERE r.player_id = ?
-                 AND cf.mode = ?
-               ),
-               NubRatings AS (
-                 SELECT
-                   player_id,
-                   SUM(KZ_POINTS(tier, false, rank - 1, points) * POWER(0.975, n - 1)) AS rating
-                 FROM NubRecords
-                 JOIN RankedPoints
-                   ON RankedPoints.record_id = NubRecords.record_id
-                   AND RankedPoints.source = "nub"
-                 GROUP BY player_id
-               ),
-               NubRankAndPoints AS (
-                 SELECT
-                   player_id,
-                   rank,
-                   SUM(KZ_POINTS(tier, false, rank - 1, points)) AS points
-                 FROM NubRecords
-                 WHERE record_id = ?
-                 GROUP BY player_id
-               ),
-               ProRatings AS (
-                 SELECT
-                   player_id,
-                   SUM(KZ_POINTS(tier, true, rank - 1, points) * POWER(0.975, n - 1)) AS rating
-                 FROM ProRecords
-                 JOIN RankedPoints
-                   ON RankedPoints.record_id = ProRecords.record_id
-                   AND RankedPoints.source = "pro"
-                 GROUP BY player_id
-               ),
-               ProRankAndPoints AS (
-                 SELECT
-                   player_id,
-                   rank,
-                   SUM(KZ_POINTS(tier, false, rank - 1, points)) AS points
-                 FROM ProRecords
-                 WHERE record_id = ?
-                 GROUP BY player_id
-               )
-               SELECT
-                 (SELECT COUNT(*) FROM BestNubRecords WHERE filter_id = ?) AS nub_leaderboard_size,
-                 (SELECT COUNT(*) FROM BestProRecords WHERE filter_id = ?) AS pro_leaderboard_size,
-                 NubRatings.rating AS nub_rating,
-                 NubRankAndPoints.rank AS nub_rank,
-                 NubRankAndPoints.points AS nub_points,
-                 ProRatings.rating AS pro_rating,
-                 ProRankAndPoints.rank AS pro_rank,
-                 ProRankAndPoints.points AS pro_points
-               FROM Players AS p
-               LEFT JOIN NubRecords ON NubRecords.player_id = p.id
-               LEFT JOIN ProRecords ON ProRecords.player_id = p.id
-               LEFT JOIN NubRatings ON NubRatings.player_id = p.id
-               LEFT JOIN NubRankAndPoints ON NubRankAndPoints.player_id = p.id
-               LEFT JOIN ProRatings ON ProRatings.player_id = p.id
-               LEFT JOIN ProRankAndPoints ON ProRankAndPoints.player_id = p.id
-               WHERE p.id = ?"#,
+                     SELECT
+                       source,
+                       record_id,
+                       ROW_NUMBER() OVER (
+                         PARTITION BY player_id
+                         ORDER BY points DESC
+                       ) AS n
+                     FROM ((
+                       SELECT "nub" AS source, record_id, player_id, points
+                       FROM BestNubRecords
+                       WHERE player_id = ?
+                     ) UNION ALL (
+                       SELECT "pro" AS source, record_id, player_id, points
+                       FROM BestProRecords
+                       WHERE player_id = ?
+                     )) AS _
+                   ),
+                   NubRecords AS (
+                     SELECT
+                       r.id AS record_id,
+                       r.player_id,
+                       cf.nub_tier AS tier,
+                       BestNubRecords.points,
+                       RANK() OVER (
+                         PARTITION BY r.filter_id
+                         ORDER BY
+                           r.time ASC,
+                           r.submitted_at ASC
+                       ) AS rank
+                     FROM Records AS r
+                     JOIN BestNubRecords ON BestNubRecords.record_id = r.id
+                     JOIN CourseFilters AS cf ON cf.id = r.filter_id
+                     WHERE r.player_id = ?
+                     AND cf.mode = ?
+                   ),
+                   ProRecords AS (
+                     SELECT
+                       r.id AS record_id,
+                       r.player_id,
+                       cf.pro_tier AS tier,
+                       BestProRecords.points,
+                       RANK() OVER (
+                         PARTITION BY r.filter_id
+                         ORDER BY
+                           r.time ASC,
+                           r.submitted_at ASC
+                       ) AS rank
+                     FROM Records AS r
+                     JOIN BestProRecords ON BestProRecords.record_id = r.id
+                     JOIN CourseFilters AS cf ON cf.id = r.filter_id
+                     WHERE r.player_id = ?
+                     AND cf.mode = ?
+                   ),
+                   NubRatings AS (
+                     SELECT
+                       player_id,
+                       SUM(KZ_POINTS(tier, false, rank - 1, points) * POWER(0.975, n - 1)) AS rating
+                     FROM NubRecords
+                     JOIN RankedPoints
+                       ON RankedPoints.record_id = NubRecords.record_id
+                       AND RankedPoints.source = "nub"
+                     GROUP BY player_id
+                   ),
+                   NubRankAndPoints AS (
+                     SELECT
+                       player_id,
+                       rank,
+                       SUM(KZ_POINTS(tier, false, rank - 1, points)) AS points
+                     FROM NubRecords
+                     WHERE record_id = ?
+                     GROUP BY player_id
+                   ),
+                   ProRatings AS (
+                     SELECT
+                       player_id,
+                       SUM(KZ_POINTS(tier, true, rank - 1, points) * POWER(0.975, n - 1)) AS rating
+                     FROM ProRecords
+                     JOIN RankedPoints
+                       ON RankedPoints.record_id = ProRecords.record_id
+                       AND RankedPoints.source = "pro"
+                     GROUP BY player_id
+                   ),
+                   ProRankAndPoints AS (
+                     SELECT
+                       player_id,
+                       rank,
+                       SUM(KZ_POINTS(tier, false, rank - 1, points)) AS points
+                     FROM ProRecords
+                     WHERE record_id = ?
+                     GROUP BY player_id
+                   )
+                   SELECT
+                     (SELECT COUNT(*) FROM BestNubRecords WHERE filter_id = ?) AS nub_leaderboard_size,
+                     (SELECT COUNT(*) FROM BestProRecords WHERE filter_id = ?) AS pro_leaderboard_size,
+                     NubRatings.rating AS nub_rating,
+                     NubRankAndPoints.rank AS nub_rank,
+                     NubRankAndPoints.points AS nub_points,
+                     ProRatings.rating AS pro_rating,
+                     ProRankAndPoints.rank AS pro_rank,
+                     ProRankAndPoints.points AS pro_points
+                   FROM Players AS p
+                   LEFT JOIN NubRecords ON NubRecords.player_id = p.id
+                   LEFT JOIN ProRecords ON ProRecords.player_id = p.id
+                   LEFT JOIN NubRatings ON NubRatings.player_id = p.id
+                   LEFT JOIN NubRankAndPoints ON NubRankAndPoints.player_id = p.id
+                   LEFT JOIN ProRatings ON ProRatings.player_id = p.id
+                   LEFT JOIN ProRankAndPoints ON ProRankAndPoints.player_id = p.id
+                   WHERE p.id = ?"#,
                 player_id,
                 player_id,
                 player_id,

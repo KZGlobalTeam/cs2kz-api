@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT a, b, loc, scale, top_scale\n                 FROM PointDistributionData\n                 WHERE filter_id = ?\n                 AND (is_pro_leaderboard)",
+  "query": "SELECT a, b, loc, scale, top_scale\n                         FROM PointDistributionData\n                         WHERE filter_id = ?\n                         AND (NOT is_pro_leaderboard)",
   "describe": {
     "columns": [
       {
@@ -60,5 +60,5 @@
       false
     ]
   },
-  "hash": "1398040e70af2415e2f843431d660592124a8e3d4f933fa403ebb49a3a3bb524"
+  "hash": "d99978bb44f728b393567b79a9b022b41d0fd109161d810d809c930f9725fa48"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT pro_tier AS `tier: Tier`\n                 FROM CourseFilters\n                 WHERE id = ?",
+  "query": "SELECT pro_tier AS `tier: Tier`\n                         FROM CourseFilters\n                         WHERE id = ?",
   "describe": {
     "columns": [
       {
@@ -20,5 +20,5 @@
       false
     ]
   },
-  "hash": "d17e75cd52ad6412ea11f848a4e1085e9665e2fe10553061f5bb57a883644c2c"
+  "hash": "070f4d55b8e214c0ee6a34261bd694cb711c90f176cb380e4d65688f96999a36"
 }

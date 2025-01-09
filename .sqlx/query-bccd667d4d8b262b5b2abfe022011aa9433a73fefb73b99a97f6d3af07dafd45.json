@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT\n               r.id,\n               r.teleports,\n               r.time,\n               NubRecords.points\n             FROM Records AS r\n             JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id\n             WHERE r.filter_id = ?\n             AND r.player_id = ?",
+  "query": "SELECT\n                   r.id,\n                   r.teleports,\n                   r.time,\n                   ProRecords.points\n                 FROM Records AS r\n                 JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id\n                 WHERE r.filter_id = ?\n                 AND r.player_id = ?",
   "describe": {
     "columns": [
       {
@@ -50,5 +50,5 @@
       false
     ]
   },
-  "hash": "ff1952ac2abc5611b7c007fb1dc5e6b96204544912e1f9154b5265e96a6284bf"
+  "hash": "bccd667d4d8b262b5b2abfe022011aa9433a73fefb73b99a97f6d3af07dafd45"
 }
