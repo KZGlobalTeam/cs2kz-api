@@ -228,7 +228,10 @@ where
 
         debug!(map = hello.payload().map, "valid plugin version, getting map details");
 
-        let map = cs2kz::maps::get_by_name(cx, &hello.payload().map).await?;
+        let map = cs2kz::maps::get_by_name(cx, &hello.payload().map)
+            .try_next()
+            .await?;
+
         let reply = Message::ack_hello(&hello, HEARTBEAT_INTERVAL, map)
             .encode()
             .map_err(io::Error::other)?;
@@ -261,7 +264,7 @@ where
         P::MapChange { ref new_map } => {
             trace!("server changed map to '{new_map}'");
 
-            let map = cs2kz::maps::get_by_name(cx, new_map).await?;
+            let map = cs2kz::maps::get_by_name(cx, new_map).try_next().await?;
             let reply = Message::reply(&message, message::Outgoing::MapInfo { map }).encode()?;
 
             conn.send(reply).await.map_err(Into::into)?;
@@ -270,7 +273,9 @@ where
         P::WantMapInfo { ref map } => {
             let map = match *map {
                 MapIdentifier::Id(id) => cs2kz::maps::get_by_id(cx, id).await,
-                MapIdentifier::Name(ref name) => cs2kz::maps::get_by_name(cx, name).await,
+                MapIdentifier::Name(ref name) => {
+                    cs2kz::maps::get_by_name(cx, name).try_next().await
+                },
             }?;
 
             let reply = Message::reply(&message, message::Outgoing::MapInfo { map }).encode()?;

@@ -177,6 +177,10 @@ pub fn run(config: Config) -> Result<(), Error> {
                 serve_result_tx.send(serve_result)
             });
 
+            cx.spawn("points-daemon", |cancellation_token| {
+                cs2kz::points::daemon::run(cx.clone(), cancellation_token)
+            });
+
             select! {
                 biased;
 

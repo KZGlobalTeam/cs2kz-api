@@ -7,6 +7,7 @@ use sqlx::{QueryBuilder, Row};
 
 use self::courses::filters::{CourseFilterState, Tier};
 use self::stream::{GetMapsStream, RawCourse, RawCourseFilters, RawMap};
+use crate::events::{self, Event};
 use crate::mode::Mode;
 use crate::pagination::{Limit, Offset, Paginated};
 use crate::players::{PlayerId, PlayerInfo};
@@ -96,36 +97,36 @@ pub struct GetMapsParams<'a> {
 }
 
 #[derive(Debug)]
-pub struct NewMap<'a> {
+pub struct NewMap {
     pub workshop_id: WorkshopId,
-    pub name: &'a str,
-    pub description: Option<&'a str>,
+    pub name: String,
+    pub description: Option<String>,
     pub state: MapState,
     pub vpk_checksum: MapChecksum,
-    pub mappers: &'a [PlayerId],
-    pub courses: Vec<NewCourse<'a>>,
+    pub mappers: Box<[PlayerId]>,
+    pub courses: Box<[NewCourse]>,
 }
 
 #[derive(Debug)]
-pub struct NewCourse<'a> {
-    pub name: &'a str,
-    pub description: Option<&'a str>,
-    pub mappers: &'a [PlayerId],
-    pub filters: NewCourseFilters<'a>,
+pub struct NewCourse {
+    pub name: String,
+    pub description: Option<String>,
+    pub mappers: Box<[PlayerId]>,
+    pub filters: NewCourseFilters,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct NewCourseFilters<'a> {
-    pub vanilla: NewCourseFilter<'a>,
-    pub classic: NewCourseFilter<'a>,
+#[derive(Debug, Clone)]
+pub struct NewCourseFilters {
+    pub vanilla: NewCourseFilter,
+    pub classic: NewCourseFilter,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct NewCourseFilter<'a> {
+#[derive(Debug, Clone)]
+pub struct NewCourseFilter {
     pub nub_tier: Tier,
     pub pro_tier: Tier,
     pub state: CourseFilterState,
-    pub notes: Option<&'a str>,
+    pub notes: Option<String>,
 }
 
 #[derive(Debug)]
@@ -225,12 +226,10 @@ pub async fn get_by_id(cx: &Context, map_id: MapId) -> Result<Option<Map>, GetMa
         .await
 }
 
-#[tracing::instrument(skip(cx), err(level = "debug"))]
-pub async fn get_by_name(cx: &Context, map_name: &str) -> Result<Option<Map>, GetMapsError> {
+#[tracing::instrument(skip(cx))]
+pub fn get_by_name(cx: &Context, map_name: &str) -> impl Stream<Item = Result<Map, GetMapsError>> {
     self::macros::select!(cx.database().as_ref(), "WHERE m.name LIKE ?", format!("%{map_name}%"))
-        .try_next()
         .map_err(GetMapsError::from)
-        .await
 }
 
 #[tracing::instrument(skip(cx), err(level = "debug"))]
@@ -260,20 +259,31 @@ pub async fn approve(
         vpk_checksum,
         mappers,
         courses,
-    }: NewMap<'_>,
+    }: NewMap,
 ) -> Result<MapId, ApproveMapError> {
     cx.database_transaction(async move |conn| {
-        match invalidate_old_map_rows(&mut *conn, name).await? {
+        match invalidate_old_map_rows(&mut *conn, &name).await? {
             0 => info!("approving new map '{name}'"),
             1 => info!("invalidated old version of '{name}'"),
             amount => warn!(amount, "invalidated multiple old versions of '{name}'"),
         }
 
         let map_id =
-            insert_map(&mut *conn, workshop_id, name, description, state, vpk_checksum).await?;
+            insert_map(&mut *conn, workshop_id, &name, description.as_deref(), state, vpk_checksum)
+                .await?;
 
-        insert_mappers(&mut *conn, map_id, mappers).await?;
+        insert_mappers(&mut *conn, map_id, &mappers).await?;
         insert_courses(&mut *conn, map_id, &courses).await?;
+
+        events::dispatch(Event::NewMap {
+            workshop_id,
+            name,
+            description,
+            state,
+            vpk_checksum,
+            mappers,
+            courses,
+        });
 
         Ok(map_id)
     })
@@ -452,14 +462,14 @@ async fn delete_mappers(
 async fn insert_courses(
     conn: &mut database::Connection,
     map_id: MapId,
-    courses: &[NewCourse<'_>],
+    courses: &[NewCourse],
 ) -> database::Result<()> {
     let mut query = QueryBuilder::new("INSERT INTO Courses (map_id, name, description)");
 
     query.push_values(courses, |mut query, course| {
         query.push_bind(map_id);
-        query.push_bind(course.name);
-        query.push_bind(course.description);
+        query.push_bind(course.name.as_str());
+        query.push_bind(course.description.as_deref());
     });
 
     query.push("RETURNING id");
@@ -489,7 +499,7 @@ async fn insert_courses(
     );
 
     let filters = iter::zip(&course_ids, courses)
-        .flat_map(|(&course_id, course)| iter::zip(iter::repeat(course_id), course.filters));
+        .flat_map(|(&course_id, course)| iter::zip(iter::repeat(course_id), &course.filters));
 
     query.push_values(filters, |mut query, (course_id, (mode, filter))| {
         query.push_bind(course_id);
@@ -497,7 +507,7 @@ async fn insert_courses(
         query.push_bind(filter.nub_tier);
         query.push_bind(filter.pro_tier);
         query.push_bind(filter.state);
-        query.push_bind(filter.notes);
+        query.push_bind(filter.notes.as_deref());
     });
 
     query.build().execute(&mut *conn).await?;
@@ -540,14 +550,14 @@ async fn delete_course_mappers(
     Ok(())
 }
 
-impl<'a> IntoIterator for NewCourseFilters<'a> {
-    type Item = (Mode, NewCourseFilter<'a>);
-    type IntoIter = array::IntoIter<(Mode, NewCourseFilter<'a>), 2>;
+impl<'a> IntoIterator for &'a NewCourseFilters {
+    type Item = (Mode, &'a NewCourseFilter);
+    type IntoIter = array::IntoIter<(Mode, &'a NewCourseFilter), 2>;
 
     fn into_iter(self) -> Self::IntoIter {
         [
-            (Mode::Vanilla, self.vanilla),
-            (Mode::Classic, self.classic),
+            (Mode::Vanilla, &self.vanilla),
+            (Mode::Classic, &self.classic),
         ]
         .into_iter()
     }

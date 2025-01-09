@@ -2,6 +2,7 @@ use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
 
+use tokio::task;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
 use tokio_util::time::FutureExt;
@@ -102,6 +103,24 @@ impl Context {
         let cancellation_token = self.0.shutdown_token.child_token();
 
         tasks.track_future(make_future(self, cancellation_token))
+    }
+
+    /// Tracks the future produced by `make_future` and spawns it as a tokio task.
+    ///
+    /// See [`Context::track_future()`] for details on tracked tasks.
+    pub fn spawn<F, Fut>(&self, name: &str, make_future: F) -> task::JoinHandle<Fut::Output>
+    where
+        F: FnOnce(CancellationToken) -> Fut,
+        Fut: Future + Send + 'static,
+        Fut::Output: Send + 'static,
+    {
+        let cancellation_token = self.0.shutdown_token.child_token();
+        let task = self.0.tasks.track_future(make_future(cancellation_token));
+
+        task::Builder::new()
+            .name(name)
+            .spawn(task)
+            .expect("failed to spawn tokio task")
     }
 
     /// Initiates cleanup.

@@ -391,29 +391,29 @@ async fn approve_map(
 
     let map = cs2kz::maps::NewMap {
         workshop_id,
-        name: &name,
-        description: description.as_deref(),
+        name,
+        description,
         state,
         vpk_checksum,
-        mappers: &mappers,
+        mappers: mappers.into_boxed_slice(),
         courses: courses
-            .iter()
+            .into_iter()
             .map(|course| cs2kz::maps::NewCourse {
-                name: &course.name,
-                description: course.description.as_deref(),
-                mappers: &course.mappers,
+                name: course.name,
+                description: course.description,
+                mappers: course.mappers.into_boxed_slice(),
                 filters: cs2kz::maps::NewCourseFilters {
                     vanilla: cs2kz::maps::NewCourseFilter {
                         nub_tier: course.filters.vanilla.nub_tier,
                         pro_tier: course.filters.vanilla.pro_tier,
                         state: course.filters.vanilla.state,
-                        notes: course.filters.vanilla.notes.as_deref(),
+                        notes: course.filters.vanilla.notes,
                     },
                     classic: cs2kz::maps::NewCourseFilter {
                         nub_tier: course.filters.classic.nub_tier,
                         pro_tier: course.filters.classic.pro_tier,
                         state: course.filters.classic.state,
-                        notes: course.filters.classic.notes.as_deref(),
+                        notes: course.filters.classic.notes,
                     },
                 },
             })
@@ -480,7 +480,7 @@ async fn get_map(
 ) -> Result<Json<Map>, ErrorResponse> {
     let map = match map_identifier {
         MapIdentifier::Id(id) => cs2kz::maps::get_by_id(&cx, id).await,
-        MapIdentifier::Name(ref name) => cs2kz::maps::get_by_name(&cx, name).await,
+        MapIdentifier::Name(ref name) => cs2kz::maps::get_by_name(&cx, name).try_next().await,
     }
     .map_err(|err| ErrorResponse::internal_server_error(err))?
     .ok_or_else(ErrorResponse::not_found)?;

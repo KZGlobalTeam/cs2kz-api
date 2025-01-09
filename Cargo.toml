@@ -18,7 +18,6 @@ resolver = "2"
 members = [
   "crates/cs2kz",
   "crates/cs2kz-api",
-  "crates/cs2kz-points-daemon",
   "crates/steam-id",
   "crates/steam-openid",
   "crates/problem-details",

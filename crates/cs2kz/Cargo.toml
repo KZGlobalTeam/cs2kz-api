@@ -49,6 +49,10 @@ pyo3.workspace = true
 path = "../steam-id"
 features = ["serde"]
 
+[dependencies.tokio-stream]
+version = "0.1.17"
+features = ["sync"]
+
 [dependencies.sqlx]
 version = "0.8.2"
 default-features = false

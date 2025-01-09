@@ -2,19 +2,43 @@ use pyo3::types::{PyAnyMethods, PyTuple};
 use pyo3::{PyErr, Python};
 
 use crate::maps::courses::filters::{CourseFilterId, Tier};
-use crate::{Context, database};
+use crate::{Context, database, python};
 
 mod distribution;
 pub use distribution::Distribution;
 
-mod worker;
-pub use worker::{CalculatePointsError, calculate};
+pub mod daemon;
 
 /// The maximum points for any record.
 pub const MAX: f64 = 10_000.0;
 
 /// Threshold for what counts as a "small" leaderboard.
 pub const SMALL_LEADERBOARD_THRESHOLD: usize = 50;
+
+#[derive(Debug, Display, Error, From)]
+#[display("failed to calculate points")]
+pub struct CalculatePointsError(PyErr);
+
+/// Calculates points for a new record with the given `time` at position `rank` in the
+/// leaderboard.
+///
+/// # Panics
+///
+/// This function will panic if <code>tier > [Tier::Death]</code>.
+pub fn calculate(
+    dist: Option<Distribution>,
+    tier: Tier,
+    leaderboard_size: usize,
+    top_time: f64,
+    time: f64,
+) -> impl Future<Output = Result<f64, CalculatePointsError>> {
+    python::execute(tracing::Span::current(), move |py| match (dist, leaderboard_size) {
+        (None, _) | (Some(_), ..=SMALL_LEADERBOARD_THRESHOLD) => {
+            Ok(for_small_leaderboard(tier, top_time, time))
+        },
+        (Some(dist), _) => try { dist.sf(py, time)? / dist.top_scale },
+    })
+}
 
 /// "Completes" pre-calculated distribution points cached in the database.
 ///

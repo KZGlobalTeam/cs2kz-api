@@ -6,7 +6,7 @@ use cs2kz::pagination::{Limit, Offset, Paginated};
 use cs2kz::records::RecordId;
 use cs2kz::styles::Styles;
 use cs2kz::time::{Seconds, Timestamp};
-use futures_util::TryFutureExt;
+use futures_util::{TryFutureExt, TryStreamExt};
 
 use crate::extract::{Json, Path, Query};
 use crate::maps::{CourseInfo, MapIdentifier, MapInfo};
@@ -146,7 +146,7 @@ async fn get_records(
         None => (None, None),
         Some(MapIdentifier::Id(map_id)) => (Some(map_id), None),
         Some(MapIdentifier::Name(ref map_name)) => {
-            match cs2kz::maps::get_by_name(&cx, map_name).await {
+            match cs2kz::maps::get_by_name(&cx, map_name).try_next().await {
                 Ok(Some(map)) => (Some(map.id), Some(map)),
                 Ok(None) => return Ok(Json(Paginated::new(0, Vec::new()))),
                 Err(error) => return Err(ErrorResponse::internal_server_error(error)),

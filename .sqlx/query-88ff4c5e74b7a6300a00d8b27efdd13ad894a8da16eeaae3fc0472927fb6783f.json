@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT\n           cf.id AS `id: CourseFilterId`,\n           cf.nub_tier AS `nub_tier: Tier`,\n           cf.pro_tier AS `pro_tier: Tier`,\n           cf.state AS `state: CourseFilterState`,\n           cf.notes\n         FROM CourseFilters AS cf\n         JOIN Courses AS c ON c.id = cf.course_id\n         JOIN Maps AS m ON m.id = c.map_id\n         WHERE cf.id >= COALESCE(?, 1)\n         AND (? OR m.state = 1)\n         ORDER BY cf.id ASC, cf.mode ASC",
+  "query": "SELECT\n           cf.id AS `id: CourseFilterId`,\n           cf.mode AS `mode: Mode`,\n           cf.nub_tier AS `nub_tier: Tier`,\n           cf.pro_tier AS `pro_tier: Tier`,\n           cf.state AS `state: CourseFilterState`,\n           cf.notes\n         FROM CourseFilters AS cf\n         JOIN Courses AS c ON c.id = cf.course_id\n         JOIN Maps AS m ON m.id = c.map_id\n         WHERE cf.id = ?",
   "describe": {
     "columns": [
       {
@@ -14,7 +14,7 @@
       },
       {
         "ordinal": 1,
-        "name": "nub_tier: Tier",
+        "name": "mode: Mode",
         "type_info": {
           "type": "Tiny",
           "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
@@ -23,7 +23,7 @@
       },
       {
         "ordinal": 2,
-        "name": "pro_tier: Tier",
+        "name": "nub_tier: Tier",
         "type_info": {
           "type": "Tiny",
           "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
@@ -32,6 +32,15 @@
       },
       {
         "ordinal": 3,
+        "name": "pro_tier: Tier",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 4,
         "name": "state: CourseFilterState",
         "type_info": {
           "type": "Tiny",
@@ -40,7 +49,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "notes",
         "type_info": {
           "type": "Blob",
@@ -50,9 +59,10 @@
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 1
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -60,5 +70,5 @@
       true
     ]
   },
-  "hash": "97c5acbb40c9e7fcf7bea9f5697384775bd22fd08488ac8e0085d7969ba11d7c"
+  "hash": "88ff4c5e74b7a6300a00d8b27efdd13ad894a8da16eeaae3fc0472927fb6783f"
 }

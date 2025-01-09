@@ -4,7 +4,8 @@ use std::num::NonZero;
 use futures_util::{Stream, TryStreamExt};
 
 use self::stream::GetCourseFiltersStream;
-use crate::maps::{CourseFilter, CourseFilters};
+use crate::maps::{CourseFilter, CourseFilters, MapId};
+use crate::mode::Mode;
 use crate::{Context, database};
 
 mod stream;
@@ -41,10 +42,13 @@ pub enum CourseFilterState {
     Ranked = 1,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct GetCourseFiltersParams {
     /// Only return filters that belong to approved maps.
     pub approved_only: bool,
+
+    /// Only return filters that belong to this map.
+    pub map_id: Option<MapId>,
 
     /// Only return filters with an ID `>= min_id`.
     pub min_id: Option<CourseFilterId>,
@@ -55,10 +59,45 @@ pub struct GetCourseFiltersParams {
 #[from(forward)]
 pub struct GetCourseFiltersError(database::Error);
 
+#[tracing::instrument(skip(cx), err(level = "debug"))]
+pub async fn get_by_id(
+    cx: &Context,
+    filter_id: CourseFilterId,
+) -> Result<Option<(Mode, CourseFilter)>, GetCourseFiltersError> {
+    sqlx::query!(
+        "SELECT
+           cf.id AS `id: CourseFilterId`,
+           cf.mode AS `mode: Mode`,
+           cf.nub_tier AS `nub_tier: Tier`,
+           cf.pro_tier AS `pro_tier: Tier`,
+           cf.state AS `state: CourseFilterState`,
+           cf.notes
+         FROM CourseFilters AS cf
+         JOIN Courses AS c ON c.id = cf.course_id
+         JOIN Maps AS m ON m.id = c.map_id
+         WHERE cf.id = ?",
+        filter_id,
+    )
+    .fetch_optional(cx.database().as_ref())
+    .await
+    .map_err(GetCourseFiltersError::from)
+    .map(|row| {
+        row.map(|row| {
+            (row.mode, CourseFilter {
+                id: row.id,
+                nub_tier: row.nub_tier,
+                pro_tier: row.pro_tier,
+                state: row.state,
+                notes: row.notes,
+            })
+        })
+    })
+}
+
 #[tracing::instrument(skip(cx))]
 pub fn get(
     cx: &Context,
-    GetCourseFiltersParams { approved_only, min_id }: GetCourseFiltersParams,
+    GetCourseFiltersParams { approved_only, map_id, min_id }: GetCourseFiltersParams,
 ) -> impl Stream<Item = Result<CourseFilters, GetCourseFiltersError>> {
     let raw_stream = sqlx::query_as!(
         CourseFilter,
@@ -71,9 +110,11 @@ pub fn get(
          FROM CourseFilters AS cf
          JOIN Courses AS c ON c.id = cf.course_id
          JOIN Maps AS m ON m.id = c.map_id
-         WHERE cf.id >= COALESCE(?, 1)
+         WHERE m.id = COALESCE(?, m.id)
+         AND cf.id >= COALESCE(?, 1)
          AND (? OR m.state = 1)
          ORDER BY cf.id ASC, cf.mode ASC",
+        map_id,
         min_id,
         !approved_only,
     )

@@ -25,11 +25,14 @@
 extern crate derive_more;
 
 #[allow(unused_imports)]
-#[macro_use(trace, debug, info, warn, error, span)]
+#[macro_use(trace, debug, debug_span, info, info_span, warn, error)]
 extern crate tracing;
 
 #[macro_use(pin_project)]
 extern crate pin_project;
+
+#[macro_use(select)]
+extern crate tokio;
 
 #[macro_use]
 mod macros;
@@ -54,12 +57,15 @@ pub mod bans;
 pub mod points;
 
 pub mod email;
+pub mod events;
 pub mod git;
 pub mod mode;
 pub mod pagination;
 pub mod steam;
 pub mod styles;
 pub mod time;
+
+mod python;
 
 mod fmt;
 mod num;

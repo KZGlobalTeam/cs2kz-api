@@ -1,6 +1,7 @@
 use std::num::NonZero;
 
 pub mod filters;
+pub use filters::CourseFilterId;
 
 define_id_type! {
     /// A unique identifier for CS2KZ map courses.

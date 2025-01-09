@@ -1,0 +1,64 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT\n           cf.id AS `id: CourseFilterId`,\n           cf.nub_tier AS `nub_tier: Tier`,\n           cf.pro_tier AS `pro_tier: Tier`,\n           cf.state AS `state: CourseFilterState`,\n           cf.notes\n         FROM CourseFilters AS cf\n         JOIN Courses AS c ON c.id = cf.course_id\n         JOIN Maps AS m ON m.id = c.map_id\n         WHERE m.id = COALESCE(?, m.id)\n         AND cf.id >= COALESCE(?, 1)\n         AND (? OR m.state = 1)\n         ORDER BY cf.id ASC, cf.mode ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: CourseFilterId",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "nub_tier: Tier",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "pro_tier: Tier",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "state: CourseFilterState",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "max_size": 4
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "notes",
+        "type_info": {
+          "type": "Blob",
+          "flags": "BLOB",
+          "max_size": 262140
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "a6fd03a758b13e655a72c9794ff26de91c132babcbd74f39a385c659ac80d2c5"
+}
