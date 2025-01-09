@@ -1,5 +1,6 @@
 use std::num::NonZero;
 
+use sqlx::migrate::Migrator;
 use sqlx::mysql::{MySql, MySqlConnection, MySqlPoolOptions};
 use url::Url;
 
@@ -10,6 +11,8 @@ mod error;
 pub use error::{Error, Result};
 
 pub type Connection = MySqlConnection;
+
+pub static MIGRATIONS: Migrator = sqlx::migrate!();
 
 /// A handle to the API's database.
 #[derive(Debug, AsRef, Clone)]

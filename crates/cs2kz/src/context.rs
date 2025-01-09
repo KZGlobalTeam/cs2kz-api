@@ -34,6 +34,9 @@ pub struct Context(Arc<inner::Context>);
 pub enum InitializeContextError {
     #[display("{_0}")]
     EstablishDatabaseConnection(EstablishDatabaseConnectionError),
+
+    #[display("failed to run database migrations: {_0}")]
+    RunDatabaseMigrations(sqlx::migrate::MigrateError),
 }
 
 impl Context {
@@ -57,6 +60,8 @@ impl Context {
             max_connections: config.database.max_connections,
         })
         .await?;
+
+        database::MIGRATIONS.run(database.as_ref()).await?;
 
         let tasks = TaskTracker::new();
 
