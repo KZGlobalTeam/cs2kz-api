@@ -92,12 +92,12 @@ impl<'de> serde::Deserialize<'de> for ServerHost {
     where
         D: serde::Deserializer<'de>,
     {
-        <url::Host<String> as serde::Deserialize<'de>>::deserialize(deserializer).map(|host| {
-            match host {
+        url::Host::parse(&<String as serde::Deserialize<'de>>::deserialize(deserializer)?)
+            .map_err(serde::de::Error::custom)
+            .map(|host| match host {
                 url::Host::Ipv4(addr) => Self::Ipv4(addr),
                 url::Host::Ipv6(addr) => Self::Ipv6(addr),
                 url::Host::Domain(domain) => Self::Domain(domain),
-            }
-        })
+            })
     }
 }
