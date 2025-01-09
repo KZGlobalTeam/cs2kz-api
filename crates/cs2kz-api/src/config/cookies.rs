@@ -3,6 +3,8 @@ use std::borrow::Cow;
 use cookie::{Cookie, CookieBuilder, SameSite};
 use cs2kz::time::DurationExt;
 
+use crate::runtime;
+
 #[derive(Debug, serde::Deserialize)]
 #[serde(default, rename_all = "kebab-case", deny_unknown_fields)]
 pub struct CookieConfig {
@@ -37,7 +39,7 @@ impl CookieConfig {
             .max_age(if IS_AUTH { self.max_age_auth } else { self.max_age })
             .path("/")
             .same_site(if IS_AUTH { SameSite::Strict } else { SameSite::Lax })
-            .secure(cfg!(feature = "production"))
+            .secure(!runtime::environment().is_local())
     }
 }
 

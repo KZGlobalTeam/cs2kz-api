@@ -7,6 +7,7 @@ use utoipa::openapi::{OpenApi, ServerBuilder};
 
 use crate::config::ServerConfig;
 use crate::extract::{Json, Path};
+use crate::runtime;
 
 pub mod shims;
 
@@ -33,7 +34,6 @@ static CONFIG: LazyLock<Arc<utoipa_swagger_ui::Config<'static>>> = LazyLock::new
     external_docs(url = "https://docs.cs2kz.org/api", description = "High-Level documentation"),
     servers(
         (url = "https://api.cs2kz.org", description = "production instance"),
-        (url = "https://staging.api.cs2kz.org", description = "staging instance"),
     ),
     modifiers(),
     tags(
@@ -111,21 +111,33 @@ where
     let router = Router::new()
         .route("/openapi.json", routing::get(serve_openapi_json).with_state(server_config.into()));
 
-    if cfg!(feature = "production") {
-        router
-    } else {
-        router
-            .route("/swagger-ui", routing::get(async || Redirect::permanent("/docs/swagger-ui/")))
-            .route("/swagger-ui/", routing::get(serve_swagger_ui))
-            .route("/swagger-ui/{*rest}", routing::get(serve_swagger_ui))
+    if runtime::environment().is_production() {
+        return router;
     }
+
+    router
+        .route("/swagger-ui", routing::get(async || Redirect::permanent("/docs/swagger-ui/")))
+        .route("/swagger-ui/", routing::get(serve_swagger_ui))
+        .route("/swagger-ui/{*rest}", routing::get(serve_swagger_ui))
 }
 
 async fn serve_openapi_json(State(config): State<Arc<ServerConfig>>) -> Response {
     let schema = SCHEMA.get_or_init(|| {
         let mut schema = self::schema();
 
-        if cfg!(not(feature = "production")) {
+        if runtime::environment().is_local() | runtime::environment().is_staging() {
+            let staging_server = ServerBuilder::new()
+                .url("https://staging.cs2kz.org")
+                .description(Some("staging server"))
+                .build();
+
+            schema
+                .servers
+                .get_or_insert_default()
+                .insert(0, staging_server);
+        }
+
+        if runtime::environment().is_local() {
             let local_server = ServerBuilder::new()
                 .url(format!("http://{}:{}", config.ip_addr, config.port))
                 .description(Some("local dev server"))

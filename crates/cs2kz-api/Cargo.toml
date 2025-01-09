@@ -31,9 +31,6 @@ path = "src/bin/server/main.rs"
 name = "openapi"
 path = "src/bin/openapi.rs"
 
-[features]
-production = ["cs2kz/production"]
-
 [lints]
 workspace = true
 

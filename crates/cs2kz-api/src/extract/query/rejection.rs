@@ -6,6 +6,7 @@ use axum::response::{IntoResponse, Response};
 use serde::Deserialize;
 
 use crate::response::ErrorResponse;
+use crate::runtime;
 
 #[derive(Error)]
 pub struct QueryRejection<T>
@@ -43,7 +44,7 @@ where
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(fmt, "failed to deserialize query string")?;
 
-        if cfg!(not(feature = "production")) {
+        if !runtime::environment().is_production() {
             write!(fmt, " of type `{}`", type_name::<T>())?;
         }
 

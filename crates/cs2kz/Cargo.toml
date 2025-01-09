@@ -23,9 +23,6 @@ repository = "https://github.com/KZGlobalTeam/cs2kz-api"
 license-file = "../LICENSE.md"
 publish = false
 
-[features]
-production = []
-
 [lints]
 workspace = true
 

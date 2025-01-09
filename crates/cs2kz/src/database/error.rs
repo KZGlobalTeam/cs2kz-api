@@ -2,8 +2,7 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug, Display, Error, From)]
 #[debug("{_0}")]
-#[cfg_attr(feature = "production", display("something went wrong"))]
-#[cfg_attr(not(feature = "production"), display("database error: {_0}"))]
+#[display("database error: {_0}")]
 pub struct Error(sqlx::Error);
 
 impl Error {

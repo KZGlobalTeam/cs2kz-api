@@ -5,6 +5,8 @@ use std::task::Poll;
 use http::uri::Builder as UriBuilder;
 use tower::layer::layer_fn;
 
+use crate::runtime;
+
 /// Returns a [`tower::Layer`] for trimming trailing slashes from request URIs.
 pub fn layer<S, ReqBody>() -> impl tower::Layer<S, Service = TrimTrailingSlash<S>> + Clone
 where
@@ -50,7 +52,9 @@ where
 
         // The HTML document we serve here uses relative paths.
         // These break if the URI doesn't have a trailing slash.
-        if cfg!(not(feature = "production")) && parts.uri.path().starts_with("/docs/swagger-ui") {
+        if !runtime::environment().is_production()
+            && parts.uri.path().starts_with("/docs/swagger-ui")
+        {
             return call_service!();
         }
 

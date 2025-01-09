@@ -2,7 +2,10 @@ use headers::HeaderMapExt;
 use http::{HeaderValue, Method, Uri, header, request};
 use tower_http::cors::{AllowCredentials, AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 
+use crate::runtime::{self, Environment};
+
 const KNOWN_HOSTS: &[&str] = &["https://dashboard.cs2kz.org"];
+const STAGING_HOSTS: &[&str] = &["https://staging.dashboard.cs2kz.org"];
 const LOCAL_HOSTS: &[&str] = &["0.0.0.0", "127.0.0.1", "::", "::1", "localhost"];
 
 pub fn layer() -> CorsLayer {
@@ -39,11 +42,11 @@ fn allow_origin(header: &HeaderValue, request: &request::Parts) -> bool {
         return false;
     };
 
-    if cfg!(feature = "production") {
-        return KNOWN_HOSTS.contains(&origin);
+    match runtime::environment() {
+        Environment::Local => origin
+            .parse::<Uri>()
+            .is_ok_and(|uri| uri.host().is_some_and(|host| LOCAL_HOSTS.contains(&host))),
+        Environment::Staging => STAGING_HOSTS.contains(&origin),
+        Environment::Production => KNOWN_HOSTS.contains(&origin),
     }
-
-    origin
-        .parse::<Uri>()
-        .is_ok_and(|uri| uri.host().is_some_and(|host| LOCAL_HOSTS.contains(&host)))
 }
