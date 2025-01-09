@@ -87,6 +87,26 @@ fn init_tracing(config: &TracingConfig) -> anyhow::Result<Option<WorkerGuard>> {
         .transpose()?
         .unzip();
 
+    #[cfg(target_os = "linux")]
+    let journald = config
+        .journald
+        .enable
+        .then(|| {
+            let mut layer =
+                tracing_journald::layer().context("failed to initialize journald logger")?;
+
+            if let Some(ref syslog_identifier) = config.journald.syslog_identifier {
+                layer = layer.with_syslog_identifier(syslog_identifier.clone());
+            }
+
+            if let Some(ref field_prefix) = config.journald.field_prefix {
+                layer = layer.with_field_prefix(Some(field_prefix.clone()));
+            }
+
+            anyhow::Ok(layer)
+        })
+        .transpose()?;
+
     let console = config.console.enable.then(|| {
         console_subscriber::ConsoleLayer::builder()
             .server_addr(config.console.server_addr.clone())
@@ -94,6 +114,9 @@ fn init_tracing(config: &TracingConfig) -> anyhow::Result<Option<WorkerGuard>> {
     });
 
     let layers = tracing_subscriber::Layer::and_then(stderr, files);
+
+    #[cfg(target_os = "linux")]
+    let layers = tracing_subscriber::Layer::and_then(layers, journald);
 
     tracing_subscriber::registry()
         .with(layers.with_filter(env_filter()))

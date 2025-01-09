@@ -14,7 +14,6 @@ enable = true
 
 # STDERR as a tracing output
 [tracing.stderr]
-# Whether to emit traces to STDERR
 enable = true
 
 # Whether to emit ANSI escape codes for colors and such
@@ -22,15 +21,21 @@ ansi = true
 
 # log files as a tracing output
 [tracing.files]
-# Whether to emit traces to log files
 enable = false
 
 # Directory to store log files in
 directory = "/var/log/cs2kz-api"
 
+# systemd-journald logs
+#
+# Note: this only works on Linux!
+[tracing.journald]
+enable = false
+# syslog_identifier = "…"
+# field_prefix = "…"
+
 # `tokio-console` as a tracing output
 [tracing.console]
-# Whether to emit traces to `tokio-console`
 enable = false
 
 # Address to bind the gRPC server to

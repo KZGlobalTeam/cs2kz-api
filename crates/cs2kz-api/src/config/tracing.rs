@@ -13,6 +13,10 @@ pub struct TracingConfig {
     /// Configuration for the log files output.
     pub files: FilesConfig,
 
+    /// Configuration for systemd-journald.
+    #[cfg(target_os = "linux")]
+    pub journald: JournaldConfig,
+
     /// Configuration for `tokio-console`.
     pub console: ConsoleConfig,
 }
@@ -45,6 +49,20 @@ impl Default for FilesConfig {
             directory: default_files_directory(),
         }
     }
+}
+
+#[cfg(target_os = "linux")]
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(default, rename_all = "kebab-case", deny_unknown_fields)]
+pub struct JournaldConfig {
+    /// Whether to emit traces to systemd-journald.
+    pub enable: bool,
+
+    /// A custom syslog identifier.
+    pub syslog_identifier: Option<String>,
+
+    /// A prefix to attach to every user-defined field.
+    pub field_prefix: Option<String>,
 }
 
 #[derive(Debug, serde::Deserialize)]
