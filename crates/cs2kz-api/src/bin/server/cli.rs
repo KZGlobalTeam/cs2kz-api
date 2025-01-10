@@ -29,6 +29,10 @@ pub struct Args {
     /// If that file does not exist, default configuration values will be used.
     #[arg(short, long = "config")]
     pub config_path: Option<PathBuf>,
+
+    /// Path to the `DepotDownloader` executable the API should use.
+    #[arg(long)]
+    pub depot_downloader_path: Option<PathBuf>,
 }
 
 impl Args {
@@ -40,6 +44,10 @@ impl Args {
 
         if let Some(port) = self.port {
             config.server.port = port;
+        }
+
+        if let Some(ref path) = self.depot_downloader_path {
+            config.depot_downloader.exe_path = path.clone();
         }
     }
 }

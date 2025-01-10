@@ -15,11 +15,11 @@
 
 [package]
 name = "cs2kz"
-version = "0.0.0"
-authors = ["AlphaKeks <alphakeks@dawn.sh>"]
-edition = "2024"
-homepage = "https://cs2kz.org"
-repository = "https://github.com/KZGlobalTeam/cs2kz-api"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
 license-file = "../LICENSE.md"
 publish = false
 

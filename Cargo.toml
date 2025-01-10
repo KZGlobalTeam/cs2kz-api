@@ -15,14 +15,18 @@
 
 [workspace]
 resolver = "2"
-members = [
-  "crates/cs2kz",
-  "crates/cs2kz-api",
-  "crates/steam-id",
-  "crates/steam-openid",
-  "crates/problem-details",
-]
+members = ["crates/*"]
 default-members = ["crates/cs2kz-api"]
+
+[workspace.package]
+version = "0.0.0"
+authors = ["AlphaKeks <alphakeks@dawn.sh>"]
+edition = "2024"
+homepage = "https://cs2kz.org"
+repository = "https://github.com/KZGlobalTeam/cs2kz-api"
+
+[workspace.metadata.crane]
+name = "cs2kz-api"
 
 [workspace.lints.clippy]
 redundant_pattern_matching = "allow"
