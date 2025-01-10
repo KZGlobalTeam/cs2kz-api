@@ -492,7 +492,7 @@ async fn get_map(
 ///
 /// This endpoint is used for simple metadata changes. Gameplay changes should be communicated
 /// through a separate version, i.e. `PUT /maps`.
-#[tracing::instrument(skip(cx))]
+#[tracing::instrument(skip(cx, http_client))]
 #[utoipa::path(
     patch,
     path = "/maps/{map_id}",

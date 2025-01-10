@@ -338,6 +338,10 @@ pub async fn update(
             return Err(UpdateMapError::MustHaveMappers);
         }
 
+        if course_updates.is_empty() {
+            return Ok(true);
+        }
+
         let course_ids =
             sqlx::query_scalar!("SELECT id AS `id: CourseId` FROM Courses WHERE map_id = ?", id)
                 .fetch(&mut *conn)
@@ -364,11 +368,13 @@ pub async fn update(
             .execute(&mut *conn)
             .await?;
 
-            insert_course_mappers(
-                &mut *conn,
-                iter::zip(iter::repeat(course_id), course_update.added_mappers.iter().copied()),
-            )
-            .await?;
+            if !course_update.added_mappers.is_empty() {
+                insert_course_mappers(
+                    &mut *conn,
+                    iter::zip(iter::repeat(course_id), course_update.added_mappers.iter().copied()),
+                )
+                .await?;
+            }
 
             delete_course_mappers(&mut *conn, course_id, course_update.deleted_mappers).await?;
 
@@ -546,6 +552,10 @@ async fn delete_course_mappers(
     course_id: CourseId,
     mappers: &[PlayerId],
 ) -> database::Result<()> {
+    if mappers.is_empty() {
+        return Ok(());
+    }
+
     let mut query = QueryBuilder::new("DELETE FROM CourseMappers");
 
     query.push(" WHERE course_id = ").push_bind(course_id);
