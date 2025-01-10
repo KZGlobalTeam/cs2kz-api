@@ -42,6 +42,9 @@ pub struct Unban {
 
 #[derive(Debug)]
 pub struct GetBansParams {
+    pub player_id: Option<PlayerId>,
+    pub banned_by: Option<UserId>,
+    pub reason: Option<BanReason>,
     pub limit: Limit<1000, 100>,
     pub offset: Offset,
 }
@@ -97,13 +100,24 @@ pub struct UpdateBanError(database::Error);
 #[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]
 pub async fn get(
     cx: &Context,
-    GetBansParams { limit, offset }: GetBansParams,
+    GetBansParams { player_id, banned_by, reason, limit, offset }: GetBansParams,
 ) -> Result<Paginated<impl Stream<Item = Result<Ban, GetBansError>>>, GetBansError> {
     let total = database::count!(cx.database().as_ref(), "Bans").await?;
-    let bans = self::macros::select!("LIMIT ? OFFSET ?", limit.value(), offset.value())
-        .fetch(cx.database().as_ref())
-        .map_ok(|row| self::macros::parse_row!(row))
-        .map_err(GetBansError::from);
+    let bans = self::macros::select!(
+        "WHERE b.player_id = COALESCE(?, b.player_id)
+         AND b.banned_by = COALESCE(?, b.banned_by)
+         AND b.reason = COALESCE(?, b.reason)
+         LIMIT ?
+         OFFSET ?",
+        player_id,
+        banned_by,
+        reason,
+        limit.value(),
+        offset.value(),
+    )
+    .fetch(cx.database().as_ref())
+    .map_ok(|row| self::macros::parse_row!(row))
+    .map_err(GetBansError::from);
 
     Ok(Paginated::new(total, bans))
 }

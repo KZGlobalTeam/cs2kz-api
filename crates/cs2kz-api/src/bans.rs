@@ -18,7 +18,7 @@ use crate::extract::{Json, Path, Query};
 use crate::middleware::auth::session_auth;
 use crate::middleware::auth::session_auth::Session;
 use crate::middleware::auth::session_auth::authorization::HasPermissions;
-use crate::players::PlayerInfo;
+use crate::players::{PlayerIdentifier, PlayerInfo};
 use crate::response::{Created, ErrorResponse};
 
 pub fn router<S>(cx: Context, cookie_config: impl Into<Arc<CookieConfig>>) -> Router<S>
@@ -50,6 +50,17 @@ where
 #[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
 #[into_params(parameter_in = Query)]
 pub struct GetBansQuery {
+    /// Only include bans for this player.
+    player: Option<PlayerIdentifier>,
+
+    /// Only include bans issued by this user.
+    #[param(value_type = Option<crate::openapi::shims::SteamId64>)]
+    banned_by: Option<UserId>,
+
+    /// Only include bans with this reason.
+    #[param(value_type = Option<crate::openapi::shims::BanReason>)]
+    reason: Option<BanReason>,
+
     #[serde(default)]
     #[param(value_type = crate::openapi::shims::Limit)]
     limit: Limit<1000, 100>,
@@ -183,9 +194,24 @@ async fn create_ban(
 )]
 async fn get_bans(
     State(cx): State<Context>,
-    Query(GetBansQuery { limit, offset }): Query<GetBansQuery>,
+    Query(GetBansQuery { player, banned_by, reason, limit, offset }): Query<GetBansQuery>,
 ) -> Result<Json<Paginated<Vec<Ban>>>, ErrorResponse> {
-    let params = cs2kz::bans::GetBansParams { limit, offset };
+    let player_id = match player {
+        None => None,
+        Some(PlayerIdentifier::Id(player_id)) => Some(player_id),
+        Some(PlayerIdentifier::Name(ref player_name)) => {
+            let Some(player) = cs2kz::players::get_by_name(&cx, player_name)
+                .await
+                .map_err(|err| ErrorResponse::internal_server_error(err))?
+            else {
+                return Ok(Json(Paginated::new(0, Vec::new())));
+            };
+
+            Some(player.id)
+        },
+    };
+
+    let params = cs2kz::bans::GetBansParams { player_id, banned_by, reason, limit, offset };
     let bans = cs2kz::bans::get(&cx, params)
         .map_ok(Paginated::map_into)
         .and_then(Paginated::collect)
