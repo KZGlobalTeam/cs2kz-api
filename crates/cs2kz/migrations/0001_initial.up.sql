@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS PointDistributionData (
 CREATE TABLE IF NOT EXISTS Bans (
   id INT4 UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   player_id INT8 UNSIGNED NOT NULL REFERENCES Players(id),
-  player_ip INET4 NOT NULL,
+  player_ip INET4,
   -- see `cs2kz::bans::BannedBy` enum in the Rust code
   banned_by INT8 UNSIGNED NOT NULL,
   reason VARCHAR(255) NOT NULL,

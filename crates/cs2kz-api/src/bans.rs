@@ -1,3 +1,4 @@
+use std::net::Ipv4Addr;
 use std::sync::Arc;
 
 use axum::extract::{FromRef, State};
@@ -95,6 +96,12 @@ pub struct NewBan {
     #[schema(value_type = crate::openapi::shims::SteamId)]
     player_id: PlayerId,
 
+    /// The player's IP address.
+    ///
+    /// If left unspecified, the player's last known IP address will be used instead.
+    #[schema(value_type = Option<str>, format = Ipv4)]
+    player_ip: Option<Ipv4Addr>,
+
     /// The reason for the ban.
     #[schema(value_type = crate::openapi::shims::BanReason)]
     reason: BanReason,
@@ -144,10 +151,11 @@ pub struct CreatedBan {
 async fn create_ban(
     State(cx): State<Context>,
     session: Session,
-    Json(NewBan { player_id, reason }): Json<NewBan>,
+    Json(NewBan { player_id, player_ip, reason }): Json<NewBan>,
 ) -> Result<Created<CreatedBan>, ErrorResponse> {
     let ban = cs2kz::bans::NewBan {
         player_id,
+        player_ip,
         banned_by: BannedBy::Admin(session.user().id()),
         reason,
     };

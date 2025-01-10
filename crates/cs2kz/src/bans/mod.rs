@@ -1,3 +1,4 @@
+use std::net::Ipv4Addr;
 use std::num::NonZero;
 
 use futures_util::{Stream, TryStreamExt};
@@ -48,6 +49,7 @@ pub struct GetBansParams {
 #[derive(Debug)]
 pub struct NewBan {
     pub player_id: PlayerId,
+    pub player_ip: Option<Ipv4Addr>,
     pub banned_by: BannedBy,
     pub reason: BanReason,
 }
@@ -118,7 +120,7 @@ pub async fn get_by_id(cx: &Context, ban_id: BanId) -> Result<Option<Ban>, GetBa
 #[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]
 pub async fn create(
     cx: &Context,
-    NewBan { player_id, banned_by, reason }: NewBan,
+    NewBan { player_id, player_ip, banned_by, reason }: NewBan,
 ) -> Result<BanId, CreateBanError> {
     cx.database_transaction(async move |conn| {
         let active_ban_count = database::count!(
@@ -139,8 +141,10 @@ pub async fn create(
         }
 
         sqlx::query!(
-            "INSERT INTO Bans (player_id, banned_by, reason)
-             VALUES (?, ?, ?)",
+            "INSERT INTO Bans (player_id, player_ip, banned_by, reason)
+             VALUES (?, COALESCE(?, (SELECT ip_address FROM Players WHERE id = ?)), ?, ?)",
+            player_id,
+            player_ip,
             player_id,
             banned_by,
             reason,
