@@ -3,10 +3,12 @@ use std::num::NonZero;
 
 use cs2kz::maps::MapId;
 use serde::de::{self, Deserialize, Deserializer, Unexpected};
+use utoipa::openapi::schema::{self, KnownFormat, SchemaFormat, SchemaType};
+use utoipa::openapi::{Object, OneOf, RefOr, Schema};
+use utoipa::{PartialSchema, ToSchema};
 
-#[derive(Debug, utoipa::ToSchema)]
+#[derive(Debug)]
 pub enum MapIdentifier {
-    #[schema(value_type = u16)]
     Id(MapId),
     Name(String),
 }
@@ -63,3 +65,29 @@ impl<'de> Deserialize<'de> for MapIdentifier {
         deserializer.deserialize_any(MapIdentifierVisitor)
     }
 }
+
+impl PartialSchema for MapIdentifier {
+    fn schema() -> RefOr<Schema> {
+        Schema::OneOf(
+            OneOf::builder()
+                .item(
+                    Object::builder()
+                        .title(Some("name"))
+                        .schema_type(SchemaType::Type(schema::Type::String))
+                        .examples(["kz_checkmate"])
+                        .build(),
+                )
+                .item(
+                    Object::builder()
+                        .title(Some("id"))
+                        .schema_type(SchemaType::Type(schema::Type::Integer))
+                        .format(Some(SchemaFormat::KnownFormat(KnownFormat::UInt16)))
+                        .examples(["69"]),
+                )
+                .build(),
+        )
+        .into()
+    }
+}
+
+impl ToSchema for MapIdentifier {}

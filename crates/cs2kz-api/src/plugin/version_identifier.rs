@@ -1,15 +1,16 @@
 use std::fmt;
 
 use cs2kz::git::GitRevision;
+use utoipa::openapi::schema::{self, SchemaType};
+use utoipa::openapi::{Object, OneOf, RefOr, Schema};
+use utoipa::{PartialSchema, ToSchema};
 
-#[derive(Debug, utoipa::ToSchema)]
+#[derive(Debug)]
 pub enum PluginVersionIdentifier {
     /// A SemVer version.
-    #[schema(value_type = str)]
     SemVer(semver::Version),
 
     /// A git revision.
-    #[schema(value_type = crate::openapi::shims::GitRevision)]
     GitRevision(GitRevision),
 }
 
@@ -48,3 +49,24 @@ impl<'de> serde::Deserialize<'de> for PluginVersionIdentifier {
         deserializer.deserialize_str(PluginVersionIdentifierVisitor)
     }
 }
+
+impl PartialSchema for PluginVersionIdentifier {
+    fn schema() -> RefOr<Schema> {
+        Schema::OneOf(
+            OneOf::builder()
+                .item(
+                    Object::builder()
+                        .title(Some("semver"))
+                        .description(Some("a SemVer identifier"))
+                        .schema_type(SchemaType::Type(schema::Type::String))
+                        .examples(["1.23.456-dev"])
+                        .build(),
+                )
+                .item(crate::openapi::shims::GitRevision::schema())
+                .build(),
+        )
+        .into()
+    }
+}
+
+impl ToSchema for PluginVersionIdentifier {}
