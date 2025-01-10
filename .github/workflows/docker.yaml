@@ -1,0 +1,23 @@
+name: Docker Image
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: ['master']
+
+jobs:
+  docker-image:
+    name: Docker Image
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: DeterminateSystems/magic-nix-cache-action@main
+    - name: build docker image
+      run: nix build .#dockerImage -o cs2kz-api.image
+    - uses: actions/upload-artifact@v4
+      with:
+        name: cs2kz-api.image
+        path: cs2kz-api.image

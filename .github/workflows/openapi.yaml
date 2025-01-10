@@ -5,7 +5,7 @@ permissions:
 
 on:
   push:
-    branches: ['master', 'take1337']
+    branches: ['master']
 
 jobs:
   openapi:
@@ -22,7 +22,7 @@ jobs:
         uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
       - name: generate schema
-        run: cargo +nightly run --package=cs2kz-api --bin=openapi > openapi.json
+        run: cargo run --package=cs2kz-api --bin=openapi > openapi.json
       - uses: actions/upload-artifact@v4
         with:
           name: openapi.json

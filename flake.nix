@@ -35,7 +35,21 @@
             extensions = [ "clippy" "rustfmt" ];
           }));
 
-        src = craneLib.cleanCargoSource ./.;
+        mkFileSet = files: nixpkgs.lib.fileset.toSource {
+          root = ./.;
+          fileset = nixpkgs.lib.fileset.unions (files ++ [
+            (craneLib.fileset.commonCargoSources ./.)
+            ./crates/cs2kz/migrations
+            ./.sqlx
+            ./.example.env
+          ]);
+        };
+
+        fileSetForCrate = crate: mkFileSet [
+          (craneLib.fileset.commonCargoSources crate)
+        ];
+
+        src = mkFileSet [];
 
         commonArgs = {
           inherit src;
@@ -51,16 +65,6 @@
         crateArgs = commonArgs // {
           inherit cargoArtifacts;
           inherit (craneLib.crateNameFromCargoToml { inherit src; }) version;
-        };
-
-        fileSetForCrate = crate: nixpkgs.lib.fileset.toSource {
-          root = ./.;
-          fileset = nixpkgs.lib.fileset.unions [
-            (craneLib.fileset.commonCargoSources ./.)
-            ./crates/cs2kz/migrations
-            ./.sqlx
-            ./.example.env
-          ];
         };
 
         cs2kz-api = craneLib.buildPackage (crateArgs // {

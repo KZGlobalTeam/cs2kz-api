@@ -3,14 +3,14 @@
 #   - fmt: checks that the code is formatted according to rustfmt
 #   - clippy: checks that the code does not contain any clippy warnings
 
-name: check
+name: Checks
 
 permissions:
   contents: read
 
 on:
   push:
-    branches: ['master', 'take1337']
+    branches: ['master']
   pull_request:
 
 # If new code is pushed to a PR branch, then cancel in progress workflows for that PR.
@@ -19,40 +19,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-env:
-  CARGO_TERM_COLOR: 'always'
-  SQLX_OFFLINE: '1'
-
 jobs:
-  clippy:
-    name: clippy
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      checks: write
-    strategy:
-      fail-fast: false
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Rust Nightly
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
-      - name: cargo clippy
-        run: |
-          cargo +nightly clippy --workspace --all-features --no-deps -- -Dwarnings
-          cargo +nightly clippy --workspace --tests --no-deps -- -Dwarnings
-
-  rustfmt:
-    name: rustfmt
+  checks:
+    name: nix flake check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Rust Nightly
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rustfmt
-      - uses: Swatinem/rust-cache@v2
-      - name: cargo fmt
-        run: cargo +nightly fmt --all --check
+    - uses: actions/checkout@v4
+    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: DeterminateSystems/magic-nix-cache-action@main
+    - uses: DeterminateSystems/flake-checker-action@main
+    - name: run checks
+      run: nix flake check .#

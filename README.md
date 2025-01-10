@@ -38,10 +38,10 @@ To compile the API itself, you can use `cargo`:
 
 ```sh
 # also specify `--release` to enable optimizations
-cargo +nightly build --locked --package=cs2kz-api --bin=cs2kz-api
+cargo build --locked --package=cs2kz-api --bin=cs2kz-api
 
 # compile & run in one step
-cargo +nightly run --locked --package=cs2kz-api --bin=cs2kz-api
+cargo run --locked --package=cs2kz-api --bin=cs2kz-api
 ```
 
 To compile and run with Docker instead:
