@@ -12,7 +12,7 @@ pub fn layer() -> CorsLayer {
     CorsLayer::new()
         .allow_credentials(AllowCredentials::predicate(allow_credentials))
         .allow_headers(AllowHeaders::mirror_request())
-        .allow_methods(AllowMethods::any())
+        .allow_methods(AllowMethods::mirror_request())
         .allow_origin(AllowOrigin::predicate(allow_origin))
         .expose_headers([header::COOKIE])
 }
