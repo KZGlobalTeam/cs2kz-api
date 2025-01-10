@@ -530,20 +530,27 @@ async fn update_map(
         None
     };
 
-    create_missing_mappers(
-        &cx,
-        &http_client,
-        &steam_auth_config,
-        iter::chain(
-            &added_mappers,
-            course_updates
-                .iter()
-                .flat_map(|update| &update.added_mappers),
+    let has_mappers = !added_mappers.is_empty()
+        || course_updates
+            .iter()
+            .any(|course| !course.added_mappers.is_empty());
+
+    if has_mappers {
+        create_missing_mappers(
+            &cx,
+            &http_client,
+            &steam_auth_config,
+            iter::chain(
+                &added_mappers,
+                course_updates
+                    .iter()
+                    .flat_map(|update| &update.added_mappers),
+            )
+            .copied()
+            .collect::<HashSet<_>>(),
         )
-        .copied()
-        .collect::<HashSet<_>>(),
-    )
-    .await?;
+        .await?;
+    }
 
     let update = cs2kz::maps::MapUpdate {
         id: map_id,

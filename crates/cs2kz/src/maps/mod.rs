@@ -290,6 +290,7 @@ pub async fn approve(
     .await
 }
 
+#[tracing::instrument(skip(cx), err(level = "debug"))]
 pub async fn update(
     cx: &Context,
     MapUpdate {
@@ -428,6 +429,10 @@ async fn insert_mappers(
     map_id: MapId,
     mappers: &[PlayerId],
 ) -> database::Result<()> {
+    if mappers.is_empty() {
+        return Ok(());
+    }
+
     let mut query = QueryBuilder::new("INSERT INTO Mappers (map_id, player_id)");
 
     query.push_values(mappers, |mut query, player_id| {
@@ -445,6 +450,10 @@ async fn delete_mappers(
     map_id: MapId,
     mappers: &[PlayerId],
 ) -> database::Result<()> {
+    if mappers.is_empty() {
+        return Ok(());
+    }
+
     let mut query = QueryBuilder::new("DELETE FROM Mappers");
 
     query.push(" WHERE map_id = ").push_bind(map_id);
