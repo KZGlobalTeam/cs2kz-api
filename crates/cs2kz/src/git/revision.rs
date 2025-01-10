@@ -9,6 +9,7 @@ const RAW_LEN: usize = 20;
 const STR_LEN: usize = RAW_LEN * 2;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "fake", derive(fake::Dummy))]
 pub struct GitRevision {
     bytes: [u8; RAW_LEN],
 }

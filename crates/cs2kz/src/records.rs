@@ -71,10 +71,12 @@ impl AsF64 for LeaderboardEntry {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "fake", derive(fake::Dummy))]
 pub struct NewRecord {
     pub player_id: PlayerId,
     pub server_id: ServerId,
     pub filter_id: CourseFilterId,
+    #[cfg_attr(feature = "fake", dummy(default))]
     pub styles: Styles,
     pub teleports: u32,
     pub time: Seconds,
@@ -281,7 +283,8 @@ pub async fn submit(
                                r.time
                              FROM Records AS r
                              JOIN BestNubRecords ON BestNubRecords.record_id = r.id
-                             WHERE BestNubRecords.filter_id = ?",
+                             WHERE BestNubRecords.filter_id = ?
+                             ORDER BY time ASC",
                              filter_id,
                             )
                             .fetch(&mut *conn)
@@ -762,6 +765,7 @@ pub async fn get(
         has_teleports.map(u8::from),
         has_teleports.map(|has_teleports| if has_teleports { u32::MAX } else { 0 });
         "WHERE (? OR (NubLeaderboard.rank >= 1 OR ProLeaderboard.rank >= 1))
+         ORDER BY r.time ASC
          LIMIT ?
          OFFSET ?",
         !top,

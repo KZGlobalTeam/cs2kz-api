@@ -12,6 +12,7 @@ mod stream;
 
 define_id_type! {
     /// A unique identifier for course filters.
+    #[cfg_attr(feature = "fake", derive(fake::Dummy))]
     #[derive(sqlx::Type)]
     #[sqlx(transparent)]
     pub struct CourseFilterId(NonZero<u16>);

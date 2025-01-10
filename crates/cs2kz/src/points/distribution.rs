@@ -22,8 +22,9 @@ impl Distribution {
             return Ok(Self::default());
         };
 
-        let norminvgauss = py.import("scipy.stats")?.getattr("norminvgauss")?;
+        let norminvgauss = dbg!(dbg!(py.import("scipy.stats"))?.getattr("norminvgauss"))?;
 
+        debug!("fitting distribution");
         let (a, b, loc, scale) = norminvgauss
             .getattr("fit")?
             .call1((PyList::new(py, times.iter().map(AsF64::as_f64))?,))?

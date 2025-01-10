@@ -23,6 +23,9 @@ repository.workspace = true
 license-file = "../LICENSE.md"
 publish = false
 
+[features]
+fake = ["dep:fake", "steam-id/fake"]
+
 [lints]
 workspace = true
 
@@ -66,6 +69,6 @@ features = [
 [dependencies.md-5]
 version = "0.10.6"
 
-[dev-dependencies]
-
-[build-dependencies]
+[dependencies.fake]
+workspace = true
+optional = true

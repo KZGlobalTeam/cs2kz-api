@@ -14,6 +14,7 @@ pub use server_host::ServerHost;
 
 define_id_type! {
     /// A unique identifier for CS2 servers.
+    #[cfg_attr(feature = "fake", derive(fake::Dummy))]
     #[derive(sqlx::Type)]
     #[sqlx(transparent)]
     pub struct ServerId(NonZero<u16>);
@@ -45,7 +46,7 @@ pub struct ServerInfo {
     pub name: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct GetServersParams<'a> {
     pub name: Option<&'a str>,
     pub host: Option<&'a ServerHost>,
@@ -54,13 +55,19 @@ pub struct GetServersParams<'a> {
     pub offset: Offset,
 }
 
-#[derive(Debug)]
-pub struct NewServer<'a> {
-    pub name: &'a str,
-    pub host: &'a ServerHost,
-    pub port: u16,
-    pub owner_id: UserId,
+mod what {
+    use super::*;
+    #[derive(Debug)]
+    #[cfg_attr(feature = "fake", derive(fake::Dummy))]
+    pub struct NewServer<'a> {
+        #[cfg_attr(feature = "fake", dummy(faker = "fake::faker::company::en::Buzzword()"))]
+        pub name: &'a str,
+        pub host: &'a ServerHost,
+        pub port: u16,
+        pub owner_id: UserId,
+    }
 }
+pub use what::*;
 
 #[derive(Debug)]
 pub struct ServerUpdate<'a> {

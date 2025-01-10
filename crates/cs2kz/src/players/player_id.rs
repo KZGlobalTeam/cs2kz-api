@@ -15,6 +15,7 @@ use steam_id::SteamId;
     serde::Serialize,
     serde::Deserialize
 )]
+#[cfg_attr(feature = "fake", derive(fake::Dummy))]
 pub struct PlayerId(SteamId);
 
 impl PlayerId {

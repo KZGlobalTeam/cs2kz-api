@@ -2,7 +2,7 @@ use std::assert_matches::assert_matches;
 use std::collections::hash_map::{self, HashMap};
 use std::future;
 
-use futures_util::{StreamExt, TryStreamExt};
+use futures_util::{StreamExt, TryStreamExt, stream};
 use pyo3::PyErr;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
@@ -258,13 +258,26 @@ async fn track_record_counts(
     let mut record_counts = RecordCounts::new();
 
     let mut old_maps = events::subscribe();
-    let mut filter_ids = events::subscribe().filter_map(|event| {
+
+    let old_filter_ids =
+        filters::get(&cx, GetCourseFiltersParams { approved_only: true, ..Default::default() })
+            .flat_map(|filters| match filters {
+                Ok(filters) => stream::iter(vec![filters.vanilla.id, filters.classic.id]),
+                Err(error) => {
+                    warn!(%error, "failed to get course filters");
+                    stream::iter(vec![])
+                },
+            });
+
+    let new_filter_ids = events::subscribe().filter_map(|event| {
         future::ready(if let Event::NewRecord { filter_id, .. } = *event {
             Some(filter_id)
         } else {
             None
         })
     });
+
+    let mut filter_ids = old_filter_ids.chain(new_filter_ids);
 
     loop {
         select! {

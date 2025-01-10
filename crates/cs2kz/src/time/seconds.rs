@@ -7,7 +7,14 @@ use serde::ser::{Serialize, Serializer};
 use crate::num::AsF64;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Into, From)]
-pub struct Seconds(pub Duration);
+#[cfg_attr(feature = "fake", derive(fake::Dummy))]
+pub struct Seconds(
+    #[cfg_attr(
+        feature = "fake",
+        dummy(expr = "Duration::from_secs_f64(fake::Fake::fake(&(0.0..=69420.0)))")
+    )]
+    pub Duration,
+);
 
 impl AsF64 for Seconds {
     fn as_f64(&self) -> f64 {

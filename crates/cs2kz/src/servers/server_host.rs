@@ -101,3 +101,28 @@ impl<'de> serde::Deserialize<'de> for ServerHost {
             })
     }
 }
+
+#[cfg(feature = "fake")]
+impl fake::Dummy<fake::Faker> for ServerHost {
+    fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(faker: &fake::Faker, rng: &mut R) -> Self {
+        use fake::Fake;
+
+        match rng.gen_range(0..3) {
+            0 => Self::Ipv4(faker.fake()),
+            1 => Self::Ipv6(faker.fake()),
+            2 => Self::Domain(format!(
+                "{}.{}",
+                fake::faker::company::en::Buzzword().fake::<&str>(),
+                fake::faker::internet::en::DomainSuffix().fake::<&str>()
+            )),
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[cfg(feature = "fake")]
+impl<T> fake::Dummy<T> for &ServerHost {
+    fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(_: &T, _: &mut R) -> Self {
+        &ServerHost::Ipv4(Ipv4Addr::LOCALHOST)
+    }
+}

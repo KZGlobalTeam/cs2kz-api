@@ -1,5 +1,6 @@
 use steam_id::SteamId;
 
+#[cfg_attr(feature = "fake", derive(fake::Dummy))]
 #[derive(Debug, Display, Clone, Copy, PartialEq, Eq, AsRef, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct UserId(#[serde(serialize_with = "SteamId::serialize_u64_stringified")] SteamId);

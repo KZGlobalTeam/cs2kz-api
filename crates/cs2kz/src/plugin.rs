@@ -20,6 +20,7 @@ define_id_type! {
     /// A unique identifier for [`cs2kz-metamod`] releases.
     ///
     /// [`cs2kz-metamod`]: https://github.com/KZGlobalTeam/cs2kz-metamod
+    #[cfg_attr(feature = "fake", derive(fake::Dummy))]
     #[derive(sqlx::Type)]
     #[sqlx(transparent)]
     pub struct PluginVersionId(NonZero<u16>);

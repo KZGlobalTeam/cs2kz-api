@@ -23,7 +23,7 @@
         overlays = [ (import inputs.rust-overlay) ];
         pkgs = import nixpkgs { inherit system overlays; };
 
-        python = pkgs.python311.withPackages (p: with p; [
+        python = pkgs.python3.withPackages (p: with p; [
           scipy
         ]);
 

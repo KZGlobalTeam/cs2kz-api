@@ -117,6 +117,10 @@ version = "0.23.3"
 default-features = false
 features = ["auto-initialize"]
 
+[workspace.dependencies.fake]
+version = "3.1.0"
+features = ["derive", "semver"]
+
 [workspace.dependencies.clap]
 version = "4.5.23"
 features = ["derive"]

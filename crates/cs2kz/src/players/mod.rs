@@ -55,8 +55,13 @@ pub struct GetPlayersParams<'a> {
 }
 
 #[derive(Debug)]
+#[cfg_attr(feature = "fake", derive(fake::Dummy))]
 pub struct NewPlayer<'a> {
     pub id: PlayerId,
+    #[cfg_attr(
+        feature = "fake",
+        dummy(expr = "Cow::Owned(fake::Fake::fake(&fake::faker::name::en::Name()))")
+    )]
     pub name: Cow<'a, str>,
     pub ip_address: Option<Ipv4Addr>,
 }

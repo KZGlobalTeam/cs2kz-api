@@ -23,8 +23,6 @@ repository = "https://github.com/KZGlobalTeam/cs2kz-api"
 license-file = "../LICENSE.md"
 publish = false
 
-[features]
-
 [lints]
 workspace = true
 
@@ -35,6 +33,6 @@ derive_more.workspace = true
 workspace = true
 optional = true
 
-[dev-dependencies]
-
-[build-dependencies]
+[dependencies.fake]
+workspace = true
+optional = true

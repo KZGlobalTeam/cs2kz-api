@@ -11,6 +11,8 @@ pub struct Limit<const MAX: u64, const DEFAULT: u64> {
 }
 
 impl<const MAX: u64, const DEFAULT: u64> Limit<MAX, DEFAULT> {
+    pub const MAX: Self = Self { value: MAX };
+
     pub const fn new(value: u64) -> Self {
         const {
             assert!(DEFAULT <= MAX, "`DEFAULT` for `Limit` cannot be greater than `MAX`");

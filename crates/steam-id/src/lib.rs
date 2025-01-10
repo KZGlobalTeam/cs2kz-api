@@ -397,6 +397,19 @@ impl FromStr for SteamId {
     }
 }
 
+#[cfg(feature = "fake")]
+impl<T> fake::Dummy<T> for SteamId {
+    fn dummy_with_rng<R: fake::rand::Rng + ?Sized>(_: &T, rng: &mut R) -> Self {
+        Self::builder()
+            .y(rng.r#gen())
+            .account_number(AccountNumber::from_u64(rng.r#gen()))
+            .instance(Instance::from_u64(rng.r#gen()))
+            .account_type(AccountType::Individual)
+            .universe(Universe::Public)
+            .build()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
