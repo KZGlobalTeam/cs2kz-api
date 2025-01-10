@@ -85,8 +85,7 @@ pub fn get(
            registered_at
          FROM Users
          WHERE permissions > 0
-         AND (permissions & ?) = ?",
-        permissions,
+         AND (permissions & ?) != 0",
         permissions,
     )
     .fetch(cx.database().as_ref())
