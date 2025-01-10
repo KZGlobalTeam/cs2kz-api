@@ -74,7 +74,7 @@
         });
 
         openapi-schema = craneLib.buildPackage (crateArgs // {
-          pname = "cs2kz-api";
+          pname = "openapi";
           src = fileSetForCrate ./crates/cs2kz-api;
           cargoExtraArgs = "--bin=openapi";
         });

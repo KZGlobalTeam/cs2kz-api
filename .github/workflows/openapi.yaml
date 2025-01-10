@@ -11,19 +11,13 @@ jobs:
   openapi:
     name: OpenAPI Schema
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      checks: write
-    strategy:
-      fail-fast: false
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Rust Nightly
-        uses: dtolnay/rust-toolchain@nightly
-      - uses: Swatinem/rust-cache@v2
-      - name: generate schema
-        run: cargo run --package=cs2kz-api --bin=openapi > openapi.json
-      - uses: actions/upload-artifact@v4
-        with:
-          name: openapi.json
-          path: openapi.json
+    - uses: actions/checkout@v4
+    - uses: DeterminateSystems/nix-installer-action@main
+    - uses: DeterminateSystems/magic-nix-cache-action@main
+    - name: generate schema
+      run: nix run .#openapi-schema > openapi.json
+    - uses: actions/upload-artifact@v4
+      with:
+        name: openapi.json
+        path: openapi.json
