@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM Players",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "36d08c76424e1278df099a6f96d1a11a56619ba2995bfdee0c7ac5e995df6e0c"
+}

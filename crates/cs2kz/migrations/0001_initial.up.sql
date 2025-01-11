@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS CourseFilters (
   -- see `cs2kz::maps::courses::filters::Tier` enum in the Rust code
   nub_tier INT1 UNSIGNED NOT NULL CHECK (nub_tier BETWEEN 1 AND 10),
   -- see `cs2kz::maps::courses::filters::Tier` enum in the Rust code
-  pro_tier INT1 UNSIGNED NOT NULL CHECK (pro_tier BETWEEN 1 AND 8),
+  pro_tier INT1 UNSIGNED NOT NULL CHECK (pro_tier BETWEEN 1 AND 10),
   -- see `cs2kz::maps::courses::filters::CourseFilterState` enum in the Rust code
   state INT1 NOT NULL DEFAULT -1,
   notes TEXT,
