@@ -141,6 +141,9 @@ pub struct CourseInfo {
 
     /// The course's name.
     pub(crate) name: String,
+
+    #[schema(value_type = crate::openapi::shims::CourseFilterTier)]
+    pub(crate) tier: Tier,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
@@ -668,7 +671,11 @@ impl From<cs2kz::maps::MapInfo> for MapInfo {
 
 impl From<cs2kz::maps::CourseInfo> for CourseInfo {
     fn from(course: cs2kz::maps::CourseInfo) -> Self {
-        Self { id: course.id, name: course.name }
+        Self {
+            id: course.id,
+            name: course.name,
+            tier: course.tier,
+        }
     }
 }
 

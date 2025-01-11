@@ -10,14 +10,16 @@ use cs2kz::config::{Config, DatabaseConfig};
 use cs2kz::git::GitRevision;
 use cs2kz::maps::CourseFilterId;
 use cs2kz::pagination::Limit;
-use cs2kz::players::{self, CreatePlayerError, NewPlayer};
+use cs2kz::players::{self, GetPlayersParams, NewPlayer};
 use cs2kz::plugin::{self, NewPluginVersion, PluginVersionId};
 use cs2kz::records::{self, NewRecord};
-use cs2kz::servers::{self, ApproveServerError, GetServersParams};
-use cs2kz::users::{self, CreateUserError, NewUser};
+use cs2kz::servers::{self, GetServersParams, NewServer, ServerHost};
+use cs2kz::users::{self, CreateUserError, NewUser, UserId};
+use fake::faker::company::en::Buzzword;
+use fake::faker::name::en::{FirstName, LastName};
 use fake::rand::prelude::SliceRandom;
 use fake::{Fake, Faker};
-use tokio::time::{Duration, interval};
+use steam_id::SteamId;
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 use url::Url;
@@ -48,16 +50,66 @@ async fn main() -> anyhow::Result<()> {
 
     let cx = Context::new(cfg).await?;
 
-    match args.resource {
-        Resource::Records { clear, filter_id } => {
-            if clear {
-                records::clear(&cx, filter_id)
-                    .await
-                    .context("failed to clear records")?
-            } else {
-                generate_records(&cx, filter_id, args.count).await?
-            }
+    match (args.clear, args.resource) {
+        (true, Resource::Players) => players::clear(&cx)
+            .await
+            .context("failed to delete players"),
+        (false, Resource::Players) => generate_players(&cx, args.count).await,
+        (true, Resource::Servers) => servers::clear(&cx)
+            .await
+            .context("failed to delete servers"),
+        (false, Resource::Servers) => generate_servers(&cx, args.count).await,
+        (true, Resource::Records { filter_id }) => records::clear(&cx, filter_id)
+            .await
+            .context("failed to delete records"),
+        (false, Resource::Records { filter_id }) => {
+            generate_records(&cx, args.count, filter_id).await
         },
+    }
+}
+
+async fn generate_players(cx: &Context, count: u64) -> anyhow::Result<()> {
+    for (player_id, player) in (0..count)
+        .map(|_| Faker.fake::<NewPlayer>())
+        .map(|player| (player.id, player))
+    {
+        players::register(cx, player).await?;
+
+        info!(id = %player_id, "registered player");
+    }
+
+    Ok(())
+}
+
+async fn generate_servers(cx: &Context, count: u64) -> anyhow::Result<()> {
+    let alphakeks_id = UserId::new(SteamId::from_u64(76561198282622073_u64)?);
+
+    match users::create(cx, NewUser { id: alphakeks_id, name: "AlphaKeks" }).await {
+        Ok(_) | Err(CreateUserError::UserAlreadyExists) => {},
+        Err(CreateUserError::Database(error)) if error.is_unique_violation_of("PRIMARY") => {},
+        Err(CreateUserError::Database(error)) => {
+            anyhow::bail!("failed to create AlphaKeks: {error}")
+        },
+    }
+
+    for _ in 0..count {
+        let server_name = format!(
+            "{} {}'s {}",
+            FirstName().fake::<String>(),
+            LastName().fake::<String>(),
+            Buzzword().fake::<&str>(),
+        );
+        let server_host = Faker.fake::<ServerHost>();
+        let server = NewServer {
+            name: &server_name,
+            host: &server_host,
+            port: Faker.fake(),
+            owner_id: alphakeks_id,
+        };
+
+        let (server_id, _) = servers::approve(cx, server).await?;
+
+        info!(id = %server_id, "approved server");
     }
 
     Ok(())
@@ -65,73 +117,39 @@ async fn main() -> anyhow::Result<()> {
 
 async fn generate_records(
     cx: &Context,
-    filter_id: CourseFilterId,
     count: u64,
+    filter_id: CourseFilterId,
 ) -> anyhow::Result<()> {
     let plugin_version_id = get_or_create_plugin_version(cx).await?;
-    let mut interval = interval(Duration::from_millis(10));
 
-    let mut server_ids =
-        servers::get(cx, GetServersParams { limit: Limit::MAX, ..Default::default() })
-            .await?
-            .map(|server| server.id)
-            .collect::<Vec<_>>()
-            .await?
-            .into_inner();
+    let player_ids = players::get(cx, GetPlayersParams { limit: Limit::MAX, ..Default::default() })
+        .await?
+        .map(|player| player.id)
+        .collect::<Vec<_>>()
+        .await?
+        .into_inner();
+
+    let server_ids = servers::get(cx, GetServersParams { limit: Limit::MAX, ..Default::default() })
+        .await?
+        .map(|server| server.id)
+        .collect::<Vec<_>>()
+        .await?
+        .into_inner();
 
     for _ in 0..count {
-        interval.tick().await;
-
         let record = NewRecord {
             filter_id,
-            server_id: 'outer: loop {
-                if server_ids.len() >= 100 {
-                    break *server_ids.choose(&mut fake::rand::thread_rng()).unwrap();
-                }
-
-                'inner: loop {
-                    let server = Faker.fake::<cs2kz::servers::NewServer<'static>>();
-                    let owner_name = fake::faker::name::en::Name().fake::<String>();
-
-                    match users::create(cx, NewUser { id: server.owner_id, name: &owner_name })
-                        .await
-                    {
-                        Ok(_) | Err(CreateUserError::UserAlreadyExists) => {},
-                        Err(CreateUserError::Database(error)) => {
-                            return Err(error).context("failed to create user");
-                        },
-                    }
-
-                    match servers::approve(cx, server).await {
-                        Ok((server_id, _)) => {
-                            server_ids.push(server_id);
-                            break 'outer server_id;
-                        },
-                        Err(ApproveServerError::OwnerDoesNotExist) => {
-                            continue 'inner;
-                        },
-                        Err(
-                            ApproveServerError::NameAlreadyTaken
-                            | ApproveServerError::HostAndPortAlreadyTaken,
-                        ) => {
-                            continue 'outer;
-                        },
-                        Err(ApproveServerError::Database(error)) => {
-                            return Err(error).context("failed to register player");
-                        },
-                    }
-                }
-            },
+            player_id: player_ids
+                .choose(&mut fake::rand::thread_rng())
+                .copied()
+                .context("no players found; create some")?,
+            server_id: server_ids
+                .choose(&mut fake::rand::thread_rng())
+                .copied()
+                .context("no servers found; create some")?,
             plugin_version_id,
             ..Faker.fake()
         };
-
-        match players::register(cx, NewPlayer { id: record.player_id, ..Faker.fake() }).await {
-            Ok(_) | Err(CreatePlayerError::PlayerAlreadyExists) => {},
-            Err(CreatePlayerError::Database(error)) => {
-                return Err(error).context("failed to register player");
-            },
-        }
 
         let submitted = records::submit(cx, record)
             .await

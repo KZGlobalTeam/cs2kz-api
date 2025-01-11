@@ -1,7 +1,7 @@
 use std::num::NonZero;
 
 pub mod filters;
-pub use filters::CourseFilterId;
+pub use filters::{CourseFilterId, Tier};
 
 define_id_type! {
     /// A unique identifier for CS2KZ map courses.
@@ -14,4 +14,5 @@ define_id_type! {
 pub struct CourseInfo {
     pub id: CourseId,
     pub name: String,
+    pub tier: Tier,
 }

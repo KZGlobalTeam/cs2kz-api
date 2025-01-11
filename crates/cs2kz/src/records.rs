@@ -1078,7 +1078,15 @@ mod macros {
                 player: PlayerInfo { id: $row.player_id, name: $row.player_name },
                 server: ServerInfo { id: $row.server_id, name: $row.server_name },
                 map: MapInfo { id: $row.map_id, name: $row.map_name },
-                course: CourseInfo { id: $row.course_id, name: $row.course_name },
+                course: CourseInfo {
+                    id: $row.course_id,
+                    name: $row.course_name,
+                    tier: if $row.teleports == 0 {
+                        $row.pro_tier
+                    } else {
+                        $row.nub_tier
+                    },
+                },
                 mode: $row.mode,
                 styles: $row.styles,
                 teleports: $row.teleports,

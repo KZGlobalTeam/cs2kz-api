@@ -47,7 +47,7 @@ pub struct Profile {
     pub pro_completion: [u32; 8],
     pub first_joined_at: Timestamp,
 }
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct GetPlayersParams<'a> {
     pub name: Option<&'a str>,
     pub limit: Limit<1000, 250>,
@@ -401,6 +401,15 @@ pub fn filter_unknown(
         .map_err(GetPlayersError::from)
         .try_filter(|&(_, count)| future::ready(count > 0))
         .map_ok(|(player_id, _)| player_id)
+}
+
+#[tracing::instrument(skip(cx), err(level = "debug"))]
+pub async fn clear(cx: &Context) -> database::Result<()> {
+    sqlx::query!("DELETE FROM Players")
+        .execute(cx.database().as_ref())
+        .await
+        .map(|_| ())
+        .map_err(database::Error::from)
 }
 
 mod macros {

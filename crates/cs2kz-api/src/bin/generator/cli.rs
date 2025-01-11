@@ -11,6 +11,10 @@ pub struct Args {
     #[arg(short, long)]
     pub count: u64,
 
+    /// Delete the resource instead of creating it.
+    #[arg(long)]
+    pub clear: bool,
+
     /// The resource to generate.
     #[command(subcommand)]
     pub resource: Resource,
@@ -18,9 +22,7 @@ pub struct Args {
 
 #[derive(Debug, Subcommand)]
 pub enum Resource {
-    Records {
-        #[arg(long)]
-        clear: bool,
-        filter_id: CourseFilterId,
-    },
+    Players,
+    Servers,
+    Records { filter_id: CourseFilterId },
 }

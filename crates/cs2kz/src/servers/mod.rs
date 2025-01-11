@@ -55,19 +55,13 @@ pub struct GetServersParams<'a> {
     pub offset: Offset,
 }
 
-mod what {
-    use super::*;
-    #[derive(Debug)]
-    #[cfg_attr(feature = "fake", derive(fake::Dummy))]
-    pub struct NewServer<'a> {
-        #[cfg_attr(feature = "fake", dummy(faker = "fake::faker::company::en::Buzzword()"))]
-        pub name: &'a str,
-        pub host: &'a ServerHost,
-        pub port: u16,
-        pub owner_id: UserId,
-    }
+#[derive(Debug)]
+pub struct NewServer<'a> {
+    pub name: &'a str,
+    pub host: &'a ServerHost,
+    pub port: u16,
+    pub owner_id: UserId,
 }
-pub use what::*;
 
 #[derive(Debug)]
 pub struct ServerUpdate<'a> {
@@ -285,6 +279,15 @@ pub async fn update(
             UpdateServerError::Database(err)
         }
     })
+}
+
+#[tracing::instrument(skip(cx), err(level = "debug"))]
+pub async fn clear(cx: &Context) -> database::Result<()> {
+    sqlx::query!("DELETE FROM Servers")
+        .execute(cx.database().as_ref())
+        .await
+        .map(|_| ())
+        .map_err(database::Error::from)
 }
 
 mod macros {
