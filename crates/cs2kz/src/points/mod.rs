@@ -1,3 +1,5 @@
+use std::iter;
+
 use pyo3::types::{PyAnyMethods, PyTuple};
 use pyo3::{PyErr, Python};
 
@@ -160,45 +162,40 @@ pub struct UpdateDistributionDataError(database::Error);
 pub async fn update_distribution_data(
     cx: &Context,
     filter_id: CourseFilterId,
-    nub_dist: &Distribution,
-    pro_dist: &Distribution,
+    nub_dist: Option<&Distribution>,
+    pro_dist: Option<&Distribution>,
 ) -> Result<(), UpdateDistributionDataError> {
-    sqlx::query!(
-        "INSERT INTO PointDistributionData (
-           filter_id,
-           is_pro_leaderboard,
-           a,
-           b,
-           loc,
-           scale,
-           top_scale
-         )
-         VALUES
-           (?, ?, ?, ?, ?, ?, ?),
-           (?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY
-         UPDATE a = VALUES(a),
-                b = VALUES(b),
-                loc = VALUES(loc),
-                scale = VALUES(loc),
-                top_scale = VALUES(top_scale)",
-        filter_id,
-        true,
-        nub_dist.a,
-        nub_dist.b,
-        nub_dist.loc,
-        nub_dist.scale,
-        nub_dist.top_scale,
-        filter_id,
-        false,
-        pro_dist.a,
-        pro_dist.b,
-        pro_dist.loc,
-        pro_dist.scale,
-        pro_dist.top_scale,
-    )
-    .execute(cx.database().as_ref())
-    .await?;
+    for (dist, is_pro_leaderboard) in
+        iter::chain(nub_dist.map(|dist| (dist, false)), pro_dist.map(|dist| (dist, true)))
+    {
+        sqlx::query!(
+            "INSERT INTO PointDistributionData (
+               filter_id,
+               is_pro_leaderboard,
+               a,
+               b,
+               loc,
+               scale,
+               top_scale
+             )
+             VALUES (?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY
+             UPDATE a = VALUES(a),
+                    b = VALUES(b),
+                    loc = VALUES(loc),
+                    scale = VALUES(loc),
+                    top_scale = VALUES(top_scale)",
+            filter_id,
+            is_pro_leaderboard,
+            dist.a,
+            dist.b,
+            dist.loc,
+            dist.scale,
+            dist.top_scale,
+        )
+        .execute(cx.database().as_ref())
+        .await?;
+    }
 
     Ok(())
 }

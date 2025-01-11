@@ -110,131 +110,151 @@ async fn process_filter(
 
     info!("updating distribution data");
 
-    points::update_distribution_data(cx, filter.id, &nub_dist, &pro_dist).await?;
+    points::update_distribution_data(cx, filter.id, nub_dist.as_ref(), pro_dist.as_ref()).await?;
 
     info!("recalculating points");
 
     let records = python::execute(span.clone(), move |py| -> Result<_, Error> {
         let mut records = HashMap::new();
-
         let mut nub_dist_points_so_far = Vec::with_capacity(nub_leaderboard.len());
-        let scaled_nub_times = nub_dist.scale(&nub_leaderboard).collect::<Vec<_>>();
 
-        for (rank, entry) in nub_leaderboard.iter().enumerate() {
-            let _guard = debug_span!(
-                "processing record",
-                id = %entry.record_id,
-                player = %entry.player_id,
-                teleports = %entry.teleports,
-                rank,
-                leaderboard = "NUB",
-                distribution = "NUB",
-            )
-            .entered();
+        if let Some(ref nub_dist) = nub_dist {
+            let scaled_nub_times = nub_dist.scale(&nub_leaderboard).collect::<Vec<_>>();
 
-            let points = if nub_leaderboard.len() <= SMALL_LEADERBOARD_THRESHOLD {
-                points::for_small_leaderboard(
-                    filter.nub_tier,
-                    nub_leaderboard[0].time.into(),
-                    entry.time.into(),
+            for (rank, entry) in nub_leaderboard.iter().enumerate() {
+                let _guard = debug_span!(
+                    "processing record",
+                    id = %entry.record_id,
+                    player = %entry.player_id,
+                    teleports = %entry.teleports,
+                    rank,
+                    leaderboard = "NUB",
+                    distribution = "NUB",
                 )
-            } else {
-                debug!("calculating points from distribution");
+                .entered();
 
-                points::from_dist(py, &nub_dist, &scaled_nub_times, &nub_dist_points_so_far, rank)
+                let points = if nub_leaderboard.len() <= SMALL_LEADERBOARD_THRESHOLD {
+                    points::for_small_leaderboard(
+                        filter.nub_tier,
+                        nub_leaderboard[0].time.into(),
+                        entry.time.into(),
+                    )
+                } else {
+                    debug!("calculating points from distribution");
+
+                    points::from_dist(
+                        py,
+                        &nub_dist,
+                        &scaled_nub_times,
+                        &nub_dist_points_so_far,
+                        rank,
+                    )
                     .map(|points| {
-                    nub_dist_points_so_far.push(points);
-                    (points / nub_dist.top_scale).min(1.0)
-                })?
-            };
+                        nub_dist_points_so_far.push(points);
+                        (points / nub_dist.top_scale).min(1.0)
+                    })?
+                };
 
-            let slot = records.insert(entry.record_id, BestRecord {
-                id: entry.record_id,
-                player_id: entry.player_id,
-                nub_points: points,
-                pro_points: ProPoints::default(),
-            });
+                let slot = records.insert(entry.record_id, BestRecord {
+                    id: entry.record_id,
+                    player_id: entry.player_id,
+                    nub_points: points,
+                    pro_points: ProPoints::default(),
+                });
 
-            assert_matches!(slot, None);
+                assert_matches!(slot, None);
+            }
         }
 
-        let mut pro_dist_points_so_far = Vec::with_capacity(pro_leaderboard.len());
-        let scaled_pro_times = pro_dist.scale(&pro_leaderboard).collect::<Vec<_>>();
+        if let Some(ref pro_dist) = pro_dist {
+            let nub_dist = nub_dist
+                .as_ref()
+                .expect("if there is a pro leaderboard, there mus also be a nub leaderboard");
 
-        for (rank, entry) in pro_leaderboard.iter().enumerate() {
-            let span = debug_span!(
-                "processing record",
-                id = %entry.record_id,
-                player = %entry.player_id,
-                teleports = %entry.teleports,
-                rank,
-                leaderboard = "PRO",
-                distribution = "PRO",
-            );
-            let _guard = span.enter();
+            let mut pro_dist_points_so_far = Vec::with_capacity(pro_leaderboard.len());
+            let scaled_pro_times = pro_dist.scale(&pro_leaderboard).collect::<Vec<_>>();
 
-            let pro_points = if pro_leaderboard.len() <= SMALL_LEADERBOARD_THRESHOLD {
-                points::for_small_leaderboard(
-                    filter.pro_tier,
-                    pro_leaderboard[0].time.into(),
-                    entry.time.into(),
-                )
-            } else {
+            for (rank, entry) in pro_leaderboard.iter().enumerate() {
+                let span = debug_span!(
+                    "processing record",
+                    id = %entry.record_id,
+                    player = %entry.player_id,
+                    teleports = %entry.teleports,
+                    rank,
+                    leaderboard = "PRO",
+                    distribution = "PRO",
+                );
+                let _guard = span.enter();
+
+                let pro_points = if pro_leaderboard.len() <= SMALL_LEADERBOARD_THRESHOLD {
+                    points::for_small_leaderboard(
+                        filter.pro_tier,
+                        pro_leaderboard[0].time.into(),
+                        entry.time.into(),
+                    )
+                } else {
+                    debug!("calculating points from distribution");
+
+                    points::from_dist(
+                        py,
+                        &pro_dist,
+                        &scaled_pro_times,
+                        &pro_dist_points_so_far,
+                        rank,
+                    )
+                    .map(|points| {
+                        pro_dist_points_so_far.push(points);
+                        (points / pro_dist.top_scale).min(1.0)
+                    })?
+                };
+
+                let (Ok(rank_in_nub_leaderboard) | Err(rank_in_nub_leaderboard)) =
+                    nub_leaderboard.binary_search_by(|nub_record| nub_record.time.cmp(&entry.time));
+
+                span.record("distribution", "NUB");
                 debug!("calculating points from distribution");
 
-                points::from_dist(py, &pro_dist, &scaled_pro_times, &pro_dist_points_so_far, rank)
-                    .map(|points| {
-                    pro_dist_points_so_far.push(points);
-                    (points / pro_dist.top_scale).min(1.0)
-                })?
-            };
-
-            let (Ok(rank_in_nub_leaderboard) | Err(rank_in_nub_leaderboard)) =
-                nub_leaderboard.binary_search_by(|nub_record| nub_record.time.cmp(&entry.time));
-
-            span.record("distribution", "NUB");
-            debug!("calculating points from distribution");
-
-            let nub_points = if nub_leaderboard.len() <= SMALL_LEADERBOARD_THRESHOLD {
-                points::for_small_leaderboard(
-                    filter.nub_tier,
-                    nub_leaderboard[0].time.into(),
-                    entry.time.into(),
-                )
-            } else {
-                points::from_dist(
-                    py,
-                    &nub_dist,
-                    &scaled_pro_times,
-                    &nub_dist_points_so_far,
-                    rank_in_nub_leaderboard,
-                )
-                .map(|points| (points / nub_dist.top_scale).min(1.0))?
-            };
-
-            let points_based_on_pro_leaderboard = pro_points >= nub_points;
-            let points = ProPoints {
-                value: if points_based_on_pro_leaderboard {
-                    pro_points
+                let nub_points = if nub_leaderboard.len() <= SMALL_LEADERBOARD_THRESHOLD {
+                    points::for_small_leaderboard(
+                        filter.nub_tier,
+                        nub_leaderboard[0].time.into(),
+                        entry.time.into(),
+                    )
                 } else {
-                    nub_points
-                },
-                based_on_pro_leaderboard: points_based_on_pro_leaderboard,
-            };
+                    points::from_dist(
+                        py,
+                        nub_dist,
+                        &scaled_pro_times,
+                        &nub_dist_points_so_far,
+                        rank_in_nub_leaderboard,
+                    )
+                    .map(|points| (points / nub_dist.top_scale).min(1.0))?
+                };
 
-            match records.entry(entry.record_id) {
-                hash_map::Entry::Vacant(slot) => {
-                    slot.insert(BestRecord {
-                        id: entry.record_id,
-                        player_id: entry.player_id,
-                        nub_points: 0.0,
-                        pro_points: points,
-                    });
-                },
-                hash_map::Entry::Occupied(mut slot) => {
-                    assert_eq!(slot.get().pro_points, ProPoints::default());
-                    slot.get_mut().pro_points = points;
-                },
+                let points_based_on_pro_leaderboard = pro_points >= nub_points;
+                let points = ProPoints {
+                    value: if points_based_on_pro_leaderboard {
+                        pro_points
+                    } else {
+                        nub_points
+                    },
+                    based_on_pro_leaderboard: points_based_on_pro_leaderboard,
+                };
+
+                match records.entry(entry.record_id) {
+                    hash_map::Entry::Vacant(slot) => {
+                        slot.insert(BestRecord {
+                            id: entry.record_id,
+                            player_id: entry.player_id,
+                            nub_points: 0.0,
+                            pro_points: points,
+                        });
+                    },
+                    hash_map::Entry::Occupied(mut slot) => {
+                        assert_eq!(slot.get().pro_points, ProPoints::default());
+                        slot.get_mut().pro_points = points;
+                    },
+                }
             }
         }
 

@@ -17,14 +17,13 @@ pub struct Distribution {
 
 impl Distribution {
     /// Calculates the distribution parameters using `times` as the input dataset.
-    pub fn new(py: Python<'_>, times: &[impl AsF64]) -> Result<Self, PyErr> {
+    pub fn new(py: Python<'_>, times: &[impl AsF64]) -> Result<Option<Self>, PyErr> {
         let Some(top_time) = times.first().map(AsF64::as_f64) else {
-            return Ok(Self::default());
+            return Ok(None);
         };
 
-        let norminvgauss = dbg!(dbg!(py.import("scipy.stats"))?.getattr("norminvgauss"))?;
+        let norminvgauss = py.import("scipy.stats")?.getattr("norminvgauss")?;
 
-        debug!("fitting distribution");
         let (a, b, loc, scale) = norminvgauss
             .getattr("fit")?
             .call1((PyList::new(py, times.iter().map(AsF64::as_f64))?,))?
@@ -37,7 +36,7 @@ impl Distribution {
             .call1((top_time,))?
             .extract::<f64>()?;
 
-        Ok(Self { a, b, loc, scale, top_scale })
+        Ok(Some(Self { a, b, loc, scale, top_scale }))
     }
 
     /// Scales the given `values` according to the distribution parameters.
