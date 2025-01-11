@@ -49,7 +49,15 @@ async fn main() -> anyhow::Result<()> {
     let cx = Context::new(cfg).await?;
 
     match args.resource {
-        Resource::Records { filter_id } => generate_records(&cx, filter_id, args.count).await?,
+        Resource::Records { clear, filter_id } => {
+            if clear {
+                records::clear(&cx, filter_id)
+                    .await
+                    .context("failed to clear records")?
+            } else {
+                generate_records(&cx, filter_id, args.count).await?
+            }
+        },
     }
 
     Ok(())

@@ -983,6 +983,15 @@ pub async fn update_best_records(
     .await
 }
 
+#[tracing::instrument(skip(cx), err(level = "debug"))]
+pub async fn clear(cx: &Context, filter_id: CourseFilterId) -> database::Result<()> {
+    sqlx::query!("DELETE FROM Records WHERE filter_id = ?", filter_id)
+        .execute(cx.database().as_ref())
+        .await
+        .map(|_| ())
+        .map_err(database::Error::from)
+}
+
 mod macros {
     macro_rules! select {
         ( $inner:literal $(, $inner_args:expr)*; $( $outer:literal $(, $outer_args:expr)*; )?) => {

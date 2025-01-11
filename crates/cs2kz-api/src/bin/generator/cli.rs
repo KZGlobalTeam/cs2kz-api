@@ -18,5 +18,9 @@ pub struct Args {
 
 #[derive(Debug, Subcommand)]
 pub enum Resource {
-    Records { filter_id: CourseFilterId },
+    Records {
+        #[arg(long)]
+        clear: bool,
+        filter_id: CourseFilterId,
+    },
 }
