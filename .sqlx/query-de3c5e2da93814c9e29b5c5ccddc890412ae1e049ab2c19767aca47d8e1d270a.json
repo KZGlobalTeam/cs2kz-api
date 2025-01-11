@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT\n                               r.player_id,\n                               r.id,\n                               r.time\n                             FROM Records AS r\n                             JOIN BestNubRecords ON BestNubRecords.record_id = r.id\n                             WHERE BestNubRecords.filter_id = ?",
+  "query": "SELECT\n                               r.player_id,\n                               r.id,\n                               r.time\n                             FROM Records AS r\n                             JOIN BestNubRecords ON BestNubRecords.record_id = r.id\n                             WHERE BestNubRecords.filter_id = ?\n                             ORDER BY time ASC",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "30d4bb24ff1ab3c8ee314f00cdaa835386defff2abc48e43a7a4e9bb726354c1"
+  "hash": "de3c5e2da93814c9e29b5c5ccddc890412ae1e049ab2c19767aca47d8e1d270a"
 }
