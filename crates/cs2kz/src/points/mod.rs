@@ -16,7 +16,7 @@ pub const MAX: f64 = 10_000.0;
 pub const SMALL_LEADERBOARD_THRESHOLD: usize = 50;
 
 #[derive(Debug, Display, Error, From)]
-#[display("failed to calculate points")]
+#[display("failed to calculate points: {_0}")]
 pub struct CalculatePointsError(PyErr);
 
 /// Calculates points for a new record with the given `time` at position `rank` in the
