@@ -85,12 +85,12 @@
 
           clippy = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
-            cargoClippyExtraArgs = "--no-deps --all-targets -- -Dwarnings";
+            cargoClippyExtraArgs = "--no-deps --all-features --all-targets -- -Dwarnings";
           });
 
           clippy-tests = craneLib.cargoClippy (commonArgs // {
             inherit cargoArtifacts;
-            cargoClippyExtraArgs = "--no-deps --tests -- -Dwarnings";
+            cargoClippyExtraArgs = "--no-deps --all-features --tests -- -Dwarnings";
           });
 
           rustfmt = craneLib.cargoFmt {
