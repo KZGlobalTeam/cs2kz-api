@@ -3,8 +3,8 @@ CREATE TABLE IF NOT EXISTS PluginVersions (
   major INT8 UNSIGNED NOT NULL,
   minor INT8 UNSIGNED NOT NULL,
   patch INT8 UNSIGNED NOT NULL,
-  pre VARCHAR(255),
-  build VARCHAR(255),
+  pre VARCHAR(255) NOT NULL,
+  build VARCHAR(255) NOT NULL,
   git_revision BINARY(20) NOT NULL UNIQUE,
   published_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT UC_semver UNIQUE (major, minor, patch, pre, build)
@@ -175,6 +175,15 @@ CREATE TABLE IF NOT EXISTS PointDistributionData (
   scale FLOAT8 NOT NULL,
   top_scale FLOAT8 NOT NULL,
   PRIMARY KEY (filter_id, is_pro_leaderboard)
+);
+
+CREATE TABLE IF NOT EXISTS RecordCounts (
+  filter_id INT2 UNSIGNED NOT NULL PRIMARY KEY REFERENCES CourseFilters(id),
+  count INT8 UNSIGNED NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS FiltersToRecalculate (
+  filter_id INT2 UNSIGNED NOT NULL PRIMARY KEY REFERENCES CourseFilters(id)
 );
 
 CREATE TABLE IF NOT EXISTS Bans (

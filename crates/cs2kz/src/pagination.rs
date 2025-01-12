@@ -1,6 +1,8 @@
+use std::future::{self};
 use std::{cmp, fmt};
 
-use futures_util::stream::{MapOk, Stream, TryStreamExt};
+use futures_util::future::Either;
+use futures_util::stream::{self, Stream, StreamExt, TryStreamExt};
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Debug, Display, Clone, Copy, Into, Serialize)]
@@ -91,7 +93,7 @@ where
     E: std::error::Error,
 {
     /// Transforms the `Ok` values of the underlying stream.
-    pub fn map<F, U>(self, f: F) -> Paginated<MapOk<S, F>>
+    pub fn map<F, U>(self, f: F) -> Paginated<impl Stream<Item = Result<U, E>>>
     where
         F: FnMut(T) -> U,
     {
@@ -101,8 +103,22 @@ where
         }
     }
 
+    pub fn flat_map<U, F>(self, mut f: F) -> Paginated<impl Stream<Item = Result<U::Item, E>>>
+    where
+        F: FnMut(T) -> U,
+        U: Stream,
+    {
+        Paginated {
+            total: self.total,
+            values: self.values.flat_map(move |result| match result {
+                Ok(item) => Either::Left(f(item).map(Ok)),
+                Err(error) => Either::Right(stream::once(future::ready(error)).map(Err)),
+            }),
+        }
+    }
+
     /// Transforms the `Ok` values of the underlying stream by calling [`Into::into()`].
-    pub fn map_into<U>(self) -> Paginated<MapOk<S, impl Fn(T) -> U>>
+    pub fn map_into<U>(self) -> Paginated<impl Stream<Item = Result<U, E>>>
     where
         T: Into<U>,
     {

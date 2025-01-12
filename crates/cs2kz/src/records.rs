@@ -71,12 +71,10 @@ impl AsF64 for LeaderboardEntry {
 }
 
 #[derive(Debug)]
-#[cfg_attr(feature = "fake", derive(fake::Dummy))]
 pub struct NewRecord {
     pub player_id: PlayerId,
     pub server_id: ServerId,
     pub filter_id: CourseFilterId,
-    #[cfg_attr(feature = "fake", dummy(default))]
     pub styles: Styles,
     pub teleports: u32,
     pub time: Seconds,
@@ -269,7 +267,7 @@ pub async fn submit(
                         filter_id,
                         player_id,
                         record_id,
-                        dist_points,
+                        dbg!(dist_points),
                     )
                     .execute(&mut *conn)
                     .await?;
@@ -311,7 +309,7 @@ pub async fn submit(
                             query.push_bind(filter_id);
                             query.push_bind(player_id);
                             query.push_bind(record_id);
-                            query.push_bind(points);
+                            query.push_bind(dbg!(points));
                         });
 
                         query.push("ON DUPLICATE KEY UPDATE points = VALUES(points)");
@@ -386,7 +384,7 @@ pub async fn submit(
                         filter_id,
                         player_id,
                         record_id,
-                        dist_points,
+                        dbg!(dist_points),
                     )
                     .execute(&mut *conn)
                     .await?;
@@ -400,7 +398,8 @@ pub async fn submit(
                                r.time
                              FROM Records AS r
                              JOIN BestProRecords ON BestProRecords.record_id = r.id
-                             WHERE BestProRecords.filter_id = ?",
+                             WHERE BestProRecords.filter_id = ?
+                             ORDER BY time ASC",
                              filter_id,
                             )
                             .fetch(&mut *conn)
@@ -419,7 +418,8 @@ pub async fn submit(
                                filter_id,
                                player_id,
                                record_id,
-                               points
+                               points,
+                               points_based_on_pro_leaderboard
                              )",
                         );
 
@@ -427,7 +427,8 @@ pub async fn submit(
                             query.push_bind(filter_id);
                             query.push_bind(player_id);
                             query.push_bind(record_id);
-                            query.push_bind(points);
+                            query.push_bind(dbg!(points));
+                            query.push_bind(true);
                         });
 
                         query.push("ON DUPLICATE KEY UPDATE points = VALUES(points)");
@@ -937,7 +938,7 @@ pub async fn update_best_records(
                     query.push_bind(filter_id);
                     query.push_bind(record.player_id);
                     query.push_bind(record.id);
-                    query.push_bind(record.nub_points);
+                    query.push_bind(dbg!(record.nub_points));
                 });
 
                 nub_query.push(
@@ -959,7 +960,7 @@ pub async fn update_best_records(
                     query.push_bind(filter_id);
                     query.push_bind(record.player_id);
                     query.push_bind(record.id);
-                    query.push_bind(record.pro_points.value);
+                    query.push_bind(dbg!(record.pro_points.value));
                     query.push_bind(record.pro_points.based_on_pro_leaderboard);
                 });
 
@@ -984,12 +985,25 @@ pub async fn update_best_records(
 }
 
 #[tracing::instrument(skip(cx), err(level = "debug"))]
-pub async fn clear(cx: &Context, filter_id: CourseFilterId) -> database::Result<()> {
-    sqlx::query!("DELETE FROM Records WHERE filter_id = ?", filter_id)
-        .execute(cx.database().as_ref())
-        .await
-        .map(|_| ())
-        .map_err(database::Error::from)
+pub async fn delete(
+    cx: &Context,
+    filter_id: Option<CourseFilterId>,
+    starting_at: Option<RecordId>,
+    count: usize,
+) -> database::Result<u64> {
+    sqlx::query!(
+        "DELETE FROM Records
+         WHERE filter_id = COALESCE(?, filter_id)
+         AND id >= COALESCE(?, 1)
+         LIMIT ?",
+        filter_id,
+        starting_at,
+        count as u64,
+    )
+    .execute(cx.database().as_ref())
+    .await
+    .map(|result| result.rows_affected())
+    .map_err(database::Error::from)
 }
 
 mod macros {

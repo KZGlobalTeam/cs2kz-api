@@ -60,7 +60,7 @@ pub struct NewPlayer<'a> {
     pub id: PlayerId,
     #[cfg_attr(
         feature = "fake",
-        dummy(expr = "Cow::Owned(fake::Fake::fake(&fake::faker::name::en::Name()))")
+        dummy(expr = "Cow::Owned(fake::Fake::fake(&fake::faker::internet::en::Username()))")
     )]
     pub name: Cow<'a, str>,
     pub ip_address: Option<Ipv4Addr>,
@@ -404,11 +404,11 @@ pub fn filter_unknown(
 }
 
 #[tracing::instrument(skip(cx), err(level = "debug"))]
-pub async fn clear(cx: &Context) -> database::Result<()> {
-    sqlx::query!("DELETE FROM Players")
+pub async fn delete(cx: &Context, count: usize) -> database::Result<u64> {
+    sqlx::query!("DELETE FROM Players LIMIT ?", count as u64)
         .execute(cx.database().as_ref())
         .await
-        .map(|_| ())
+        .map(|result| result.rows_affected())
         .map_err(database::Error::from)
 }
 

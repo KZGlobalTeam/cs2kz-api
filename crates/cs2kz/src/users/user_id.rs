@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use steam_id::SteamId;
 
 #[cfg_attr(feature = "fake", derive(fake::Dummy))]
@@ -16,6 +18,14 @@ impl TryFrom<u64> for UserId {
 
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         SteamId::try_from(value).map(Self)
+    }
+}
+
+impl FromStr for UserId {
+    type Err = <SteamId as FromStr>::Err;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        value.parse().map(Self)
     }
 }
 

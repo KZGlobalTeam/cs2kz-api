@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use steam_id::SteamId;
 
 #[derive(
@@ -21,6 +23,14 @@ pub struct PlayerId(SteamId);
 impl PlayerId {
     pub const fn new(steam_id: SteamId) -> Self {
         Self(steam_id)
+    }
+}
+
+impl FromStr for PlayerId {
+    type Err = <SteamId as FromStr>::Err;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        value.parse().map(Self)
     }
 }
 

@@ -1,6 +1,6 @@
 use std::net::{Ipv4Addr, Ipv6Addr};
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Display, serde::Serialize)]
 #[serde(untagged)]
 pub enum ServerHost {
     Ipv4(Ipv4Addr),

@@ -7,11 +7,17 @@ use tokio::sync::{mpsc, oneshot};
 type Job = Box<dyn for<'py> FnOnce(Python<'py>) + Send>;
 
 static JOBS: LazyLock<mpsc::Sender<Job>> = LazyLock::new(|| {
-    let (tx, rx) = mpsc::channel(16);
+    let (tx, mut rx) = mpsc::channel::<Job>(16);
 
     if let Err(error) = thread::Builder::new()
         .name(String::from("pyo3"))
-        .spawn(|| process_jobs(rx))
+        .spawn(move || {
+            Python::with_gil(|py| {
+                while let Some(job) = rx.blocking_recv() {
+                    job(py);
+                }
+            })
+        })
     {
         panic!("failed to spawn pyo3 thread: {error}");
     }
@@ -36,12 +42,4 @@ where
     }
 
     rx.await.expect("we don't drop the sender")
-}
-
-fn process_jobs(mut rx: mpsc::Receiver<Job>) {
-    Python::with_gil(|py| {
-        while let Some(job) = rx.blocking_recv() {
-            job(py);
-        }
-    })
 }

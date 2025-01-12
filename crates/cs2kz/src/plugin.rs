@@ -70,6 +70,11 @@ pub enum PublishPluginVersionError {
 #[from(forward)]
 pub struct GetPluginVersionsError(database::Error);
 
+#[derive(Debug, Display, Error, From)]
+#[display("failed to delete plugin version")]
+#[from(forward)]
+pub struct DeletePluginVersionError(database::Error);
+
 #[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]
 pub async fn publish_version(
     cx: &Context,
@@ -97,8 +102,8 @@ pub async fn publish_version(
         version.major,
         version.minor,
         version.patch,
-        crate::string::empty_as_none(version.pre.as_str()),
-        crate::string::empty_as_none(version.build.as_str()),
+        version.pre.as_str(),
+        version.build.as_str(),
         git_revision,
     )
     .fetch_one(cx.database().as_ref())
@@ -106,7 +111,7 @@ pub async fn publish_version(
     .and_then(|row| row.try_get(0))
     .map_err(database::Error::from)
     .map_err(|err| {
-        if err.is_unique_violation_of("`UC_semver`") {
+        if err.is_unique_violation_of("UC_semver") {
             PublishPluginVersionError::VersionAlreadyPublished
         } else {
             PublishPluginVersionError::Database(err)
@@ -160,15 +165,13 @@ pub async fn get_version(
         "WHERE major = ?
          AND minor = ?
          AND patch = ?
-         AND IF(? IS NULL, pre IS NULL, pre = ?)
-         AND IF(? IS NULL, build IS NULL, build = ?)",
+         AND pre = ?
+         AND build = ?",
         version.major,
         version.minor,
         version.patch,
-        crate::string::empty_as_none(version.pre.as_str()),
-        crate::string::empty_as_none(version.pre.as_str()),
-        crate::string::empty_as_none(version.build.as_str()),
-        crate::string::empty_as_none(version.build.as_str()),
+        version.pre.as_str(),
+        version.build.as_str(),
     )
     .fetch_optional(cx.database().as_ref())
     .await
@@ -208,6 +211,30 @@ pub async fn get_latest_version(
         })
 }
 
+#[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]
+pub async fn delete_version(
+    cx: &Context,
+    version: &semver::Version,
+) -> Result<bool, DeletePluginVersionError> {
+    sqlx::query!(
+        "DELETE FROM PluginVersions
+         WHERE major = ?
+         AND minor = ?
+         AND patch = ?
+         AND pre = ?
+         AND build = ?",
+        version.major,
+        version.minor,
+        version.patch,
+        version.pre.as_str(),
+        version.build.as_str(),
+    )
+    .execute(cx.database().as_ref())
+    .await
+    .map(|result| result.rows_affected() > 0)
+    .map_err(DeletePluginVersionError::from)
+}
+
 mod macros {
     macro_rules! select {
         ( $($extra:tt)* ) => {
@@ -237,12 +264,10 @@ mod macros {
                     patch: $row.patch.into(),
                     pre: $row
                         .pre
-                        .unwrap_or_default()
                         .parse()
                         .map_err(|err| $crate::database::Error::decode_column("pre", err))?,
                     build: $row
                         .build
-                        .unwrap_or_default()
                         .parse()
                         .map_err(|err| $crate::database::Error::decode_column("build", err))?,
                 },

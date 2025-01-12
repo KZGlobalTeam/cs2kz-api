@@ -69,4 +69,3 @@ mod python;
 
 mod fmt;
 mod num;
-mod string;

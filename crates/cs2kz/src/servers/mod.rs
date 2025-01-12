@@ -282,12 +282,18 @@ pub async fn update(
 }
 
 #[tracing::instrument(skip(cx), err(level = "debug"))]
-pub async fn clear(cx: &Context) -> database::Result<()> {
-    sqlx::query!("DELETE FROM Servers")
-        .execute(cx.database().as_ref())
-        .await
-        .map(|_| ())
-        .map_err(database::Error::from)
+pub async fn delete(cx: &Context, owner_id: Option<UserId>, count: usize) -> database::Result<u64> {
+    sqlx::query!(
+        "DELETE FROM Servers
+         WHERE owner_id = COALESCE(?, owner_id)
+         LIMIT ?",
+        owner_id,
+        count as u64,
+    )
+    .execute(cx.database().as_ref())
+    .await
+    .map(|result| result.rows_affected())
+    .map_err(database::Error::from)
 }
 
 mod macros {

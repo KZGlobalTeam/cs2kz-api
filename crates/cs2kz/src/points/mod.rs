@@ -17,9 +17,18 @@ pub const MAX: f64 = 10_000.0;
 /// Threshold for what counts as a "small" leaderboard.
 pub const SMALL_LEADERBOARD_THRESHOLD: usize = 50;
 
-#[derive(Debug, Display, Error, From)]
+#[derive(Debug, Display, Error)]
 #[display("failed to calculate points: {_0}")]
-pub struct CalculatePointsError(PyErr);
+#[error(ignore)]
+pub struct CalculatePointsError(String);
+
+impl From<PyErr> for CalculatePointsError {
+    fn from(err: PyErr) -> Self {
+        // NOTE: we convert the error into a string eagerly because trying to do so without holding
+        //       the GIL will cause a deadlock
+        Self(err.to_string())
+    }
+}
 
 /// Calculates points for a new record with the given `time` at position `rank` in the
 /// leaderboard.
@@ -38,7 +47,16 @@ pub fn calculate(
         (None, _) | (Some(_), ..=SMALL_LEADERBOARD_THRESHOLD) => {
             Ok(for_small_leaderboard(tier, top_time, time))
         },
-        (Some(dist), _) => try { dist.sf(py, time)? / dist.top_scale },
+        (Some(dist), _) => {
+            let sf = dist.sf(py, time)?;
+
+            if sf.is_nan() {
+                warn!(?dist, leaderboard_size, top_time, time, "sf returned NaN");
+                // return Ok(0.0);
+            }
+
+            Ok(sf / dist.top_scale)
+        },
     })
 }
 

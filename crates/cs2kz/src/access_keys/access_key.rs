@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use ulid::Ulid;
 
-#[derive(Debug, Clone, Copy, AsRef, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Display, Clone, Copy, AsRef, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct AccessKey(Ulid);
 

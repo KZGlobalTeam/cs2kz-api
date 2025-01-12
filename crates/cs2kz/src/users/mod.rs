@@ -162,7 +162,7 @@ pub async fn create(
         .await
         .map_err(database::Error::from)
         .map_err(|err| {
-            if err.is_unique_violation_of("id") {
+            if err.is_unique_violation_of("PRIMARY") {
                 CreateUserError::UserAlreadyExists
             } else {
                 CreateUserError::Database(err)
