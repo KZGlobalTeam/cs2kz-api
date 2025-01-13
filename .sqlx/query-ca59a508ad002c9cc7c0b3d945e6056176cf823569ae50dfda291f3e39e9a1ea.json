@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM PluginVersions\n         WHERE major = ?\n         AND minor = ?\n         AND patch = ?\n         AND pre = ?\n         AND build = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "ca59a508ad002c9cc7c0b3d945e6056176cf823569ae50dfda291f3e39e9a1ea"
+}

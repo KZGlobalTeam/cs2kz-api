@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "DELETE FROM Players",
+  "query": "DELETE FROM RecordCounts",
   "describe": {
     "columns": [],
     "parameters": {
@@ -8,5 +8,5 @@
     },
     "nullable": []
   },
-  "hash": "36d08c76424e1278df099a6f96d1a11a56619ba2995bfdee0c7ac5e995df6e0c"
+  "hash": "6361cff32283cb981c9b9248365af46215da5c967084d668e059cc558f574182"
 }

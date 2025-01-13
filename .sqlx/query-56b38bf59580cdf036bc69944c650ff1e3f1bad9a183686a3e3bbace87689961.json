@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT\n                   id AS `id: PluginVersionId`,\n                   major AS `major: u64`,\n                   minor AS `minor: u64`,\n                   patch AS `patch: u64`,\n                   pre,\n                   build,\n                   git_revision AS `git_revision: GitRevision`,\n                   published_at\n                 FROM PluginVersions WHERE major = ?\n         AND minor = ?\n         AND patch = ?\n         AND IF(? IS NULL, pre IS NULL, pre = ?)\n         AND IF(? IS NULL, build IS NULL, build = ?)",
+  "query": "SELECT\n                   id AS `id: PluginVersionId`,\n                   major AS `major: u64`,\n                   minor AS `minor: u64`,\n                   patch AS `patch: u64`,\n                   pre,\n                   build,\n                   git_revision AS `git_revision: GitRevision`,\n                   published_at\n                 FROM PluginVersions WHERE major = ?\n         AND minor = ?\n         AND patch = ?\n         AND pre = ?\n         AND build = ?",
   "describe": {
     "columns": [
       {
@@ -44,7 +44,7 @@
         "name": "pre",
         "type_info": {
           "type": "VarString",
-          "flags": "",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
           "max_size": 1020
         }
       },
@@ -53,7 +53,7 @@
         "name": "build",
         "type_info": {
           "type": "VarString",
-          "flags": "",
+          "flags": "NOT_NULL | NO_DEFAULT_VALUE",
           "max_size": 1020
         }
       },
@@ -77,18 +77,18 @@
       }
     ],
     "parameters": {
-      "Right": 7
+      "Right": 5
     },
     "nullable": [
       false,
       false,
       false,
       false,
-      true,
-      true,
+      false,
+      false,
       false,
       false
     ]
   },
-  "hash": "218b19a20ba2f7b45bb1519b6fe976ad94f1294d9a67cbebd499e6a4629119c3"
+  "hash": "56b38bf59580cdf036bc69944c650ff1e3f1bad9a183686a3e3bbace87689961"
 }

@@ -1,0 +1,34 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT * FROM (\n               SELECT\n                 filter_id AS id,\n                 COUNT(*) OVER (PARTITION BY filter_id) AS count\n               FROM Records\n             ) AS _\n             GROUP BY id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": {
+          "type": "Short",
+          "flags": "UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "count",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL",
+          "max_size": 21
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true,
+      false
+    ]
+  },
+  "hash": "49bbc5cb053c59a6aae8f31b6dea63449b54ef1ca85bc7d5a1a8914c310954a1"
+}

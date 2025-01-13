@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM Servers\n         WHERE owner_id = COALESCE(?, owner_id)\n         LIMIT ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "58014ac89bd13a94f37b8dd4b6742c1a83fd1dce7908db337f1f2f52e3f4f709"
+}

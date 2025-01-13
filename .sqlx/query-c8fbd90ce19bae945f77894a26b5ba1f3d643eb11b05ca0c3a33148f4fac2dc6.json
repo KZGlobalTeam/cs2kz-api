@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM Records\n         WHERE filter_id = COALESCE(?, filter_id)\n         AND id >= COALESCE(?, 1)\n         LIMIT ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "c8fbd90ce19bae945f77894a26b5ba1f3d643eb11b05ca0c3a33148f4fac2dc6"
+}
