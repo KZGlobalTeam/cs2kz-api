@@ -326,7 +326,7 @@ pub async fn submit(
                         filter_id,
                         player_id,
                         record_id,
-                        dbg!(dist_points),
+                        dist_points,
                     )
                     .execute(&mut *conn)
                     .await?;
@@ -368,7 +368,7 @@ pub async fn submit(
                             query.push_bind(filter_id);
                             query.push_bind(player_id);
                             query.push_bind(record_id);
-                            query.push_bind(dbg!(points));
+                            query.push_bind(points);
                         });
 
                         query.push("ON DUPLICATE KEY UPDATE points = VALUES(points)");
@@ -447,7 +447,7 @@ pub async fn submit(
                         filter_id,
                         player_id,
                         record_id,
-                        dbg!(dist_points),
+                        dist_points,
                     )
                     .execute(&mut *conn)
                     .await?;
@@ -490,7 +490,7 @@ pub async fn submit(
                             query.push_bind(filter_id);
                             query.push_bind(player_id);
                             query.push_bind(record_id);
-                            query.push_bind(dbg!(points));
+                            query.push_bind(points);
                             query.push_bind(true);
                         });
 
@@ -1128,7 +1128,7 @@ pub async fn update_best_records(
                     query.push_bind(filter_id);
                     query.push_bind(record.player_id);
                     query.push_bind(record.id);
-                    query.push_bind(dbg!(record.nub_points));
+                    query.push_bind(record.nub_points);
                 });
 
                 nub_query.push(
@@ -1150,7 +1150,7 @@ pub async fn update_best_records(
                     query.push_bind(filter_id);
                     query.push_bind(record.player_id);
                     query.push_bind(record.id);
-                    query.push_bind(dbg!(record.pro_points.value));
+                    query.push_bind(record.pro_points.value);
                     query.push_bind(record.pro_points.based_on_pro_leaderboard);
                 });
 
