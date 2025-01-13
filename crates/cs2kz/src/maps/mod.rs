@@ -386,6 +386,14 @@ pub async fn update(
             if course_mapper_count == 0 {
                 return Err(UpdateMapError::MustHaveMappers);
             }
+
+            if let Some(update) = course_update.filter_updates.vanilla {
+                update_course_filter(&mut *conn, course_id, update, Mode::Vanilla).await?;
+            }
+
+            if let Some(update) = course_update.filter_updates.classic {
+                update_course_filter(&mut *conn, course_id, update, Mode::Classic).await?;
+            }
         }
 
         Ok(true)
@@ -566,6 +574,34 @@ async fn delete_course_mappers(
     });
 
     query.build().execute(conn).await?;
+
+    Ok(())
+}
+
+#[tracing::instrument(level = "debug", skip(conn), err(level = "debug"))]
+async fn update_course_filter(
+    conn: &mut database::Connection,
+    course_id: CourseId,
+    update: FilterUpdate<'_>,
+    mode: Mode,
+) -> database::Result<()> {
+    sqlx::query!(
+        "UPDATE CourseFilters
+         SET nub_tier = COALESCE(?, nub_tier),
+             pro_tier = COALESCE(?, pro_tier),
+             state = COALESCE(?, state),
+             notes = COALESCE(?, notes)
+         WHERE course_id = ?
+         AND mode = ?",
+        update.nub_tier,
+        update.pro_tier,
+        update.state,
+        update.notes,
+        course_id,
+        mode,
+    )
+    .execute(conn)
+    .await?;
 
     Ok(())
 }
