@@ -329,15 +329,13 @@ where
         },
 
         P::WantWorldRecords { map_id } => {
-            let records = cs2kz::records::get(cx, GetRecordsParams {
+            let params = GetRecordsParams {
                 top: true,
                 map_id: Some(map_id),
                 ..Default::default()
-            })
-            .await?
-            .collect()
-            .await?
-            .into_inner();
+            };
+
+            let records = cs2kz::records::get(cx, params).await?.into_inner();
 
             let reply =
                 Message::reply(&message, message::Outgoing::WorldRecords { records }).encode()?;

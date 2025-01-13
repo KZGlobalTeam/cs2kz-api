@@ -1,7 +1,7 @@
 use std::num::NonZero;
 
 use sqlx::migrate::Migrator;
-use sqlx::mysql::{MySql, MySqlConnection, MySqlPoolOptions};
+use sqlx::mysql::{MySql, MySqlConnection, MySqlPoolOptions, MySqlRow};
 use url::Url;
 
 mod macros;
@@ -10,14 +10,17 @@ pub(crate) use macros::*;
 mod error;
 pub use error::{Error, Result};
 
+pub type Driver = MySql;
+pub type Row = MySqlRow;
 pub type Connection = MySqlConnection;
+pub type QueryBuilder<'args, Driver = self::Driver> = sqlx::QueryBuilder<'args, Driver>;
 
 pub static MIGRATIONS: Migrator = sqlx::migrate!();
 
 /// A handle to the API's database.
 #[derive(Debug, AsRef, Clone)]
 #[debug("{}", std::any::type_name::<Driver>())]
-pub struct Database<Driver: sqlx::Database = MySql> {
+pub struct Database<Driver: sqlx::Database = self::Driver> {
     connections: sqlx::Pool<Driver>,
 }
 

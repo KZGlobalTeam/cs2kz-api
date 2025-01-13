@@ -3,17 +3,18 @@ use std::num::NonZero;
 use std::{array, iter};
 
 use futures_util::{Stream, StreamExt, TryFutureExt, TryStreamExt};
-use sqlx::{QueryBuilder, Row};
+use sqlx::Row;
 
 use self::courses::filters::{CourseFilterState, Tier};
 use self::stream::{GetMapsStream, RawCourse, RawCourseFilters, RawMap};
+use crate::Context;
+use crate::database::{self, QueryBuilder};
 use crate::events::{self, Event};
 use crate::mode::Mode;
 use crate::pagination::{Limit, Offset, Paginated};
 use crate::players::{PlayerId, PlayerInfo};
 use crate::steam::WorkshopId;
 use crate::time::Timestamp;
-use crate::{Context, database};
 
 mod state;
 pub use state::MapState;

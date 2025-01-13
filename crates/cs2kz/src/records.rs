@@ -1,8 +1,10 @@
 use std::num::NonZero;
 
 use futures_util::{Stream, TryStreamExt};
-use sqlx::{QueryBuilder, Row};
+use sqlx::{FromRow as _, Row as _};
 
+use crate::Context;
+use crate::database::{self, QueryBuilder};
 use crate::events::{self, Event};
 use crate::maps::courses::filters::Tier;
 use crate::maps::{CourseFilterId, CourseId, CourseInfo, MapId, MapInfo};
@@ -15,7 +17,6 @@ use crate::points::{self, CalculatePointsError, Distribution};
 use crate::servers::{ServerId, ServerInfo};
 use crate::styles::Styles;
 use crate::time::{Seconds, Timestamp};
-use crate::{Context, database};
 
 define_id_type! {
     /// A unique identifier for records.
@@ -104,8 +105,62 @@ pub struct GetRecordsParams {
     /// Restrict the results to records that (do not) have teleports.
     pub has_teleports: Option<bool>,
 
+    /// The highest rank that any record should have.
+    ///
+    /// This can be used, for example, to query world records only (`max_rank=1`).
+    pub max_rank: Option<NonZero<u32>>,
+
+    /// Which value to sort the results by.
+    pub sort_by: SortBy,
+
+    /// Which direction to sort the results in.
+    ///
+    /// Defaults to 'descending' if `sort_by` is 'submission-date'.
+    /// Defaults to 'ascending' if `sort_by` is 'time'.
+    pub sort_order: Option<SortOrder>,
+
     pub limit: Limit<1000, 100>,
     pub offset: Offset,
+}
+
+#[derive(Debug, Default, Clone, Copy, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SortBy {
+    #[default]
+    SubmissionDate,
+    Time,
+}
+
+impl SortBy {
+    fn sql(&self) -> &'static str {
+        match self {
+            Self::SubmissionDate => " r.submitted_at ",
+            Self::Time => " r.time ",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum SortOrder {
+    Ascending,
+    Descending,
+}
+
+impl SortOrder {
+    fn from_sort_by(sort_by: SortBy) -> Self {
+        match sort_by {
+            SortBy::SubmissionDate => Self::Descending,
+            SortBy::Time => Self::Ascending,
+        }
+    }
+
+    fn sql(&self) -> &'static str {
+        match self {
+            Self::Ascending => " ASC ",
+            Self::Descending => " DESC ",
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -707,97 +762,224 @@ pub async fn get(
         course_id,
         mode,
         has_teleports,
+        max_rank,
+        sort_by,
+        sort_order,
         limit,
         offset,
     }: GetRecordsParams,
-) -> Result<Paginated<impl Stream<Item = Result<Record, GetRecordsError>>>, GetRecordsError> {
-    macro_rules! count {
-        ($table:literal $(, $extra:literal)? $(,)?) => {
-            database::count!(
-                cx.database().as_ref(),
-                $table
-                    + " JOIN CourseFilters AS cf ON cf.id = r.filter_id
-                        JOIN Courses AS c ON c.id = cf.course_id
-                        JOIN Maps AS m ON m.id = c.map_id
-                        WHERE r.player_id = COALESCE(?, r.player_id)
-                        AND r.server_id = COALESCE(?, r.server_id)
-                        AND m.id = COALESCE(?, m.id)
-                        AND c.id = COALESCE(?, c.id)
-                        AND cf.mode = COALESCE(?, cf.mode)
-                        AND r.teleports >= COALESCE(?, 0)
-                        AND r.teleports <= COALESCE(?, (2 << 32) - 1)"
-                    $( + $extra )?,
-                player_id,
-                server_id,
-                map_id,
-                course_id,
-                mode,
-                has_teleports.map(u8::from),
-                has_teleports.map(|has_teleports| if has_teleports { u32::MAX } else { 0 }),
-            )
-        };
+) -> Result<Paginated<Vec<Record>>, GetRecordsError> {
+    fn base_filters(
+        query: &mut QueryBuilder<'_>,
+        player_id: Option<PlayerId>,
+        server_id: Option<ServerId>,
+        map_id: Option<MapId>,
+        course_id: Option<CourseId>,
+        mode: Option<Mode>,
+    ) {
+        query.push(" WHERE r.player_id = COALESCE(");
+        query.push_bind(player_id);
+        query.push(", r.player_id) ");
+
+        query.push(" AND r.server_id = COALESCE(");
+        query.push_bind(server_id);
+        query.push(", r.server_id) ");
+
+        query.push(" AND m.id = COALESCE(");
+        query.push_bind(map_id);
+        query.push(", m.id) ");
+
+        query.push(" AND c.id = COALESCE(");
+        query.push_bind(course_id);
+        query.push(", c.id) ");
+
+        query.push(" AND cf.mode = COALESCE(");
+        query.push_bind(mode);
+        query.push(", cf.mode) ");
     }
 
-    let total = if top {
-        count!(
-            "Records AS r
-             LEFT JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
-             LEFT JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id",
-            "AND (NOT ((NubRecords.points IS NULL) AND (ProRecords.points IS NULL)))",
+    let total = {
+        let mut query = QueryBuilder::new("SELECT COUNT(*) FROM Records AS r");
+
+        if top {
+            query.push(" ");
+            query.push(
+                "LEFT JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
+                 LEFT JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id",
+            );
+        }
+
+        query.push(" ");
+        query.push(
+            "JOIN CourseFilters AS cf ON cf.id = r.filter_id
+             JOIN Courses AS c ON c.id = cf.course_id
+             JOIN Maps AS m ON m.id = c.map_id",
+        );
+
+        base_filters(&mut query, player_id, server_id, map_id, course_id, mode);
+
+        if let Some(has_teleports) = has_teleports {
+            query.push(" AND r.teleports ");
+            query.push(if has_teleports { ">" } else { "=" });
+            query.push(" 0");
+        }
+
+        if top {
+            query.push(" AND (NOT ((NubRecords.points IS NULL) AND (ProRecords.points IS NULL)))");
+        }
+
+        query
+            .build_query_scalar::<i64>()
+            .fetch_one(cx.database().as_ref())
+            .await?
+            .try_into()
+            .expect("`COUNT(…)` should not return a negative value")
+    };
+
+    let mut query = QueryBuilder::new(
+        "WITH NubLeaderboard AS (
+           SELECT
+             r.id AS record_id,
+             NubRecords.points,
+             RANK() OVER (
+               PARTITION BY r.filter_id
+               ORDER BY
+                 r.time ASC,
+                 r.submitted_at ASC
+             ) AS rank
+           FROM Records AS r
+           JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
+           JOIN Players AS p ON p.id = r.player_id
+           JOIN Servers AS s ON s.id = r.server_id
+           JOIN CourseFilters AS cf ON cf.id = r.filter_id
+           JOIN Courses AS c ON c.id = cf.course_id
+           JOIN Maps AS m ON m.id = c.map_id",
+    );
+
+    base_filters(&mut query, player_id, server_id, map_id, course_id, mode);
+
+    query.push("), ");
+    query.push(
+        "ProLeaderboard AS (
+           SELECT
+             r.id AS record_id,
+             ProRecords.points,
+             RANK() OVER (
+               PARTITION BY r.filter_id
+               ORDER BY
+                 r.time ASC,
+                 r.submitted_at ASC
+             ) AS rank
+           FROM Records AS r
+           JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id
+           JOIN Players AS p ON p.id = r.player_id
+           JOIN Servers AS s ON s.id = r.server_id
+           JOIN CourseFilters AS cf ON cf.id = r.filter_id
+           JOIN Courses AS c ON c.id = cf.course_id
+           JOIN Maps AS m ON m.id = c.map_id",
+    );
+
+    base_filters(&mut query, player_id, server_id, map_id, course_id, mode);
+
+    query.push(") ");
+    query.push(
+        "SELECT
+           r.id AS id,
+           p.id AS player_id,
+           p.name AS player_name,
+           s.id AS server_id,
+           s.name AS server_name,
+           m.id AS map_id,
+           m.name AS map_name,
+           c.id AS course_id,
+           c.name AS course_name,
+           cf.mode AS mode,
+           cf.nub_tier AS nub_tier,
+           cf.pro_tier AS pro_tier,
+           r.styles AS styles,
+           r.teleports,
+           r.time AS time,
+           NubLeaderboard.rank AS nub_rank,
+           NubLeaderboard.points AS nub_points,
+           ProLeaderboard.rank AS pro_rank,
+           ProLeaderboard.points AS pro_points,
+           r.submitted_at
+         FROM Records AS r
+         LEFT JOIN NubLeaderboard ON NubLeaderboard.record_id = r.id
+         LEFT JOIN ProLeaderboard ON ProLeaderboard.record_id = r.id
+         JOIN Players AS p ON p.id = r.player_id
+         JOIN Servers AS s ON s.id = r.server_id
+         JOIN CourseFilters AS cf ON cf.id = r.filter_id
+         JOIN Courses AS c ON c.id = cf.course_id
+         JOIN Maps AS m ON m.id = c.map_id",
+    );
+
+    match (max_rank, top) {
+        (None, false) => {},
+        (None, true) => {
+            query.push(" WHERE (NubLeaderboard.rank >= 1 OR ProLeaderboard.rank >= 1) ");
+        },
+        (Some(max_rank), false) => {
+            query.push(" WHERE (NubLeaderboard.rank <= ");
+            query.push_bind(max_rank.get());
+            query.push(" OR ProLeaderboard.rank <= ");
+            query.push_bind(max_rank.get());
+            query.push(")");
+        },
+        (Some(max_rank), true) => {
+            query.push(" WHERE (NubLeaderboard.rank <= ");
+            query.push_bind(max_rank.get());
+            query.push(" OR ProLeaderboard.rank <= ");
+            query.push_bind(max_rank.get());
+            query.push(")");
+            query.push(" WHERE (NubLeaderboard.rank >= 1 OR ProLeaderboard.rank >= 1) ");
+        },
+    }
+
+    query
+        .push(" ORDER BY ")
+        .push(sort_by.sql())
+        .push(
+            sort_order
+                .unwrap_or_else(|| SortOrder::from_sort_by(sort_by))
+                .sql(),
         )
-        .await
-    } else {
-        count!("Records AS r").await
-    }?;
+        .push(" LIMIT ")
+        .push_bind(limit.value())
+        .push(" OFFSET ")
+        .push_bind(offset.value());
 
-    let records = self::macros::select!(
-        "WHERE r.player_id = COALESCE(?, r.player_id)
-         AND r.server_id = COALESCE(?, r.server_id)
-         AND m.id = COALESCE(?, m.id)
-         AND c.id = COALESCE(?, c.id)
-         AND cf.mode = COALESCE(?, cf.mode)
-         AND r.teleports >= COALESCE(?, 0)
-         AND r.teleports <= COALESCE(?, (2 << 32) - 1)",
-        player_id,
-        server_id,
-        map_id,
-        course_id,
-        mode,
-        has_teleports.map(u8::from),
-        has_teleports.map(|has_teleports| if has_teleports { u32::MAX } else { 0 });
-        "WHERE (? OR (NubLeaderboard.rank >= 1 OR ProLeaderboard.rank >= 1))
-         ORDER BY r.time ASC
-         LIMIT ?
-         OFFSET ?",
-        !top,
-        limit.value(),
-        offset.value();
-    )
-    .fetch(cx.database().as_ref())
-    .map_ok(move |row| {
-        let mut record = self::macros::parse_row!(row);
+    let records = query
+        .build()
+        .fetch(cx.database().as_ref())
+        .map_err(GetRecordsError::from)
+        .and_then(async move |row| {
+            let mut record = Record::from_row(&row)?;
+            let nub_tier = row.try_get::<Tier, _>("nub_tier")?;
+            let pro_tier = row.try_get::<Tier, _>("pro_tier")?;
 
-        record.nub_points = record.nub_rank.map(|nub_rank| {
-            points::complete(
-                row.nub_tier,
-                false,
-                nub_rank as usize - 1,
-                record.nub_points.unwrap_or_default(),
-            )
-        });
+            record.nub_points = record.nub_rank.map(|nub_rank| {
+                points::complete(
+                    nub_tier,
+                    false,
+                    nub_rank as usize - 1,
+                    record.nub_points.unwrap_or_default(),
+                )
+            });
 
-        record.pro_points = record.pro_rank.map(|pro_rank| {
-            points::complete(
-                row.pro_tier,
-                true,
-                pro_rank as usize - 1,
-                record.pro_points.unwrap_or_default(),
-            )
-        });
+            record.pro_points = record.pro_rank.map(|pro_rank| {
+                points::complete(
+                    pro_tier,
+                    true,
+                    pro_rank as usize - 1,
+                    record.pro_points.unwrap_or_default(),
+                )
+            });
 
-        record
-    })
-    .map_err(GetRecordsError::from);
+            Ok(record)
+        })
+        .try_collect()
+        .await?;
 
     Ok(Paginated::new(total, records))
 }
@@ -1004,6 +1186,64 @@ pub async fn delete(
     .await
     .map(|result| result.rows_affected())
     .map_err(database::Error::from)
+}
+
+impl<'r> sqlx::FromRow<'r, database::Row> for Record {
+    fn from_row(row: &'r database::Row) -> sqlx::Result<Self> {
+        let teleports = row.try_get("teleports")?;
+
+        Ok(Self {
+            id: row.try_get("id")?,
+            player: PlayerInfo {
+                id: row.try_get("player_id")?,
+                name: row.try_get("player_name")?,
+            },
+            server: ServerInfo {
+                id: row.try_get("server_id")?,
+                name: row.try_get("server_name")?,
+            },
+            map: MapInfo {
+                id: row.try_get("map_id")?,
+                name: row.try_get("map_name")?,
+            },
+            course: CourseInfo {
+                id: row.try_get("course_id")?,
+                name: row.try_get("course_name")?,
+                tier: if teleports == 0 {
+                    row.try_get("pro_tier")?
+                } else {
+                    row.try_get("nub_tier")?
+                },
+            },
+            mode: row.try_get("mode")?,
+            styles: row.try_get("styles")?,
+            teleports,
+            time: row.try_get("time")?,
+            nub_rank: match row.try_get::<Option<i64>, _>("nub_rank") {
+                Ok(None) => None,
+                Ok(Some(rank)) => {
+                    Some(rank.try_into().map_err(|err| sqlx::Error::ColumnDecode {
+                        index: String::from("nub_rank"),
+                        source: Box::new(err),
+                    })?)
+                },
+                Err(error) => return Err(error),
+            },
+            nub_points: row.try_get("nub_points")?,
+            pro_rank: match row.try_get::<Option<i64>, _>("pro_rank") {
+                Ok(None) => None,
+                Ok(Some(rank)) => {
+                    Some(rank.try_into().map_err(|err| sqlx::Error::ColumnDecode {
+                        index: String::from("pro_rank"),
+                        source: Box::new(err),
+                    })?)
+                },
+                Err(error) => return Err(error),
+            },
+            pro_points: row.try_get("pro_points")?,
+            submitted_at: row.try_get("submitted_at")?,
+        })
+    }
 }
 
 mod macros {

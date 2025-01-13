@@ -1,3 +1,5 @@
+use std::num::NonZero;
+
 use axum::extract::{FromRef, State};
 use axum::routing::{self, Router};
 use cs2kz::Context;
@@ -6,7 +8,7 @@ use cs2kz::pagination::{Limit, Offset, Paginated};
 use cs2kz::records::RecordId;
 use cs2kz::styles::Styles;
 use cs2kz::time::{Seconds, Timestamp};
-use futures_util::{TryFutureExt, TryStreamExt};
+use futures_util::TryStreamExt;
 
 use crate::extract::{Json, Path, Query};
 use crate::maps::{CourseInfo, MapIdentifier, MapInfo};
@@ -83,6 +85,24 @@ pub struct GetRecordsQuery {
     /// Restrict the results to records that (do not) have teleports.
     has_teleports: Option<bool>,
 
+    /// The highest rank that any record should have.
+    ///
+    /// This can be used, for example, to query world records only (`max_rank=1`).
+    #[param(value_type = Option<u32>, minimum = 1)]
+    max_rank: Option<NonZero<u32>>,
+
+    /// Which value to sort the results by.
+    ///
+    /// Defaults to 'submission-date'.
+    #[serde(default)]
+    #[param(value_type = Option<crate::openapi::shims::Records_SortBy>)]
+    sort_by: cs2kz::records::SortBy,
+
+    /// Which direction to sort the results in.
+    #[serde(default)]
+    #[param(value_type = Option<crate::openapi::shims::Records_SortOrder>)]
+    sort_order: Option<cs2kz::records::SortOrder>,
+
     #[serde(default)]
     #[param(value_type = crate::openapi::shims::Limit)]
     limit: Limit<1000, 100>,
@@ -114,6 +134,9 @@ async fn get_records(
         course,
         mode,
         has_teleports,
+        max_rank,
+        sort_by,
+        sort_order,
         limit,
         offset,
     }): Query<GetRecordsQuery>,
@@ -185,15 +208,17 @@ async fn get_records(
         course_id,
         mode,
         has_teleports,
+        max_rank,
+        sort_by,
+        sort_order,
         limit,
         offset,
     };
 
     let records = cs2kz::records::get(&cx, params)
-        .map_ok(Paginated::map_into)
-        .and_then(Paginated::collect)
-        .map_err(|err| ErrorResponse::internal_server_error(err))
-        .await?;
+        .await
+        .map_err(|err| ErrorResponse::internal_server_error(err))?
+        .map_values(Into::into);
 
     Ok(Json(records))
 }

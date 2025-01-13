@@ -4,11 +4,11 @@ use std::{future, iter};
 
 use futures_util::{FutureExt, Stream, StreamExt, TryStreamExt};
 use pyo3::PyErr;
-use sqlx::QueryBuilder;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 
 use self::record_counts::RecordCounts;
+use crate::database::{self, QueryBuilder};
 use crate::events::{self, Event};
 use crate::maps::courses::filters::{
     self,
@@ -18,7 +18,7 @@ use crate::maps::courses::filters::{
 };
 use crate::points::{self, SMALL_LEADERBOARD_THRESHOLD, UpdateDistributionDataError};
 use crate::records::{self, BestRecord, GetRecordsError, ProPoints};
-use crate::{Context, database, maps, python};
+use crate::{Context, maps, python};
 
 mod record_counts;
 
@@ -161,7 +161,7 @@ async fn process_filter(
 
                     points::from_dist(
                         py,
-                        &nub_dist,
+                        nub_dist,
                         &scaled_nub_times,
                         &nub_dist_points_so_far,
                         rank,
@@ -214,7 +214,7 @@ async fn process_filter(
 
                     points::from_dist(
                         py,
-                        &pro_dist,
+                        pro_dist,
                         &scaled_pro_times,
                         &pro_dist_points_so_far,
                         rank,

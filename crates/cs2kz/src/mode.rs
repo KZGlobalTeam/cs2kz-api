@@ -4,7 +4,7 @@ use std::fmt;
 ///
 /// [`cs2kz-metamod`]: https://github.com/KZGlobalTeam/cs2kz-metamod
 #[repr(u8)]
-#[derive(Debug, serde::Serialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, serde::Serialize, sqlx::Type)]
 #[serde(rename_all = "kebab-case")]
 pub enum Mode {
     Vanilla = 1,

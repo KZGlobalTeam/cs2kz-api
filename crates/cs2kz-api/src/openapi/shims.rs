@@ -211,7 +211,26 @@ schema_type!(BanReason => {
     )
 });
 
+schema_type!(Records_SortBy => {
+    Schema::Object(
+        Object::builder()
+            .schema_type(SchemaType::Type(schema::Type::String))
+            .enum_values(Some(["submission-date", "time"]))
+            .build(),
+    )
+});
+
+schema_type!(Records_SortOrder => {
+    Schema::Object(
+        Object::builder()
+            .schema_type(SchemaType::Type(schema::Type::String))
+            .enum_values(Some(["ascending", "descending"]))
+            .build(),
+    )
+});
+
 macro schema_type($name:ident => $impl:block) {
+    #[allow(non_camel_case_types)]
     pub struct $name;
 
     impl PartialSchema for $name {
