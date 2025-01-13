@@ -127,7 +127,7 @@ pub fn get(
 
 impl Tier {
     pub fn is_humanly_possible(&self) -> bool {
-        *self <= Self::Death
+        *self <= Tier::Death
     }
 }
 

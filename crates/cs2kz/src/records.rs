@@ -285,6 +285,10 @@ pub async fn submit(
                     .fetch_one(&mut *conn)
                     .await?;
 
+                    if !tier.is_humanly_possible() {
+                        return Ok(None);
+                    }
+
                     let (leaderboard_size, top_time) = sqlx::query!(
                         "SELECT
                            COUNT(r.id) AS size,
@@ -376,7 +380,7 @@ pub async fn submit(
                             .await?;
                     }
 
-                    Ok(move |rank| points::complete(tier, false, rank, dist_points))
+                    Ok(Some(move |rank| points::complete(tier, false, rank, dist_points)))
                 };
 
             let insert_pro =
@@ -400,6 +404,10 @@ pub async fn submit(
                     )
                     .fetch_one(&mut *conn)
                     .await?;
+
+                    if !tier.is_humanly_possible() {
+                        return Ok(None);
+                    }
 
                     let (leaderboard_size, top_time) = sqlx::query!(
                         "SELECT
@@ -495,7 +503,7 @@ pub async fn submit(
                             .await?;
                     }
 
-                    Ok(move |rank| points::complete(tier, true, rank, dist_points))
+                    Ok(Some(move |rank| points::complete(tier, true, rank, dist_points)))
                 };
 
             let (calc_nub_points, calc_pro_points) = match (&old_nub, &old_pro, teleports) {
@@ -503,25 +511,25 @@ pub async fn submit(
                     let calc_nub_points = insert_nub(&mut *conn).await?;
                     let calc_pro_points = insert_pro(&mut *conn).await?;
 
-                    (Some(calc_nub_points), Some(calc_pro_points))
+                    (calc_nub_points, calc_pro_points)
                 },
                 (None, None, 1..) => {
                     let calc_nub_points = insert_nub(&mut *conn).await?;
 
-                    (Some(calc_nub_points), None)
+                    (calc_nub_points, None)
                 },
                 (Some(nub), None, 0) => {
                     let calc_nub_points = if time < nub.time {
-                        Some(insert_nub(&mut *conn).await?)
+                        insert_nub(&mut *conn).await?
                     } else {
                         None
                     };
 
-                    (calc_nub_points, Some(insert_pro(&mut *conn).await?))
+                    (calc_nub_points, insert_pro(&mut *conn).await?)
                 },
                 (Some(nub), _, 1..) => {
                     let calc_nub_points = if time < nub.time {
-                        Some(insert_nub(&mut *conn).await?)
+                        insert_nub(&mut *conn).await?
                     } else {
                         None
                     };
@@ -530,13 +538,13 @@ pub async fn submit(
                 },
                 (Some(nub), Some(pro), 0) => {
                     let calc_nub_points = if time < nub.time {
-                        Some(insert_nub(&mut *conn).await?)
+                        insert_nub(&mut *conn).await?
                     } else {
                         None
                     };
 
                     let calc_pro_points = if time < pro.time {
-                        Some(insert_pro(&mut *conn).await?)
+                        insert_pro(&mut *conn).await?
                     } else {
                         None
                     };
@@ -548,14 +556,14 @@ pub async fn submit(
                         let calc_nub_points = insert_nub(&mut *conn).await?;
                         let calc_pro_points = insert_pro(&mut *conn).await?;
 
-                        (Some(calc_nub_points), Some(calc_pro_points))
+                        (calc_nub_points, calc_pro_points)
                     } else {
                         (None, None)
                     }
                 },
                 (None, Some(pro), 1..) => {
                     let calc_nub_points = if time < pro.time {
-                        Some(insert_nub(&mut *conn).await?)
+                        insert_nub(&mut *conn).await?
                     } else {
                         None
                     };
