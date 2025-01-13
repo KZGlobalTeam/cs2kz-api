@@ -205,22 +205,17 @@ CREATE TABLE IF NOT EXISTS Unbans (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE
-OR REPLACE FUNCTION KZ_POINTS(
+CREATE OR REPLACE FUNCTION KZ_POINTS(
   tier INT1 UNSIGNED,
   is_pro_leaderboard BOOLEAN,
   rank INT4 UNSIGNED,
   dist_points FLOAT8
 ) RETURNS FLOAT8
 BEGIN
-DECLARE
-for_tier,
-remaining,
-for_rank FLOAT8;
+  DECLARE for_tier, remaining, for_rank FLOAT8;
 
-SET
-  for_tier = CASE
-    tier
+  SET for_tier = CASE tier
+    WHEN 1 THEN 0
     WHEN 2 THEN 500
     WHEN 3 THEN 2000
     WHEN 4 THEN 3500
@@ -230,34 +225,24 @@ SET
     WHEN 8 THEN 9500
   END;
 
-IF (is_pro_leaderboard) THEN
-SET
-  for_tier = for_tier + (10000 - for_tier) * 0.1;
+  IF (is_pro_leaderboard) THEN
+    SET for_tier = for_tier + (10000 - for_tier) * 0.1;
+  END IF;
 
-END IF;
+  SET remaining = 10000 - for_tier;
 
-SET
-  remaining = 10000 - for_tier;
+  SET for_rank = 0;
 
-SET
-  for_rank = 0;
+  IF (rank < 100) THEN
+    SET for_rank = (100 - rank) * 0.004;
+  END IF;
 
-IF (rank < 100) THEN
-SET
-  for_rank = (100 - rank) * 0.004;
+  IF (rank < 20) THEN
+    SET for_rank = for_rank + (20 - rank) * 0.02;
+  END IF;
 
-END IF;
-
-IF (rank < 20) THEN
-SET
-  for_rank = for_rank + (20 - rank) * 0.02;
-
-END IF;
-
-SET
-  for_rank = for_rank + (
-    CASE
-      rank
+  SET for_rank = for_rank + (
+    CASE rank
       WHEN 0 THEN 0.2
       WHEN 1 THEN 0.12
       WHEN 2 THEN 0.09
@@ -266,6 +251,5 @@ SET
     END
   );
 
-RETURN for_tier + (0.125 * remaining * for_rank) + (0.875 * remaining * dist_points);
-
+  RETURN for_tier + (0.125 * remaining * for_rank) + (0.875 * remaining * dist_points);
 END;

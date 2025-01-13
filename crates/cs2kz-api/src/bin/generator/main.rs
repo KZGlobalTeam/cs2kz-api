@@ -94,25 +94,9 @@ async fn main() -> anyhow::Result<()> {
                     plugin_version,
                     count,
                 },
-        } => {
-            let result = create_records(
-                &cx,
-                player_id,
-                server_id,
-                filter_id,
-                plugin_version.as_ref(),
-                count,
-            )
+        } => create_records(&cx, player_id, server_id, filter_id, plugin_version.as_ref(), count)
             .await
-            .context("failed to create records");
-
-            if let Err(ref error) = result {
-                eprintln!("{error:?}");
-                std::thread::sleep(std::time::Duration::from_millis(500));
-            }
-
-            result
-        },
+            .context("failed to create records"),
         Resource::Records {
             action: RecordAction::Delete { filter_id, starting_at, count },
         } => delete_records(&cx, filter_id, starting_at, count)

@@ -669,7 +669,7 @@ pub async fn submit(
                      SELECT
                        player_id,
                        rank,
-                       SUM(KZ_POINTS(tier, false, rank - 1, points)) AS points
+                       SUM(KZ_POINTS(tier, true, rank - 1, points)) AS points
                      FROM ProRecords
                      WHERE record_id = ?
                      GROUP BY player_id
