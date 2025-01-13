@@ -6,6 +6,7 @@ use futures_util::stream::{self, Stream, StreamExt, TryStreamExt};
 use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Debug, Display, Clone, Copy, Into, Serialize)]
+#[debug("{value}")]
 #[display("{value}")]
 #[serde(transparent)]
 pub struct Limit<const MAX: u64, const DEFAULT: u64> {
@@ -46,6 +47,7 @@ impl<'de, const MAX: u64, const DEFAULT: u64> Deserialize<'de> for Limit<MAX, DE
 }
 
 #[derive(Debug, Display, Default, Clone, Copy, From, Into, Serialize, Deserialize)]
+#[debug("{value}")]
 #[display("{value}")]
 #[serde(default, transparent)]
 pub struct Offset {
