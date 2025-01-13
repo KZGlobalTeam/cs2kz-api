@@ -24,9 +24,11 @@ fn main() -> anyhow::Result<()> {
 
     cli_args.apply_to_config(&mut config);
 
-    if config.tracing.enable {
-        init_tracing(&config.tracing).context("failed to initialize tracing")?;
-    }
+    let _guard = if config.tracing.enable {
+        init_tracing(&config.tracing).context("failed to initialize tracing")?
+    } else {
+        None
+    };
 
     cs2kz_api::run(config).context("failed to run API")
 }

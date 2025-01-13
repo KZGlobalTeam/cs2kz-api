@@ -199,10 +199,7 @@ pub fn run(config: Config) -> Result<(), Error> {
                     },
                 },
 
-                result = tokio::signal::ctrl_c() => match result {
-                    Ok(()) => warn!("shutting down"),
-                    Err(error) => error!(%error, "failed to listen for ctrl-c"),
-                },
+                () = runtime::signal::shutdown() => {},
             }
 
             let _ = shutdown_tx.send(());

@@ -1,10 +1,5 @@
+use std::env;
 use std::sync::LazyLock;
-use std::{env, io};
-
-use tokio::runtime::Builder;
-pub use tokio::runtime::Runtime;
-
-use crate::config::RuntimeConfig;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Environment {
@@ -27,7 +22,7 @@ impl Environment {
     }
 }
 
-pub fn environment() -> Environment {
+pub fn current() -> Environment {
     static ENV: LazyLock<Environment> =
         LazyLock::new(|| match env::var("KZ_API_ENVIRONMENT").map(|env| env.to_lowercase()) {
             Ok(env) => match env.as_str() {
@@ -47,22 +42,4 @@ pub fn environment() -> Environment {
         });
 
     *ENV
-}
-
-/// Builds a [Tokio runtime] according to the given `config`.
-///
-/// [Tokio runtime]: Config
-pub fn build(config: &RuntimeConfig) -> io::Result<Runtime> {
-    let mut builder = Builder::new_multi_thread();
-    builder.enable_all();
-
-    if let Some(n) = config.worker_threads {
-        builder.worker_threads(n.get());
-    }
-
-    if let Some(n) = config.max_blocking_threads {
-        builder.max_blocking_threads(n.get());
-    }
-
-    builder.build()
 }
