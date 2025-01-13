@@ -52,6 +52,8 @@ static CONFIG: LazyLock<Arc<utoipa_swagger_ui::Config<'static>>> = LazyLock::new
         schemas(
             shims::Limit,
             shims::Offset,
+            shims::Records_SortBy,
+            shims::Records_SortOrder,
             crate::players::PlayerIdentifier,
             crate::servers::ServerIdentifier,
             crate::maps::MapIdentifier,
