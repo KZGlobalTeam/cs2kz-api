@@ -826,12 +826,6 @@ pub async fn get(
 
         base_filters(&mut query, player_id, server_id, map_id, course_id, mode);
 
-        if let Some(has_teleports) = has_teleports {
-            query.push(" AND r.teleports ");
-            query.push(if has_teleports { ">" } else { "=" });
-            query.push(" 0");
-        }
-
         if top {
             query.push(" AND (NOT ((NubRecords.points IS NULL) AND (ProRecords.points IS NULL)))");
         }
@@ -922,26 +916,30 @@ pub async fn get(
          JOIN Maps AS m ON m.id = c.map_id",
     );
 
-    match (max_rank, top) {
-        (None, false) => {},
-        (None, true) => {
-            query.push(" WHERE (NubLeaderboard.rank >= 1 OR ProLeaderboard.rank >= 1) ");
-        },
-        (Some(max_rank), false) => {
-            query.push(" WHERE (NubLeaderboard.rank <= ");
-            query.push_bind(max_rank.get());
-            query.push(" OR ProLeaderboard.rank <= ");
-            query.push_bind(max_rank.get());
-            query.push(")");
-        },
-        (Some(max_rank), true) => {
-            query.push(" WHERE (NubLeaderboard.rank <= ");
-            query.push_bind(max_rank.get());
-            query.push(" OR ProLeaderboard.rank <= ");
-            query.push_bind(max_rank.get());
-            query.push(")");
-            query.push(" WHERE (NubLeaderboard.rank >= 1 OR ProLeaderboard.rank >= 1) ");
-        },
+    let mut has_where = false;
+
+    if let Some(has_teleports) = has_teleports {
+        query.push(" WHERE r.teleports ");
+        query.push(if has_teleports { ">" } else { "=" });
+        query.push(" 0");
+
+        has_where = true;
+    }
+
+    if let Some(max_rank) = max_rank {
+        query.push(if has_where { " AND " } else { " WHERE " });
+        query.push(" (NubLeaderboard.rank <= ");
+        query.push_bind(max_rank.get());
+        query.push(" OR ProLeaderboard.rank <= ");
+        query.push_bind(max_rank.get());
+        query.push(")");
+
+        has_where = true;
+    }
+
+    if top {
+        query.push(if has_where { " AND " } else { " WHERE " });
+        query.push(" (NubLeaderboard.rank >= 1 OR ProLeaderboard.rank >= 1) ");
     }
 
     query
