@@ -23,7 +23,7 @@ const MAP_URL: &str = "https://api.steampowered.com/ISteamRemoteStorage/GetPubli
 pub async fn fetch_map_name(
     http_client: &reqwest::Client,
     workshop_id: WorkshopId,
-) -> Result<String, steam::ApiError> {
+) -> Result<Option<String>, steam::ApiError> {
     struct Form {
         workshop_id: WorkshopId,
     }
@@ -42,7 +42,13 @@ pub async fn fetch_map_name(
 
     steam::request(http_client.post(MAP_URL).form(&Form { workshop_id }))
         .await
-        .map(|FetchMapResponse { publishedfiledetails: [map] }| map.title)
+        .map(|FetchMapResponse { mut publishedfiledetails }| {
+            if publishedfiledetails.is_empty() {
+                None
+            } else {
+                Some(publishedfiledetails.remove(0).title)
+            }
+        })
 }
 
 #[tracing::instrument(err(level = "debug"))]
@@ -123,7 +129,7 @@ pub async fn compute_checksum(path_to_vpk: PathBuf) -> io::Result<MapChecksum> {
 
 #[derive(Debug, serde::Deserialize)]
 struct FetchMapResponse {
-    publishedfiledetails: [PublishedFileDetails; 1],
+    publishedfiledetails: Vec<PublishedFileDetails>,
 }
 
 #[derive(Debug, serde::Deserialize)]

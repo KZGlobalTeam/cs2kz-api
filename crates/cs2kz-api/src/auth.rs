@@ -313,7 +313,10 @@ async fn steam_callback(
             },
         })?;
 
-    let user = crate::steam::fetch_user(&http_client, &auth_config.web_api_key, steam_id).await?;
+    let user = crate::steam::fetch_user(&http_client, &auth_config.web_api_key, steam_id)
+        .await?
+        .ok_or_else(ErrorResponse::not_found)?;
+
     let new_session = cs2kz::users::sessions::NewSession {
         user_id: UserId::new(user.id),
         user_name: &user.name,

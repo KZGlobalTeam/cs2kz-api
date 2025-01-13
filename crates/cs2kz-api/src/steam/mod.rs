@@ -2,7 +2,7 @@ use bytes::Bytes;
 use http_body_util::BodyExt;
 
 pub mod users;
-pub use users::fetch_user;
+pub use users::{SteamUser, fetch_user};
 
 pub mod maps;
 pub use maps::{download_map, fetch_map_name};

@@ -54,10 +54,7 @@ impl ErrorResponse {
     }
 
     #[track_caller]
-    pub(crate) fn bad_gateway<E>(error: E) -> Self
-    where
-        E: std::error::Error + 'static,
-    {
+    pub(crate) fn bad_gateway(error: reqwest::Error) -> Self {
         warn!(
             error = &error as &dyn std::error::Error,
             loc = %Location::caller(),
@@ -122,6 +119,10 @@ impl ErrorResponse {
         Self::detailed(problem_details(ProblemType::MapMustHaveMappers, |_| {}))
     }
 
+    pub(crate) fn mapper_does_not_exist() -> Self {
+        Self::detailed(problem_details(ProblemType::MapperDoesNotExist, |_| {}))
+    }
+
     pub(crate) fn invalid_course_index(idx: usize) -> Self {
         Self::detailed(problem_details(ProblemType::InvalidCourseIndex, |details| {
             details.set_detail(format!("map has no course #{idx}"));
@@ -146,7 +147,17 @@ impl From<steam::ApiError> for ErrorResponse {
     #[track_caller]
     fn from(error: steam::ApiError) -> Self {
         match error {
-            steam::ApiError::Http(error) => ErrorResponse::internal_server_error(error),
+            steam::ApiError::Http(error) if error.status() == Some(http::StatusCode::NOT_FOUND) => {
+                ErrorResponse::not_found()
+            },
+            steam::ApiError::Http(error)
+                if error
+                    .status()
+                    .is_some_and(|status| status.is_client_error()) =>
+            {
+                ErrorResponse::internal_server_error(error)
+            },
+            steam::ApiError::Http(error) => ErrorResponse::bad_gateway(error),
             steam::ApiError::BufferResponseBody { error, response } => {
                 debug!(%response.status);
                 ErrorResponse::internal_server_error(error)

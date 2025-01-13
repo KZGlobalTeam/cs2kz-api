@@ -15,6 +15,7 @@ pub enum ProblemType {
     ServerOwnerDoesNotExist,
     ServerOwnerCannotReactivateServer,
     MapMustHaveMappers,
+    MapperDoesNotExist,
     InvalidCourseIndex,
     PlayerAlreadyBanned,
     InvalidRequestBody,
@@ -40,6 +41,7 @@ impl problem_details::ProblemType for ProblemType {
                 uri!("server-owner-cannot-reactivate-server")
             },
             Self::MapMustHaveMappers => uri!("map-must-have-mappers"),
+            Self::MapperDoesNotExist => uri!("mapper-does-not-exist"),
             Self::InvalidCourseIndex => uri!("invalid-course-index"),
             Self::PlayerAlreadyBanned => uri!("player-already-banned"),
             Self::InvalidRequestBody => uri!("invalid-request-body"),
@@ -59,6 +61,7 @@ impl problem_details::ProblemType for ProblemType {
             | Self::ServerHostAndPortAlreadyTaken
             | Self::ServerOwnerDoesNotExist
             | Self::MapMustHaveMappers
+            | Self::MapperDoesNotExist
             | Self::InvalidCourseIndex
             | Self::PlayerAlreadyBanned => http::StatusCode::CONFLICT,
             Self::InvalidRequestBody => http::StatusCode::UNPROCESSABLE_ENTITY,
@@ -89,6 +92,7 @@ impl problem_details::ProblemType for ProblemType {
             Self::MapMustHaveMappers => {
                 write!(fmt, "maps and courses must always have at least one mapper")
             },
+            Self::MapperDoesNotExist => write!(fmt, "mapper does not exist"),
             Self::InvalidCourseIndex => write!(fmt, "invalid index for course in map update"),
             Self::PlayerAlreadyBanned => write!(fmt, "player is already banned"),
             Self::InvalidRequestBody => write!(fmt, "failed to parse request body"),

@@ -11,16 +11,27 @@ use cs2kz::players::{PlayerId, Preferences};
 use cs2kz::time::Timestamp;
 use futures_util::TryFutureExt;
 
-use crate::config::CookieConfig;
+use crate::config::{CookieConfig, SteamAuthConfig};
 use crate::extract::{Json, Path, Query};
 use crate::middleware::auth::session_auth;
 use crate::middleware::auth::session_auth::authorization::IsPlayer;
 use crate::response::ErrorResponse;
+use crate::steam::{self, SteamUser};
 
 mod player_identifier;
 pub use player_identifier::PlayerIdentifier;
 
-pub fn router<S>(cx: Context, cookie_config: impl Into<Arc<CookieConfig>>) -> Router<S>
+#[derive(Clone)]
+struct GetSteamProfileState {
+    http_client: reqwest::Client,
+    auth_config: Arc<SteamAuthConfig>,
+}
+
+pub fn router<S>(
+    cx: Context,
+    auth_config: impl Into<Arc<SteamAuthConfig>>,
+    cookie_config: impl Into<Arc<CookieConfig>>,
+) -> Router<S>
 where
     S: Clone + Send + Sync + 'static,
     Context: FromRef<S>,
@@ -33,6 +44,13 @@ where
         .route("/", routing::get(get_players))
         .route("/{player}", routing::get(get_player))
         .route("/{player}/profile", routing::get(get_player_profile))
+        .route(
+            "/{player}/steam-profile",
+            routing::get(get_player_steam_profile).with_state(GetSteamProfileState {
+                http_client: reqwest::Client::new(),
+                auth_config: auth_config.into(),
+            }),
+        )
         .route(
             "/{player}/preferences",
             MethodRouter::new()
@@ -186,6 +204,31 @@ async fn get_player_profile(
         .ok_or_else(ErrorResponse::not_found)?;
 
     Ok(Json(profile.into()))
+}
+
+/// Returns a player's Steam profile.
+#[tracing::instrument(skip(http_client))]
+#[utoipa::path(
+    get,
+    path = "/players/{player_id}/steam-profile",
+    tag = "Players",
+    params(("player_id" = u64, Path, description = "the player's SteamID")),
+    responses(
+        (status = 200, body = SteamUser),
+        (status = 400, description = "invalid path parameters"),
+        (status = 404,),
+        (status = 502, description = "Steam returned an error"),
+    ),
+)]
+async fn get_player_steam_profile(
+    State(GetSteamProfileState { http_client, auth_config }): State<GetSteamProfileState>,
+    Path(player_id): Path<PlayerId>,
+) -> Result<Json<SteamUser>, ErrorResponse> {
+    let user = steam::fetch_user(&http_client, &auth_config.web_api_key, player_id.into())
+        .await?
+        .ok_or_else(ErrorResponse::not_found)?;
+
+    Ok(Json(user))
 }
 
 /// Returns a player's cs2kz-metamod preferences.

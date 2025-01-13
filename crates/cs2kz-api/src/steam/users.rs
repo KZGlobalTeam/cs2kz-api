@@ -6,8 +6,9 @@ use crate::steam;
 /// Steam Web API URL for fetching user information.
 const USER_URL: &str = "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002";
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct SteamUser {
+    #[schema(value_type = crate::openapi::shims::SteamId)]
     pub id: SteamId,
     pub name: String,
 
@@ -23,7 +24,7 @@ pub async fn fetch_user(
     http_client: &reqwest::Client,
     web_api_key: &str,
     steam_id: SteamId,
-) -> Result<SteamUser, steam::ApiError> {
+) -> Result<Option<SteamUser>, steam::ApiError> {
     #[derive(serde::Serialize)]
     struct Query<'a> {
         #[serde(rename = "key")]
@@ -39,18 +40,25 @@ pub async fn fetch_user(
             .query(&Query { api_key: web_api_key, steam_id }),
     )
     .await
-    .map(|FetchPlayerResponse { players: [player] }| player)
-    .map(|player| SteamUser {
-        id: player.steamid,
-        name: player.personaname,
-        profile_url: player.profileurl,
-        avatar_url: player.avatarmedium,
+    .map(|FetchPlayerResponse { mut players }| {
+        let player = if players.is_empty() {
+            return None;
+        } else {
+            players.remove(0)
+        };
+
+        Some(SteamUser {
+            id: player.steamid,
+            name: player.personaname,
+            profile_url: player.profileurl,
+            avatar_url: player.avatarmedium,
+        })
     })
 }
 
 #[derive(Debug, serde::Deserialize)]
 struct FetchPlayerResponse {
-    players: [PlayerObject; 1],
+    players: Vec<PlayerObject>,
 }
 
 #[derive(Debug, serde::Deserialize)]

@@ -15,7 +15,7 @@ use cs2kz::players::{CreatePlayerError, PlayerId};
 use cs2kz::steam::WorkshopId;
 use cs2kz::time::Timestamp;
 use cs2kz::users::Permission;
-use futures_util::{StreamExt, TryFutureExt, TryStreamExt, stream};
+use futures_util::{FutureExt, StreamExt, TryFutureExt, TryStreamExt, stream};
 
 use crate::config::{CookieConfig, DepotDownloaderConfig, SteamAuthConfig};
 use crate::extract::{Json, Path, Query};
@@ -611,7 +611,11 @@ async fn fetch_name_and_checksum(
     workshop_id: WorkshopId,
 ) -> Result<(String, MapChecksum), ErrorResponse> {
     try_join!(
-        steam::fetch_map_name(http_client, workshop_id).map_err(|err| ErrorResponse::from(err)),
+        steam::fetch_map_name(http_client, workshop_id).map(|res| match res {
+            Ok(Some(map_name)) => Ok(map_name),
+            Ok(None) => Err(ErrorResponse::not_found()),
+            Err(error) => Err(ErrorResponse::from(error)),
+        }),
         steam::download_map(
             workshop_id,
             &depot_downloader_config.exe_path,
@@ -630,11 +634,15 @@ async fn create_missing_mappers(
 ) -> Result<(), ErrorResponse> {
     let players = stream::iter(mapper_ids)
         .then(|mapper_id| {
-            steam::fetch_user(http_client, &steam_auth_config.web_api_key, mapper_id.into()).map_ok(
-                |user| cs2kz::players::NewPlayer {
-                    id: PlayerId::new(user.id),
-                    name: Cow::Owned(user.name),
-                    ip_address: None,
+            steam::fetch_user(http_client, &steam_auth_config.web_api_key, mapper_id.into()).map(
+                |user| match user {
+                    Ok(Some(user)) => Ok(cs2kz::players::NewPlayer {
+                        id: PlayerId::new(user.id),
+                        name: Cow::Owned(user.name),
+                        ip_address: None,
+                    }),
+                    Ok(None) => Err(ErrorResponse::mapper_does_not_exist()),
+                    Err(error) => Err(ErrorResponse::from(error)),
                 },
             )
         })

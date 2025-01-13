@@ -119,7 +119,14 @@ pub fn run(config: Config) -> Result<(), Error> {
                     ),
                 )
                 .nest("/servers", servers::router(cx.clone(), Arc::clone(&cookie_config)))
-                .nest("/players", players::router(cx.clone(), Arc::clone(&cookie_config)))
+                .nest(
+                    "/players",
+                    players::router(
+                        cx.clone(),
+                        Arc::clone(&steam_auth_config),
+                        Arc::clone(&cookie_config),
+                    ),
+                )
                 .nest(
                     "/maps",
                     maps::router(
