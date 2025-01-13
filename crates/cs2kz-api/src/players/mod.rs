@@ -212,7 +212,7 @@ async fn get_player_profile(
     get,
     path = "/players/{player_id}/steam-profile",
     tag = "Players",
-    params(("player_id" = u64, Path, description = "the player's SteamID")),
+    params(("player_id" = crate::openapi::shims::SteamId, Path, description = "the player's SteamID")),
     responses(
         (status = 200, body = SteamUser),
         (status = 400, description = "invalid path parameters"),

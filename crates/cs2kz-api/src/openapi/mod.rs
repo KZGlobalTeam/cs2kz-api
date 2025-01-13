@@ -84,6 +84,7 @@ static CONFIG: LazyLock<Arc<utoipa_swagger_ui::Config<'static>>> = LazyLock::new
         crate::players::get_players,
         crate::players::get_player,
         crate::players::get_player_profile,
+        crate::players::get_player_steam_profile,
         crate::players::get_player_preferences,
         crate::players::update_player_preferences,
 
