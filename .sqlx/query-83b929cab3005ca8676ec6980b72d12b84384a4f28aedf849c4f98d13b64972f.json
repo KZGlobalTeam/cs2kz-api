@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE CourseFilters\n         SET nub_tier = COALESCE(?, nub_tier),\n             pro_tier = COALESCE(?, pro_tier),\n             state = COALESCE(?, state),\n             notes = COALESCE(?, notes)\n         WHERE course_id = ?\n         AND mode = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "83b929cab3005ca8676ec6980b72d12b84384a4f28aedf849c4f98d13b64972f"
+}

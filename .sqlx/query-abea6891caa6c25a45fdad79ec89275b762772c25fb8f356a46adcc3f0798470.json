@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM Maps WHERE id >= COALESCE(?, 0) LIMIT ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "abea6891caa6c25a45fdad79ec89275b762772c25fb8f356a46adcc3f0798470"
+}
