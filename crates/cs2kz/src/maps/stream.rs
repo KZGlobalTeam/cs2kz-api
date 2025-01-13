@@ -186,8 +186,6 @@ fn merge_courses(old: &mut RawCourse, new: RawCourse) {
         ) => {
             *old_classic = new_classic;
         },
-        (ref old, ref new) => {
-            unreachable!("bad course filter state old={old:?} new={new:?}");
-        },
+        _ => {},
     }
 }

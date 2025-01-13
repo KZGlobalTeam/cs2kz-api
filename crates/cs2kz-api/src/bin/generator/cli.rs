@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use cs2kz::git::GitRevision;
-use cs2kz::maps::CourseFilterId;
+use cs2kz::maps::{CourseFilterId, MapId};
 use cs2kz::players::PlayerId;
 use cs2kz::records::RecordId;
 use cs2kz::servers::ServerId;
@@ -34,6 +34,10 @@ pub enum Resource {
     Records {
         #[command(subcommand)]
         action: RecordAction,
+    },
+    Maps {
+        #[command(subcommand)]
+        action: MapAction,
     },
 }
 
@@ -97,6 +101,23 @@ pub enum RecordAction {
         /// Delete records starting at this ID
         #[arg(long)]
         starting_at: Option<RecordId>,
+
+        count: usize,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum MapAction {
+    Create {
+        #[arg(long)]
+        mappers: Vec<PlayerId>,
+
+        count: usize,
+    },
+    Delete {
+        /// Delete maps starting at this ID
+        #[arg(long)]
+        starting_at: Option<MapId>,
 
         count: usize,
     },

@@ -131,6 +131,26 @@ impl Tier {
     }
 }
 
+impl TryFrom<u8> for Tier {
+    type Error = ();
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Self::VeryEasy),
+            2 => Ok(Self::Easy),
+            3 => Ok(Self::Medium),
+            4 => Ok(Self::Advanced),
+            5 => Ok(Self::Hard),
+            6 => Ok(Self::VeryHard),
+            7 => Ok(Self::Extreme),
+            8 => Ok(Self::Death),
+            9 => Ok(Self::Unfeasible),
+            10 => Ok(Self::Impossible),
+            _ => Err(()),
+        }
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for Tier {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

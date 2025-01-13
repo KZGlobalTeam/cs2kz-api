@@ -7,22 +7,40 @@ compile_error!("you must run this binary with `--features fake`");
 extern crate tracing;
 
 use std::num::NonZero;
-use std::{env, future};
+use std::{cmp, env, future};
 
 use anyhow::Context as _;
 use cs2kz::Context;
 use cs2kz::config::{Config, DatabaseConfig};
 use cs2kz::git::GitRevision;
-use cs2kz::maps::courses::filters::{self, CourseFilterId, GetCourseFiltersParams};
+use cs2kz::maps::courses::filters::{
+    self,
+    CourseFilterId,
+    CourseFilterState,
+    GetCourseFiltersParams,
+    Tier,
+};
+use cs2kz::maps::{
+    self,
+    ApproveMapError,
+    MapId,
+    MapState,
+    NewCourse,
+    NewCourseFilter,
+    NewCourseFilters,
+    NewMap,
+};
 use cs2kz::pagination::Limit;
 use cs2kz::players::{self, CreatePlayerError, GetPlayersParams, NewPlayer, PlayerId};
 use cs2kz::plugin::{self, NewPluginVersion};
 use cs2kz::records::{self, NewRecord, RecordId, SubmitRecordError, SubmittedRecord};
 use cs2kz::servers::{self, ApproveServerError, GetServersParams, NewServer, ServerHost, ServerId};
+use cs2kz::steam::WorkshopId;
 use cs2kz::styles::Styles;
 use cs2kz::users::{self, CreateUserError, NewUser, UserId};
-use fake::faker::lorem::en::Word;
+use fake::faker::lorem::en::{Paragraph, Word};
 use fake::faker::name::en::{FirstName, LastName};
+use fake::rand::rngs::ThreadRng;
 use fake::rand::seq::SliceRandom;
 use fake::rand::{Rng, thread_rng};
 use fake::{Fake, Faker};
@@ -32,7 +50,14 @@ use steam_id::SteamId;
 use tracing_subscriber::EnvFilter;
 use url::Url;
 
-use self::cli::{PlayerAction, PluginVersionAction, RecordAction, Resource, ServerAction};
+use self::cli::{
+    MapAction,
+    PlayerAction,
+    PluginVersionAction,
+    RecordAction,
+    Resource,
+    ServerAction,
+};
 
 mod cli;
 
@@ -102,6 +127,16 @@ async fn main() -> anyhow::Result<()> {
         } => delete_records(&cx, filter_id, starting_at, count)
             .await
             .context("failed to delete records"),
+        Resource::Maps { action: MapAction::Create { mappers, count } } => {
+            create_maps(&cx, mappers, count)
+                .await
+                .context("failed to create maps")
+        },
+        Resource::Maps {
+            action: MapAction::Delete { starting_at, count },
+        } => delete_maps(&cx, starting_at, count)
+            .await
+            .context("failed to delete maps"),
     }
 }
 
@@ -133,6 +168,7 @@ async fn delete_plugin_version(cx: &Context, version: &semver::Version) -> anyho
 async fn create_players(cx: &Context, count: usize) -> anyhow::Result<()> {
     for player in (0..count).map(|_| Faker.fake::<NewPlayer<'static>>()) {
         let id = player.id;
+
         match players::register(cx, player).await {
             Ok(_) => info!(%id, "created player"),
             Err(CreatePlayerError::PlayerAlreadyExists) => warn!(%id, "player already exists"),
@@ -326,6 +362,103 @@ async fn delete_records(
         info!(amount, "deleted records");
     } else {
         anyhow::bail!("there are no records in the database");
+    }
+
+    Ok(())
+}
+
+async fn create_maps(cx: &Context, mappers: Vec<PlayerId>, count: usize) -> anyhow::Result<()> {
+    let mappers = if mappers.is_empty() {
+        players::get(cx, GetPlayersParams { limit: Limit::MAX, ..Default::default() })
+            .await?
+            .map(|player| player.id)
+            .collect::<Vec<_>>()
+            .await?
+            .into_inner()
+            .into_boxed_slice()
+    } else {
+        mappers.into_boxed_slice()
+    };
+
+    if mappers.is_empty() {
+        anyhow::bail!("there are no mappers in the database");
+    }
+
+    let mut rng = thread_rng();
+    let gen_course_filter = |rng: &mut ThreadRng| {
+        let nub_tier = Tier::try_from(rng.gen_range(1..=8)).unwrap();
+        NewCourseFilter {
+            nub_tier,
+            pro_tier: Tier::try_from(rng.gen_range((nub_tier as u8)..=8)).unwrap(),
+            state: CourseFilterState::Ranked,
+            notes: if rng.r#gen() {
+                Some(Paragraph(1..6).fake::<String>())
+            } else {
+                None
+            },
+        }
+    };
+
+    for _ in 0..count {
+        let mappers = {
+            let mapper_count = rng.gen_range(1..=cmp::min(10, mappers.len()));
+            mappers
+                .choose_multiple(&mut rng, mapper_count)
+                .copied()
+                .collect::<Vec<_>>()
+                .into_boxed_slice()
+        };
+
+        let map = NewMap {
+            workshop_id: WorkshopId::from_inner(Faker.fake::<u32>()),
+            name: format!("kz_{}", Word().fake::<String>()),
+            description: if rng.r#gen() {
+                Some(Paragraph(1..6).fake::<String>())
+            } else {
+                None
+            },
+            state: MapState::Approved,
+            vpk_checksum: Faker.fake(),
+            mappers: mappers.clone(),
+            courses: (0..rng.gen_range(1..=10))
+                .map(|idx| NewCourse {
+                    name: format!("Course {}", idx + 1),
+                    description: if rng.r#gen() {
+                        Some(Paragraph(1..6).fake::<String>())
+                    } else {
+                        None
+                    },
+                    mappers: {
+                        let mapper_count = rng.gen_range(1..=mappers.len());
+                        mappers
+                            .choose_multiple(&mut rng, mapper_count)
+                            .copied()
+                            .collect::<Vec<_>>()
+                            .into_boxed_slice()
+                    },
+                    filters: NewCourseFilters {
+                        vanilla: gen_course_filter(&mut rng),
+                        classic: gen_course_filter(&mut rng),
+                    },
+                })
+                .collect::<Vec<_>>()
+                .into_boxed_slice(),
+        };
+
+        match maps::approve(cx, map).await {
+            Ok(id) => info!(%id, "created map"),
+            Err(ApproveMapError::Database(error)) => return Err(error.into()),
+        }
+    }
+
+    Ok(())
+}
+
+async fn delete_maps(cx: &Context, starting_at: Option<MapId>, count: usize) -> anyhow::Result<()> {
+    if let amount @ 1.. = maps::delete(cx, starting_at, count).await? {
+        info!(amount, "deleted maps");
+    } else {
+        anyhow::bail!("there are no maps in the database");
     }
 
     Ok(())

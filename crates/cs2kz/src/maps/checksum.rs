@@ -4,6 +4,7 @@ use md5::{Digest, Md5};
 
 /// The MD5 hash of a map's `.vpk` file.
 #[derive(Debug, Clone, Copy)]
+#[cfg_attr(feature = "fake", derive(fake::Dummy))]
 pub struct MapChecksum {
     #[debug("{self}")]
     bytes: [u8; 16],

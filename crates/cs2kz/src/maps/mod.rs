@@ -606,6 +606,19 @@ async fn update_course_filter(
     Ok(())
 }
 
+#[tracing::instrument(level = "debug", skip(cx), err(level = "debug"))]
+pub async fn delete(
+    cx: &Context,
+    starting_at: Option<MapId>,
+    count: usize,
+) -> database::Result<u64> {
+    sqlx::query!("DELETE FROM Maps WHERE id >= COALESCE(?, 0) LIMIT ?", starting_at, count as u64)
+        .execute(cx.database().as_ref())
+        .await
+        .map(|result| result.rows_affected())
+        .map_err(database::Error::from)
+}
+
 impl<'a> IntoIterator for &'a NewCourseFilters {
     type Item = (Mode, &'a NewCourseFilter);
     type IntoIter = array::IntoIter<(Mode, &'a NewCourseFilter), 2>;
