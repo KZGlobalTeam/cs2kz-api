@@ -1,3 +1,4 @@
+use std::future;
 use std::num::NonZero;
 
 use futures_util::{Stream, TryStreamExt};
@@ -806,38 +807,6 @@ pub async fn get(
         query.push(", cf.mode) ");
     }
 
-    let total = {
-        let mut query = QueryBuilder::new("SELECT COUNT(*) FROM Records AS r");
-
-        if top {
-            query.push(" ");
-            query.push(
-                "LEFT JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
-                 LEFT JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id",
-            );
-        }
-
-        query.push(" ");
-        query.push(
-            "JOIN CourseFilters AS cf ON cf.id = r.filter_id
-             JOIN Courses AS c ON c.id = cf.course_id
-             JOIN Maps AS m ON m.id = c.map_id",
-        );
-
-        base_filters(&mut query, player_id, server_id, map_id, course_id, mode);
-
-        if top {
-            query.push(" AND (NOT ((NubRecords.points IS NULL) AND (ProRecords.points IS NULL)))");
-        }
-
-        query
-            .build_query_scalar::<i64>()
-            .fetch_one(cx.database().as_ref())
-            .await?
-            .try_into()
-            .expect("`COUNT(…)` should not return a negative value")
-    };
-
     let mut query = QueryBuilder::new(
         "WITH NubLeaderboard AS (
            SELECT
@@ -886,6 +855,7 @@ pub async fn get(
     query.push(") ");
     query.push(
         "SELECT
+           COUNT(NubLeaderboard.rank) + COUNT(ProLeaderboard.rank) AS total,
            r.id AS id,
            p.id AS player_id,
            p.name AS player_name,
@@ -955,10 +925,23 @@ pub async fn get(
         .push(" OFFSET ")
         .push_bind(offset.value());
 
+    let mut total = 0;
     let records = query
         .build()
         .fetch(cx.database().as_ref())
         .map_err(GetRecordsError::from)
+        .and_then(|row| {
+            future::ready(match row.try_get::<i64, _>("total") {
+                Ok(value) => {
+                    total = value
+                        .try_into()
+                        .expect("`COUNT(…)` should not return a negative value");
+
+                    Ok(row)
+                },
+                Err(error) => Err(error.into()),
+            })
+        })
         .and_then(async move |row| {
             let mut record = Record::from_row(&row)?;
             let nub_tier = row.try_get::<Tier, _>("nub_tier")?;
