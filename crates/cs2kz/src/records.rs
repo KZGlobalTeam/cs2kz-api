@@ -1,4 +1,3 @@
-use std::future;
 use std::num::NonZero;
 
 use futures_util::{Stream, TryStreamExt};
@@ -807,6 +806,42 @@ pub async fn get(
         query.push(", cf.mode) ");
     }
 
+    fn base_query(
+        query: &mut QueryBuilder<'_>,
+        player_id: Option<PlayerId>,
+        server_id: Option<ServerId>,
+        map_id: Option<MapId>,
+        course_id: Option<CourseId>,
+        mode: Option<Mode>,
+    ) {
+        base_filters(query, player_id, server_id, map_id, course_id, mode);
+
+        query.push("), ");
+        query.push(
+            "ProLeaderboard AS (
+               SELECT
+                 r.id AS record_id,
+                 ProRecords.points,
+                 RANK() OVER (
+                   PARTITION BY r.filter_id
+                   ORDER BY
+                     r.time ASC,
+                     r.submitted_at ASC
+                 ) AS rank
+               FROM Records AS r
+               JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id
+               JOIN Players AS p ON p.id = r.player_id
+               JOIN Servers AS s ON s.id = r.server_id
+               JOIN CourseFilters AS cf ON cf.id = r.filter_id
+               JOIN Courses AS c ON c.id = cf.course_id
+               JOIN Maps AS m ON m.id = c.map_id",
+        );
+
+        base_filters(query, player_id, server_id, map_id, course_id, mode);
+
+        query.push(") ");
+    }
+
     let mut query = QueryBuilder::new(
         "WITH NubLeaderboard AS (
            SELECT
@@ -827,35 +862,51 @@ pub async fn get(
            JOIN Maps AS m ON m.id = c.map_id",
     );
 
-    base_filters(&mut query, player_id, server_id, map_id, course_id, mode);
+    base_query(&mut query, player_id, server_id, map_id, course_id, mode);
 
-    query.push("), ");
-    query.push(
-        "ProLeaderboard AS (
-           SELECT
-             r.id AS record_id,
-             ProRecords.points,
-             RANK() OVER (
-               PARTITION BY r.filter_id
-               ORDER BY
-                 r.time ASC,
-                 r.submitted_at ASC
-             ) AS rank
-           FROM Records AS r
-           JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id
-           JOIN Players AS p ON p.id = r.player_id
-           JOIN Servers AS s ON s.id = r.server_id
-           JOIN CourseFilters AS cf ON cf.id = r.filter_id
-           JOIN Courses AS c ON c.id = cf.course_id
-           JOIN Maps AS m ON m.id = c.map_id",
-    );
+    let total = if top {
+        query.push(
+            "SELECT COUNT(NubLeaderboard.rank) + COUNT(ProLeaderboard.rank) AS total
+             FROM Records AS r
+             LEFT JOIN NubLeaderboard ON NubLeaderboard.record_id = r.id
+             LEFT JOIN ProLeaderboard ON ProLeaderboard.record_id = r.id
+             WHERE (NubLeaderboard.rank > 0) OR (ProLeaderboard.rank > 0)",
+        );
 
-    base_filters(&mut query, player_id, server_id, map_id, course_id, mode);
+        let total = query
+            .build_query_scalar::<i64>()
+            .fetch_one(cx.database().as_ref())
+            .await?
+            .try_into()
+            .expect("`COUNT(…)` should not return a negative value");
 
-    query.push(") ");
+        query.reset();
+        base_query(&mut query, player_id, server_id, map_id, course_id, mode);
+
+        total
+    } else {
+        let mut query = QueryBuilder::new(
+            "SELECT COUNT(r.id)
+             FROM Records AS r
+             JOIN Players AS p ON p.id = r.player_id
+             JOIN Servers AS s ON s.id = r.server_id
+             JOIN CourseFilters AS cf ON cf.id = r.filter_id
+             JOIN Courses AS c ON c.id = cf.course_id
+             JOIN Maps AS m ON m.id = c.map_id",
+        );
+
+        base_filters(&mut query, player_id, server_id, map_id, course_id, mode);
+
+        query
+            .build_query_scalar::<i64>()
+            .fetch_one(cx.database().as_ref())
+            .await?
+            .try_into()
+            .expect("`COUNT(…)` should not return a negative value")
+    };
+
     query.push(
         "SELECT
-           COUNT(NubLeaderboard.rank) + COUNT(ProLeaderboard.rank) AS total,
            r.id AS id,
            p.id AS player_id,
            p.name AS player_name,
@@ -925,23 +976,10 @@ pub async fn get(
         .push(" OFFSET ")
         .push_bind(offset.value());
 
-    let mut total = 0;
     let records = query
         .build()
         .fetch(cx.database().as_ref())
         .map_err(GetRecordsError::from)
-        .and_then(|row| {
-            future::ready(match row.try_get::<i64, _>("total") {
-                Ok(value) => {
-                    total = value
-                        .try_into()
-                        .expect("`COUNT(…)` should not return a negative value");
-
-                    Ok(row)
-                },
-                Err(error) => Err(error.into()),
-            })
-        })
         .and_then(async move |row| {
             let mut record = Record::from_row(&row)?;
             let nub_tier = row.try_get::<Tier, _>("nub_tier")?;

@@ -44,9 +44,25 @@ where
 /// Called at the start of each request cycle. This function generates the [`tracing::Span`] that
 /// is passed to the other functions later on.
 fn make_span<B>(request: &http::Request<B>) -> tracing::Span {
-    let &ConnectInfo(client_addr) = request
-        .extensions()
-        .get::<ConnectInfo<SocketAddr>>()
+    fn extract_cf_connecting_ip(headers: &http::HeaderMap) -> Option<IpAddr> {
+        headers
+            .get("CF-Connecting-IP")?
+            .to_str()
+            .inspect_err(|err| trace!(%err, "`CF-Connecting-IP` header was not UTF-8"))
+            .ok()?
+            .parse::<IpAddr>()
+            .inspect_err(|err| trace!(%err, "`CF-Connecting-IP` header is not an IP address"))
+            .ok()
+    }
+
+    fn extract_connect_info(extensions: &http::Extensions) -> Option<IpAddr> {
+        extensions
+            .get::<ConnectInfo<SocketAddr>>()
+            .map(|&ConnectInfo(addr)| addr.ip())
+    }
+
+    let client_addr = extract_cf_connecting_ip(request.headers())
+        .or_else(|| extract_connect_info(request.extensions()))
         .expect("`ConnectInfo` should be injected by the router");
 
     let request_id = request
