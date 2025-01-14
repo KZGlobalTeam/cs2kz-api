@@ -3,7 +3,6 @@ use std::convert::Infallible;
 use axum::RequestExt;
 use axum::extract::Request;
 use axum::response::{IntoResponse, Response};
-use axum_extra::either::Either;
 use cs2kz::Context;
 use cs2kz::players::PlayerId;
 use cs2kz::servers::{GetServersError, ServerId};
@@ -53,24 +52,18 @@ where
     L: AuthorizeSession,
     R: AuthorizeSession,
 {
-    type Rejection = Either<L::Rejection, R::Rejection>;
+    type Rejection = R::Rejection;
 
     async fn authorize_session(
         &mut self,
         request: &mut Request,
         session: &Session,
     ) -> Result<(), Self::Rejection> {
-        self.left
-            .authorize_session(request, session)
-            .await
-            .map_err(Either::E1)?;
+        if let Ok(()) = self.left.authorize_session(request, session).await {
+            return Ok(());
+        }
 
-        self.right
-            .authorize_session(request, session)
-            .await
-            .map_err(Either::E2)?;
-
-        Ok(())
+        self.right.authorize_session(request, session).await
     }
 }
 
