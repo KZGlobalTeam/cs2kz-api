@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT COUNT(r.id) AS total\n             FROM Records AS r\n             JOIN Servers AS s ON s.id = r.server_id\n             JOIN CourseFilters AS cf ON cf.id = r.filter_id\n             JOIN Courses AS c ON c.id = cf.course_id\n             JOIN Maps AS m ON m.id = c.map_id\n             WHERE r.player_id = COALESCE(?, r.player_id)\n             AND r.server_id = COALESCE(?, r.server_id)\n             AND m.id = COALESCE(?, m.id)\n             AND c.id = COALESCE(?, c.id)\n             AND cf.mode = COALESCE(?, cf.mode)\n             AND r.teleports < COALESCE(?, 2<<31)\n             AND r.teleports >= COALESCE(?, 0)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "total",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "max_size": 21
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6656c74f3a86a88d20430881b418522fdbd24a993a53759e6a6d9401950d37fd"
+}
