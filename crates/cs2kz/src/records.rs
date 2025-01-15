@@ -865,45 +865,61 @@ pub async fn get(
     base_query(&mut query, player_id, server_id, map_id, course_id, mode);
 
     let total = if top {
-        query.push(
-            "SELECT COUNT(NubLeaderboard.rank) + COUNT(ProLeaderboard.rank) AS total
+        sqlx::query_scalar!(
+            "SELECT COUNT(r.id) AS total
              FROM Records AS r
-             LEFT JOIN NubLeaderboard ON NubLeaderboard.record_id = r.id
-             LEFT JOIN ProLeaderboard ON ProLeaderboard.record_id = r.id
-             WHERE (NubLeaderboard.rank > 0) OR (ProLeaderboard.rank > 0)",
-        );
-
-        let total = query
-            .build_query_scalar::<i64>()
-            .fetch_one(cx.database().as_ref())
-            .await?
-            .try_into()
-            .expect("`COUNT(…)` should not return a negative value");
-
-        query.reset();
-        base_query(&mut query, player_id, server_id, map_id, course_id, mode);
-
-        total
-    } else {
-        let mut query = QueryBuilder::new(
-            "SELECT COUNT(r.id)
-             FROM Records AS r
-             JOIN Players AS p ON p.id = r.player_id
+             LEFT JOIN BestNubRecords ON BestNubRecords.record_id = r.id
+             LEFT JOIN BestProRecords ON BestProRecords.record_id = r.id
              JOIN Servers AS s ON s.id = r.server_id
              JOIN CourseFilters AS cf ON cf.id = r.filter_id
              JOIN Courses AS c ON c.id = cf.course_id
-             JOIN Maps AS m ON m.id = c.map_id",
-        );
-
-        base_filters(&mut query, player_id, server_id, map_id, course_id, mode);
-
-        query
-            .build_query_scalar::<i64>()
-            .fetch_one(cx.database().as_ref())
-            .await?
-            .try_into()
-            .expect("`COUNT(…)` should not return a negative value")
-    };
+             JOIN Maps AS m ON m.id = c.map_id
+             WHERE ((BestNubRecords.record_id > 0) OR (BestProRecords.record_id > 0))
+             AND r.player_id = COALESCE(?, r.player_id)
+             AND r.server_id = COALESCE(?, r.server_id)
+             AND m.id = COALESCE(?, m.id)
+             AND c.id = COALESCE(?, c.id)
+             AND cf.mode = COALESCE(?, cf.mode)
+             AND r.teleports < COALESCE(?, 2<<31)
+             AND r.teleports >= COALESCE(?, 0)",
+            player_id,
+            server_id,
+            map_id,
+            course_id,
+            mode,
+            has_teleports.and_then(|has_teleports| (!has_teleports).then_some(1)),
+            has_teleports.and_then(|has_teleports| has_teleports.then_some(1)),
+        )
+        .fetch_one(cx.database().as_ref())
+        .await?
+    } else {
+        sqlx::query_scalar!(
+            "SELECT COUNT(r.id) AS total
+             FROM Records AS r
+             JOIN Servers AS s ON s.id = r.server_id
+             JOIN CourseFilters AS cf ON cf.id = r.filter_id
+             JOIN Courses AS c ON c.id = cf.course_id
+             JOIN Maps AS m ON m.id = c.map_id
+             WHERE r.player_id = COALESCE(?, r.player_id)
+             AND r.server_id = COALESCE(?, r.server_id)
+             AND m.id = COALESCE(?, m.id)
+             AND c.id = COALESCE(?, c.id)
+             AND cf.mode = COALESCE(?, cf.mode)
+             AND r.teleports < COALESCE(?, 2<<31)
+             AND r.teleports >= COALESCE(?, 0)",
+            player_id,
+            server_id,
+            map_id,
+            course_id,
+            mode,
+            has_teleports.and_then(|has_teleports| (!has_teleports).then_some(1)),
+            has_teleports.and_then(|has_teleports| has_teleports.then_some(1)),
+        )
+        .fetch_one(cx.database().as_ref())
+        .await?
+    }
+    .try_into()
+    .expect("`COUNT(…)` should not return a negative value");
 
     query.push(
         "SELECT
@@ -937,30 +953,24 @@ pub async fn get(
          JOIN Maps AS m ON m.id = c.map_id",
     );
 
-    let mut has_where = false;
+    base_filters(&mut query, player_id, server_id, map_id, course_id, mode);
 
     if let Some(has_teleports) = has_teleports {
-        query.push(" WHERE r.teleports ");
+        query.push(" AND r.teleports ");
         query.push(if has_teleports { ">" } else { "=" });
         query.push(" 0");
-
-        has_where = true;
     }
 
     if let Some(max_rank) = max_rank {
-        query.push(if has_where { " AND " } else { " WHERE " });
-        query.push(" (NubLeaderboard.rank <= ");
+        query.push(" AND (NubLeaderboard.rank <= ");
         query.push_bind(max_rank.get());
         query.push(" OR ProLeaderboard.rank <= ");
         query.push_bind(max_rank.get());
         query.push(")");
-
-        has_where = true;
     }
 
     if top {
-        query.push(if has_where { " AND " } else { " WHERE " });
-        query.push(" (NubLeaderboard.rank >= 1 OR ProLeaderboard.rank >= 1) ");
+        query.push(" AND (NubLeaderboard.rank >= 1 OR ProLeaderboard.rank >= 1) ");
     }
 
     query
