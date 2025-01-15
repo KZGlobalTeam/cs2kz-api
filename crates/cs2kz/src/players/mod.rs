@@ -7,7 +7,6 @@ use sqlx::types::Json as SqlJson;
 
 use crate::Context;
 use crate::database::{self, QueryBuilder};
-use crate::maps::courses::filters::Tier;
 use crate::mode::Mode;
 use crate::pagination::{Limit, Offset, Paginated};
 use crate::time::Timestamp;
@@ -43,8 +42,6 @@ pub struct Profile {
     pub id: PlayerId,
     pub name: String,
     pub rating: f64,
-    pub nub_completion: [u32; 8],
-    pub pro_completion: [u32; 8],
     pub first_joined_at: Timestamp,
 }
 #[derive(Debug, Default)]
@@ -209,7 +206,7 @@ pub async fn get_profile(
     player_id: PlayerId,
     mode: Mode,
 ) -> Result<Option<Profile>, GetPlayersError> {
-    let Some(mut profile) = sqlx::query!(
+    sqlx::query!(
         r#"WITH RankedPoints AS (
              SELECT
                source,
@@ -304,6 +301,7 @@ pub async fn get_profile(
     )
     .fetch_optional(cx.database().as_ref())
     .await
+    .map_err(GetPlayersError::from)
     .map(|row| {
         row.map(|row| Profile {
             id: row.player_id,
@@ -315,39 +313,9 @@ pub async fn get_profile(
                 // ?
                 (Some(nub_rating), Some(pro_rating)) => nub_rating + pro_rating,
             },
-            nub_completion: [0; 8],
-            pro_completion: [0; 8],
             first_joined_at: row.first_joined_at.into(),
         })
-    })?
-    else {
-        return Ok(None);
-    };
-
-    let mut pbs = sqlx::query!(
-        "SELECT
-           r.teleports,
-           cf.nub_tier AS `nub_tier: Tier`,
-           cf.pro_tier AS `pro_tier: Tier`
-         FROM Records AS r
-         JOIN CourseFilters AS cf ON cf.id = r.filter_id
-         LEFT JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
-         LEFT JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id
-         WHERE r.player_id = ?
-         AND (NOT ((NubRecords.points IS NULL) AND (ProRecords.points IS NULL)))",
-        player_id,
-    )
-    .fetch(cx.database().as_ref());
-
-    while let Some(row) = pbs.try_next().await? {
-        profile.nub_completion[(row.nub_tier as usize) - 1] += 1;
-
-        if row.teleports == 0 {
-            profile.pro_completion[(row.pro_tier as usize) - 1] += 1;
-        }
-    }
-
-    Ok(Some(profile))
+    })
 }
 
 #[tracing::instrument(skip(cx), err(level = "debug"))]

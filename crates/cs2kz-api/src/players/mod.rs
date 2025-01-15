@@ -105,9 +105,8 @@ pub struct PlayerProfile {
     /// The player's name on Steam.
     name: String,
 
+    /// The player's rating.
     rating: f64,
-    nub_completion: [u32; 8],
-    pro_completion: [u32; 8],
 
     /// When this player first joined an approved CS2 server.
     #[schema(value_type = crate::openapi::shims::Timestamp)]
@@ -303,8 +302,6 @@ impl From<cs2kz::players::Profile> for PlayerProfile {
             id: profile.id,
             name: profile.name,
             rating: profile.rating,
-            nub_completion: profile.nub_completion,
-            pro_completion: profile.pro_completion,
             first_joined_at: profile.first_joined_at,
         }
     }
