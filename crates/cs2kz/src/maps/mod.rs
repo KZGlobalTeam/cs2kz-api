@@ -204,14 +204,10 @@ pub async fn get(
         cx.database().as_ref(),
         "WHERE m.workshop_id = COALESCE(?, m.workshop_id)
          AND m.name LIKE COALESCE(?, m.name)
-         AND m.state = COALESCE(?, m.state)
-         LIMIT ?
-         OFFSET ?",
+         AND m.state = COALESCE(?, m.state)",
         workshop_id,
         name.map(|name| format!("%{name}%")),
         state,
-        limit.value(),
-        offset.value(),
     )
     .skip(offset.value().unsigned_abs() as usize)
     .take(limit.value() as usize);
