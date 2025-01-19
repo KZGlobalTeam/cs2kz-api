@@ -403,7 +403,7 @@ impl<T> fake::Dummy<T> for SteamId {
         Self::builder()
             .y(rng.r#gen())
             .account_number(AccountNumber::from_u64(rng.r#gen()))
-            .instance(Instance::from_u64(rng.r#gen()))
+            .instance(Instance::DEFAULT)
             .account_type(AccountType::Individual)
             .universe(Universe::Public)
             .build()
