@@ -779,21 +779,11 @@ pub async fn get(
 ) -> Result<Paginated<Vec<Record>>, GetRecordsError> {
     fn base_filters(
         query: &mut QueryBuilder<'_>,
-        player_id: Option<PlayerId>,
-        server_id: Option<ServerId>,
         map_id: Option<MapId>,
         course_id: Option<CourseId>,
         mode: Option<Mode>,
     ) {
-        query.push(" WHERE r.player_id = COALESCE(");
-        query.push_bind(player_id);
-        query.push(", r.player_id) ");
-
-        query.push(" AND r.server_id = COALESCE(");
-        query.push_bind(server_id);
-        query.push(", r.server_id) ");
-
-        query.push(" AND m.id = COALESCE(");
+        query.push(" WHERE m.id = COALESCE(");
         query.push_bind(map_id);
         query.push(", m.id) ");
 
@@ -808,13 +798,11 @@ pub async fn get(
 
     fn base_query(
         query: &mut QueryBuilder<'_>,
-        player_id: Option<PlayerId>,
-        server_id: Option<ServerId>,
         map_id: Option<MapId>,
         course_id: Option<CourseId>,
         mode: Option<Mode>,
     ) {
-        base_filters(query, player_id, server_id, map_id, course_id, mode);
+        base_filters(query, map_id, course_id, mode);
 
         query.push("), ");
         query.push(
@@ -837,32 +825,10 @@ pub async fn get(
                JOIN Maps AS m ON m.id = c.map_id",
         );
 
-        base_filters(query, player_id, server_id, map_id, course_id, mode);
+        base_filters(query, map_id, course_id, mode);
 
         query.push(") ");
     }
-
-    let mut query = QueryBuilder::new(
-        "WITH NubLeaderboard AS (
-           SELECT
-             r.id AS record_id,
-             NubRecords.points,
-             RANK() OVER (
-               PARTITION BY r.filter_id
-               ORDER BY
-                 r.time ASC,
-                 r.submitted_at ASC
-             ) AS rank
-           FROM Records AS r
-           JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
-           JOIN Players AS p ON p.id = r.player_id
-           JOIN Servers AS s ON s.id = r.server_id
-           JOIN CourseFilters AS cf ON cf.id = r.filter_id
-           JOIN Courses AS c ON c.id = cf.course_id
-           JOIN Maps AS m ON m.id = c.map_id",
-    );
-
-    base_query(&mut query, player_id, server_id, map_id, course_id, mode);
 
     let total = if top {
         sqlx::query_scalar!(
@@ -921,6 +887,28 @@ pub async fn get(
     .try_into()
     .expect("`COUNT(…)` should not return a negative value");
 
+    let mut query = QueryBuilder::new(
+        "WITH NubLeaderboard AS (
+           SELECT
+             r.id AS record_id,
+             NubRecords.points,
+             RANK() OVER (
+               PARTITION BY r.filter_id
+               ORDER BY
+                 r.time ASC,
+                 r.submitted_at ASC
+             ) AS rank
+           FROM Records AS r
+           JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
+           JOIN Players AS p ON p.id = r.player_id
+           JOIN Servers AS s ON s.id = r.server_id
+           JOIN CourseFilters AS cf ON cf.id = r.filter_id
+           JOIN Courses AS c ON c.id = cf.course_id
+           JOIN Maps AS m ON m.id = c.map_id",
+    );
+
+    base_query(&mut query, map_id, course_id, mode);
+
     query.push(
         "SELECT
            r.id AS id,
@@ -953,7 +941,25 @@ pub async fn get(
          JOIN Maps AS m ON m.id = c.map_id",
     );
 
-    base_filters(&mut query, player_id, server_id, map_id, course_id, mode);
+    query.push(" AND p.id = COALESCE(");
+    query.push_bind(player_id);
+    query.push(", p.id) ");
+
+    query.push(" AND s.id = COALESCE(");
+    query.push_bind(server_id);
+    query.push(", s.id) ");
+
+    query.push(" AND m.id = COALESCE(");
+    query.push_bind(map_id);
+    query.push(", m.id) ");
+
+    query.push(" AND c.id = COALESCE(");
+    query.push_bind(course_id);
+    query.push(", c.id) ");
+
+    query.push(" AND cf.mode = COALESCE(");
+    query.push_bind(mode);
+    query.push(", cf.mode) ");
 
     if let Some(has_teleports) = has_teleports {
         query.push(" AND r.teleports ");
