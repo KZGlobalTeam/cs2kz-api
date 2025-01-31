@@ -1065,7 +1065,7 @@ pub fn get_player_records(
 }
 
 #[tracing::instrument(skip(cx))]
-pub fn get_leaderboard(
+pub fn get_nub_leaderboard(
     cx: &Context,
     filter_id: CourseFilterId,
 ) -> impl Stream<Item = Result<LeaderboardEntry, GetRecordsError>> {
@@ -1078,6 +1078,28 @@ pub fn get_leaderboard(
            r.time AS `time: Seconds`
          FROM Records AS r
          JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
+         WHERE r.filter_id = ?
+         ORDER BY r.time ASC, r.submitted_at ASC",
+        filter_id,
+    )
+    .fetch(cx.database().as_ref())
+    .map_err(GetRecordsError::from)
+}
+
+#[tracing::instrument(skip(cx))]
+pub fn get_pro_leaderboard(
+    cx: &Context,
+    filter_id: CourseFilterId,
+) -> impl Stream<Item = Result<LeaderboardEntry, GetRecordsError>> {
+    sqlx::query_as!(
+        LeaderboardEntry,
+        "SELECT
+           r.id AS `record_id: RecordId`,
+           r.player_id AS `player_id: PlayerId`,
+           r.teleports,
+           r.time AS `time: Seconds`
+         FROM Records AS r
+         JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id
          WHERE r.filter_id = ?
          ORDER BY r.time ASC, r.submitted_at ASC",
         filter_id,
@@ -1129,9 +1151,18 @@ pub async fn update_best_records(
     // length limits.
     const MAX_CHUNK_SIZE: usize = 1_000;
 
-    let (nub, pro) = records
-        .into_iter()
-        .partition::<Vec<_>, _>(|record| record.nub_points != 0.0);
+    let mut nub = Vec::new();
+    let mut pro = Vec::new();
+
+    for record in records {
+        if record.nub_points > 0.0 {
+            nub.push(record);
+        }
+
+        if record.pro_points.value > 0.0 {
+            pro.push(record);
+        }
+    }
 
     let mut nub = nub.into_iter();
     let mut pro = pro.into_iter();
@@ -1156,10 +1187,12 @@ pub async fn update_best_records(
              )",
         );
 
-        while !(nub.as_slice().is_empty() && pro.as_slice().is_empty()) {
+        while !nub.as_slice().is_empty() || !pro.as_slice().is_empty() {
             if !nub.as_slice().is_empty() {
                 nub_query.reset();
                 nub_query.push_values(nub.by_ref().take(MAX_CHUNK_SIZE), |mut query, record| {
+                    assert_ne!(record.nub_points, 0.0, "record {} has {} point", record.id, record.nub_points);
+
                     query.push_bind(filter_id);
                     query.push_bind(record.player_id);
                     query.push_bind(record.id);

@@ -90,17 +90,13 @@ pub async fn process_filter(
     span.record("mode", tracing::field::debug(mode));
     info!("processing filter");
 
-    let mut nub_leaderboard = Vec::new();
-    let mut pro_leaderboard = Vec::new();
-    let mut records = records::get_leaderboard(cx, filter.id);
+    let nub_leaderboard = records::get_nub_leaderboard(cx, filter.id)
+        .try_collect::<Vec<_>>()
+        .await?;
 
-    while let Some(record) = records.try_next().await? {
-        nub_leaderboard.push(record);
-
-        if record.teleports == 0 {
-            pro_leaderboard.push(record);
-        }
-    }
+    let pro_leaderboard = records::get_pro_leaderboard(cx, filter.id)
+        .try_collect::<Vec<_>>()
+        .await?;
 
     let (nub_dist, nub_leaderboard, pro_dist, pro_leaderboard) =
         python::execute(span.clone(), move |py| -> Result<_, Error> {
@@ -237,7 +233,7 @@ pub async fn process_filter(
                         nub_leaderboard[0].time.into(),
                         entry.time.into(),
                     )
-                } else {
+                } else if rank_in_nub_leaderboard < scaled_nub_times.len() {
                     points::from_dist(
                         py,
                         nub_dist,
@@ -246,6 +242,8 @@ pub async fn process_filter(
                         rank_in_nub_leaderboard,
                     )
                     .map(|points| (points / nub_dist.top_scale).min(1.0))?
+                } else {
+                    0.0
                 };
 
                 let points_based_on_pro_leaderboard = pro_points >= nub_points;
@@ -268,6 +266,7 @@ pub async fn process_filter(
                         });
                     },
                     hash_map::Entry::Occupied(mut slot) => {
+                        assert_ne!(slot.get().nub_points, 0.0);
                         assert_eq!(slot.get().pro_points, ProPoints::default());
                         slot.get_mut().pro_points = points;
                     },
