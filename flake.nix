@@ -70,6 +70,12 @@
             cargoExtraArgs = "--bin=cs2kz-api";
           });
 
+          generator = craneLib.buildPackage (crateArgs // {
+            pname = "generator";
+            src = fileSetForCrate ./crates/cs2kz-api;
+            cargoExtraArgs = "--bin=generator -Ffake";
+          });
+
           openapi-schema = craneLib.buildPackage (crateArgs // {
             pname = "openapi";
             src = fileSetForCrate ./crates/cs2kz-api;
@@ -78,7 +84,7 @@
         in
         {
           checks = {
-            inherit cs2kz-api openapi-schema;
+            inherit cs2kz-api generator openapi-schema;
 
             clippy = craneLib.cargoClippy (commonArgs // {
               inherit cargoArtifacts;
@@ -96,7 +102,7 @@
           };
 
           packages = {
-            inherit cs2kz-api openapi-schema;
+            inherit cs2kz-api generator openapi-schema;
 
             dockerImage = pkgs.dockerTools.buildLayeredImage {
               name = cs2kz-api.pname;

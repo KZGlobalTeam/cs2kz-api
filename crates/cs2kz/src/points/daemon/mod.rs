@@ -77,7 +77,7 @@ pub async fn run(cx: Context, cancellation_token: CancellationToken) -> Result<(
     fields(id = %filter_id, mode = tracing::field::Empty),
     err,
 )]
-async fn process_filter(
+pub async fn process_filter(
     cx: &Context,
     filter_id: CourseFilterId,
     new_records: u64,
