@@ -141,7 +141,7 @@ default-features = false
 features = ["rustls-tls", "http2"]
 
 [dependencies.serde_html_form]
-version = "0.2.6"
+version = "0.2.7"
 
 [dependencies.toml]
 version = "0.8.19"
