@@ -121,7 +121,7 @@ default-features = false
 features = ["cookie"]
 
 [dependencies.utoipa]
-version = "5.3.0"
+version = "5.3.1"
 features = [
   "time",
   "ulid",
