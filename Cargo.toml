@@ -68,7 +68,7 @@ version = "1.0.215"
 features = ["derive"]
 
 [workspace.dependencies.serde_json]
-version = "1.0.133"
+version = "1.0.138"
 
 [workspace.dependencies.tracing]
 version = "0.1.41"
