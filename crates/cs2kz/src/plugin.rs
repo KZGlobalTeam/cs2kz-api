@@ -156,7 +156,8 @@ where
         .and_then(|row| row.try_get(0))
         .map_err(database::Error::from)
         .map_err(|err| {
-            if err.is_unique_violation_of("UC_semver") {
+            if err.is_unique_violation_of("UC_semver") || err.is_unique_violation_of("git_revision")
+            {
                 PublishPluginVersionError::VersionAlreadyPublished
             } else {
                 PublishPluginVersionError::Database(err)

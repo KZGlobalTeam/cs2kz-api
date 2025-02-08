@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS PluginVersions (
   pre VARCHAR(255) NOT NULL,
   build VARCHAR(255) NOT NULL,
   git_revision BINARY(20) NOT NULL UNIQUE,
-  linux_checksum BINARY(16) NOT NULL UNIQUE,
-  windows_checksum BINARY(16) NOT NULL UNIQUE,
+  linux_checksum BINARY(16) NOT NULL,
+  windows_checksum BINARY(16) NOT NULL,
   is_cutoff BOOLEAN NOT NULL,
   published_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT UC_semver UNIQUE (major, minor, patch, pre, build)
@@ -16,15 +16,15 @@ CREATE TABLE IF NOT EXISTS PluginVersions (
 CREATE TABLE IF NOT EXISTS ModeChecksums (
   id INT1 UNSIGNED NOT NULL PRIMARY KEY,
   plugin_version_id INT2 UNSIGNED REFERENCES PluginVersions(id),
-  linux_checksum BINARY(16) NOT NULL UNIQUE,
-  windows_checksum BINARY(16) NOT NULL UNIQUE
+  linux_checksum BINARY(16) NOT NULL,
+  windows_checksum BINARY(16) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS StyleChecksums (
   id INT4 UNSIGNED NOT NULL PRIMARY KEY,
   plugin_version_id INT2 UNSIGNED REFERENCES PluginVersions(id),
-  linux_checksum BINARY(16) NOT NULL UNIQUE,
-  windows_checksum BINARY(16) NOT NULL UNIQUE
+  linux_checksum BINARY(16) NOT NULL,
+  windows_checksum BINARY(16) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS AccessKeys (
