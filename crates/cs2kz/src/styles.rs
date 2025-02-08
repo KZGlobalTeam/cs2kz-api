@@ -78,7 +78,7 @@ impl FromStr for Style {
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value {
-            "auto-bhop" => Ok(Self::AutoBhop),
+            "autobhop" | "auto-bhop" => Ok(Self::AutoBhop),
             _ => Err(UnknownStyle { _priv: () }),
         }
     }
