@@ -14,5 +14,6 @@ define_id_type! {
 pub struct CourseInfo {
     pub id: CourseId,
     pub name: String,
-    pub tier: Tier,
+    pub nub_tier: Tier,
+    pub pro_tier: Tier,
 }

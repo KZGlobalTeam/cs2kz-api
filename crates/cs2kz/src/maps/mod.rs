@@ -8,6 +8,7 @@ use sqlx::Row;
 use self::courses::filters::{CourseFilterState, Tier};
 use self::stream::{GetMapsStream, RawCourse, RawCourseFilters, RawMap};
 use crate::Context;
+use crate::checksum::Checksum;
 use crate::database::{self, QueryBuilder};
 use crate::events::{self, Event};
 use crate::mode::Mode;
@@ -18,9 +19,6 @@ use crate::time::Timestamp;
 
 mod state;
 pub use state::MapState;
-
-mod checksum;
-pub use checksum::MapChecksum;
 
 mod stream;
 
@@ -42,7 +40,7 @@ pub struct Map {
     pub name: String,
     pub description: Option<String>,
     pub state: MapState,
-    pub vpk_checksum: MapChecksum,
+    pub vpk_checksum: Checksum,
     pub mappers: Vec<PlayerInfo>,
     pub courses: Vec<Course>,
     pub approved_at: Timestamp,
@@ -103,7 +101,7 @@ pub struct NewMap {
     pub name: String,
     pub description: Option<String>,
     pub state: MapState,
-    pub vpk_checksum: MapChecksum,
+    pub vpk_checksum: Checksum,
     pub mappers: Box<[PlayerId]>,
     pub courses: Box<[NewCourse]>,
 }
@@ -137,7 +135,7 @@ pub struct MapUpdate<'a> {
     pub name: Option<&'a str>,
     pub description: Option<&'a str>,
     pub state: Option<MapState>,
-    pub vpk_checksum: Option<MapChecksum>,
+    pub vpk_checksum: Option<Checksum>,
     pub added_mappers: &'a [PlayerId],
     pub deleted_mappers: &'a [PlayerId],
     pub course_updates: Vec<CourseUpdate<'a>>,
@@ -232,13 +230,46 @@ pub fn get_by_name(cx: &Context, map_name: &str) -> impl Stream<Item = Result<Ma
 #[tracing::instrument(skip(cx), err(level = "debug"))]
 pub async fn get_course_id_by_name(
     cx: &Context,
+    map_name: Option<&str>,
     course_name: &str,
 ) -> Result<Option<CourseId>, GetMapsError> {
     sqlx::query_scalar!(
-        "SELECT id AS `id: CourseId`
-         FROM Courses
-         WHERE name LIKE ?",
+        "SELECT c.id AS `id: CourseId`
+         FROM Courses AS c
+         JOIN Maps AS m ON m.id = c.map_id
+         WHERE m.name LIKE COALESCE(?, m.name)
+         AND c.name LIKE ?",
+        map_name.map(|name| format!("%{name}%")),
         format!("%{course_name}%"),
+    )
+    .fetch_optional(cx.database().as_ref())
+    .await
+    .map_err(GetMapsError::from)
+}
+
+#[tracing::instrument(skip(cx), err(level = "debug"))]
+pub async fn get_course_info_by_name(
+    cx: &Context,
+    map_name: &str,
+    course_name: &str,
+    mode: Mode,
+) -> Result<Option<CourseInfo>, GetMapsError> {
+    sqlx::query_as!(
+        CourseInfo,
+        "SELECT
+           c.id AS `id: CourseId`,
+           c.name,
+           cf.nub_tier AS `nub_tier: Tier`,
+           cf.pro_tier AS `pro_tier: Tier`
+         FROM Courses AS c
+         JOIN CourseFilters AS cf ON cf.course_id = c.id
+         JOIN Maps AS m ON m.id = c.map_id
+         WHERE c.name LIKE ?
+         AND cf.mode = ?
+         AND m.name LIKE COALESCE(?, m.name)",
+        format!("%{course_name}%"),
+        mode,
+        format!("%{map_name}%"),
     )
     .fetch_optional(cx.database().as_ref())
     .await
@@ -416,7 +447,7 @@ async fn insert_map(
     name: &str,
     description: Option<&str>,
     state: MapState,
-    vpk_checksum: MapChecksum,
+    vpk_checksum: Checksum,
 ) -> database::Result<MapId> {
     sqlx::query!(
         "INSERT INTO Maps (workshop_id, name, description, state, vpk_checksum)
@@ -639,7 +670,7 @@ mod macros {
                    m.name,
                    m.description,
                    m.state AS `state: MapState`,
-                   m.vpk_checksum AS `vpk_checksum: MapChecksum`,
+                   m.vpk_checksum AS `vpk_checksum: Checksum`,
                    mapper.id AS `mapper_id: PlayerId`,
                    mapper.name AS mapper_name,
                    c.id AS `course_id: CourseId`,

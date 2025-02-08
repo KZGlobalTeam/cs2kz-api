@@ -8,8 +8,9 @@ use axum::handler::Handler;
 use axum::response::NoContent;
 use axum::routing::{MethodRouter, Router};
 use cs2kz::Context;
+use cs2kz::checksum::Checksum;
 use cs2kz::maps::courses::filters::{CourseFilterState, Tier};
-use cs2kz::maps::{ApproveMapError, CourseId, MapChecksum, MapId, MapState, UpdateMapError};
+use cs2kz::maps::{ApproveMapError, CourseId, MapId, MapState, UpdateMapError};
 use cs2kz::pagination::{Limit, Offset, Paginated};
 use cs2kz::players::{CreatePlayerError, PlayerId};
 use cs2kz::steam::WorkshopId;
@@ -95,7 +96,7 @@ pub struct Map {
 
     /// A checksum of the map's `.vpk` file.
     #[schema(value_type = str)]
-    vpk_checksum: MapChecksum,
+    vpk_checksum: Checksum,
 
     /// A list of players who have contributed to the creation of this map.
     mappers: Vec<PlayerInfo>,
@@ -143,7 +144,10 @@ pub struct CourseInfo {
     pub(crate) name: String,
 
     #[schema(value_type = crate::openapi::shims::CourseFilterTier)]
-    pub(crate) tier: Tier,
+    pub(crate) nub_tier: Tier,
+
+    #[schema(value_type = crate::openapi::shims::CourseFilterTier)]
+    pub(crate) pro_tier: Tier,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
@@ -609,7 +613,7 @@ async fn fetch_name_and_checksum(
     http_client: &reqwest::Client,
     depot_downloader_config: &DepotDownloaderConfig,
     workshop_id: WorkshopId,
-) -> Result<(String, MapChecksum), ErrorResponse> {
+) -> Result<(String, Checksum), ErrorResponse> {
     try_join!(
         steam::fetch_map_name(http_client, workshop_id).map(|res| match res {
             Ok(Some(map_name)) => Ok(map_name),
@@ -682,7 +686,8 @@ impl From<cs2kz::maps::CourseInfo> for CourseInfo {
         Self {
             id: course.id,
             name: course.name,
-            tier: course.tier,
+            nub_tier: course.nub_tier,
+            pro_tier: course.pro_tier,
         }
     }
 }

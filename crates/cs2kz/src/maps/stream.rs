@@ -16,13 +16,13 @@ use futures_util::Stream;
 
 use crate::database;
 use crate::maps::{
+    Checksum,
     Course,
     CourseFilter,
     CourseFilters,
     CourseId,
     GetMapsError,
     Map,
-    MapChecksum,
     MapId,
     MapState,
 };
@@ -46,7 +46,7 @@ pub(super) struct RawMap {
     pub(super) name: String,
     pub(super) description: Option<String>,
     pub(super) state: MapState,
-    pub(super) vpk_checksum: MapChecksum,
+    pub(super) vpk_checksum: Checksum,
     pub(super) mappers: BTreeSet<PlayerInfo>,
     pub(super) courses: BTreeMap<CourseId, RawCourse>,
     pub(super) approved_at: Timestamp,

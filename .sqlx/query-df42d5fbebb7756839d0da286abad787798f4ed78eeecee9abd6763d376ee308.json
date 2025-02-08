@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO Players (id, name, ip_address)\n         VALUES (?, ?, ?)\n         ON DUPLICATE KEY\n         UPDATE name = VALUES(name),\n                ip_address = VALUES(ip_address)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "df42d5fbebb7756839d0da286abad787798f4ed78eeecee9abd6763d376ee308"
+}

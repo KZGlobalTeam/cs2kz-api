@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT COUNT(mc.id) > 0 AS `is_valid: bool`\n         FROM ModeChecksums AS mc\n         JOIN PluginVersions AS v ON v.id = mc.plugin_version_id\n         WHERE (mc.linux_checksum = ? OR mc.windows_checksum = ?)\n         AND v.id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "is_valid: bool",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | BINARY",
+          "max_size": 1
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "364bfe35d8700e2e371fc12cee705bbc43173d96fcbe015b062b12e8ab7c064b"
+}

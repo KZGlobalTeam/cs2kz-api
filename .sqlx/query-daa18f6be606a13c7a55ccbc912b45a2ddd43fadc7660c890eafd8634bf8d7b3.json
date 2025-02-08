@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT\n                   id AS `id: PlayerId`,\n                   name,\n                   ip_address AS `ip_address: Ipv4Addr`,\n                   first_joined_at,\n                   last_joined_at\n                 FROM Players WHERE name LIKE COALESCE(?, name)\n         LIMIT ?\n         OFFSET ?",
+  "query": "WITH BanCounts AS (\n                   SELECT b.player_id, COUNT(*) AS count\n                    FROM Bans AS b\n                    RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id\n                    WHERE (b.id IS NULL OR b.expires_at > NOW())\n                 )\n                 SELECT\n                   p.id AS `id: PlayerId`,\n                   p.name,\n                   p.ip_address AS `ip_address: Ipv4Addr`,\n                   (COALESCE(BanCounts.count, 0) > 0) AS `is_banned!: bool`,\n                   p.first_joined_at,\n                   p.last_joined_at\n                 FROM Players AS p\n                 LEFT JOIN BanCounts ON BanCounts.player_id = p.id WHERE p.name LIKE ?",
   "describe": {
     "columns": [
       {
@@ -32,6 +32,15 @@
       },
       {
         "ordinal": 3,
+        "name": "is_banned!: bool",
+        "type_info": {
+          "type": "Long",
+          "flags": "BINARY",
+          "max_size": 1
+        }
+      },
+      {
+        "ordinal": 4,
         "name": "first_joined_at",
         "type_info": {
           "type": "Timestamp",
@@ -40,7 +49,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "last_joined_at",
         "type_info": {
           "type": "Timestamp",
@@ -50,15 +59,16 @@
       }
     ],
     "parameters": {
-      "Right": 3
+      "Right": 1
     },
     "nullable": [
       false,
       false,
       true,
+      true,
       false,
       false
     ]
   },
-  "hash": "04476a838446236209eb6a0110ec70c27525a47933af79eb70c1c72bf2c0a3e6"
+  "hash": "daa18f6be606a13c7a55ccbc912b45a2ddd43fadc7660c890eafd8634bf8d7b3"
 }

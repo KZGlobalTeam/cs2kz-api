@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::time::Duration;
 
-use cs2kz::maps::MapChecksum;
+use cs2kz::checksum::Checksum;
 use cs2kz::steam::WorkshopId;
 use futures_util::stream::{self, StreamExt};
 use serde::ser::{Serialize, SerializeMap, Serializer};
@@ -111,7 +111,7 @@ pub async fn download_map(
 }
 
 #[tracing::instrument(ret(level = "debug"), err)]
-pub async fn compute_checksum(path_to_vpk: PathBuf) -> io::Result<MapChecksum> {
+pub async fn compute_checksum(path_to_vpk: PathBuf) -> io::Result<Checksum> {
     task::spawn_blocking(move || {
         let mut file = File::open(&path_to_vpk)
             .map(BufReader::new)
@@ -119,7 +119,7 @@ pub async fn compute_checksum(path_to_vpk: PathBuf) -> io::Result<MapChecksum> {
                 error!(%err, path = %path_to_vpk.display(), "failed to open vpk file");
             })?;
 
-        MapChecksum::from_reader(&mut file).inspect_err(|err| {
+        Checksum::from_reader(&mut file).inspect_err(|err| {
             error!(%err, path = %path_to_vpk.display(), "failed to read vpk file");
         })
     })

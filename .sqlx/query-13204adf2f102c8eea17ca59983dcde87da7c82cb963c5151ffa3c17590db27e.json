@@ -1,11 +1,11 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT\n                   r.id,\n                   r.teleports,\n                   r.time,\n                   ProRecords.points\n                 FROM Records AS r\n                 JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id\n                 WHERE r.filter_id = ?\n                 AND r.player_id = ?",
+  "query": "SELECT\n                   r.id AS `id: RecordId`,\n                   r.teleports,\n                   r.time,\n                   cf.nub_tier AS `tier: Tier`,\n                   NubRecords.points\n                 FROM Records AS r\n                 JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id\n                 JOIN CourseFilters AS cf ON cf.id = r.filter_id\n                 WHERE r.filter_id = ?\n                 AND r.player_id = ?",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "id: RecordId",
         "type_info": {
           "type": "Long",
           "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | AUTO_INCREMENT",
@@ -32,6 +32,15 @@
       },
       {
         "ordinal": 3,
+        "name": "tier: Tier",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 4,
         "name": "points",
         "type_info": {
           "type": "Double",
@@ -47,8 +56,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "bccd667d4d8b262b5b2abfe022011aa9433a73fefb73b99a97f6d3af07dafd45"
+  "hash": "13204adf2f102c8eea17ca59983dcde87da7c82cb963c5151ffa3c17590db27e"
 }

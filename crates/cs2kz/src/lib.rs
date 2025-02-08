@@ -56,6 +56,7 @@ pub mod records;
 pub mod bans;
 pub mod points;
 
+pub mod checksum;
 pub mod email;
 pub mod events;
 pub mod git;

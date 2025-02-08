@@ -1,5 +1,9 @@
 use std::fmt;
 
+use crate::checksum::Checksum;
+use crate::plugin::PluginVersionId;
+use crate::{Context, database};
+
 /// The official game modes supported by [`cs2kz-metamod`].
 ///
 /// [`cs2kz-metamod`]: https://github.com/KZGlobalTeam/cs2kz-metamod
@@ -9,6 +13,27 @@ use std::fmt;
 pub enum Mode {
     Vanilla = 1,
     Classic = 2,
+}
+
+#[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]
+pub async fn verify_checksum(
+    cx: &Context,
+    checksum: &Checksum,
+    plugin_version_id: PluginVersionId,
+) -> database::Result<bool> {
+    sqlx::query_scalar!(
+        "SELECT COUNT(mc.id) > 0 AS `is_valid: bool`
+         FROM ModeChecksums AS mc
+         JOIN PluginVersions AS v ON v.id = mc.plugin_version_id
+         WHERE (mc.linux_checksum = ? OR mc.windows_checksum = ?)
+         AND v.id = ?",
+        checksum,
+        checksum,
+        plugin_version_id,
+    )
+    .fetch_one(cx.database().as_ref())
+    .await
+    .map_err(database::Error::from)
 }
 
 impl<'de> serde::Deserialize<'de> for Mode {

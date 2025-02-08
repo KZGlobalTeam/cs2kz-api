@@ -4,13 +4,17 @@ use std::net::Ipv4Addr;
 use std::time::Duration;
 
 use axum::extract::ws::Message as RawMessage;
+use cs2kz::checksum::Checksum;
 use cs2kz::maps::{CourseFilterId, Map, MapId};
-use cs2kz::players::{PlayerId, PlayerInfo, Preferences};
-use cs2kz::records::{Record, RecordId};
+use cs2kz::mode::Mode;
+use cs2kz::pagination::{Limit, Offset};
+use cs2kz::players::{PlayerId, PlayerInfo, PlayerInfoWithIsBanned, Preferences};
+use cs2kz::records::{Record, RecordId, StylesForNewRecord, SubmittedPB};
 use cs2kz::styles::Styles;
 use cs2kz::time::Seconds;
 
-use crate::maps::MapIdentifier;
+use crate::maps::{CourseInfo, MapIdentifier, MapInfo};
+use crate::players::PlayerIdentifier;
 
 /// A WebSocket message.
 ///
@@ -33,6 +37,8 @@ pub struct Message<T> {
 pub struct Hello {
     /// The cs2kz-metamod version the server is currently running.
     pub plugin_version: semver::Version,
+
+    pub plugin_version_checksum: Checksum,
 
     /// The name of the map the server is currently hosting.
     pub map: String,
@@ -61,31 +67,75 @@ pub struct Error {
 #[serde(rename_all = "kebab-case", tag = "event", content = "data")]
 pub enum Incoming {
     /// The server changed map.
-    MapChange { new_map: String },
+    MapChange {
+        new_map: String,
+    },
 
     /// The server wants information about a map.
-    WantMapInfo { map: MapIdentifier },
+    WantMapInfo {
+        map: MapIdentifier,
+    },
 
     /// A player joined the server.
-    PlayerJoin { id: PlayerId, name: String, ip_address: Ipv4Addr },
+    PlayerJoin {
+        id: PlayerId,
+        name: String,
+        ip_address: Ipv4Addr,
+    },
 
     /// A player left the server.
-    PlayerLeave { id: PlayerId, preferences: Preferences },
+    PlayerLeave {
+        id: PlayerId,
+        name: String,
+        preferences: Preferences,
+    },
 
     /// The server wants a player's preferences.
-    WantPreferences { player_id: PlayerId },
+    WantPreferences {
+        player_id: PlayerId,
+    },
 
     /// The server wants all world records for a map.
-    WantWorldRecords { map_id: MapId },
+    WantWorldRecordsForCache {
+        map_id: MapId,
+    },
+
+    WantCourseTop {
+        map_name: String,
+        course: String,
+        mode: Mode,
+        limit: Limit<1000, 100>,
+        offset: Offset,
+    },
 
     /// The server wants all PBs of a player for a map.
-    WantPlayerRecords { map_id: MapId, player_id: PlayerId },
+    WantPlayerRecords {
+        map_id: MapId,
+        player_id: PlayerId,
+    },
+
+    WantPersonalBest {
+        player: PlayerIdentifier,
+        map: MapIdentifier,
+        course: String,
+        mode: Mode,
+
+        #[expect(dead_code, reason = "TODO")]
+        styles: Styles,
+    },
+
+    WantWorldRecords {
+        map: MapIdentifier,
+        course: String,
+        mode: Mode,
+    },
 
     /// A player submitted a record.
     NewRecord {
         player_id: PlayerId,
         filter_id: CourseFilterId,
-        styles: Styles,
+        mode_md5: Checksum,
+        styles: StylesForNewRecord,
         teleports: u32,
         time: Seconds,
     },
@@ -104,23 +154,34 @@ pub enum Outgoing {
     PlayerPreferences {
         preferences: Option<Preferences>,
     },
+    WorldRecordsForCache {
+        records: Vec<Record>,
+    },
+    CourseTop {
+        map: Option<MapInfo>,
+        course: Option<CourseInfo>,
+        overall: Vec<Record>,
+        pro: Vec<Record>,
+    },
     PlayerRecords {
         records: Vec<Record>,
     },
+    PersonalBest {
+        player: Option<PlayerInfoWithIsBanned>,
+        map: Option<MapInfo>,
+        course: Option<CourseInfo>,
+        overall: Option<Record>,
+        pro: Option<Record>,
+    },
     WorldRecords {
-        records: Vec<Record>,
+        map: Option<MapInfo>,
+        course: Option<CourseInfo>,
+        overall: Option<Record>,
+        pro: Option<Record>,
     },
     NewRecordAck {
         record_id: RecordId,
-        player_rating: f64,
-        is_first_nub_record: bool,
-        nub_rank: Option<u32>,
-        nub_points: Option<f64>,
-        nub_leaderboard_size: u32,
-        is_first_pro_record: bool,
-        pro_rank: Option<u32>,
-        pro_points: Option<f64>,
-        pro_leaderboard_size: u32,
+        pb_data: Option<SubmittedPB>,
     },
 }
 
@@ -179,7 +240,7 @@ impl Message<HelloAck> {
 }
 
 impl Message<Error> {
-    /// Acknowledges a [`Hello`] message with a [`HelloAck`].
+    /// Sends an error message to the client.
     pub fn error(error: impl fmt::Display) -> Self {
         Self {
             id: 0,

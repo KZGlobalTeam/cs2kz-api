@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT\n                   id AS `id: PlayerId`,\n                   name,\n                   ip_address AS `ip_address: Ipv4Addr`,\n                   first_joined_at,\n                   last_joined_at\n                 FROM Players WHERE id = ?",
+  "query": "WITH BanCounts AS (\n                   SELECT b.player_id, COUNT(*) AS count\n                    FROM Bans AS b\n                    RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id\n                    WHERE (b.id IS NULL OR b.expires_at > NOW())\n                 )\n                 SELECT\n                   p.id AS `id: PlayerId`,\n                   p.name,\n                   p.ip_address AS `ip_address: Ipv4Addr`,\n                   (COALESCE(BanCounts.count, 0) > 0) AS `is_banned!: bool`,\n                   p.first_joined_at,\n                   p.last_joined_at\n                 FROM Players AS p\n                 LEFT JOIN BanCounts ON BanCounts.player_id = p.id WHERE p.id = ?",
   "describe": {
     "columns": [
       {
@@ -32,6 +32,15 @@
       },
       {
         "ordinal": 3,
+        "name": "is_banned!: bool",
+        "type_info": {
+          "type": "Long",
+          "flags": "BINARY",
+          "max_size": 1
+        }
+      },
+      {
+        "ordinal": 4,
         "name": "first_joined_at",
         "type_info": {
           "type": "Timestamp",
@@ -40,7 +49,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "last_joined_at",
         "type_info": {
           "type": "Timestamp",
@@ -56,9 +65,10 @@
       false,
       false,
       true,
+      true,
       false,
       false
     ]
   },
-  "hash": "5177b0761c6b1fc1a7a89828baf8cb7e0baeb9f3175936ceae88bc70b8f8e4c5"
+  "hash": "8fc287f65be96acad44209299747f71717d26df8cfa992509d4fb2139f5116b0"
 }

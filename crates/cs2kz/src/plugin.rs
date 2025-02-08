@@ -10,10 +10,13 @@ use std::num::NonZero;
 use futures_util::TryStreamExt;
 use sqlx::Row;
 
+use crate::checksum::Checksum;
 use crate::context::Context;
-use crate::database;
+use crate::database::{self, QueryBuilder};
 use crate::git::GitRevision;
+use crate::mode::Mode;
 use crate::pagination::{Limit, Offset, Paginated};
+use crate::styles::Style;
 use crate::time::Timestamp;
 
 define_id_type! {
@@ -38,9 +41,32 @@ pub struct PluginVersion {
 }
 
 #[derive(Debug)]
-pub struct NewPluginVersion<'a> {
+pub struct NewPluginVersion<'a, M, S>
+where
+    M: Iterator<Item = NewMode<'a>>,
+    S: Iterator<Item = NewStyle<'a>>,
+{
     pub version: &'a semver::Version,
     pub git_revision: &'a GitRevision,
+    pub linux_checksum: &'a Checksum,
+    pub windows_checksum: &'a Checksum,
+    pub is_cutoff: bool,
+    pub modes: M,
+    pub styles: S,
+}
+
+#[derive(Debug)]
+pub struct NewMode<'a> {
+    pub mode: Mode,
+    pub linux_checksum: &'a Checksum,
+    pub windows_checksum: &'a Checksum,
+}
+
+#[derive(Debug)]
+pub struct NewStyle<'a> {
+    pub style: Style,
+    pub linux_checksum: &'a Checksum,
+    pub windows_checksum: &'a Checksum,
 }
 
 #[derive(Debug)]
@@ -75,11 +101,23 @@ pub struct GetPluginVersionsError(database::Error);
 #[from(forward)]
 pub struct DeletePluginVersionError(database::Error);
 
-#[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]
-pub async fn publish_version(
+#[tracing::instrument(skip(cx, modes, styles), ret(level = "debug"), err(level = "debug"))]
+pub async fn publish_version<'a, M, S>(
     cx: &Context,
-    NewPluginVersion { version, git_revision }: NewPluginVersion<'_>,
-) -> Result<PluginVersionId, PublishPluginVersionError> {
+    NewPluginVersion {
+        version,
+        git_revision,
+        linux_checksum,
+        windows_checksum,
+        is_cutoff,
+        modes,
+        styles,
+    }: NewPluginVersion<'a, M, S>,
+) -> Result<PluginVersionId, PublishPluginVersionError>
+where
+    M: Iterator<Item = NewMode<'a>>,
+    S: Iterator<Item = NewStyle<'a>>,
+{
     if let Some(latest) = get_latest_version(cx)
         .await
         .map_err(|GetPluginVersionsError(error)| PublishPluginVersionError::Database(error))?
@@ -88,35 +126,78 @@ pub async fn publish_version(
         return Err(PublishPluginVersionError::VersionOlderThanLatest { latest: latest.version });
     }
 
-    sqlx::query!(
-        "INSERT INTO PluginVersions (
-           major,
-           minor,
-           patch,
-           pre,
-           build,
-           git_revision
-         )
-         VALUES (?, ?, ?, ?, ?, ?)
-         RETURNING id",
-        version.major,
-        version.minor,
-        version.patch,
-        version.pre.as_str(),
-        version.build.as_str(),
-        git_revision,
-    )
-    .fetch_one(cx.database().as_ref())
-    .await
-    .and_then(|row| row.try_get(0))
-    .map_err(database::Error::from)
-    .map_err(|err| {
-        if err.is_unique_violation_of("UC_semver") {
-            PublishPluginVersionError::VersionAlreadyPublished
-        } else {
-            PublishPluginVersionError::Database(err)
-        }
+    cx.database_transaction(async move |conn| {
+        let plugin_version_id = sqlx::query!(
+            "INSERT INTO PluginVersions (
+               major,
+               minor,
+               patch,
+               pre,
+               build,
+               git_revision,
+               linux_checksum,
+               windows_checksum,
+               is_cutoff
+             )
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             RETURNING id",
+            version.major,
+            version.minor,
+            version.patch,
+            version.pre.as_str(),
+            version.build.as_str(),
+            git_revision,
+            linux_checksum,
+            windows_checksum,
+            is_cutoff,
+        )
+        .fetch_one(&mut *conn)
+        .await
+        .and_then(|row| row.try_get(0))
+        .map_err(database::Error::from)
+        .map_err(|err| {
+            if err.is_unique_violation_of("UC_semver") {
+                PublishPluginVersionError::VersionAlreadyPublished
+            } else {
+                PublishPluginVersionError::Database(err)
+            }
+        })?;
+
+        let mut query = QueryBuilder::new("INSERT INTO ModeChecksums ");
+
+        query.push_values(modes, |mut query, mode| {
+            query.push_bind(mode.mode);
+            query.push_bind(plugin_version_id);
+            query.push_bind(mode.linux_checksum);
+            query.push_bind(mode.windows_checksum);
+        });
+
+        query
+            .build()
+            .execute(&mut *conn)
+            .await
+            .map_err(database::Error::from)
+            .map_err(PublishPluginVersionError::Database)?;
+
+        let mut query = QueryBuilder::new("INSERT INTO StyleChecksums ");
+
+        query.push_values(styles, |mut query, style| {
+            query.push_bind(style.style);
+            query.push_bind(plugin_version_id);
+            query.push_bind(style.linux_checksum);
+            query.push_bind(style.windows_checksum);
+        });
+
+        query
+            .build()
+            .execute(&mut *conn)
+            .await
+            .map_err(database::Error::from)
+            .map_err(PublishPluginVersionError::Database)?;
+
+        Ok(plugin_version_id)
     })
+    .await
 }
 
 #[tracing::instrument(skip(cx), err(level = "debug"))]
@@ -209,6 +290,30 @@ pub async fn get_latest_version(
             None => Ok(None),
             Some(row) => Ok(Some(self::macros::parse_row!(row))),
         })
+}
+
+#[tracing::instrument(skip(cx), err(level = "debug"))]
+pub async fn is_valid_version(
+    cx: &Context,
+    id: PluginVersionId,
+    checksum: &Checksum,
+) -> database::Result<bool> {
+    sqlx::query_scalar!(
+        "SELECT COUNT(id) > 0 AS `is_valid: bool`
+         FROM PluginVersions
+         WHERE id = ?
+         AND (linux_checksum = ? OR windows_checksum = ?)
+         AND id >= COALESCE(
+           (SELECT id FROM PluginVersions WHERE is_cutoff ORDER BY published_at DESC LIMIT 1),
+           0
+         )",
+        id,
+        checksum,
+        checksum,
+    )
+    .fetch_one(cx.database().as_ref())
+    .await
+    .map_err(database::Error::from)
 }
 
 #[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]

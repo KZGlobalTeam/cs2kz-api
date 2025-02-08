@@ -1,20 +1,39 @@
 use std::str::FromStr;
 use std::{fmt, ops};
 
+use futures_util::{Stream, TryStreamExt as _};
 use serde::de::{self, Deserialize, Deserializer};
 use serde::ser::{Serialize, SerializeSeq, Serializer};
+
+use crate::checksum::Checksum;
+use crate::plugin::PluginVersionId;
+use crate::{Context, database};
 
 const AUTO_BHOP: u32 = 0b_0001;
 
 #[repr(u32)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Display, Clone, Copy, sqlx::Type)]
 pub enum Style {
+    #[display("auto-bhop")]
     AutoBhop = AUTO_BHOP,
 }
 
 #[derive(Debug, Default, Clone, Copy, sqlx::Type)]
 #[sqlx(transparent)]
 pub struct Styles(u32);
+
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
+pub struct ClientStyleInfo {
+    pub style: Style,
+    pub checksum: Checksum,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct StyleInfo {
+    pub style: Style,
+    pub linux_checksum: Checksum,
+    pub windows_checksum: Checksum,
+}
 
 #[derive(Debug, Clone)]
 pub struct StyleIter {
@@ -25,6 +44,25 @@ pub struct StyleIter {
 #[display("unknown style")]
 pub struct UnknownStyle {
     _priv: (),
+}
+
+#[tracing::instrument(skip(cx))]
+pub fn get_for_plugin_version(
+    cx: &Context,
+    plugin_version_id: PluginVersionId,
+) -> impl Stream<Item = database::Result<StyleInfo>> {
+    sqlx::query_as!(
+        StyleInfo,
+        "SELECT
+           id AS `style: Style`,
+           linux_checksum AS `linux_checksum: Checksum`,
+           windows_checksum AS `windows_checksum: Checksum`
+         FROM StyleChecksums
+         WHERE plugin_version_id = ?",
+        plugin_version_id,
+    )
+    .fetch(cx.database().as_ref())
+    .map_err(database::Error::from)
 }
 
 impl Style {
@@ -119,6 +157,10 @@ impl Styles {
         self.0.count_ones() as usize
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.count() == 0
+    }
+
     pub fn iter(&self) -> StyleIter {
         StyleIter { bits: self.0 }
     }
@@ -182,6 +224,15 @@ impl IntoIterator for &Styles {
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+impl FromIterator<Style> for Styles {
+    fn from_iter<I>(iter: I) -> Self
+    where
+        I: IntoIterator<Item = Style>,
+    {
+        iter.into_iter().fold(Self::none(), ops::BitOr::bitor)
     }
 }
 

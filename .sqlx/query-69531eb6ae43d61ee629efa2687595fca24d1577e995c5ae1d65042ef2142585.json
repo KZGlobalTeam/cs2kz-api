@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT\n                   m.id AS `id: MapId`,\n                   m.workshop_id AS `workshop_id: WorkshopId`,\n                   m.name,\n                   m.description,\n                   m.state AS `state: MapState`,\n                   m.vpk_checksum AS `vpk_checksum: MapChecksum`,\n                   mapper.id AS `mapper_id: PlayerId`,\n                   mapper.name AS mapper_name,\n                   c.id AS `course_id: CourseId`,\n                   c.name AS course_name,\n                   c.description AS course_description,\n                   cmapper.id AS `course_mapper_id: PlayerId`,\n                   cmapper.name AS course_mapper_name,\n                   cf.id AS `filter_id: CourseFilterId`,\n                   cf.mode AS `filter_mode: Mode`,\n                   cf.nub_tier AS `nub_tier: Tier`,\n                   cf.pro_tier AS `pro_tier: Tier`,\n                   cf.state AS `filter_state: CourseFilterState`,\n                   cf.notes AS filter_notes,\n                   m.approved_at\n                 FROM Maps AS m\n                 JOIN Mappers ON Mappers.map_id = m.id\n                 JOIN Players AS mapper ON mapper.id = Mappers.player_id\n                 JOIN Courses AS c ON c.map_id = m.id\n                 JOIN CourseMappers ON CourseMappers.course_id = c.id\n                 JOIN Players AS cmapper ON cmapper.id = CourseMappers.player_id\n                 JOIN CourseFilters AS cf ON cf.course_id = c.id WHERE m.id = ?",
+  "query": "SELECT\n                   m.id AS `id: MapId`,\n                   m.workshop_id AS `workshop_id: WorkshopId`,\n                   m.name,\n                   m.description,\n                   m.state AS `state: MapState`,\n                   m.vpk_checksum AS `vpk_checksum: Checksum`,\n                   mapper.id AS `mapper_id: PlayerId`,\n                   mapper.name AS mapper_name,\n                   c.id AS `course_id: CourseId`,\n                   c.name AS course_name,\n                   c.description AS course_description,\n                   cmapper.id AS `course_mapper_id: PlayerId`,\n                   cmapper.name AS course_mapper_name,\n                   cf.id AS `filter_id: CourseFilterId`,\n                   cf.mode AS `filter_mode: Mode`,\n                   cf.nub_tier AS `nub_tier: Tier`,\n                   cf.pro_tier AS `pro_tier: Tier`,\n                   cf.state AS `filter_state: CourseFilterState`,\n                   cf.notes AS filter_notes,\n                   m.approved_at\n                 FROM Maps AS m\n                 JOIN Mappers ON Mappers.map_id = m.id\n                 JOIN Players AS mapper ON mapper.id = Mappers.player_id\n                 JOIN Courses AS c ON c.map_id = m.id\n                 JOIN CourseMappers ON CourseMappers.course_id = c.id\n                 JOIN Players AS cmapper ON cmapper.id = CourseMappers.player_id\n                 JOIN CourseFilters AS cf ON cf.course_id = c.id WHERE m.id = ?",
   "describe": {
     "columns": [
       {
@@ -50,7 +50,7 @@
       },
       {
         "ordinal": 5,
-        "name": "vpk_checksum: MapChecksum",
+        "name": "vpk_checksum: Checksum",
         "type_info": {
           "type": "String",
           "flags": "NOT_NULL | BINARY | NO_DEFAULT_VALUE",
@@ -210,5 +210,5 @@
       false
     ]
   },
-  "hash": "803764702a65fe5112b493b399e988b2039bde15a0397b798564ad01b2410b2c"
+  "hash": "69531eb6ae43d61ee629efa2687595fca24d1577e995c5ae1d65042ef2142585"
 }

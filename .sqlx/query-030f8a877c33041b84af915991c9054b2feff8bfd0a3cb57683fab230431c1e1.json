@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT id AS `id: CourseId`\n         FROM Courses\n         WHERE name LIKE ?",
+  "query": "SELECT c.id AS `id: CourseId`\n         FROM Courses AS c\n         JOIN Maps AS m ON m.id = c.map_id\n         WHERE m.name LIKE COALESCE(?, m.name)\n         AND c.name LIKE ?",
   "describe": {
     "columns": [
       {
@@ -14,11 +14,11 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false
     ]
   },
-  "hash": "7840e50ddf623bf5c1e36c8aab8237ddf396bac1e9bc78c769e9c5ee971738ee"
+  "hash": "030f8a877c33041b84af915991c9054b2feff8bfd0a3cb57683fab230431c1e1"
 }

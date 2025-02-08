@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT COUNT(id) > 0 AS `is_valid: bool`\n         FROM PluginVersions\n         WHERE id = ?\n         AND (linux_checksum = ? OR windows_checksum = ?)\n         AND id >= COALESCE(\n           (SELECT id FROM PluginVersions WHERE is_cutoff ORDER BY published_at DESC LIMIT 1),\n           0\n         )",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "is_valid: bool",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | BINARY",
+          "max_size": 1
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ebaa65b8edfd5ce0c9de2ae5ab9aa836d8807f42644607533f2812201b3380a8"
+}

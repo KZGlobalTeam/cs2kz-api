@@ -6,13 +6,14 @@ use tokio::sync::broadcast;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_stream::wrappers::errors::BroadcastStreamRecvError;
 
+use crate::checksum::Checksum;
 use crate::maps::courses::CourseFilterId;
-use crate::maps::{MapChecksum, MapState, NewCourse};
+use crate::maps::{MapState, NewCourse};
 use crate::players::PlayerId;
 use crate::plugin::PluginVersionId;
+use crate::records::{StylesForNewRecord, SubmittedPB};
 use crate::servers::ServerId;
 use crate::steam::WorkshopId;
-use crate::styles::Styles;
 use crate::time::Seconds;
 
 static QUEUE: LazyLock<broadcast::Sender<Arc<Event>>> = LazyLock::new(|| broadcast::channel(16).0);
@@ -25,7 +26,7 @@ pub enum Event {
         name: String,
         description: Option<String>,
         state: MapState,
-        vpk_checksum: MapChecksum,
+        vpk_checksum: Checksum,
         mappers: Box<[PlayerId]>,
         courses: Box<[NewCourse]>,
     },
@@ -35,19 +36,11 @@ pub enum Event {
         player_id: PlayerId,
         server_id: ServerId,
         filter_id: CourseFilterId,
-        styles: Styles,
+        styles: StylesForNewRecord,
         teleports: u32,
         time: Seconds,
         plugin_version_id: PluginVersionId,
-        player_rating: f64,
-        is_first_nub_record: bool,
-        nub_rank: Option<u32>,
-        nub_points: Option<f64>,
-        nub_leaderboard_size: u32,
-        is_first_pro_record: bool,
-        pro_rank: Option<u32>,
-        pro_points: Option<f64>,
-        pro_leaderboard_size: u32,
+        pb_data: Option<SubmittedPB>,
     },
 }
 

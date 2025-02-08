@@ -1,7 +1,7 @@
 use cs2kz::servers::ServerId;
 use cs2kz::users::UserId;
 use utoipa::openapi::schema::{self, KnownFormat, SchemaFormat, SchemaType};
-use utoipa::openapi::{Object, RefOr, Schema};
+use utoipa::openapi::{Object, RefOr, Schema, ToArray};
 use utoipa::{PartialSchema, ToSchema};
 
 #[derive(ToSchema)]
@@ -93,6 +93,18 @@ schema_type!(GitRevision => {
     )
 });
 
+schema_type!(Checksum => {
+    Schema::Object(
+        Object::builder()
+            .description(Some("an MD5 checksum"))
+            .schema_type(SchemaType::Type(schema::Type::String))
+            .min_length(Some(32))
+            .max_length(Some(32))
+            .examples(["ba29b1da0f9c28e2a9e072aba46cf040"])
+            .build(),
+    )
+});
+
 schema_type!(Permissions => {
     Schema::Array(
         Object::builder()
@@ -174,14 +186,15 @@ schema_type!(Mode => {
     )
 });
 
+schema_type!(Style => {
+    Object::builder()
+        .schema_type(SchemaType::Type(schema::Type::String))
+        .enum_values(Some(["auto-bhop"]))
+        .build()
+});
+
 schema_type!(Styles => {
-    Schema::Array(
-        Object::builder()
-            .schema_type(SchemaType::Type(schema::Type::String))
-            .enum_values(Some(["auto-bhop"]))
-            .to_array_builder()
-            .build(),
-    )
+    Schema::Array(Style::schema().to_array())
 });
 
 schema_type!(JumpType => {

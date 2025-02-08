@@ -192,7 +192,7 @@ async fn get_records(
                 Ok(None) => return Ok(Json(Paginated::new(0, Vec::new()))),
                 Err(error) => return Err(ErrorResponse::internal_server_error(error)),
             },
-            (None, None) => match cs2kz::maps::get_course_id_by_name(&cx, course).await {
+            (None, None) => match cs2kz::maps::get_course_id_by_name(&cx, None, course).await {
                 Ok(Some(course_id)) => Some(course_id),
                 Ok(None) => return Ok(Json(Paginated::new(0, Vec::new()))),
                 Err(error) => return Err(ErrorResponse::internal_server_error(error)),

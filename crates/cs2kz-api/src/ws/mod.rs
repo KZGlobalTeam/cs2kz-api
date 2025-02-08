@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io;
 use std::ops::ControlFlow;
 use std::pin::pin;
@@ -7,7 +7,8 @@ use std::time::Duration;
 
 use axum::extract::ws::{CloseFrame, Message as RawMessage, close_code};
 use cs2kz::Context;
-use cs2kz::players::{NewPlayer, PlayerId, PlayerInfo};
+use cs2kz::pagination::{Limit, Offset};
+use cs2kz::players::{NewPlayer, PlayerId, PlayerInfo, PlayerInfoWithIsBanned};
 use cs2kz::plugin::PluginVersionId;
 use cs2kz::records::{GetRecordsParams, NewRecord};
 use cs2kz::servers::ServerId;
@@ -16,13 +17,16 @@ use tokio::time::{MissedTickBehavior, interval, sleep};
 use tokio_util::sync::CancellationToken;
 
 use self::message::Message;
-use crate::maps::MapIdentifier;
+use crate::maps::{CourseInfo, MapIdentifier, MapInfo};
+use crate::players::PlayerIdentifier;
+use crate::runtime;
 
 pub mod message;
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
+const DEBOUNCE: Duration = Duration::from_millis(100);
 
 struct State {
     server_id: ServerId,
@@ -55,14 +59,22 @@ where
             .await
             .map_err(io::Error::other)?
     else {
-        return Ok(());
+        return conn
+            .send(RawMessage::Close(Some(unauthorized_close_frame())))
+            .await
+            .map_err(io::Error::other);
     };
 
     let mut heartbeat_interval = interval(HEARTBEAT_INTERVAL);
     heartbeat_interval.set_missed_tick_behavior(MissedTickBehavior::Skip);
     heartbeat_interval.tick().await;
 
+    let mut debounce = interval(DEBOUNCE);
+    debounce.set_missed_tick_behavior(MissedTickBehavior::Skip);
+
     loop {
+        debounce.tick().await;
+
         let message = select! {
             () = shutdown_token.cancelled() => {
                 debug!("server shutting down; closing connection");
@@ -207,7 +219,7 @@ where
 
                 let reply = Message::error(error).encode().map_err(io::Error::other)?;
                 conn.send(reply).await.map_err(io::Error::other)?;
-                continue;
+                break Ok(ControlFlow::Break(()));
             },
         };
 
@@ -216,6 +228,24 @@ where
         let Some(plugin_version) =
             cs2kz::plugin::get_version(cx, &hello.payload().plugin_version).await?
         else {
+            debug!(plugin_version = %hello.payload().plugin_version, "unknown plugin version");
+
+            let reply = Message::error("unknown plugin version")
+                .encode()
+                .map_err(io::Error::other)?;
+
+            conn.send(reply).await.map_err(io::Error::other)?;
+            break Ok(ControlFlow::Break(()));
+        };
+
+        if !runtime::environment().is_local()
+            && !cs2kz::plugin::is_valid_version(
+                cx,
+                plugin_version.id,
+                &hello.payload().plugin_version_checksum,
+            )
+            .await?
+        {
             debug!(plugin_version = %hello.payload().plugin_version, "invalid plugin version");
 
             let reply = Message::error("invalid plugin version")
@@ -223,8 +253,8 @@ where
                 .map_err(io::Error::other)?;
 
             conn.send(reply).await.map_err(io::Error::other)?;
-            continue;
-        };
+            break Ok(ControlFlow::Break(()));
+        }
 
         debug!(map = hello.payload().map, "valid plugin version, getting map details");
 
@@ -267,7 +297,7 @@ where
             let map = cs2kz::maps::get_by_name(cx, new_map).try_next().await?;
             let reply = Message::reply(&message, message::Outgoing::MapInfo { map }).encode()?;
 
-            conn.send(reply).await.map_err(Into::into)?;
+            conn.send(reply).await.map_err(Into::into)
         },
 
         P::WantMapInfo { ref map } => {
@@ -280,7 +310,7 @@ where
 
             let reply = Message::reply(&message, message::Outgoing::MapInfo { map }).encode()?;
 
-            conn.send(reply).await.map_err(Into::into)?;
+            conn.send(reply).await.map_err(Into::into)
         },
 
         P::PlayerJoin { id, ref name, ip_address } => {
@@ -306,17 +336,21 @@ where
             })
             .encode()?;
 
-            conn.send(reply).await.map_err(Into::into)?;
+            conn.send(reply).await.map_err(Into::into)
         },
 
-        P::PlayerLeave { id, ref preferences } => {
+        P::PlayerLeave { id, ref name, ref preferences } => {
             if let Some(player) = state.players.remove(&id) {
-                trace!("{} ({}) left the server", player.name, player.id);
+                trace!("{} ({}) left the server as {}", player.name, player.id, name);
             } else {
-                warn!(%id, "unknown player left the server");
+                warn!(%id, "previously unknown player left the server as {}", name);
             }
 
-            cs2kz::players::set_preferences(cx, id, preferences).await?;
+            if !cs2kz::players::on_leave(cx, id, name, preferences).await? {
+                warn!(%id, "updated non-existent player?");
+            }
+
+            Ok(())
         },
 
         P::WantPreferences { player_id } => {
@@ -325,10 +359,10 @@ where
                 Message::reply(&message, message::Outgoing::PlayerPreferences { preferences })
                     .encode()?;
 
-            conn.send(reply).await.map_err(Into::into)?;
+            conn.send(reply).await.map_err(Into::into)
         },
 
-        P::WantWorldRecords { map_id } => {
+        P::WantWorldRecordsForCache { map_id } => {
             let params = GetRecordsParams {
                 top: true,
                 map_id: Some(map_id),
@@ -338,9 +372,86 @@ where
             let records = cs2kz::records::get(cx, params).await?.into_inner();
 
             let reply =
-                Message::reply(&message, message::Outgoing::WorldRecords { records }).encode()?;
+                Message::reply(&message, message::Outgoing::WorldRecordsForCache { records })
+                    .encode()?;
 
-            conn.send(reply).await.map_err(Into::into)?;
+            conn.send(reply).await.map_err(Into::into)
+        },
+
+        P::WantCourseTop { ref map_name, ref course, mode, limit, offset } => {
+            let Some(map_info) = cs2kz::maps::get_by_name(cx, map_name)
+                .try_next()
+                .await?
+                .map(|map| MapInfo { id: map.id, name: map.name })
+            else {
+                let reply = Message::reply(&message, message::Outgoing::CourseTop {
+                    map: None,
+                    course: None,
+                    overall: Vec::new(),
+                    pro: Vec::new(),
+                })
+                .encode()?;
+
+                return conn.send(reply).await.map_err(Into::into);
+            };
+
+            let Some(course_info) =
+                cs2kz::maps::get_course_info_by_name(cx, &map_info.name, course, mode)
+                    .await?
+                    .map(CourseInfo::from)
+            else {
+                let reply = Message::reply(&message, message::Outgoing::CourseTop {
+                    map: None,
+                    course: None,
+                    overall: Vec::new(),
+                    pro: Vec::new(),
+                })
+                .encode()?;
+
+                return conn.send(reply).await.map_err(Into::into);
+            };
+
+            let overall = cs2kz::records::get(cx, GetRecordsParams {
+                top: true,
+                player_id: None,
+                server_id: None,
+                map_id: None,
+                course_id: Some(course_info.id),
+                mode: Some(mode),
+                has_teleports: None,
+                max_rank: None,
+                sort_by: cs2kz::records::SortBy::Time,
+                sort_order: Some(cs2kz::records::SortOrder::Ascending),
+                limit,
+                offset,
+            })
+            .await?;
+
+            let pro = cs2kz::records::get(cx, GetRecordsParams {
+                top: true,
+                player_id: None,
+                server_id: None,
+                map_id: None,
+                course_id: Some(course_info.id),
+                mode: Some(mode),
+                has_teleports: Some(false),
+                max_rank: None,
+                sort_by: cs2kz::records::SortBy::Time,
+                sort_order: Some(cs2kz::records::SortOrder::Ascending),
+                limit,
+                offset,
+            })
+            .await?;
+
+            let reply = Message::reply(&message, message::Outgoing::CourseTop {
+                map: Some(map_info),
+                course: Some(course_info),
+                overall: overall.into_inner(),
+                pro: pro.into_inner(),
+            })
+            .encode()?;
+
+            conn.send(reply).await.map_err(Into::into)
         },
 
         P::WantPlayerRecords { map_id, player_id } => {
@@ -351,15 +462,255 @@ where
             let reply =
                 Message::reply(&message, message::Outgoing::PlayerRecords { records }).encode()?;
 
-            conn.send(reply).await.map_err(Into::into)?;
+            conn.send(reply).await.map_err(Into::into)
         },
 
-        P::NewRecord { player_id, filter_id, styles, teleports, time } => {
+        // TODO: styles
+        P::WantPersonalBest {
+            ref player,
+            ref map,
+            ref course,
+            mode,
+            styles: _,
+        } => {
+            let player = match *player {
+                PlayerIdentifier::Id(id) => cs2kz::players::get_by_id(cx, id).await?,
+                PlayerIdentifier::Name(ref name) => cs2kz::players::get_by_name(cx, name).await?,
+            }
+            .map(|player| PlayerInfoWithIsBanned {
+                id: player.id,
+                name: player.name,
+                is_banned: player.is_banned,
+            });
+
+            let Some(map_info) = (match *map {
+                MapIdentifier::Id(id) => cs2kz::maps::get_by_id(cx, id)
+                    .await?
+                    .map(|map| MapInfo { id: map.id, name: map.name }),
+                MapIdentifier::Name(ref name) => cs2kz::maps::get_by_name(cx, name)
+                    .try_next()
+                    .await?
+                    .map(|map| MapInfo { id: map.id, name: map.name }),
+            }) else {
+                let reply = Message::reply(&message, message::Outgoing::PersonalBest {
+                    player: None,
+                    map: None,
+                    course: None,
+                    overall: None,
+                    pro: None,
+                })
+                .encode()?;
+
+                return conn.send(reply).await.map_err(Into::into);
+            };
+
+            let Some(course_info) =
+                cs2kz::maps::get_course_info_by_name(cx, &map_info.name, course, mode)
+                    .await?
+                    .map(CourseInfo::from)
+            else {
+                let reply = Message::reply(&message, message::Outgoing::PersonalBest {
+                    player: None,
+                    map: None,
+                    course: None,
+                    overall: None,
+                    pro: None,
+                })
+                .encode()?;
+
+                return conn.send(reply).await.map_err(Into::into);
+            };
+
+            let overall = match player.as_ref() {
+                None => None,
+                Some(&PlayerInfoWithIsBanned { id, .. }) => {
+                    cs2kz::records::get(cx, GetRecordsParams {
+                        top: true,
+                        player_id: Some(id),
+                        server_id: None,
+                        map_id: Some(map_info.id),
+                        course_id: Some(course_info.id),
+                        mode: Some(mode),
+                        has_teleports: None,
+                        max_rank: None,
+                        sort_by: cs2kz::records::SortBy::Time,
+                        sort_order: Some(cs2kz::records::SortOrder::Ascending),
+                        limit: Limit::new(1),
+                        offset: Offset::default(),
+                    })
+                    .await?
+                    .into_inner()
+                    .into_iter()
+                    .next()
+                },
+            };
+
+            let pro = match player.as_ref() {
+                None => None,
+                Some(&PlayerInfoWithIsBanned { id, .. }) => {
+                    cs2kz::records::get(cx, GetRecordsParams {
+                        top: true,
+                        player_id: Some(id),
+                        server_id: None,
+                        map_id: Some(map_info.id),
+                        course_id: Some(course_info.id),
+                        mode: Some(mode),
+                        has_teleports: Some(false),
+                        max_rank: None,
+                        sort_by: cs2kz::records::SortBy::Time,
+                        sort_order: Some(cs2kz::records::SortOrder::Ascending),
+                        limit: Limit::new(1),
+                        offset: Offset::default(),
+                    })
+                    .await?
+                    .into_inner()
+                    .into_iter()
+                    .next()
+                },
+            };
+
+            let reply = Message::reply(&message, message::Outgoing::PersonalBest {
+                player,
+                map: Some(map_info),
+                course: Some(course_info),
+                overall,
+                pro,
+            })
+            .encode()?;
+
+            conn.send(reply).await.map_err(Into::into)
+        },
+
+        P::WantWorldRecords { ref map, ref course, mode } => {
+            let Some(map_info) = (match *map {
+                MapIdentifier::Id(id) => cs2kz::maps::get_by_id(cx, id)
+                    .await?
+                    .map(|map| MapInfo { id: map.id, name: map.name }),
+                MapIdentifier::Name(ref name) => cs2kz::maps::get_by_name(cx, name)
+                    .try_next()
+                    .await?
+                    .map(|map| MapInfo { id: map.id, name: map.name }),
+            }) else {
+                let reply = Message::reply(&message, message::Outgoing::WorldRecords {
+                    map: None,
+                    course: None,
+                    overall: None,
+                    pro: None,
+                })
+                .encode()?;
+
+                return conn.send(reply).await.map_err(Into::into);
+            };
+
+            let Some(course_info) =
+                cs2kz::maps::get_course_info_by_name(cx, &map_info.name, course, mode)
+                    .await?
+                    .map(CourseInfo::from)
+            else {
+                let reply = Message::reply(&message, message::Outgoing::WorldRecords {
+                    map: None,
+                    course: None,
+                    overall: None,
+                    pro: None,
+                })
+                .encode()?;
+
+                return conn.send(reply).await.map_err(Into::into);
+            };
+
+            let overall = cs2kz::records::get(cx, GetRecordsParams {
+                top: true,
+                player_id: None,
+                server_id: None,
+                map_id: Some(map_info.id),
+                course_id: Some(course_info.id),
+                mode: Some(mode),
+                has_teleports: None,
+                max_rank: None,
+                sort_by: cs2kz::records::SortBy::Time,
+                sort_order: Some(cs2kz::records::SortOrder::Ascending),
+                limit: Limit::new(1),
+                offset: Offset::default(),
+            })
+            .await?
+            .into_inner()
+            .into_iter()
+            .next();
+
+            let pro = cs2kz::records::get(cx, GetRecordsParams {
+                top: true,
+                player_id: None,
+                server_id: None,
+                map_id: Some(map_info.id),
+                course_id: Some(course_info.id),
+                mode: Some(mode),
+                has_teleports: Some(false),
+                max_rank: None,
+                sort_by: cs2kz::records::SortBy::Time,
+                sort_order: Some(cs2kz::records::SortOrder::Ascending),
+                limit: Limit::new(1),
+                offset: Offset::default(),
+            })
+            .await?
+            .into_inner()
+            .into_iter()
+            .next();
+
+            let reply = Message::reply(&message, message::Outgoing::WorldRecords {
+                map: Some(map_info),
+                course: Some(course_info),
+                overall,
+                pro,
+            })
+            .encode()?;
+
+            conn.send(reply).await.map_err(Into::into)
+        },
+
+        P::NewRecord {
+            player_id,
+            filter_id,
+            ref mode_md5,
+            ref styles,
+            teleports,
+            time,
+        } => {
+            if !runtime::environment().is_local()
+                && !cs2kz::mode::verify_checksum(cx, mode_md5, state.plugin_version_id).await?
+            {
+                let reply = Message::error("invalid mode checksum").encode()?;
+
+                return conn.send(reply).await.map_err(Into::into);
+            }
+
+            let valid_styles = cs2kz::styles::get_for_plugin_version(cx, state.plugin_version_id)
+                .try_fold(HashSet::new(), async |mut styles, info| {
+                    styles.insert(info.linux_checksum);
+                    styles.insert(info.windows_checksum);
+                    Ok(styles)
+                })
+                .await?;
+
+            if !runtime::environment().is_local()
+                && let Some(invalid_style) = styles
+                    .known_styles
+                    .iter()
+                    .find(|style| !valid_styles.contains(&style.checksum))
+            {
+                let reply = Message::error(format_args!(
+                    "invalid style checksum for '{}'",
+                    invalid_style.style,
+                ))
+                .encode()?;
+
+                return conn.send(reply).await.map_err(Into::into);
+            }
+
             let record = cs2kz::records::submit(cx, NewRecord {
                 player_id,
                 server_id: state.server_id,
                 filter_id,
-                styles,
+                styles: styles.clone(),
                 teleports,
                 time,
                 plugin_version_id: state.plugin_version_id,
@@ -368,23 +719,13 @@ where
 
             let reply = Message::reply(&message, message::Outgoing::NewRecordAck {
                 record_id: record.record_id,
-                player_rating: record.player_rating,
-                is_first_nub_record: record.is_first_nub_record,
-                nub_rank: record.nub_rank,
-                nub_points: record.nub_points,
-                nub_leaderboard_size: record.nub_leaderboard_size,
-                is_first_pro_record: record.is_first_pro_record,
-                pro_rank: record.pro_rank,
-                pro_points: record.pro_points,
-                pro_leaderboard_size: record.pro_leaderboard_size,
+                pb_data: record.pb_data,
             })
             .encode()?;
 
-            conn.send(reply).await.map_err(Into::into)?;
+            conn.send(reply).await.map_err(Into::into)
         },
     }
-
-    Ok(())
 }
 
 fn shutdown_close_frame() -> CloseFrame {
@@ -393,9 +734,17 @@ fn shutdown_close_frame() -> CloseFrame {
         reason: "server is shutting down".into(),
     }
 }
+
 fn timeout_close_frame() -> CloseFrame {
     CloseFrame {
-        code: close_code::NORMAL,
+        code: close_code::POLICY,
         reason: "exceeded heartbeat timeout".into(),
+    }
+}
+
+fn unauthorized_close_frame() -> CloseFrame {
+    CloseFrame {
+        code: close_code::POLICY,
+        reason: "unauthorized".into(),
     }
 }

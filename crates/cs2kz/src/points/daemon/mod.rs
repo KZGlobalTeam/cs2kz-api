@@ -352,7 +352,7 @@ async fn track_record_counts(
     };
 
     let new_filter_ids = events::subscribe().filter_map(|event| {
-        future::ready(if let Event::NewRecord { filter_id, .. } = *event {
+        future::ready(if let Event::NewRecord { filter_id, pb_data: Some(_), .. } = *event {
             Some(filter_id)
         } else {
             None

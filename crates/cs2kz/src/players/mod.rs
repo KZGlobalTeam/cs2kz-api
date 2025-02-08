@@ -27,6 +27,7 @@ pub struct Player {
     pub id: PlayerId,
     pub name: String,
     pub ip_address: Option<Ipv4Addr>,
+    pub is_banned: bool,
     pub first_joined_at: Timestamp,
     pub last_joined_at: Timestamp,
 }
@@ -35,6 +36,13 @@ pub struct Player {
 pub struct PlayerInfo {
     pub id: PlayerId,
     pub name: String,
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+pub struct PlayerInfoWithIsBanned {
+    pub id: PlayerId,
+    pub name: String,
+    pub is_banned: bool,
 }
 
 #[derive(Debug)]
@@ -97,8 +105,11 @@ pub async fn register(
     NewPlayer { id, name, ip_address }: NewPlayer<'_>,
 ) -> Result<RegisterPlayerInfo, CreatePlayerError> {
     sqlx::query!(
-        "INSERT IGNORE INTO Players (id, name, ip_address)
-         VALUES (?, ?, ?)",
+        "INSERT INTO Players (id, name, ip_address)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY
+         UPDATE name = VALUES(name),
+                ip_address = VALUES(ip_address)",
         id,
         name,
         ip_address,
@@ -165,7 +176,7 @@ pub async fn get(
 ) -> Result<Paginated<impl Stream<Item = Result<Player, GetPlayersError>>>, GetPlayersError> {
     let total = database::count!(cx.database().as_ref(), "Players").await?;
     let servers = self::macros::select!(
-        "WHERE name LIKE COALESCE(?, name)
+        "WHERE p.name LIKE COALESCE(?, p.name)
          LIMIT ?
          OFFSET ?",
         name.map(|name| format!("%{name}%")),
@@ -183,7 +194,7 @@ pub async fn get_by_id(
     cx: &Context,
     player_id: PlayerId,
 ) -> Result<Option<Player>, GetPlayersError> {
-    self::macros::select!("WHERE id = ?", player_id)
+    self::macros::select!("WHERE p.id = ?", player_id)
         .fetch_optional(cx.database().as_ref())
         .await
         .map_err(GetPlayersError::from)
@@ -194,7 +205,7 @@ pub async fn get_by_name(
     cx: &Context,
     player_name: &str,
 ) -> Result<Option<Player>, GetPlayersError> {
-    self::macros::select!("WHERE name LIKE ?", format!("%{player_name}%"))
+    self::macros::select!("WHERE p.name LIKE ?", format!("%{player_name}%"))
         .fetch_optional(cx.database().as_ref())
         .await
         .map_err(GetPlayersError::from)
@@ -213,7 +224,7 @@ pub async fn get_profile(
                record_id,
                ROW_NUMBER() OVER (
                  PARTITION BY player_id
-                 ORDER BY points DESC
+                 ORDER BY points DESC, source DESC
                ) AS n
              FROM ((
                SELECT "pro" AS source, record_id, player_id, points
@@ -354,6 +365,28 @@ pub async fn set_preferences(
     .map_err(SetPlayerPreferencesError::from)
 }
 
+#[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]
+pub async fn on_leave(
+    cx: &Context,
+    player_id: PlayerId,
+    name: &str,
+    preferences: &Preferences,
+) -> Result<bool, SetPlayerPreferencesError> {
+    sqlx::query!(
+        "UPDATE Players
+         SET name = ?,
+             preferences = ?
+         WHERE id = ?",
+        name,
+        SqlJson(preferences),
+        player_id,
+    )
+    .execute(cx.database().as_ref())
+    .await
+    .map(|result| result.rows_affected() > 0)
+    .map_err(SetPlayerPreferencesError::from)
+}
+
 #[tracing::instrument(skip(cx, mapper_ids))]
 pub fn filter_unknown(
     cx: &Context,
@@ -385,13 +418,21 @@ mod macros {
         ( $($extra:tt)* ) => {
             sqlx::query_as!(
                 Player,
-                "SELECT
-                   id AS `id: PlayerId`,
-                   name,
-                   ip_address AS `ip_address: Ipv4Addr`,
-                   first_joined_at,
-                   last_joined_at
-                 FROM Players "
+                "WITH BanCounts AS (
+                   SELECT b.player_id, COUNT(*) AS count
+                    FROM Bans AS b
+                    RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id
+                    WHERE (b.id IS NULL OR b.expires_at > NOW())
+                 )
+                 SELECT
+                   p.id AS `id: PlayerId`,
+                   p.name,
+                   p.ip_address AS `ip_address: Ipv4Addr`,
+                   (COALESCE(BanCounts.count, 0) > 0) AS `is_banned!: bool`,
+                   p.first_joined_at,
+                   p.last_joined_at
+                 FROM Players AS p
+                 LEFT JOIN BanCounts ON BanCounts.player_id = p.id "
                 + $($extra)*
             )
         };

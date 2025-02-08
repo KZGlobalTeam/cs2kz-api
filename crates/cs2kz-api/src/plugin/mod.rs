@@ -2,9 +2,12 @@ use axum::extract::{FromRef, State};
 use axum::handler::Handler;
 use axum::routing::{self, MethodRouter, Router};
 use cs2kz::Context;
+use cs2kz::checksum::Checksum;
 use cs2kz::git::GitRevision;
+use cs2kz::mode::Mode;
 use cs2kz::pagination::{Limit, Offset, Paginated};
 use cs2kz::plugin::{PluginVersionId, PublishPluginVersionError};
+use cs2kz::styles::Style;
 use cs2kz::time::Timestamp;
 
 use crate::config;
@@ -24,6 +27,45 @@ pub struct NewPluginVersion {
     /// The git revision associated with the release commit / tag.
     #[schema(value_type = crate::openapi::shims::GitRevision)]
     git_revision: GitRevision,
+
+    /// Checksum of the plugin binary on Linux
+    #[schema(value_type = crate::openapi::shims::Checksum)]
+    linux_checksum: Checksum,
+
+    /// Checksum of the plugin binary on Windows
+    #[schema(value_type = crate::openapi::shims::Checksum)]
+    windows_checksum: Checksum,
+
+    /// Whether this release invalidates all previous releases
+    is_cutoff: bool,
+
+    modes: Vec<NewMode>,
+
+    styles: Vec<NewStyle>,
+}
+
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
+pub struct NewMode {
+    #[schema(value_type = crate::openapi::shims::Mode)]
+    mode: Mode,
+
+    #[schema(value_type = crate::openapi::shims::Checksum)]
+    linux_checksum: Checksum,
+
+    #[schema(value_type = crate::openapi::shims::Checksum)]
+    windows_checksum: Checksum,
+}
+
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema)]
+pub struct NewStyle {
+    #[schema(value_type = crate::openapi::shims::Style)]
+    style: Style,
+
+    #[schema(value_type = crate::openapi::shims::Checksum)]
+    linux_checksum: Checksum,
+
+    #[schema(value_type = crate::openapi::shims::Checksum)]
+    windows_checksum: Checksum,
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
@@ -104,11 +146,32 @@ where
 )]
 async fn publish_plugin_version(
     State(cx): State<Context>,
-    Json(NewPluginVersion { version, git_revision }): Json<NewPluginVersion>,
+    Json(NewPluginVersion {
+        version,
+        git_revision,
+        linux_checksum,
+        windows_checksum,
+        is_cutoff,
+        modes,
+        styles,
+    }): Json<NewPluginVersion>,
 ) -> Result<Created<PublishedPluginVersion>, ErrorResponse> {
     let plugin_version = cs2kz::plugin::NewPluginVersion {
         version: &version,
         git_revision: &git_revision,
+        linux_checksum: &linux_checksum,
+        windows_checksum: &windows_checksum,
+        is_cutoff,
+        modes: modes.iter().map(|mode| cs2kz::plugin::NewMode {
+            mode: mode.mode,
+            linux_checksum: &mode.linux_checksum,
+            windows_checksum: &mode.windows_checksum,
+        }),
+        styles: styles.iter().map(|style| cs2kz::plugin::NewStyle {
+            style: style.style,
+            linux_checksum: &style.linux_checksum,
+            windows_checksum: &style.windows_checksum,
+        }),
     };
 
     cs2kz::plugin::publish_version(&cx, plugin_version)

@@ -17,6 +17,7 @@
 #![feature(decl_macro)]
 #![feature(future_join)]
 #![feature(iter_chain)]
+#![feature(let_chains)]
 #![feature(return_type_notation)]
 
 #[macro_use]

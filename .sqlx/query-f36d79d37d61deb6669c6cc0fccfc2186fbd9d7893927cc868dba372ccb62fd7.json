@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE Players\n         SET name = ?,\n             preferences = ?\n         WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "f36d79d37d61deb6669c6cc0fccfc2186fbd9d7893927cc868dba372ccb62fd7"
+}

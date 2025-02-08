@@ -29,13 +29,20 @@ use cs2kz::maps::{
     NewCourseFilters,
     NewMap,
 };
+use cs2kz::mode::Mode;
 use cs2kz::pagination::Limit;
 use cs2kz::players::{self, CreatePlayerError, GetPlayersParams, NewPlayer, PlayerId};
-use cs2kz::plugin::{self, NewPluginVersion};
-use cs2kz::records::{self, NewRecord, RecordId, SubmitRecordError, SubmittedRecord};
+use cs2kz::plugin::{self, NewMode, NewPluginVersion};
+use cs2kz::records::{
+    self,
+    NewRecord,
+    RecordId,
+    StylesForNewRecord,
+    SubmitRecordError,
+    SubmittedRecord,
+};
 use cs2kz::servers::{self, ApproveServerError, GetServersParams, NewServer, ServerHost, ServerId};
 use cs2kz::steam::WorkshopId;
-use cs2kz::styles::Styles;
 use cs2kz::users::{self, CreateUserError, NewUser, UserId};
 use cs2kz::{Context, points};
 use fake::faker::lorem::en::{Paragraph, Word};
@@ -153,7 +160,36 @@ async fn create_plugin_version(
     let mut fallback_git_revision = None;
     let git_revision =
         git_revision.unwrap_or_else(|| &*fallback_git_revision.get_or_insert(Faker.fake()));
-    let id = plugin::publish_version(cx, NewPluginVersion { version, git_revision }).await?;
+
+    let linux_checksum = Faker.fake();
+    let windows_checksum = Faker.fake();
+    let ckz_linux_checksum = Faker.fake();
+    let ckz_windows_checksum = Faker.fake();
+    let vnl_linux_checksum = Faker.fake();
+    let vnl_windows_checksum = Faker.fake();
+
+    let id = plugin::publish_version(cx, NewPluginVersion {
+        version,
+        git_revision,
+        linux_checksum: &linux_checksum,
+        windows_checksum: &windows_checksum,
+        is_cutoff: Faker.fake(),
+        modes: [
+            NewMode {
+                mode: Mode::Vanilla,
+                linux_checksum: &ckz_linux_checksum,
+                windows_checksum: &ckz_windows_checksum,
+            },
+            NewMode {
+                mode: Mode::Classic,
+                linux_checksum: &vnl_linux_checksum,
+                windows_checksum: &vnl_windows_checksum,
+            },
+        ]
+        .into_iter(),
+        styles: [].into_iter(),
+    })
+    .await?;
 
     info!(%id, "created plugin version");
 
@@ -337,7 +373,7 @@ async fn create_records(
                 .choose(&mut rng)
                 .copied()
                 .context("there are no filters in the database")?,
-            styles: Styles::none(),
+            styles: StylesForNewRecord { count: 0, known_styles: Vec::new() },
             teleports: if rng.gen_range(0..100) > 33 {
                 rng.r#gen()
             } else {
