@@ -14,15 +14,15 @@ CREATE TABLE IF NOT EXISTS PluginVersions (
 );
 
 CREATE TABLE IF NOT EXISTS ModeChecksums (
-  id INT1 UNSIGNED NOT NULL PRIMARY KEY,
-  plugin_version_id INT2 UNSIGNED REFERENCES PluginVersions(id),
+  id INT1 UNSIGNED NOT NULL,
+  plugin_version_id INT2 UNSIGNED PRIMARY KEY REFERENCES PluginVersions(id),
   linux_checksum BINARY(16) NOT NULL,
   windows_checksum BINARY(16) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS StyleChecksums (
-  id INT4 UNSIGNED NOT NULL PRIMARY KEY,
-  plugin_version_id INT2 UNSIGNED REFERENCES PluginVersions(id),
+  id INT4 UNSIGNED NOT NULL,
+  plugin_version_id INT2 UNSIGNED PRIMARY KEY REFERENCES PluginVersions(id),
   linux_checksum BINARY(16) NOT NULL,
   windows_checksum BINARY(16) NOT NULL
 );
