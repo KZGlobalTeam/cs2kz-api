@@ -32,7 +32,7 @@ use cs2kz::maps::{
 use cs2kz::mode::Mode;
 use cs2kz::pagination::Limit;
 use cs2kz::players::{self, CreatePlayerError, GetPlayersParams, NewPlayer, PlayerId};
-use cs2kz::plugin::{self, NewMode, NewPluginVersion};
+use cs2kz::plugin::{self, NewMode, NewPluginVersion, NewStyle};
 use cs2kz::records::{
     self,
     NewRecord,
@@ -43,6 +43,7 @@ use cs2kz::records::{
 };
 use cs2kz::servers::{self, ApproveServerError, GetServersParams, NewServer, ServerHost, ServerId};
 use cs2kz::steam::WorkshopId;
+use cs2kz::styles::Style;
 use cs2kz::users::{self, CreateUserError, NewUser, UserId};
 use cs2kz::{Context, points};
 use fake::faker::lorem::en::{Paragraph, Word};
@@ -187,7 +188,12 @@ async fn create_plugin_version(
             },
         ]
         .into_iter(),
-        styles: [].into_iter(),
+        styles: [NewStyle {
+            style: Style::AutoBhop,
+            linux_checksum: &linux_checksum,
+            windows_checksum: &windows_checksum,
+        }]
+        .into_iter(),
     })
     .await?;
 
