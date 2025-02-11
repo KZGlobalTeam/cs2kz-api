@@ -219,7 +219,7 @@ pub async fn submit(
     }: NewRecord,
 ) -> Result<SubmittedRecord, SubmitRecordError> {
     let record = cx
-        .database_transaction(async |conn| {
+        .database_transaction(async |conn| -> Result<_, SubmitRecordError> {
             let record_id = sqlx::query!(
                 "INSERT INTO Records (
                    player_id,
@@ -612,47 +612,50 @@ pub async fn submit(
             .fetch_one(&mut *conn)
             .await?;
 
-            self::macros::select_after_submit!(filter_id, player_id, mode)
+            let ranks = self::macros::select_ranks_after_submit!(filter_id, player_id, mode)
                 .fetch_one(&mut *conn)
-                .await
-                .map_err(SubmitRecordError::from)
-                .map(|row| {
-                    dbg!(&row);
-                    let nub_rank = row.nub_rank.map(|rank| rank as u32);
-                    let nub_leaderboard_size =
-                        row.nub_leaderboard_size.map_or(0, |size| size as u32);
-                    let pro_rank = row.pro_rank.map(|rank| rank as u32);
-                    let pro_leaderboard_size =
-                        row.pro_leaderboard_size.map_or(0, |size| size as u32);
-                    let player_rating = match (row.nub_rating, row.pro_rating) {
-                        (None, Some(_)) => unreachable!(),
-                        (None, None) => 0.0,
-                        (Some(nub_rating), None) => nub_rating,
-                        // ?
-                        (Some(nub_rating), Some(pro_rating)) => nub_rating + pro_rating,
-                    };
+                .await?;
 
-                    SubmittedRecord {
-                        record_id,
-                        pb_data: Some(SubmittedPB {
-                            player_rating,
-                            nub_rank,
-                            nub_points: Option::zip(nub_rank, nub_points_params).map(
-                                |(rank, (tier, dist_points))| {
-                                    points::complete(tier, false, (rank - 1) as usize, dist_points)
-                                },
-                            ),
-                            nub_leaderboard_size,
-                            pro_rank,
-                            pro_points: Option::zip(pro_rank, pro_points_params).map(
-                                |(rank, (tier, dist_points))| {
-                                    points::complete(tier, true, (rank - 1) as usize, dist_points)
-                                },
-                            ),
-                            pro_leaderboard_size,
-                        }),
-                    }
-                })
+            dbg!(&ranks);
+
+            let ratings = self::macros::select_ratings_after_submit!(player_id, mode)
+                .fetch_one(&mut *conn)
+                .await?;
+
+            dbg!(&ratings);
+
+            let nub_rank = ranks.nub_rank.map(|rank| rank as u32);
+            let nub_leaderboard_size = ranks.nub_leaderboard_size.map_or(0, |size| size as u32);
+            let pro_rank = ranks.pro_rank.map(|rank| rank as u32);
+            let pro_leaderboard_size = ranks.pro_leaderboard_size.map_or(0, |size| size as u32);
+            let player_rating = match (ratings.nub_rating, ratings.pro_rating) {
+                (None, Some(_)) => unreachable!(),
+                (None, None) => 0.0,
+                (Some(nub_rating), None) => nub_rating,
+                // ?
+                (Some(nub_rating), Some(pro_rating)) => nub_rating + pro_rating,
+            };
+
+            Ok(SubmittedRecord {
+                record_id,
+                pb_data: Some(SubmittedPB {
+                    player_rating,
+                    nub_rank,
+                    nub_points: Option::zip(nub_rank, nub_points_params).map(
+                        |(rank, (tier, dist_points))| {
+                            points::complete(tier, false, (rank - 1) as usize, dist_points)
+                        },
+                    ),
+                    nub_leaderboard_size,
+                    pro_rank,
+                    pro_points: Option::zip(pro_rank, pro_points_params).map(
+                        |(rank, (tier, dist_points))| {
+                            points::complete(tier, true, (rank - 1) as usize, dist_points)
+                        },
+                    ),
+                    pro_leaderboard_size,
+                }),
+            })
         })
         .await?;
 
@@ -1377,8 +1380,63 @@ mod macros {
         };
     }
 
-    macro_rules! select_after_submit {
+    macro_rules! select_ranks_after_submit {
         ($filter_id:expr, $player_id:expr, $mode:expr $(,)?) => {
+            sqlx::query!(
+                "WITH NubRecords AS (
+                   SELECT
+                     r.id AS record_id,
+                     r.player_id,
+                     cf.nub_tier AS tier,
+                     BestNubRecords.points,
+                     RANK() OVER (
+                       PARTITION BY r.filter_id
+                       ORDER BY
+                         r.time ASC,
+                         r.submitted_at ASC
+                     ) AS rank
+                   FROM Records AS r
+                   JOIN BestNubRecords ON BestNubRecords.record_id = r.id
+                   JOIN CourseFilters AS cf ON cf.id = r.filter_id
+                   WHERE cf.mode = ?
+                 ),
+                 ProRecords AS (
+                   SELECT
+                     r.id AS record_id,
+                     r.player_id,
+                     cf.pro_tier AS tier,
+                     BestProRecords.points,
+                     RANK() OVER (
+                       PARTITION BY r.filter_id
+                       ORDER BY
+                         r.time ASC,
+                         r.submitted_at ASC
+                     ) AS rank
+                   FROM Records AS r
+                   JOIN BestProRecords ON BestProRecords.record_id = r.id
+                   JOIN CourseFilters AS cf ON cf.id = r.filter_id
+                   WHERE cf.mode = ?
+                 )
+                 SELECT
+                   (SELECT COUNT(*) FROM BestNubRecords WHERE filter_id = ?) AS nub_leaderboard_size,
+                   (SELECT COUNT(*) FROM BestProRecords WHERE filter_id = ?) AS pro_leaderboard_size,
+                   NubRecords.rank AS nub_rank,
+                   ProRecords.rank AS pro_rank
+                 FROM Players AS p
+                 LEFT JOIN NubRecords ON NubRecords.player_id = p.id
+                 LEFT JOIN ProRecords ON ProRecords.player_id = p.id
+                 WHERE p.id = ?",
+                $mode,
+                $mode,
+                $filter_id,
+                $filter_id,
+                $player_id,
+            )
+        };
+    }
+
+    macro_rules! select_ratings_after_submit {
+        ($player_id:expr, $mode:expr $(,)?) => {
             sqlx::query!(
                 "WITH RankedPoints AS (
                    SELECT
@@ -1455,15 +1513,9 @@ mod macros {
                    GROUP BY player_id
                  )
                  SELECT
-                   (SELECT COUNT(*) FROM BestNubRecords WHERE filter_id = ?) AS nub_leaderboard_size,
-                   (SELECT COUNT(*) FROM BestProRecords WHERE filter_id = ?) AS pro_leaderboard_size,
                    NubRatings.rating AS nub_rating,
-                   NubRecords.rank AS nub_rank,
-                   ProRatings.rating AS pro_rating,
-                   ProRecords.rank AS pro_rank
+                   ProRatings.rating AS pro_rating
                  FROM Players AS p
-                 LEFT JOIN NubRecords ON NubRecords.player_id = p.id
-                 LEFT JOIN ProRecords ON ProRecords.player_id = p.id
                  LEFT JOIN NubRatings ON NubRatings.player_id = p.id
                  LEFT JOIN ProRatings ON ProRatings.player_id = p.id
                  WHERE p.id = ?",
@@ -1473,8 +1525,6 @@ mod macros {
                 $mode,
                 $player_id,
                 $mode,
-                $filter_id,
-                $filter_id,
                 $player_id,
             )
         };
@@ -1518,5 +1568,5 @@ mod macros {
         };
     }
 
-    pub(super) use {parse_row, select, select_after_submit};
+    pub(super) use {parse_row, select, select_ranks_after_submit, select_ratings_after_submit};
 }
