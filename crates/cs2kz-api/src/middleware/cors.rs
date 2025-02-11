@@ -4,7 +4,11 @@ use tower_http::cors::{AllowCredentials, AllowHeaders, AllowMethods, AllowOrigin
 
 use crate::runtime::{self, Environment};
 
-const KNOWN_HOSTS: &[&str] = &["https://cs2kz.org", "https://dashboard.cs2kz.org"];
+const KNOWN_HOSTS: &[&str] = &[
+    "https://cs2kz.org",
+    "https://dashboard.cs2kz.org",
+    "https://docs.cs2kz.org",
+];
 const STAGING_HOSTS: &[&str] = &["https://staging.dashboard.cs2kz.org"];
 const LOCAL_HOSTS: &[&str] = &["0.0.0.0", "127.0.0.1", "::", "::1", "localhost"];
 
