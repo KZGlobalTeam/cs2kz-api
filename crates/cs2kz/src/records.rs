@@ -612,7 +612,7 @@ pub async fn submit(
             .fetch_one(&mut *conn)
             .await?;
 
-            let ranks = self::macros::select_ranks_after_submit!(filter_id, player_id, mode)
+            let ranks = self::macros::select_ranks_after_submit!(filter_id, player_id)
                 .fetch_one(&mut *conn)
                 .await?;
 
@@ -1381,7 +1381,7 @@ mod macros {
     }
 
     macro_rules! select_ranks_after_submit {
-        ($filter_id:expr, $player_id:expr, $mode:expr $(,)?) => {
+        ($filter_id:expr, $player_id:expr $(,)?) => {
             sqlx::query!(
                 "WITH NubRecords AS (
                    SELECT
@@ -1398,7 +1398,7 @@ mod macros {
                    FROM Records AS r
                    JOIN BestNubRecords ON BestNubRecords.record_id = r.id
                    JOIN CourseFilters AS cf ON cf.id = r.filter_id
-                   WHERE cf.mode = ?
+                   WHERE cf.id = ?
                  ),
                  ProRecords AS (
                    SELECT
@@ -1415,7 +1415,7 @@ mod macros {
                    FROM Records AS r
                    JOIN BestProRecords ON BestProRecords.record_id = r.id
                    JOIN CourseFilters AS cf ON cf.id = r.filter_id
-                   WHERE cf.mode = ?
+                   WHERE cf.id = ?
                  )
                  SELECT
                    (SELECT COUNT(*) FROM BestNubRecords WHERE filter_id = ?) AS nub_leaderboard_size,
@@ -1426,8 +1426,8 @@ mod macros {
                  LEFT JOIN NubRecords ON NubRecords.player_id = p.id
                  LEFT JOIN ProRecords ON ProRecords.player_id = p.id
                  WHERE p.id = ?",
-                $mode,
-                $mode,
+                $filter_id,
+                $filter_id,
                 $filter_id,
                 $filter_id,
                 $player_id,
