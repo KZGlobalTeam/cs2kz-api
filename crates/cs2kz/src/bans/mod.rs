@@ -155,8 +155,14 @@ pub async fn create(
         }
 
         sqlx::query!(
-            "INSERT INTO Bans (player_id, player_ip, banned_by, reason)
-             VALUES (?, COALESCE(?, (SELECT ip_address FROM Players WHERE id = ?)), ?, ?)",
+            "INSERT INTO Bans (player_id, player_ip, banned_by, reason, plugin_version_id)
+             VALUES (
+               ?,
+               COALESCE(?, (SELECT ip_address FROM Players WHERE id = ?)),
+               ?,
+               ?,
+               (SELECT id FROM PluginVersions ORDER BY published_at DESC LIMIT 1)
+             )",
             player_id,
             player_ip,
             player_id,
