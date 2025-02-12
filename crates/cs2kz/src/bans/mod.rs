@@ -188,7 +188,8 @@ pub async fn create(
                ?,
                (SELECT id FROM PluginVersions ORDER BY published_at DESC LIMIT 1),
                ?
-             )",
+             )
+             RETURNING id",
             player_id,
             player_ip,
             player_id,

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO Bans (\n               player_id,\n               player_ip,\n               banned_by,\n               reason,\n               plugin_version_id,\n               expires_at\n             )\n             VALUES (\n               ?,\n               COALESCE(?, (SELECT ip_address FROM Players WHERE id = ?)),\n               ?,\n               ?,\n               (SELECT id FROM PluginVersions ORDER BY published_at DESC LIMIT 1),\n               ?\n             )\n             RETURNING id",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "553e97ee839ecfb9b76323b1afe4bdddff456a727fad2bfe4cf44fe27cbf9a97"
+}
