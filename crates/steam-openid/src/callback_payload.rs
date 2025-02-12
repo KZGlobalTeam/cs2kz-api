@@ -108,6 +108,8 @@ impl CallbackPayload {
 
         let request = http::Request::post(LOGIN_URL)
             .header(http::header::CONTENT_TYPE, mime::APPLICATION_WWW_FORM_URLENCODED.as_ref())
+            .header(http::header::ORIGIN, "https://steamcommunity.com")
+            .header(http::header::REFERER, "https://steamcommunity.com/")
             .body(Bytes::from(payload))
             .expect("valid http request");
 
