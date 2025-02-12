@@ -1,4 +1,4 @@
-use std::future;
+use std::{future, str};
 
 use bytes::Bytes;
 use http_body::Body as HttpBody;
@@ -69,7 +69,7 @@ where
 
     #[display("HTTP request returned a bad status code ({})", response.status())]
     #[error(ignore)]
-    BadStatus { response: http::Response<ResponseBody> },
+    BadStatus { response: http::Response<Bytes> },
 
     #[display("failed to buffer response body")]
     BufferResponseBody {
@@ -115,22 +115,32 @@ impl CallbackPayload {
             .await
             .map_err(VerifyCallbackPayloadError::HttpClient)?;
 
-        let response = http_client
+        let (response, body) = http_client
             .call(request)
             .await
-            .map_err(VerifyCallbackPayloadError::HttpRequest)?;
+            .map_err(VerifyCallbackPayloadError::HttpRequest)?
+            .into_parts();
 
-        if !response.status().is_success() {
-            return Err(VerifyCallbackPayloadError::BadStatus { response });
-        }
-
-        let (response, body) = response.into_parts();
         let body = match body.collect().await {
             Ok(collected) => collected.to_bytes(),
             Err(error) => {
                 return Err(VerifyCallbackPayloadError::BufferResponseBody { error, response });
             },
         };
+
+        if !response.status.is_success() {
+            if let Ok(body) = str::from_utf8(&body[..]) {
+                tracing::debug!(
+                    body,
+                    status = response.status.as_u16(),
+                    "Steam returned bad status",
+                );
+            }
+
+            return Err(VerifyCallbackPayloadError::BadStatus {
+                response: http::Response::from_parts(response, body),
+            });
+        }
 
         if !body[..]
             .rsplit(|&byte| byte == b'\n')
