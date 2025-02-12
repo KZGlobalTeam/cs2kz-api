@@ -129,14 +129,6 @@ impl CallbackPayload {
         };
 
         if !response.status.is_success() {
-            if let Ok(body) = str::from_utf8(&body[..]) {
-                tracing::debug!(
-                    body,
-                    status = response.status.as_u16(),
-                    "Steam returned bad status",
-                );
-            }
-
             return Err(VerifyCallbackPayloadError::BadStatus {
                 response: http::Response::from_parts(response, body),
             });

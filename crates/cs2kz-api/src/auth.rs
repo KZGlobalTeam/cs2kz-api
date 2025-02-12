@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::str;
 use std::sync::Arc;
 
 use axum::extract::ws::WebSocketUpgrade;
@@ -304,7 +305,11 @@ async fn steam_callback(
             },
             VerifyCallbackPayloadError::HostMismatch => ErrorResponse::unauthorized(),
             VerifyCallbackPayloadError::BadStatus { response } => {
-                debug!(response.status = %response.status());
+                debug!(
+                    response.status = %response.status(),
+                    body = str::from_utf8(&response.body()[..]).unwrap_or("<invalid UTF-8>"),
+                );
+
                 ErrorResponse::unauthorized()
             },
             VerifyCallbackPayloadError::InvalidPayload { response } => {
