@@ -69,3 +69,19 @@ impl ops::Add<Timestamp> for time::Duration {
         timestamp + self
     }
 }
+
+impl ops::Add<std::time::Duration> for Timestamp {
+    type Output = Timestamp;
+
+    fn add(self, duration: std::time::Duration) -> Self::Output {
+        Timestamp(self.0 + duration)
+    }
+}
+
+impl ops::Add<Timestamp> for std::time::Duration {
+    type Output = Timestamp;
+
+    fn add(self, timestamp: Timestamp) -> Self::Output {
+        timestamp + self
+    }
+}

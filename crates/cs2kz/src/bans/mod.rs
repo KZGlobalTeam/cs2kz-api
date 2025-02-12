@@ -154,20 +154,47 @@ pub async fn create(
             return Err(CreateBanError::AlreadyBanned);
         }
 
+        let total_ban_duration = sqlx::query_scalar!(
+            "SELECT SUM(expires_at - created_at) AS `ban_duration: time::Duration`
+             FROM Bans
+             WHERE player_id = ?
+             GROUP BY player_id",
+            player_id,
+        )
+        .fetch(&mut *conn)
+        .map_ok(Option::unwrap_or_default)
+        .try_fold(time::Duration::ZERO, async |total, duration| Ok(total + duration))
+        .await?;
+
+        let ban_duration = reason.duration(
+            total_ban_duration
+                .try_into()
+                .expect("total ban duration should be positive"),
+        );
+
         sqlx::query!(
-            "INSERT INTO Bans (player_id, player_ip, banned_by, reason, plugin_version_id)
+            "INSERT INTO Bans (
+               player_id,
+               player_ip,
+               banned_by,
+               reason,
+               plugin_version_id,
+               expires_at
+             )
              VALUES (
                ?,
                COALESCE(?, (SELECT ip_address FROM Players WHERE id = ?)),
                ?,
                ?,
-               (SELECT id FROM PluginVersions ORDER BY published_at DESC LIMIT 1)
+               (SELECT id FROM PluginVersions ORDER BY published_at DESC LIMIT 1),
+               ?
              )",
             player_id,
             player_ip,
             player_id,
             banned_by,
             reason,
+            Timestamp::now() + ban_duration,
         )
         .fetch_one(conn)
         .await

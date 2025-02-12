@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT SUM(expires_at - created_at) AS `ban_duration: time::Duration`\n             FROM Bans\n             WHERE player_id = ?\n             GROUP BY player_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ban_duration: time::Duration",
+        "type_info": {
+          "type": "NewDecimal",
+          "flags": "BINARY",
+          "max_size": 38
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "1b523113354bec2ad14dc876fe4f65320158835e5147e915c71274d94419980c"
+}
