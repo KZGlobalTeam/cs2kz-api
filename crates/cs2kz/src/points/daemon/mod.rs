@@ -126,7 +126,7 @@ pub async fn process_filter(
 
     info!("recalculating points");
 
-    let records = python::execute(span.clone(), move |py| -> Result<_, Error> {
+    let records = python::execute(span.clone(), move |cx| -> Result<_, Error> {
         let mut records = HashMap::new();
         let mut nub_dist_points_so_far = Vec::with_capacity(nub_leaderboard.len());
         let mut scaled_nub_times = Vec::with_capacity(nub_leaderboard.len());
@@ -156,7 +156,7 @@ pub async fn process_filter(
                     debug!("calculating points from distribution");
 
                     points::from_dist(
-                        py,
+                        cx,
                         nub_dist,
                         &scaled_nub_times,
                         &nub_dist_points_so_far,
@@ -209,7 +209,7 @@ pub async fn process_filter(
                     debug!("calculating points from distribution");
 
                     points::from_dist(
-                        py,
+                        cx,
                         pro_dist,
                         &scaled_pro_times,
                         &pro_dist_points_so_far,
@@ -235,7 +235,7 @@ pub async fn process_filter(
                     )
                 } else if rank_in_nub_leaderboard < scaled_nub_times.len() {
                     points::from_dist(
-                        py,
+                        cx,
                         nub_dist,
                         &scaled_nub_times,
                         &nub_dist_points_so_far,

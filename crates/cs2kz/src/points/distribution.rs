@@ -1,7 +1,8 @@
+use pyo3::PyErr;
 use pyo3::types::{PyAnyMethods, PyList, PyTuple};
-use pyo3::{PyErr, Python};
 
 use crate::num::AsF64;
+use crate::python::PyCtx;
 
 /// [Normal-inverse Gaussian distribution][norminvgauss] parameters.
 ///
@@ -17,20 +18,19 @@ pub struct Distribution {
 
 impl Distribution {
     /// Calculates the distribution parameters using `times` as the input dataset.
-    pub fn new(py: Python<'_>, times: &[impl AsF64]) -> Result<Option<Self>, PyErr> {
+    pub fn new(cx: PyCtx<'_, '_>, times: &[impl AsF64]) -> Result<Option<Self>, PyErr> {
         let Some(top_time) = times.first().map(AsF64::as_f64) else {
             return Ok(None);
         };
 
-        let norminvgauss = py.import("scipy.stats")?.getattr("norminvgauss")?;
-
-        let (a, b, loc, scale) = norminvgauss
-            .getattr("fit")?
-            .call1((PyList::new(py, times.iter().map(AsF64::as_f64))?,))?
+        let (a, b, loc, scale) = cx
+            .fit
+            .call1((PyList::new(cx.py, times.iter().map(AsF64::as_f64))?,))?
             .downcast_into::<PyTuple>()?
             .extract::<(f64, f64, f64, f64)>()?;
 
-        let top_scale = norminvgauss
+        let top_scale = cx
+            .norminvgauss
             .call1((a, b, loc, scale))?
             .getattr("sf")?
             .call1((top_time,))?
@@ -47,11 +47,10 @@ impl Distribution {
     }
 
     /// Calls the distribution's survival function with the given `value` as the input.
-    pub fn sf(&self, py: Python<'_>, value: f64) -> Result<f64, PyErr> {
+    pub fn sf(&self, cx: PyCtx<'_, '_>, value: f64) -> Result<f64, PyErr> {
         let Distribution { a, b, loc, scale, .. } = *self;
 
-        py.import("scipy.stats")?
-            .getattr("norminvgauss")?
+        cx.norminvgauss
             .call1((a, b, loc, scale))?
             .getattr("sf")?
             .call1((value,))?

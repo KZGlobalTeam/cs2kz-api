@@ -1,9 +1,10 @@
 use std::iter;
 
+use pyo3::PyErr;
 use pyo3::types::{PyAnyMethods, PyTuple};
-use pyo3::{PyErr, Python};
 
 use crate::maps::courses::filters::{CourseFilterId, Tier};
+use crate::python::PyCtx;
 use crate::{Context, database, python};
 
 mod distribution;
@@ -136,7 +137,7 @@ pub fn for_small_leaderboard(tier: Tier, top_time: f64, time: f64) -> f64 {
 /// - `dist_points_so_far`: results returned by previous calls to this function
 /// - `rank`: 0-indexed position of the record on the leaderboard
 pub fn from_dist(
-    py: Python<'_>,
+    cx: PyCtx<'_, '_>,
     dist: &Distribution,
     scaled_times: &[f64],
     dist_points_so_far: &[f64],
@@ -155,16 +156,9 @@ pub fn from_dist(
         return Ok(dist_points_so_far[rank - 1]);
     }
 
-    let pdf = py
-        .import("scipy.stats")?
-        .getattr("norminvgauss")?
-        .getattr("_pdf")?;
-
-    let (diff, _) = py
-        .import("scipy")?
-        .getattr("integrate")?
-        .getattr("quad")?
-        .call1((pdf, prev_time, curr_time, (dist.a, dist.b)))?
+    let (diff, _) = cx
+        .quad
+        .call1((cx.pdf, prev_time, curr_time, (dist.a, dist.b)))?
         .downcast_into::<PyTuple>()?
         .extract::<(f64, f64)>()?;
 
