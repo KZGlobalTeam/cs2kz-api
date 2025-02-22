@@ -1,0 +1,44 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT\n           mc.id AS `mode: Mode`,\n           mc.linux_checksum AS `linux_checksum: Checksum`,\n           mc.windows_checksum AS `windows_checksum: Checksum`\n         FROM ModeChecksums AS mc\n         JOIN PluginVersions AS v ON v.id = mc.plugin_version_id\n         WHERE v.id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "mode: Mode",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 3
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "linux_checksum: Checksum",
+        "type_info": {
+          "type": "String",
+          "flags": "NOT_NULL | BINARY | NO_DEFAULT_VALUE",
+          "max_size": 16
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "windows_checksum: Checksum",
+        "type_info": {
+          "type": "String",
+          "flags": "NOT_NULL | BINARY | NO_DEFAULT_VALUE",
+          "max_size": 16
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b56eff7936e08c2db62fa763e7d07f9f3627beb9ab257e059993296f343280a3"
+}

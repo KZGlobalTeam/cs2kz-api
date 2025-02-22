@@ -28,7 +28,7 @@ pub struct ClientStyleInfo {
     pub checksum: Checksum,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct StyleInfo {
     pub style: Style,
     pub linux_checksum: Checksum,

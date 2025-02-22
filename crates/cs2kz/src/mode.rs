@@ -1,5 +1,7 @@
 use std::fmt;
 
+use futures_util::{Stream, TryStreamExt as _};
+
 use crate::checksum::Checksum;
 use crate::plugin::PluginVersionId;
 use crate::{Context, database};
@@ -13,6 +15,13 @@ use crate::{Context, database};
 pub enum Mode {
     Vanilla = 1,
     Classic = 2,
+}
+
+#[derive(Debug, Clone, Copy, serde::Serialize)]
+pub struct ModeInfo {
+    pub mode: Mode,
+    pub linux_checksum: Checksum,
+    pub windows_checksum: Checksum,
 }
 
 #[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]
@@ -33,6 +42,26 @@ pub async fn verify_checksum(
     )
     .fetch_one(cx.database().as_ref())
     .await
+    .map_err(database::Error::from)
+}
+
+#[tracing::instrument(skip(cx))]
+pub fn get_for_plugin_version(
+    cx: &Context,
+    plugin_version_id: PluginVersionId,
+) -> impl Stream<Item = database::Result<ModeInfo>> {
+    sqlx::query_as!(
+        ModeInfo,
+        "SELECT
+           mc.id AS `mode: Mode`,
+           mc.linux_checksum AS `linux_checksum: Checksum`,
+           mc.windows_checksum AS `windows_checksum: Checksum`
+         FROM ModeChecksums AS mc
+         JOIN PluginVersions AS v ON v.id = mc.plugin_version_id
+         WHERE v.id = ?",
+        plugin_version_id,
+    )
+    .fetch(cx.database().as_ref())
     .map_err(database::Error::from)
 }
 

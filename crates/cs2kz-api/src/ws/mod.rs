@@ -262,7 +262,15 @@ where
             .try_next()
             .await?;
 
-        let reply = Message::ack_hello(&hello, HEARTBEAT_INTERVAL, map)
+        let modes = cs2kz::mode::get_for_plugin_version(cx, plugin_version.id)
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        let styles = cs2kz::styles::get_for_plugin_version(cx, plugin_version.id)
+            .try_collect::<Vec<_>>()
+            .await?;
+
+        let reply = Message::ack_hello(&hello, HEARTBEAT_INTERVAL, map, modes, styles)
             .encode()
             .map_err(io::Error::other)?;
 

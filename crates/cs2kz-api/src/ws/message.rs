@@ -6,11 +6,11 @@ use std::time::Duration;
 use axum::extract::ws::Message as RawMessage;
 use cs2kz::checksum::Checksum;
 use cs2kz::maps::{CourseFilterId, Map, MapId};
-use cs2kz::mode::Mode;
+use cs2kz::mode::{Mode, ModeInfo};
 use cs2kz::pagination::{Limit, Offset};
 use cs2kz::players::{PlayerId, PlayerInfo, PlayerInfoWithIsBanned, Preferences};
 use cs2kz::records::{Record, RecordId, StylesForNewRecord, SubmittedPB};
-use cs2kz::styles::Styles;
+use cs2kz::styles::{StyleInfo, Styles};
 use cs2kz::time::Seconds;
 
 use crate::maps::{CourseInfo, MapIdentifier, MapInfo};
@@ -55,6 +55,12 @@ pub struct HelloAck {
 
     /// Detailed information about the map the server is currently hosting.
     pub map: Option<Map>,
+
+    /// Checksums of all global modes.
+    pub modes: Vec<ModeInfo>,
+
+    /// Checksums of all global styles.
+    pub styles: Vec<StyleInfo>,
 }
 
 /// An error occurred on the side of the API.
@@ -228,12 +234,16 @@ impl Message<HelloAck> {
         hello: &Message<Hello>,
         heartbeat_interval: Duration,
         map: Option<Map>,
+        modes: Vec<ModeInfo>,
+        styles: Vec<StyleInfo>,
     ) -> Self {
         Self {
             id: hello.id,
             payload: HelloAck {
                 heartbeat_interval: heartbeat_interval.into(),
                 map,
+                modes,
+                styles,
             },
         }
     }
