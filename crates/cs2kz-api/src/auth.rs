@@ -15,6 +15,7 @@ use headers::authorization::{Authorization, Bearer};
 use steam_openid::VerifyCallbackPayloadError;
 use tower::ServiceBuilder;
 use tracing::Instrument;
+use ulid::Ulid;
 use url::Url;
 
 use crate::config::{CookieConfig, SteamAuthConfig};
@@ -124,14 +125,19 @@ async fn cs2_server_auth(
         .map_err(|err| ErrorResponse::internal_server_error(err))?
         .ok_or_else(ErrorResponse::unauthorized)?;
 
+    let server_id = server.id;
+
     Ok(upgrade.on_upgrade(move |socket| {
         async move {
             info!("server connected");
 
             let connection_fut = cx.track_future(async move |cx, shutdown_signal| {
                 let mut socket = socket;
-                let result =
-                    ws::handle_connection(cx, shutdown_signal, server.id, &mut socket).await;
+                let result = ws::handle_connection(cx, shutdown_signal, server_id, &mut socket)
+                    .instrument(
+                        tracing::debug_span!("cs2_server_{server_id}", connection.id = %Ulid::new()),
+                    )
+                    .await;
 
                 (socket, result)
             });
