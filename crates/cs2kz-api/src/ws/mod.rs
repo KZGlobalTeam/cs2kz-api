@@ -288,6 +288,7 @@ where
 }
 
 /// Handles a single message.
+#[tracing::instrument(skip(cx, conn, state), err)]
 async fn handle_message<C>(
     cx: &Context,
     conn: &mut C,
