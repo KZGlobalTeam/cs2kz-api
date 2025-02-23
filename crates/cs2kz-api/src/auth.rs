@@ -128,14 +128,25 @@ async fn cs2_server_auth(
         async move {
             info!("server connected");
 
-            let connection = cx.track_future(|cx, shutdown_signal| {
-                ws::handle_connection(cx, shutdown_signal, server.id, socket)
+            let connection_fut = cx.track_future(async move |cx, shutdown_signal| {
+                let mut socket = socket;
+                let result =
+                    ws::handle_connection(cx, shutdown_signal, server.id, &mut socket).await;
+
+                (socket, result)
             });
 
-            let Err(error) = connection.await else {
+            let (mut socket, Err(error)) = connection_fut.await else {
                 info!("server disconnected");
                 return;
             };
+
+            if let Err(error) = socket
+                .send(axum::extract::ws::Message::Close(Some(ws::error_close_frame())))
+                .await
+            {
+                error!(%error, "failed to send close frame");
+            }
 
             let Some(source) = error
                 .source()

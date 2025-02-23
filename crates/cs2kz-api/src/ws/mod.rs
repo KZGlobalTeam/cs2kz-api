@@ -765,3 +765,10 @@ fn unauthorized_close_frame() -> CloseFrame {
         reason: "unauthorized".into(),
     }
 }
+
+pub(crate) fn error_close_frame() -> CloseFrame {
+    CloseFrame {
+        code: close_code::ERROR,
+        reason: "internal server error".into(),
+    }
+}
