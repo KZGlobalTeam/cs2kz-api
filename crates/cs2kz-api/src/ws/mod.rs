@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::io;
+use std::num::NonZero;
 use std::ops::ControlFlow;
 use std::pin::pin;
 use std::time::Duration;
@@ -374,6 +375,14 @@ where
             let params = GetRecordsParams {
                 top: true,
                 map_id: Some(map_id),
+                max_rank: Some(
+                    const {
+                        match NonZero::new(1) {
+                            None => unreachable!(),
+                            Some(n) => n,
+                        }
+                    },
+                ),
                 ..Default::default()
             };
 
