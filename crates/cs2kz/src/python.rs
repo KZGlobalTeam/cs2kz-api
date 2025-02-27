@@ -43,6 +43,8 @@ static JOBS: LazyLock<mpsc::Sender<Job>> = LazyLock::new(|| {
                         quad: &quad,
                     });
                 }
+
+                warn!("pyo3 thread exiting");
             })
         })
     {

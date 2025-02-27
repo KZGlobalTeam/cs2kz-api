@@ -30,6 +30,7 @@ fn main() -> anyhow::Result<()> {
         None
     };
 
+    cs2kz_api::runtime::panic_hook::install();
     cs2kz_api::run(config).context("failed to run API")
 }
 

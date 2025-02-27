@@ -9,6 +9,7 @@ mod environment;
 pub use environment::{Environment, current as environment};
 
 pub mod signal;
+pub mod panic_hook;
 
 /// Builds a [Tokio runtime] according to the given `config`.
 ///
