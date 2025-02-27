@@ -49,7 +49,6 @@
         commonArgs = {
           inherit src;
           strictDeps = true;
-          buildInputs = [ python ];
           env = {
             PYO3_PYTHON = "${python}/bin/python";
             SQLX_OFFLINE = true;
@@ -66,6 +65,11 @@
           pname = "cs2kz-api";
           src = fileSetForCrate ./crates/cs2kz-api;
           cargoExtraArgs = "--bin=cs2kz-api";
+          nativeBuildInputs = [ pkgs.makeWrapper ];
+          preFixup = ''
+            wrapProgram $out/bin/cs2kz-api \
+              --prefix PATH : ${python}/bin
+          '';
         });
 
         generator = craneLib.buildPackage (crateArgs // {
