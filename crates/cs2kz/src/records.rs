@@ -354,7 +354,10 @@ pub async fn submit(
                         dist_points,
                     )
                     .execute(&mut *conn)
-                    .await?;
+                    .await
+                    .inspect_err(|err| {
+                        tracing::debug!(%filter_id, %player_id, dist_points, %err);
+                    })?;
 
                     if leaderboard_size <= points::SMALL_LEADERBOARD_THRESHOLD {
                         let mut top_time = None;
@@ -405,7 +408,14 @@ pub async fn submit(
 
                         query.push("ON DUPLICATE KEY UPDATE points = VALUES(points)");
 
-                        query.build().persistent(false).execute(&mut *conn).await?;
+                        query
+                            .build()
+                            .persistent(false)
+                            .execute(&mut *conn)
+                            .await
+                            .inspect_err(|err| {
+                                tracing::debug!(%filter_id, %player_id, dist_points, %err);
+                            })?;
                     }
 
                     Ok(Some((tier, dist_points)))
@@ -478,7 +488,10 @@ pub async fn submit(
                         dist_points,
                     )
                     .execute(&mut *conn)
-                    .await?;
+                    .await
+                    .inspect_err(|err| {
+                        tracing::debug!(%filter_id, %player_id, dist_points, %err);
+                    })?;
 
                     if leaderboard_size <= points::SMALL_LEADERBOARD_THRESHOLD {
                         let mut top_time = None;
@@ -531,7 +544,14 @@ pub async fn submit(
 
                         query.push("ON DUPLICATE KEY UPDATE points = VALUES(points)");
 
-                        query.build().persistent(false).execute(&mut *conn).await?;
+                        query
+                            .build()
+                            .persistent(false)
+                            .execute(&mut *conn)
+                            .await
+                            .inspect_err(|err| {
+                                tracing::debug!(%filter_id, %player_id, dist_points, %err);
+                            })?;
                     }
 
                     Ok(Some((tier, dist_points)))
