@@ -195,7 +195,7 @@ pub async fn update_distribution_data(
              UPDATE a = VALUES(a),
                     b = VALUES(b),
                     loc = VALUES(loc),
-                    scale = VALUES(loc),
+                    scale = VALUES(scale),
                     top_scale = VALUES(top_scale)",
             filter_id,
             is_pro_leaderboard,

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO PointDistributionData (\n               filter_id,\n               is_pro_leaderboard,\n               a,\n               b,\n               loc,\n               scale,\n               top_scale\n             )\n             VALUES (?, ?, ?, ?, ?, ?, ?)\n             ON DUPLICATE KEY\n             UPDATE a = VALUES(a),\n                    b = VALUES(b),\n                    loc = VALUES(loc),\n                    scale = VALUES(scale),\n                    top_scale = VALUES(top_scale)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "2d9af7229b57fd1c48ef5ff5659963b6572a246cc42fc58a423a0fc3b9e2b052"
+}
