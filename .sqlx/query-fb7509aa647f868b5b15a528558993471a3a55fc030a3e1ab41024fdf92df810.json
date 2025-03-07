@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT\n                   s.id AS `id: ServerId`,\n                   s.name,\n                   s.host AS `host: ServerHost`,\n                   s.port,\n                   o.id AS `owner_id: UserId`,\n                   o.name AS owner_name,\n                   s.access_key AS `access_key: AccessKey`,\n                   s.approved_at,\n                   s.last_connected_at\n                 FROM Servers AS s\n                 JOIN Users AS o ON o.id = s.owner_id WHERE s.name LIKE COALESCE(?, s.name)\n         AND s.host = COALESCE(?, s.host)\n         AND s.owner_id = COALESCE(?, s.owner_id)\n         LIMIT ?\n         OFFSET ?",
+  "query": "SELECT\n                   s.id AS `id: ServerId`,\n                   s.name,\n                   s.host AS `host: ServerHost`,\n                   s.port,\n                   o.id AS `owner_id: UserId`,\n                   o.name AS owner_name,\n                   s.access_key AS `access_key: AccessKey`,\n                   s.approved_at,\n                   s.last_connected_at\n                 FROM Servers AS s\n                 JOIN Users AS o ON o.id = s.owner_id WHERE s.access_key IS NOT NULL\n         AND s.name LIKE COALESCE(?, s.name)\n         AND s.host = COALESCE(?, s.host)\n         AND s.owner_id = COALESCE(?, s.owner_id)\n         LIMIT ?\n         OFFSET ?",
   "describe": {
     "columns": [
       {
@@ -100,5 +100,5 @@
       true
     ]
   },
-  "hash": "7a9356880636b637f515b6fa69f9893b68bc7088a84c71ec702991febd00737d"
+  "hash": "fb7509aa647f868b5b15a528558993471a3a55fc030a3e1ab41024fdf92df810"
 }

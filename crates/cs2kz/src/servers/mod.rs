@@ -131,7 +131,8 @@ pub async fn get(
 ) -> Result<Paginated<impl Stream<Item = Result<Server, GetServersError>>>, GetServersError> {
     let total = database::count!(cx.database().as_ref(), "Servers").await?;
     let servers = self::macros::select!(
-        "WHERE s.name LIKE COALESCE(?, s.name)
+        "WHERE s.access_key IS NOT NULL
+         AND s.name LIKE COALESCE(?, s.name)
          AND s.host = COALESCE(?, s.host)
          AND s.owner_id = COALESCE(?, s.owner_id)
          LIMIT ?
