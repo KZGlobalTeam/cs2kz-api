@@ -12,7 +12,7 @@ jobs:
     name: Docker Image
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - uses: cachix/install-nix-action@v30
       with:
         nix_path: nixpkgs=channel:nixos-24.11
