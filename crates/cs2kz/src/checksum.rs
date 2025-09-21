@@ -15,6 +15,12 @@ pub struct Checksum {
     bytes: [u8; RAW_LEN],
 }
 
+/// A builder for a [`Checksum`]
+#[derive(Debug, Default)]
+pub struct Builder {
+    state: Md5,
+}
+
 #[derive(Debug, Display, Error)]
 pub enum ParseChecksumError {
     #[display("invalid length; expected {STR_LEN} but got {got}")]
@@ -25,18 +31,20 @@ pub enum ParseChecksumError {
 }
 
 impl Checksum {
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        let mut hasher = Md5::new();
-        hasher.update(bytes);
+    pub fn builder() -> Builder {
+        Builder::default()
+    }
 
-        Self { bytes: hasher.finalize().into() }
+    pub fn from_bytes(bytes: &[u8]) -> Self {
+        let mut builder = Self::builder();
+        builder.feed(bytes);
+        builder.build()
     }
 
     pub fn from_reader(reader: &mut impl io::Read) -> io::Result<Self> {
-        let mut hasher = Md5::new();
-        io::copy(reader, &mut hasher)?;
-
-        Ok(Self { bytes: hasher.finalize().into() })
+        let mut builder = Self::builder();
+        builder.read_from(reader)?;
+        Ok(builder.build())
     }
 }
 
@@ -108,3 +116,17 @@ crate::database::impl_traits!(Checksum as [u8] => {
             .map_err(Into::into)
     }
 });
+
+impl Builder {
+    pub fn feed(&mut self, bytes: &[u8]) {
+        self.state.update(bytes);
+    }
+
+    pub fn read_from(&mut self, reader: &mut impl io::Read) -> io::Result<u64> {
+        io::copy(reader, &mut self.state)
+    }
+
+    pub fn build(self) -> Checksum {
+        Checksum { bytes: self.state.finalize().into() }
+    }
+}

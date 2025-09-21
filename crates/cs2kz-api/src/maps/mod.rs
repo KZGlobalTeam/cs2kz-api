@@ -625,7 +625,10 @@ async fn fetch_name_and_checksum(
             &depot_downloader_config.exe_path,
             &depot_downloader_config.out_dir
         )
-        .and_then(|()| steam::maps::compute_checksum(depot_downloader_config.vpk_path(workshop_id)))
+        .and_then(|()| steam::maps::compute_checksum(
+            workshop_id,
+            depot_downloader_config.out_dir.clone()
+        ))
         .map_err(|err| ErrorResponse::internal_server_error(err)),
     )
 }

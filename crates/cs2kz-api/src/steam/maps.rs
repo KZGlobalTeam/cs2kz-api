@@ -1,8 +1,9 @@
-use std::fs::File;
-use std::io::{self, BufReader};
-use std::path::{Path, PathBuf};
+use std::error::Error;
+use std::fs::{self, File};
+use std::path::Path;
 use std::process::Stdio;
 use std::time::Duration;
+use std::{fmt, io};
 
 use cs2kz::checksum::Checksum;
 use cs2kz::steam::WorkshopId;
@@ -111,17 +112,53 @@ pub async fn download_map(
 }
 
 #[tracing::instrument(ret(level = "debug"), err)]
-pub async fn compute_checksum(path_to_vpk: PathBuf) -> io::Result<Checksum> {
+pub async fn compute_checksum<P>(workshop_id: WorkshopId, out_dir: P) -> io::Result<Checksum>
+where
+    P: AsRef<Path> + fmt::Debug + Send + 'static,
+{
     task::spawn_blocking(move || {
-        let mut file = File::open(&path_to_vpk)
-            .map(BufReader::new)
-            .inspect_err(|err| {
-                error!(%err, path = %path_to_vpk.display(), "failed to open vpk file");
+        let mut checksum = Checksum::builder();
+        let out_dir_entries = fs::read_dir(out_dir.as_ref())
+            .inspect_err(|err| error!(error = err as &dyn Error, "failed to read directory"))?;
+
+        for entry in out_dir_entries {
+            let entry = entry.inspect_err(|err| {
+                error!(error = err as &dyn Error, "failed to read directory entry");
             })?;
 
-        Checksum::from_reader(&mut file).inspect_err(|err| {
-            error!(%err, path = %path_to_vpk.display(), "failed to read vpk file");
-        })
+            let filename = match entry.file_name().into_string() {
+                Ok(name) => name,
+                Err(name) => {
+                    warn!("entry {name:?} is not valid UTF-8?");
+                    continue;
+                },
+            };
+
+            let Some((prefix, rest)) = filename.split_once('_') else {
+                continue;
+            };
+
+            let Some((_, "vpk")) = rest.split_once('.') else {
+                continue;
+            };
+
+            if !prefix
+                .parse::<WorkshopId>()
+                .is_ok_and(|prefix| prefix == workshop_id)
+            {
+                continue;
+            }
+
+            let path = entry.path();
+            let mut file = File::open(&path)
+                .inspect_err(|err| error!(error = err as &dyn Error, "failed to open {path:?}"))?;
+
+            checksum
+                .read_from(&mut file)
+                .inspect_err(|err| error!(error = err as &dyn Error, "failed to read {path:?}"))?;
+        }
+
+        Ok(checksum.build())
     })
     .await
     .expect("task does not panic")

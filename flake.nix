@@ -9,40 +9,64 @@
     crane.url = "github:ipetkov/crane";
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-overlay, crane, ... }:
-    let inherit (nixpkgs) lib; in
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      rust-overlay,
+      crane,
+      ...
+    }:
+    let
+      inherit (nixpkgs) lib;
+    in
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = import nixpkgs {
           inherit system;
           overlays = [ (import rust-overlay) ];
         };
 
-        python = pkgs.python311.withPackages (p: with p; [
-          scipy
-        ]);
+        python = pkgs.python311.withPackages (
+          p: with p; [
+            scipy
+          ]
+        );
 
-        rust-toolchain =
-          pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+        rust-toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
 
-        craneLib = (crane.mkLib pkgs).overrideToolchain (p:
+        craneLib = (crane.mkLib pkgs).overrideToolchain (
+          p:
           ((p.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml).override {
-            extensions = [ "clippy" "rustfmt" ];
-          }));
+            extensions = [
+              "clippy"
+              "rustfmt"
+            ];
+          })
+        );
 
-        mkFileSet = files: lib.fileset.toSource {
-          root = ./.;
-          fileset = lib.fileset.unions (files ++ [
-            (craneLib.fileset.commonCargoSources ./.)
-            ./crates/cs2kz/migrations
-            ./.sqlx
-            ./.example.env
-          ]);
-        };
+        mkFileSet =
+          files:
+          lib.fileset.toSource {
+            root = ./.;
+            fileset = lib.fileset.unions (
+              files
+              ++ [
+                (craneLib.fileset.commonCargoSources ./.)
+                ./crates/cs2kz/migrations
+                ./.sqlx
+                ./.example.env
+              ]
+            );
+          };
 
-        fileSetForCrate = crate: mkFileSet [
-          (craneLib.fileset.commonCargoSources crate)
-        ];
+        fileSetForCrate =
+          crate:
+          mkFileSet [
+            (craneLib.fileset.commonCargoSources crate)
+          ];
 
         src = mkFileSet [ ];
 
@@ -61,42 +85,57 @@
           inherit (craneLib.crateNameFromCargoToml { inherit src; }) version;
         };
 
-        cs2kz-api = craneLib.buildPackage (crateArgs // {
-          pname = "cs2kz-api";
-          src = fileSetForCrate ./crates/cs2kz-api;
-          cargoExtraArgs = "--bin=cs2kz-api";
-          nativeBuildInputs = [ pkgs.makeWrapper ];
-          preFixup = ''
-            wrapProgram $out/bin/cs2kz-api \
-              --prefix PATH : ${python}/bin
-          '';
-        });
+        cs2kz-api = craneLib.buildPackage (
+          crateArgs
+          // {
+            pname = "cs2kz-api";
+            src = fileSetForCrate ./crates/cs2kz-api;
+            cargoExtraArgs = "--bin=cs2kz-api";
+            nativeBuildInputs = [ pkgs.makeWrapper ];
+            preFixup = ''
+              wrapProgram $out/bin/cs2kz-api \
+                --prefix PATH : ${python}/bin
+            '';
+          }
+        );
 
-        generator = craneLib.buildPackage (crateArgs // {
-          pname = "generator";
-          src = fileSetForCrate ./crates/cs2kz-api;
-          cargoExtraArgs = "--bin=generator -Ffake";
-        });
+        generator = craneLib.buildPackage (
+          crateArgs
+          // {
+            pname = "generator";
+            src = fileSetForCrate ./crates/cs2kz-api;
+            cargoExtraArgs = "--bin=generator -Ffake";
+          }
+        );
 
-        openapi-schema = craneLib.buildPackage (crateArgs // {
-          pname = "openapi";
-          src = fileSetForCrate ./crates/cs2kz-api;
-          cargoExtraArgs = "--bin=openapi";
-        });
+        openapi-schema = craneLib.buildPackage (
+          crateArgs
+          // {
+            pname = "openapi";
+            src = fileSetForCrate ./crates/cs2kz-api;
+            cargoExtraArgs = "--bin=openapi";
+          }
+        );
       in
       {
         checks = {
           inherit cs2kz-api generator openapi-schema;
 
-          clippy = craneLib.cargoClippy (commonArgs // {
-            inherit cargoArtifacts;
-            cargoClippyExtraArgs = "--no-deps --all-features --all-targets -- -Dwarnings";
-          });
+          clippy = craneLib.cargoClippy (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              cargoClippyExtraArgs = "--no-deps --all-features --all-targets -- -Dwarnings";
+            }
+          );
 
-          clippy-tests = craneLib.cargoClippy (commonArgs // {
-            inherit cargoArtifacts;
-            cargoClippyExtraArgs = "--no-deps --all-features --tests -- -Dwarnings";
-          });
+          clippy-tests = craneLib.cargoClippy (
+            commonArgs
+            // {
+              inherit cargoArtifacts;
+              cargoClippyExtraArgs = "--no-deps --all-features --tests -- -Dwarnings";
+            }
+          );
 
           rustfmt = craneLib.cargoFmt {
             inherit src;
@@ -122,7 +161,11 @@
         };
 
         devShells.default = pkgs.mkShell {
-          nativeBuildInputs = [ rust-toolchain python ] ++ (with pkgs; [
+          nativeBuildInputs = [
+            rust-toolchain
+            python
+          ]
+          ++ (with pkgs; [
             docker-client
             lazydocker
             mycli
@@ -135,5 +178,6 @@
           KZ_API_ENVIRONMENT = "local";
           PYO3_PYTHON = "${python}/bin/python";
         };
-      });
+      }
+    );
 }
