@@ -22,7 +22,7 @@ jobs:
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
     - name: generate schema
       run: nix run .#openapi-schema > openapi.json
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       with:
         name: openapi.json
         path: openapi.json

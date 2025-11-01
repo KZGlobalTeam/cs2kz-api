@@ -22,7 +22,7 @@ jobs:
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
     - name: build docker image
       run: nix build .#dockerImage -o cs2kz-api.image
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       with:
         name: cs2kz-api.image
         path: cs2kz-api.image
