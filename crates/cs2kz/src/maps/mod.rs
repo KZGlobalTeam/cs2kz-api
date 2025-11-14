@@ -223,8 +223,13 @@ pub async fn get_by_id(cx: &Context, map_id: MapId) -> Result<Option<Map>, GetMa
 
 #[tracing::instrument(skip(cx))]
 pub fn get_by_name(cx: &Context, map_name: &str) -> impl Stream<Item = Result<Map, GetMapsError>> {
-    self::macros::select!(cx.database().as_ref(), "WHERE m.name LIKE ?", format!("%{map_name}%"))
-        .map_err(GetMapsError::from)
+    self::macros::select!(
+        cx.database().as_ref(),
+        "WHERE m.name LIKE ? AND m.state = ?",
+        format!("%{map_name}%"),
+        MapState::Approved,
+    )
+    .map_err(GetMapsError::from)
 }
 
 #[tracing::instrument(skip(cx), err(level = "debug"))]
