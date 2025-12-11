@@ -45,6 +45,7 @@ pub use context::Context;
 
 pub mod database;
 
+pub mod announcements;
 pub mod plugin;
 pub mod access_keys;
 pub mod users;

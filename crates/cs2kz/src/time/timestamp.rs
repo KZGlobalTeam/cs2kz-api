@@ -33,6 +33,13 @@ impl Timestamp {
             .map(Self)
             .map_err(OutOfRange)
     }
+
+    pub fn to_unix_ms(self) -> u64 {
+        self.0
+            .unix_timestamp()
+            .try_into()
+            .expect("should be positive")
+    }
 }
 
 impl fmt::Debug for Timestamp {
