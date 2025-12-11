@@ -4,6 +4,7 @@ use std::net::Ipv4Addr;
 use std::time::Duration;
 
 use axum::extract::ws::Message as RawMessage;
+use cs2kz::announcements::Announcement;
 use cs2kz::checksum::Checksum;
 use cs2kz::maps::{CourseFilterId, Map, MapId};
 use cs2kz::mode::{Mode, ModeInfo};
@@ -61,6 +62,8 @@ pub struct HelloAck {
 
     /// Checksums of all global styles.
     pub styles: Vec<StyleInfo>,
+
+    pub announcements: Vec<Announcement>,
 }
 
 /// An error occurred on the side of the API.
@@ -236,6 +239,7 @@ impl Message<HelloAck> {
         map: Option<Map>,
         modes: Vec<ModeInfo>,
         styles: Vec<StyleInfo>,
+        announcements: Vec<Announcement>,
     ) -> Self {
         Self {
             id: hello.id,
@@ -244,6 +248,7 @@ impl Message<HelloAck> {
                 map,
                 modes,
                 styles,
+                announcements,
             },
         }
     }

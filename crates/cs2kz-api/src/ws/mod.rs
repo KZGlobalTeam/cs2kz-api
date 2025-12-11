@@ -271,9 +271,12 @@ where
             .try_collect::<Vec<_>>()
             .await?;
 
-        let reply = Message::ack_hello(&hello, HEARTBEAT_INTERVAL, map, modes, styles)
-            .encode()
-            .map_err(io::Error::other)?;
+        let announcements = cs2kz::announcements::get_announcements(cx).await?;
+
+        let reply =
+            Message::ack_hello(&hello, HEARTBEAT_INTERVAL, map, modes, styles, announcements)
+                .encode()
+                .map_err(io::Error::other)?;
 
         conn.send(reply).await.map_err(io::Error::other)?;
 

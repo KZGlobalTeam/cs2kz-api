@@ -168,6 +168,7 @@
           ++ (with pkgs; [
             docker-client
             lazydocker
+            mariadb
             mycli
             sqlx-cli
             tokio-console
