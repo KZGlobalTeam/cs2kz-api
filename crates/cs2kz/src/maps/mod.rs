@@ -362,8 +362,8 @@ pub async fn update(
             return Ok(false);
         }
 
-        insert_mappers(&mut *conn, id, added_mappers).await?;
         delete_mappers(&mut *conn, id, deleted_mappers).await?;
+        insert_mappers(&mut *conn, id, added_mappers).await?;
 
         let mapper_count = database::count!(&mut *conn, "Mappers").await?;
 
@@ -401,6 +401,8 @@ pub async fn update(
             .execute(&mut *conn)
             .await?;
 
+            delete_course_mappers(&mut *conn, course_id, course_update.deleted_mappers).await?;
+
             if !course_update.added_mappers.is_empty() {
                 insert_course_mappers(
                     &mut *conn,
@@ -408,8 +410,6 @@ pub async fn update(
                 )
                 .await?;
             }
-
-            delete_course_mappers(&mut *conn, course_id, course_update.deleted_mappers).await?;
 
             let course_mapper_count =
                 database::count!(&mut *conn, "CourseMappers WHERE course_id = ?", course_id)
