@@ -375,13 +375,15 @@ pub async fn update(
             return Ok(true);
         }
 
-        let course_ids =
-            sqlx::query_scalar!("SELECT id AS `id: CourseId` FROM Courses WHERE map_id = ?", id)
-                .fetch(&mut *conn)
-                .zip(futures_util::stream::iter(1..))
-                .map(|(row, idx)| row.map(|row| (idx, row)))
-                .try_collect::<HashMap<_, _>>()
-                .await?;
+        let course_ids = sqlx::query_scalar!(
+            "SELECT id AS `id: CourseId` FROM Courses WHERE map_id = ? ORDER BY id ASC",
+            id
+        )
+        .fetch(&mut *conn)
+        .zip(futures_util::stream::iter(1..))
+        .map(|(row, idx)| row.map(|row| (idx, row)))
+        .try_collect::<HashMap<_, _>>()
+        .await?;
 
         for course_update in course_updates {
             let course_id = course_ids

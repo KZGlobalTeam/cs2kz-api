@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT id AS `id: CourseId` FROM Courses WHERE map_id = ?",
+  "query": "SELECT id AS `id: CourseId` FROM Courses WHERE map_id = ? ORDER BY id ASC",
   "describe": {
     "columns": [
       {
@@ -20,5 +20,5 @@
       false
     ]
   },
-  "hash": "1c579f40cdef6c3d8673794c4f5f78add83bb41fdf73d4435d6ce5956287451b"
+  "hash": "0f8c57e7eb8499a3f84190a9a44497f596c0be4c226e3c65fda4978907d82b5c"
 }
