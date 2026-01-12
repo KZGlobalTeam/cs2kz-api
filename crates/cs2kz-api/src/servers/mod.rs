@@ -103,6 +103,23 @@ pub struct Server {
     /// When this server was approved by the API.
     #[schema(value_type = crate::openapi::shims::Timestamp)]
     approved_at: Timestamp,
+
+    /// A2S query information about the server.
+    ///
+    /// If this is not available, the server is either offline or came online very recently.
+    a2s_info: Option<A2SInfo>,
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct A2SInfo {
+    /// The map the server is currently hosting.
+    current_map: String,
+
+    /// The number of players currently playing on the server.
+    num_players: u8,
+
+    /// The maximum number of players that can join the server.
+    max_players: u8,
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
@@ -398,6 +415,11 @@ impl From<cs2kz::servers::Server> for Server {
             port: server.port,
             owner: UserInfo { id: server.owner.id, name: server.owner.name },
             approved_at: server.approved_at,
+            a2s_info: cs2kz::steam::servers::with_info(server.id, |info| A2SInfo {
+                current_map: info.map.clone(),
+                num_players: info.players,
+                max_players: info.max_players,
+            }),
         }
     }
 }

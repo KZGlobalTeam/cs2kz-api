@@ -38,6 +38,7 @@ fake = ["dep:fake", "cs2kz/fake"]
 workspace = true
 
 [dependencies]
+anyhow.workspace = true
 derive_more.workspace = true
 time.workspace = true
 ulid.workspace = true
@@ -68,9 +69,6 @@ path = "../problem-details"
 
 [dependencies.steam-openid]
 path = "../steam-openid"
-
-[dependencies.anyhow]
-version = "1.0.95"
 
 [dependencies.tracing-appender]
 version = "0.2.3"

@@ -34,6 +34,9 @@ redundant_pattern_matching = "allow"
 # annotated with `#[track_caller]`
 redundant_closure = "allow"
 
+[workspace.dependencies.anyhow]
+version = "1.0.95"
+
 [workspace.dependencies.derive_more]
 version = "1.0.0"
 features = [

@@ -30,6 +30,7 @@ fake = ["dep:fake", "steam-id/fake"]
 workspace = true
 
 [dependencies]
+anyhow.workspace = true
 derive_more.workspace = true
 time.workspace = true
 ulid.workspace = true
@@ -48,6 +49,10 @@ pyo3.workspace = true
 [dependencies.steam-id]
 path = "../steam-id"
 features = ["serde"]
+
+[dependencies.a2s]
+version = "0.6.1"
+features = ["async"]
 
 [dependencies.tokio-stream]
 version = "0.1.17"

@@ -191,6 +191,10 @@ pub fn run(config: Config) -> Result<(), Error> {
                 cs2kz::points::daemon::run(cx.clone(), cancellation_token)
             });
 
+            cx.spawn("a2s-queries", |cancellation_token| {
+                cs2kz::steam::servers::periodically_query_servers(cx.clone(), cancellation_token)
+            });
+
             select! {
                 biased;
 
