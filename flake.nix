@@ -1,6 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
+    nixpkgs-depotdownloader.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
@@ -11,8 +12,8 @@
 
   outputs =
     {
-      self,
       nixpkgs,
+      nixpkgs-depotdownloader,
       flake-utils,
       rust-overlay,
       crane,
@@ -26,7 +27,13 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ (import rust-overlay) ];
+          overlays = [
+            (import rust-overlay)
+            (self: super: {
+              depotdownloader =
+                nixpkgs-depotdownloader.legacyPackages.${super.stdenv.hostPlatform.system}.depotdownloader;
+            })
+          ];
         };
 
         python = pkgs.python311.withPackages (

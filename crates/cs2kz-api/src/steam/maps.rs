@@ -58,12 +58,16 @@ pub async fn download_map(
     depot_downloader_path: &Path,
     out_dir: &Path,
 ) -> io::Result<()> {
+    let out_dir = out_dir.join(workshop_id.to_string());
+
     debug!(
         target: "cs2kz_api::depot_downloader",
         exe_path = %depot_downloader_path.display(),
         out_dir = %out_dir.display(),
         "spawning DepotDownloader process",
     );
+
+    tokio::fs::create_dir_all(&out_dir).await?;
 
     let mut process = Command::new(depot_downloader_path)
         .args(["-app", "730", "-pubfile"])
