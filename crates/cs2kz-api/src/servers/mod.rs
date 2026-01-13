@@ -6,8 +6,10 @@ use axum::response::NoContent;
 use axum::routing::{MethodRouter, Router};
 use cs2kz::Context;
 use cs2kz::access_keys::AccessKey;
+use cs2kz::maps::MapState;
 use cs2kz::pagination::{Limit, Offset, Paginated};
 use cs2kz::servers::{ApproveServerError, ServerHost, ServerId, UpdateServerError};
+use cs2kz::steam::WorkshopId;
 use cs2kz::time::Timestamp;
 use cs2kz::users::{Permission, UserId};
 use futures_util::TryFutureExt;
@@ -115,11 +117,25 @@ pub struct A2SInfo {
     /// The map the server is currently hosting.
     current_map: String,
 
+    /// Extra information about the current map, if the API knows about it.
+    current_map_info: Option<MapInfo>,
+
     /// The number of players currently playing on the server.
     num_players: u8,
 
     /// The maximum number of players that can join the server.
     max_players: u8,
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct MapInfo {
+    /// The map's ID on the Steam workshop.
+    #[schema(value_type = u32)]
+    workshop_id: WorkshopId,
+
+    /// The map's state in the API.
+    #[schema(value_type = crate::openapi::shims::MapState)]
+    global_state: MapState,
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
@@ -416,9 +432,13 @@ impl From<cs2kz::servers::Server> for Server {
             owner: UserInfo { id: server.owner.id, name: server.owner.name },
             approved_at: server.approved_at,
             a2s_info: cs2kz::steam::servers::with_info(server.id, |info| A2SInfo {
-                current_map: info.map.clone(),
-                num_players: info.players,
-                max_players: info.max_players,
+                current_map: info.a2s.map.clone(),
+                current_map_info: info.map_info.as_ref().map(|info| MapInfo {
+                    workshop_id: info.workshop_id,
+                    global_state: info.state,
+                }),
+                num_players: info.a2s.players,
+                max_players: info.a2s.max_players,
             }),
         }
     }
