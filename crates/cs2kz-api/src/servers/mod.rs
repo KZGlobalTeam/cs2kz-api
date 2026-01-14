@@ -19,9 +19,7 @@ use crate::extract::{Json, Path, Query};
 use crate::middleware::auth::session_auth;
 use crate::middleware::auth::session_auth::Session;
 use crate::middleware::auth::session_auth::authorization::{
-    AuthorizeSession,
-    HasPermissions,
-    IsServerOwner,
+    AuthorizeSession, HasPermissions, IsServerOwner,
 };
 use crate::response::{Created, ErrorResponse};
 use crate::users::UserInfo;
@@ -118,7 +116,7 @@ pub struct A2SInfo {
     current_map: String,
 
     /// Extra information about the current map, if the API knows about it.
-    current_map_info: Option<MapInfo>,
+    current_map_info: Option<ServerMapInfo>,
 
     /// The number of players currently playing on the server.
     num_players: u8,
@@ -128,7 +126,7 @@ pub struct A2SInfo {
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
-pub struct MapInfo {
+pub struct ServerMapInfo {
     /// The map's ID on the Steam workshop.
     #[schema(value_type = u32)]
     workshop_id: WorkshopId,
@@ -433,7 +431,7 @@ impl From<cs2kz::servers::Server> for Server {
             approved_at: server.approved_at,
             a2s_info: cs2kz::steam::servers::with_info(server.id, |info| A2SInfo {
                 current_map: info.a2s.map.clone(),
-                current_map_info: info.map_info.as_ref().map(|info| MapInfo {
+                current_map_info: info.map_info.as_ref().map(|info| ServerMapInfo {
                     workshop_id: info.workshop_id,
                     global_state: info.state,
                 }),
