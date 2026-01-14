@@ -19,7 +19,9 @@ use crate::extract::{Json, Path, Query};
 use crate::middleware::auth::session_auth;
 use crate::middleware::auth::session_auth::Session;
 use crate::middleware::auth::session_auth::authorization::{
-    AuthorizeSession, HasPermissions, IsServerOwner,
+    AuthorizeSession,
+    HasPermissions,
+    IsServerOwner,
 };
 use crate::response::{Created, ErrorResponse};
 use crate::users::UserInfo;
