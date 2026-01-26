@@ -10,12 +10,16 @@ use crate::plugin::PluginVersionId;
 use crate::{Context, database};
 
 const AUTO_BHOP: u32 = 0b_0001;
+const LEGACY_JUMP: u32 = 0b_0010;
 
 #[repr(u32)]
 #[derive(Debug, Display, Clone, Copy, sqlx::Type)]
 pub enum Style {
     #[display("auto-bhop")]
     AutoBhop = AUTO_BHOP,
+
+    #[display("legacy-jump")]
+    LegacyJump = LEGACY_JUMP,
 }
 
 #[derive(Debug, Default, Clone, Copy, sqlx::Type)]
@@ -69,6 +73,7 @@ impl Style {
     pub const fn as_str(&self) -> &'static str {
         match self {
             Self::AutoBhop => "auto-bhop",
+            Self::LegacyJump => "legacy-jump",
         }
     }
 }
@@ -79,6 +84,7 @@ impl FromStr for Style {
     fn from_str(value: &str) -> Result<Self, Self::Err> {
         match value {
             "autobhop" | "auto-bhop" => Ok(Self::AutoBhop),
+            "legacyjump" | "legacy-jump" => Ok(Self::LegacyJump),
             _ => Err(UnknownStyle { _priv: () }),
         }
     }
@@ -90,6 +96,7 @@ impl TryFrom<u32> for Style {
     fn try_from(value: u32) -> Result<Self, Self::Error> {
         match value {
             AUTO_BHOP => Ok(Self::AutoBhop),
+            LEGACY_JUMP => Ok(Self::LegacyJump),
             _ => Err(UnknownStyle { _priv: () }),
         }
     }
