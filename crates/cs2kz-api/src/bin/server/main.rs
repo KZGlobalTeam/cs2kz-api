@@ -68,6 +68,7 @@ fn init_tracing(config: &TracingConfig) -> anyhow::Result<Option<WorkerGuard>> {
 
             let (writer, guard) = tracing_appender::rolling::Builder::new()
                 .rotation(Rotation::DAILY)
+                .max_log_files(7)
                 .filename_suffix("log")
                 .build(&log_dir)
                 .map(tracing_appender::non_blocking)
