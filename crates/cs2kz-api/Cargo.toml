@@ -31,6 +31,10 @@ path = "src/bin/server/main.rs"
 name = "openapi"
 path = "src/bin/openapi.rs"
 
+[[bin]]
+name = "migrate_database"
+path = "src/bin/migrate_database.rs"
+
 [features]
 fake = ["dep:fake", "cs2kz/fake"]
 
@@ -50,12 +54,14 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 futures-util.workspace = true
 bytes.workspace = true
+uuid.workspace = true
 tokio-util.workspace = true
 http.workspace = true
 http-body-util.workspace = true
 mime.workspace = true
 lettre.workspace = true
 pyo3.workspace = true
+sqlx.workspace = true
 clap.workspace = true
 
 [dependencies.steam-id]
@@ -123,6 +129,7 @@ version = "5.3.0"
 features = [
   "time",
   "ulid",
+  "uuid",
   "url",
   "preserve_order",
   "preserve_path_order",

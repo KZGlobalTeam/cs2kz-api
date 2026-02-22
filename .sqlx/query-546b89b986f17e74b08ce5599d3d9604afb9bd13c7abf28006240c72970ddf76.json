@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "with RelevantRecords as (\n           select\n             row_number() over (\n               partition by filter_id, is_pro_leaderboard\n               order by time asc, record_id asc, is_pro_leaderboard asc\n             ) as leaderboard_rank,\n             points,\n             player_id,\n             record_id,\n             tier,\n             is_pro_leaderboard\n           from\n             ((\n               select\n                 br.*,\n                 cf.nub_tier as tier,\n                 false as is_pro_leaderboard\n               from\n                 BestNubRecords as br\n                 inner join CourseFilters as cf on cf.id = br.filter_id\n               where\n                 cf.state = 1\n                 and cf.mode = ?\n             ) union all (\n               select\n                 br.*,\n                 cf.pro_tier as tier,\n                 true as is_pro_leaderboard\n               from\n                 BestProRecords as br\n                 inner join CourseFilters as cf on cf.id = br.filter_id\n               where\n                 cf.state = 1\n                 and cf.mode = ?\n             )) as _\n         ),\n         RanksWithPoints as (\n           select\n             rr.*,\n             KZ_POINTS(\n               rr.tier,\n               rr.is_pro_leaderboard,\n               rr.leaderboard_rank - 1,\n               rr.points\n             ) as points2\n           from RelevantRecords as rr\n         ),\n         RankedRecords as (\n           select\n             row_number() over (\n               partition BY rr.player_id\n               order by rr.points2 desc, rr.record_id asc, rr.is_pro_leaderboard asc\n             ) as overall_rank,\n             rr.*\n           from RanksWithPoints as rr\n         )\n         select\n           sum(points2 * power(0.975, overall_rank - 1) * 0.1) as rating\n         from (select * from RankedRecords where player_id = ?) as _",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "rating",
+        "type_info": {
+          "type": "Double",
+          "flags": "BINARY",
+          "max_size": 23
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "546b89b986f17e74b08ce5599d3d9604afb9bd13c7abf28006240c72970ddf76"
+}

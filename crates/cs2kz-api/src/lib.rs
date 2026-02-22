@@ -16,9 +16,6 @@
 
 #![feature(decl_macro)]
 #![feature(future_join)]
-#![feature(iter_chain)]
-#![feature(let_chains)]
-#![feature(panic_payload_as_str)]
 #![feature(panic_update_hook)]
 #![feature(return_type_notation)]
 
@@ -66,7 +63,6 @@ pub mod bans;
 
 mod extract;
 mod problem_details;
-mod replays;
 mod response;
 mod serde;
 mod steam;

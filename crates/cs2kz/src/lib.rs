@@ -16,8 +16,9 @@
 
 #![feature(array_try_from_fn)]
 #![feature(assert_matches)]
+#![feature(bstr)]
 #![feature(decl_macro)]
-#![feature(iter_chain)]
+#![feature(future_join)]
 #![feature(trait_alias)]
 #![feature(try_blocks)]
 
@@ -55,6 +56,7 @@ pub mod maps;
 pub mod jumpstats;
 pub mod records;
 pub mod bans;
+// pub mod points;
 pub mod points;
 
 pub mod checksum;
@@ -67,6 +69,7 @@ pub mod steam;
 pub mod styles;
 pub mod time;
 
+// mod python;
 mod python;
 
 mod fmt;

@@ -5,9 +5,8 @@ use axum::handler::Handler;
 use axum::response::NoContent;
 use axum::routing::{self, MethodRouter, Router};
 use cs2kz::Context;
-use cs2kz::mode::Mode;
 use cs2kz::pagination::{Limit, Offset, Paginated};
-use cs2kz::players::{PlayerId, Preferences};
+use cs2kz::players::{PlayerId, Preferences, SortBy};
 use cs2kz::time::Timestamp;
 use futures_util::TryFutureExt;
 
@@ -43,7 +42,6 @@ where
     Router::new()
         .route("/", routing::get(get_players))
         .route("/{player}", routing::get(get_player))
-        .route("/{player}/profile", routing::get(get_player_profile))
         .route(
             "/{player}/steam-profile",
             routing::get(get_player_steam_profile).with_state(GetSteamProfileState {
@@ -66,6 +64,11 @@ pub struct GetPlayersQuery {
     #[serde(default, deserialize_with = "crate::serde::deserialize_non_empty")]
     name: Option<String>,
 
+    /// How to sort the results.
+    #[serde(default)]
+    #[param(value_type = Option<crate::openapi::shims::Players_SortBy>)]
+    sort_by: SortBy,
+
     #[serde(default)]
     #[param(value_type = crate::openapi::shims::Limit)]
     limit: Limit<1000, 250>,
@@ -73,13 +76,6 @@ pub struct GetPlayersQuery {
     #[serde(default)]
     #[param(value_type = crate::openapi::shims::Offset)]
     offset: Offset,
-}
-
-#[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
-#[into_params(parameter_in = Query)]
-pub struct GetPlayerProfileQuery {
-    #[param(value_type = crate::openapi::shims::Mode)]
-    mode: Mode,
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
@@ -91,22 +87,11 @@ pub struct Player {
     /// The player's name on Steam.
     name: String,
 
-    /// When this player first joined an approved CS2 server.
-    #[schema(value_type = crate::openapi::shims::Timestamp)]
-    first_joined_at: Timestamp,
-}
+    /// The player's VNL rating.
+    vnl_rating: f64,
 
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
-pub struct PlayerProfile {
-    /// The player's SteamID.
-    #[schema(value_type = crate::openapi::shims::SteamId)]
-    id: PlayerId,
-
-    /// The player's name on Steam.
-    name: String,
-
-    /// The player's rating.
-    rating: f64,
+    /// The player's CKZ rating.
+    ckz_rating: f64,
 
     /// When this player first joined an approved CS2 server.
     #[schema(value_type = crate::openapi::shims::Timestamp)]
@@ -137,9 +122,9 @@ pub struct PlayerInfo {
 )]
 async fn get_players(
     State(cx): State<Context>,
-    Query(GetPlayersQuery { name, limit, offset }): Query<GetPlayersQuery>,
+    Query(GetPlayersQuery { name, sort_by, limit, offset }): Query<GetPlayersQuery>,
 ) -> Result<Json<Paginated<Vec<Player>>>, ErrorResponse> {
-    let params = cs2kz::players::GetPlayersParams { name: name.as_deref(), limit, offset };
+    let params = cs2kz::players::GetPlayersParams { name: name.as_deref(), sort_by, limit, offset };
     let players = cs2kz::players::get(&cx, params)
         .map_ok(Paginated::map_into)
         .and_then(Paginated::collect)
@@ -174,35 +159,6 @@ async fn get_player(
     .ok_or_else(ErrorResponse::not_found)?;
 
     Ok(Json(player.into()))
-}
-
-/// Returns a player's profile information.
-#[tracing::instrument(skip(cx))]
-#[utoipa::path(
-    get,
-    path = "/players/{player_id}/profile",
-    tag = "Players",
-    params(
-        ("player_id" = u64, Path, description = "the player's SteamID"),
-        GetPlayerProfileQuery,
-    ),
-    responses(
-        (status = 200, body = Player),
-        (status = 400, description = "invalid path parameters"),
-        (status = 404,),
-    ),
-)]
-async fn get_player_profile(
-    State(cx): State<Context>,
-    Path(player_id): Path<PlayerId>,
-    Query(GetPlayerProfileQuery { mode }): Query<GetPlayerProfileQuery>,
-) -> Result<Json<PlayerProfile>, ErrorResponse> {
-    let profile = cs2kz::players::get_profile(&cx, player_id, mode)
-        .await
-        .map_err(|err| ErrorResponse::internal_server_error(err))?
-        .ok_or_else(ErrorResponse::not_found)?;
-
-    Ok(Json(profile.into()))
 }
 
 /// Returns a player's Steam profile.
@@ -285,6 +241,8 @@ impl From<cs2kz::players::Player> for Player {
         Self {
             id: player.id,
             name: player.name,
+            vnl_rating: player.vnl_rating,
+            ckz_rating: player.ckz_rating,
             first_joined_at: player.first_joined_at,
         }
     }
@@ -293,16 +251,5 @@ impl From<cs2kz::players::Player> for Player {
 impl From<cs2kz::players::PlayerInfo> for PlayerInfo {
     fn from(player: cs2kz::players::PlayerInfo) -> Self {
         Self { id: player.id, name: player.name }
-    }
-}
-
-impl From<cs2kz::players::Profile> for PlayerProfile {
-    fn from(profile: cs2kz::players::Profile) -> Self {
-        Self {
-            id: profile.id,
-            name: profile.name,
-            rating: profile.rating,
-            first_joined_at: profile.first_joined_at,
-        }
     }
 }

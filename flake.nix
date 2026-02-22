@@ -38,6 +38,9 @@
 
         python = pkgs.python311.withPackages (
           p: with p; [
+            mariadb
+            numpy
+            packaging
             scipy
           ]
         );
@@ -112,6 +115,11 @@
             pname = "generator";
             src = fileSetForCrate ./crates/cs2kz-api;
             cargoExtraArgs = "--bin=generator -Ffake";
+            nativeBuildInputs = [ pkgs.makeWrapper ];
+            preFixup = ''
+              wrapProgram $out/bin/generator \
+                --prefix PATH : ${python}/bin
+            '';
           }
         );
 

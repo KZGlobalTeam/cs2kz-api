@@ -104,13 +104,6 @@ pub enum RecordAction {
 
         count: usize,
     },
-    RecalcFilters {
-        /// The start of the range of filter IDs to recalculate
-        start: CourseFilterId,
-
-        /// The end of the range of filter IDs to recalculate
-        end: CourseFilterId,
-    },
 }
 
 #[derive(Debug, Subcommand)]

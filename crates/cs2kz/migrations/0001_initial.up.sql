@@ -69,7 +69,9 @@ CREATE TABLE IF NOT EXISTS Servers (
   access_key BINARY(16) UNIQUE,
   approved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   last_connected_at TIMESTAMP,
-  CONSTRAINT UC_host_port UNIQUE (host, port)
+  CONSTRAINT UC_host_port UNIQUE (host, port),
+  INDEX IDX_Servers_host (host),
+  INDEX IDX_Servers_owner_id (owner_id)
 );
 
 CREATE TABLE IF NOT EXISTS Players (
@@ -77,8 +79,11 @@ CREATE TABLE IF NOT EXISTS Players (
   name VARCHAR(255) NOT NULL,
   ip_address INET4,
   preferences JSON NOT NULL DEFAULT '{}',
+  vnl_rating FLOAT8 NOT NULL DEFAULT 0.0,
+  ckz_rating FLOAT8 NOT NULL DEFAULT 0.0,
   first_joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  last_joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  last_joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX IDX_Players_name (name)
 );
 
 CREATE TABLE IF NOT EXISTS Maps (
@@ -89,7 +94,10 @@ CREATE TABLE IF NOT EXISTS Maps (
   -- see `cs2kz::maps::MapState` enum in the Rust code
   state INT1 NOT NULL DEFAULT -1,
   vpk_checksum BINARY(16) NOT NULL,
-  approved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+  approved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX IDX_Maps_workshop_id (workshop_id),
+  INDEX IDX_Maps_name (name),
+  INDEX IDX_Maps_state (state)
 );
 
 CREATE TABLE IF NOT EXISTS Courses (
@@ -128,7 +136,7 @@ CREATE TABLE IF NOT EXISTS CourseMappers (
 );
 
 CREATE TABLE IF NOT EXISTS Jumps (
-  id INT4 UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  id BINARY(16) NOT NULL PRIMARY KEY,
   player_id INT8 UNSIGNED NOT NULL REFERENCES Players(id),
   server_id INT2 UNSIGNED NOT NULL REFERENCES Servers(id),
   -- see `cs2kz::Mode` enum in the Rust code
@@ -150,17 +158,11 @@ CREATE TABLE IF NOT EXISTS Jumps (
   airpath FLOAT4 NOT NULL,
   deviation FLOAT4 NOT NULL,
   average_width FLOAT4 NOT NULL,
-  plugin_version_id INT2 UNSIGNED NOT NULL REFERENCES PluginVersions(id),
-  submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS JumpReplays (
-  jump_id INT4 UNSIGNED NOT NULL PRIMARY KEY REFERENCES Jumps(id) ON DELETE CASCADE,
-  data BLOB NOT NULL
+  plugin_version_id INT2 UNSIGNED NOT NULL REFERENCES PluginVersions(id)
 );
 
 CREATE TABLE IF NOT EXISTS Records (
-  id INT4 UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  id BINARY(16) NOT NULL PRIMARY KEY,
   player_id INT8 UNSIGNED NOT NULL REFERENCES Players(id),
   server_id INT2 UNSIGNED NOT NULL REFERENCES Servers(id),
   filter_id INT2 UNSIGNED NOT NULL REFERENCES CourseFilters(id),
@@ -169,29 +171,34 @@ CREATE TABLE IF NOT EXISTS Records (
   teleports INT4 UNSIGNED NOT NULL,
   time FLOAT8 NOT NULL CHECK (time > 0),
   plugin_version_id INT2 UNSIGNED NOT NULL REFERENCES PluginVersions(id),
-  submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS RecordReplays (
-  record_id INT4 UNSIGNED NOT NULL PRIMARY KEY REFERENCES Records(id) ON DELETE CASCADE,
-  data BLOB NOT NULL
+  INDEX IDX_Records_player (player_id),
+  INDEX IDX_Records_server (server_id),
+  INDEX IDX_Records_filter (filter_id),
+  INDEX IDX_Records_time (time)
 );
 
 CREATE TABLE IF NOT EXISTS BestNubRecords (
   filter_id INT2 UNSIGNED NOT NULL REFERENCES CourseFilters(id),
   player_id INT8 UNSIGNED NOT NULL REFERENCES Players(id),
-  record_id INT4 UNSIGNED NOT NULL REFERENCES Records(id) ON DELETE CASCADE,
+  record_id BINARY(16) NOT NULL REFERENCES Records(id) ON DELETE CASCADE,
   points FLOAT8 NOT NULL,
-  PRIMARY KEY (filter_id, player_id)
+  time FLOAT8 NOT NULL,
+  PRIMARY KEY (filter_id, player_id),
+  INDEX IDX_BestNubRecords_record_id (record_id),
+  INDEX IDX_BestNubRecords_points (points),
+  INDEX IDX_BestNubRecords_time (time)
 );
 
 CREATE TABLE IF NOT EXISTS BestProRecords (
   filter_id INT2 UNSIGNED NOT NULL REFERENCES CourseFilters(id),
   player_id INT8 UNSIGNED NOT NULL REFERENCES Players(id),
-  record_id INT4 UNSIGNED NOT NULL REFERENCES Records(id) ON DELETE CASCADE,
+  record_id BINARY(16) NOT NULL REFERENCES Records(id) ON DELETE CASCADE,
   points FLOAT8 NOT NULL,
-  points_based_on_pro_leaderboard BOOLEAN NOT NULL,
-  PRIMARY KEY (filter_id, player_id)
+  time FLOAT8 NOT NULL,
+  PRIMARY KEY (filter_id, player_id),
+  INDEX IDX_BestProRecords_record_id (record_id),
+  INDEX IDX_BestProRecords_points (points),
+  INDEX IDX_BestProRecords_time (time)
 );
 
 CREATE TABLE IF NOT EXISTS PointDistributionData (
@@ -205,14 +212,23 @@ CREATE TABLE IF NOT EXISTS PointDistributionData (
   PRIMARY KEY (filter_id, is_pro_leaderboard)
 );
 
-CREATE TABLE IF NOT EXISTS RecordCounts (
+CREATE TABLE IF NOT EXISTS FiltersToRecalculate (
   filter_id INT2 UNSIGNED NOT NULL PRIMARY KEY REFERENCES CourseFilters(id),
-  count INT8 UNSIGNED NOT NULL
+  priority INT8 UNSIGNED NOT NULL,
+  INDEX IDX_FiltersToRecalculate_priority (priority)
 );
 
-CREATE TABLE IF NOT EXISTS FiltersToRecalculate (
-  filter_id INT2 UNSIGNED NOT NULL PRIMARY KEY REFERENCES CourseFilters(id)
-);
+CREATE OR REPLACE TRIGGER schedule_filter_recalc_nub
+  AFTER INSERT ON BestNubRecords FOR EACH ROW
+  INSERT INTO FiltersToRecalculate
+  VALUES (NEW.filter_id, 1)
+  ON DUPLICATE KEY UPDATE priority = priority + 1;
+
+CREATE OR REPLACE TRIGGER schedule_filter_recalc_pro
+  AFTER INSERT ON BestProRecords FOR EACH ROW
+  INSERT INTO FiltersToRecalculate
+  VALUES (NEW.filter_id, 1)
+  ON DUPLICATE KEY UPDATE priority = priority + 1;
 
 CREATE TABLE IF NOT EXISTS Bans (
   id INT4 UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -241,6 +257,11 @@ CREATE OR REPLACE FUNCTION KZ_POINTS(
 ) RETURNS FLOAT8
 BEGIN
   DECLARE for_tier, remaining, for_rank FLOAT8;
+
+  IF tier < 1 OR tier > 8 THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'tier must be 1-8';
+  END IF;
 
   SET for_tier = CASE tier
     WHEN 1 THEN 0
@@ -276,6 +297,7 @@ BEGIN
       WHEN 2 THEN 0.09
       WHEN 3 THEN 0.06
       WHEN 4 THEN 0.02
+      ELSE 0.0
     END
   );
 

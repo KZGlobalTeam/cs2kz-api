@@ -11,9 +11,10 @@ use crate::maps::courses::CourseFilterId;
 use crate::maps::{MapState, NewCourse};
 use crate::players::PlayerId;
 use crate::plugin::PluginVersionId;
-use crate::records::{StylesForNewRecord, SubmittedPB};
+use crate::records::SubmittedPB;
 use crate::servers::ServerId;
 use crate::steam::WorkshopId;
+use crate::styles::ClientStyleInfo;
 use crate::time::Seconds;
 
 static QUEUE: LazyLock<broadcast::Sender<Arc<Event>>> = LazyLock::new(|| broadcast::channel(16).0);
@@ -36,7 +37,7 @@ pub enum Event {
         player_id: PlayerId,
         server_id: ServerId,
         filter_id: CourseFilterId,
-        styles: StylesForNewRecord,
+        styles: Vec<ClientStyleInfo>,
         teleports: u32,
         time: Seconds,
         plugin_version_id: PluginVersionId,

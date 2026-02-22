@@ -7,7 +7,7 @@ use crate::pagination::{Limit, Offset, Paginated};
 use crate::players::{PlayerId, PlayerInfo};
 use crate::servers::{ServerId, ServerInfo};
 use crate::styles::Styles;
-use crate::time::{Seconds, Timestamp};
+use crate::time::Seconds;
 use crate::{Context, database};
 
 mod jump_type;
@@ -41,7 +41,6 @@ pub struct Jumpstat {
     pub airpath: f32,
     pub deviation: f32,
     pub average_width: f32,
-    pub submitted_at: Timestamp,
 }
 
 #[derive(Debug)]
@@ -81,17 +80,6 @@ pub async fn get_by_id(
         .map_err(GetJumpstatsError::from)
 }
 
-#[tracing::instrument(skip(cx), err(level = "debug"))]
-pub async fn get_replay(
-    cx: &Context,
-    jumpstat_id: JumpstatId,
-) -> Result<Option<Vec<u8>>, GetJumpstatsError> {
-    sqlx::query_scalar!("SELECT data FROM JumpReplays WHERE jump_id = ?", jumpstat_id)
-        .fetch_optional(cx.database().as_ref())
-        .await
-        .map_err(GetJumpstatsError::from)
-}
-
 mod macros {
     macro_rules! select {
         ( $($extra:tt)* ) => {
@@ -117,8 +105,7 @@ mod macros {
                    j.height,
                    j.airpath,
                    j.deviation,
-                   j.average_width,
-                   j.submitted_at
+                   j.average_width
                  FROM Jumps AS j
                  JOIN Players AS p ON p.id = j.player_id
                  JOIN Servers AS s ON s.id = j.server_id "
@@ -149,7 +136,6 @@ mod macros {
                 airpath: $row.airpath,
                 deviation: $row.deviation,
                 average_width: $row.average_width,
-                submitted_at: $row.submitted_at.into(),
             }
         };
     }

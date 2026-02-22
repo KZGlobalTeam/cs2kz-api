@@ -38,7 +38,7 @@ redundant_closure = "allow"
 version = "1.0.95"
 
 [workspace.dependencies.derive_more]
-version = "1.0.0"
+version = "2.0.0"
 features = [
   "debug",
   "display",
@@ -87,6 +87,10 @@ version = "0.3.31"
 [workspace.dependencies.bytes]
 version = "1.9.0"
 
+[workspace.dependencies.uuid]
+version = "1.19.0"
+features = ["v4", "v7", "serde"]
+
 [workspace.dependencies.pin-project]
 version = "1.1.7"
 
@@ -119,6 +123,19 @@ features = ["serde"]
 version = "0.23.3"
 default-features = false
 features = ["auto-initialize"]
+
+[workspace.dependencies.sqlx]
+version = "0.8.2"
+default-features = false
+features = [
+  "macros",
+  "migrate",
+  "mysql",
+  "runtime-tokio",
+  "tls-rustls",
+  "time",
+  "json",
+]
 
 [workspace.dependencies.fake]
 version = "3.1.0"

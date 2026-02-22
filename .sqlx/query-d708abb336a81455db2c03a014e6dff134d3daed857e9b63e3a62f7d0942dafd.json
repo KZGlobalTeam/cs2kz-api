@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT\n                  `time`\n                 FROM BestNubRecords\n                 WHERE filter_id = ?\n                 AND player_id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "time",
+        "type_info": {
+          "type": "Double",
+          "flags": "NOT_NULL | MULTIPLE_KEY | NO_DEFAULT_VALUE",
+          "max_size": 22
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d708abb336a81455db2c03a014e6dff134d3daed857e9b63e3a62f7d0942dafd"
+}

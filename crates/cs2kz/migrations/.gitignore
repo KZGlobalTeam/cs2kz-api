@@ -3,3 +3,5 @@
 !.gitignore
 !0001_initial.down.sql
 !0001_initial.up.sql
+!0002_remove_points_based_on_pro_leaderboard_column.sql
+!0003_store_time_in_pb_tables.sql

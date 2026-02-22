@@ -18,9 +18,10 @@ use tokio::time::{MissedTickBehavior, interval, sleep};
 use tokio_util::sync::CancellationToken;
 
 use self::message::Message;
-use crate::maps::{CourseInfo, MapIdentifier, MapInfo};
+use crate::maps::{CourseIdentifier, CourseInfo, MapIdentifier, MapInfo};
 use crate::players::PlayerIdentifier;
 use crate::runtime;
+use crate::ws::message::DecodeMessageError;
 
 pub mod message;
 
@@ -129,7 +130,15 @@ where
             Err(error) => {
                 debug!(%error, "failed to decode incoming message");
 
-                let reply = Message::error(error).encode().map_err(io::Error::other)?;
+                let reply = match error {
+                    DecodeMessageError::MissingId(ref error) => Message::error(error),
+                    DecodeMessageError::InvalidPayload { id, ref error } => {
+                        Message::error_reply(id, error)
+                    },
+                }
+                .encode()
+                .map_err(io::Error::other)?;
+
                 conn.send(reply).await.map_err(io::Error::other)?;
                 continue;
             },
@@ -213,7 +222,7 @@ where
             },
         };
 
-        let hello = match Message::<message::Hello>::decode(&bytes) {
+        let hello = match serde_json::from_slice::<message::Hello>(&bytes) {
             Ok(message) => message,
             Err(error) => {
                 debug!(%error, "failed to decode `Hello`");
@@ -226,10 +235,9 @@ where
 
         debug!("received `Hello`, validating plugin version");
 
-        let Some(plugin_version) =
-            cs2kz::plugin::get_version(cx, &hello.payload().plugin_version).await?
+        let Some(plugin_version) = cs2kz::plugin::get_version(cx, &hello.plugin_version).await?
         else {
-            debug!(plugin_version = %hello.payload().plugin_version, "unknown plugin version");
+            debug!(plugin_version = %hello.plugin_version, "unknown plugin version");
 
             let reply = Message::error("unknown plugin version")
                 .encode()
@@ -243,11 +251,11 @@ where
             && !cs2kz::plugin::is_valid_version(
                 cx,
                 plugin_version.id,
-                &hello.payload().plugin_version_checksum,
+                &hello.plugin_version_checksum,
             )
             .await?
         {
-            debug!(plugin_version = %hello.payload().plugin_version, "invalid plugin version");
+            debug!(plugin_version = %hello.plugin_version, "invalid plugin version");
 
             let reply = Message::error("invalid plugin version")
                 .encode()
@@ -257,11 +265,9 @@ where
             break Ok(ControlFlow::Break(()));
         }
 
-        debug!(map = hello.payload().map, "valid plugin version, getting map details");
+        debug!(map = hello.map, "valid plugin version, getting map details");
 
-        let map = cs2kz::maps::get_by_name(cx, &hello.payload().map)
-            .try_next()
-            .await?;
+        let map = cs2kz::maps::get_by_name(cx, &hello.map).try_next().await?;
 
         let modes = cs2kz::mode::get_for_plugin_version(cx, plugin_version.id)
             .try_collect::<Vec<_>>()
@@ -273,19 +279,18 @@ where
 
         let announcements = cs2kz::announcements::get_announcements(cx).await?;
 
-        let reply =
-            Message::ack_hello(&hello, HEARTBEAT_INTERVAL, map, modes, styles, announcements)
-                .encode()
-                .map_err(io::Error::other)?;
+        let ack = message::HelloAck { map, modes, styles, announcements };
 
-        conn.send(reply).await.map_err(io::Error::other)?;
+        let reply = serde_json::to_string(&ack).map_err(io::Error::other)?;
+
+        conn.send(reply.into()).await.map_err(io::Error::other)?;
 
         debug!("handshake completed");
 
         break Ok(ControlFlow::Continue(State {
             server_id,
             plugin_version_id: plugin_version.id,
-            players: hello.into_payload().players,
+            players: hello.players,
         }));
     }
 }
@@ -308,7 +313,7 @@ where
             trace!("server changed map to '{new_map}'");
 
             let map = cs2kz::maps::get_by_name(cx, new_map).try_next().await?;
-            let reply = Message::reply(&message, message::Outgoing::MapInfo { map }).encode()?;
+            let reply = Message::reply(&message, message::Outgoing::MapInfo(map)).encode()?;
 
             conn.send(reply).await.map_err(Into::into)
         },
@@ -321,7 +326,7 @@ where
                 },
             }?;
 
-            let reply = Message::reply(&message, message::Outgoing::MapInfo { map }).encode()?;
+            let reply = Message::reply(&message, message::Outgoing::MapInfo(map)).encode()?;
 
             conn.send(reply).await.map_err(Into::into)
         },
@@ -525,11 +530,18 @@ where
                 return conn.send(reply).await.map_err(Into::into);
             };
 
-            let Some(course_info) =
-                cs2kz::maps::get_course_info_by_name(cx, &map_info.name, course, mode)
-                    .await?
-                    .map(CourseInfo::from)
-            else {
+            let Some(course_info) = (match *course {
+                CourseIdentifier::Number(number) => {
+                    cs2kz::maps::get_course_info_by_number(cx, map_info.id, number, mode)
+                        .await?
+                        .map(CourseInfo::from)
+                },
+                CourseIdentifier::Name(ref name) => {
+                    cs2kz::maps::get_course_info_by_name(cx, &map_info.name, name, mode)
+                        .await?
+                        .map(CourseInfo::from)
+                },
+            }) else {
                 let reply = Message::reply(&message, message::Outgoing::PersonalBest {
                     player: None,
                     map: None,
@@ -623,11 +635,18 @@ where
                 return conn.send(reply).await.map_err(Into::into);
             };
 
-            let Some(course_info) =
-                cs2kz::maps::get_course_info_by_name(cx, &map_info.name, course, mode)
-                    .await?
-                    .map(CourseInfo::from)
-            else {
+            let Some(course_info) = (match *course {
+                CourseIdentifier::Number(number) => {
+                    cs2kz::maps::get_course_info_by_number(cx, map_info.id, number, mode)
+                        .await?
+                        .map(CourseInfo::from)
+                },
+                CourseIdentifier::Name(ref name) => {
+                    cs2kz::maps::get_course_info_by_name(cx, &map_info.name, name, mode)
+                        .await?
+                        .map(CourseInfo::from)
+                },
+            }) else {
                 let reply = Message::reply(&message, message::Outgoing::WorldRecords {
                     map: None,
                     course: None,
@@ -714,7 +733,6 @@ where
 
             if !runtime::environment().is_local()
                 && let Some(invalid_style) = styles
-                    .known_styles
                     .iter()
                     .find(|style| !valid_styles.contains(&style.checksum))
             {

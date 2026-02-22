@@ -7,13 +7,12 @@ use cs2kz::mode::Mode;
 use cs2kz::pagination::{Limit, Offset, Paginated};
 use cs2kz::records::RecordId;
 use cs2kz::styles::Styles;
-use cs2kz::time::{Seconds, Timestamp};
+use cs2kz::time::Seconds;
 use futures_util::TryStreamExt;
 
 use crate::extract::{Json, Path, Query};
 use crate::maps::{CourseInfo, MapIdentifier, MapInfo};
 use crate::players::{PlayerIdentifier, PlayerInfo};
-use crate::replays::ReplayFile;
 use crate::response::ErrorResponse;
 use crate::servers::{ServerIdentifier, ServerInfo};
 
@@ -25,12 +24,11 @@ where
     Router::new()
         .route("/", routing::get(get_records))
         .route("/{record_id}", routing::get(get_record))
-        .route("/{record_id}/replay", routing::get(get_record_replay))
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct Record {
-    #[schema(value_type = u32, minimum = 1)]
+    #[schema(value_type = String, format = Uuid, minimum = 1)]
     id: RecordId,
 
     player: PlayerInfo,
@@ -54,9 +52,6 @@ pub struct Record {
     nub_points: Option<f64>,
     pro_rank: Option<u32>,
     pro_points: Option<f64>,
-
-    #[schema(value_type = crate::openapi::shims::Timestamp)]
-    submitted_at: Timestamp,
 }
 
 #[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
@@ -229,7 +224,7 @@ async fn get_records(
     get,
     path = "/records/{record_id}",
     tag = "Records",
-    params(("record_id" = u32, Path)),
+    params(("record_id" = String, Path)),
     responses(
         (status = 200, body = Record),
         (status = 400, description = "invalid path parameters"),
@@ -248,31 +243,6 @@ async fn get_record(
     Ok(Json(record.into()))
 }
 
-/// Returns the replay file for a specific record.
-#[tracing::instrument(skip(cx))]
-#[utoipa::path(
-    get,
-    path = "/records/{record_id}/replay",
-    tag = "Records",
-    params(("record_id" = u32, Path)),
-    responses(
-        (status = 200, body = ReplayFile),
-        (status = 400, description = "invalid path parameters"),
-        (status = 404,),
-    ),
-)]
-async fn get_record_replay(
-    State(cx): State<Context>,
-    Path(record_id): Path<RecordId>,
-) -> Result<ReplayFile, ErrorResponse> {
-    let bytes = cs2kz::records::get_replay(&cx, record_id)
-        .await
-        .map_err(|err| ErrorResponse::internal_server_error(err))?
-        .ok_or_else(ErrorResponse::not_found)?;
-
-    Ok(ReplayFile::new(bytes))
-}
-
 impl From<cs2kz::records::Record> for Record {
     fn from(record: cs2kz::records::Record) -> Self {
         Self {
@@ -289,7 +259,6 @@ impl From<cs2kz::records::Record> for Record {
             pro_rank: record.pro_rank,
             nub_points: record.nub_points,
             pro_points: record.pro_points,
-            submitted_at: record.submitted_at,
         }
     }
 }

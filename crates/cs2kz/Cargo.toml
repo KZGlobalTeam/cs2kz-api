@@ -34,6 +34,7 @@ anyhow.workspace = true
 derive_more.workspace = true
 time.workspace = true
 ulid.workspace = true
+uuid.workspace = true
 semver.workspace = true
 url.workspace = true
 serde.workspace = true
@@ -45,6 +46,7 @@ tokio-util.workspace = true
 futures-util.workspace = true
 lettre.workspace = true
 pyo3.workspace = true
+sqlx.workspace = true
 
 [dependencies.steam-id]
 path = "../steam-id"
@@ -58,18 +60,10 @@ features = ["async"]
 version = "0.1.17"
 features = ["sync"]
 
-[dependencies.sqlx]
-version = "0.8.2"
+[dependencies.rust-s3]
+version = "0.37.1"
 default-features = false
-features = [
-  "macros",
-  "migrate",
-  "mysql",
-  "runtime-tokio",
-  "tls-rustls",
-  "time",
-  "json",
-]
+features = ["fail-on-err", "tags", "tokio-rustls-tls"]
 
 [dependencies.md-5]
 version = "0.10.6"

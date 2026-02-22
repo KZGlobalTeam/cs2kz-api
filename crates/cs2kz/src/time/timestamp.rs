@@ -35,8 +35,7 @@ impl Timestamp {
     }
 
     pub fn to_unix_ms(self) -> u64 {
-        self.0
-            .unix_timestamp()
+        (self.0.unix_timestamp_nanos() / 1_000_000)
             .try_into()
             .expect("should be positive")
     }

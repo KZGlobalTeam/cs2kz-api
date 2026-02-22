@@ -117,6 +117,15 @@ schema_type!(Permissions => {
     )
 });
 
+schema_type!(Players_SortBy => {
+    Schema::Object(
+        Object::builder()
+            .schema_type(SchemaType::Type(schema::Type::String))
+            .enum_values(Some(["join-date", "vnl-rating", "ckz-rating"]))
+            .build(),
+    )
+});
+
 schema_type!(ServerHost => {
     Schema::Object(
         Object::builder()

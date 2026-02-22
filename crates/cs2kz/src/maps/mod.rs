@@ -253,6 +253,38 @@ pub async fn get_course_id_by_name(
 }
 
 #[tracing::instrument(skip(cx), err(level = "debug"))]
+pub async fn get_course_info_by_number(
+    cx: &Context,
+    map_id: MapId,
+    course_number: NonZero<u16>,
+    mode: Mode,
+) -> Result<Option<CourseInfo>, GetMapsError> {
+    let course_infos = sqlx::query_as!(
+        CourseInfo,
+        "SELECT
+           c.id AS `id: CourseId`,
+           c.name,
+           cf.nub_tier AS `nub_tier: Tier`,
+           cf.pro_tier AS `pro_tier: Tier`
+         FROM Courses AS c
+         JOIN CourseFilters AS cf ON cf.course_id = c.id
+         JOIN Maps AS m ON m.id = c.map_id
+         WHERE m.id = ?
+         AND cf.mode = ?
+         ORDER BY c.id ASC",
+        map_id,
+        mode,
+    )
+    .fetch_all(cx.database().as_ref())
+    .map_err(GetMapsError::from)
+    .await?;
+
+    Ok(course_infos
+        .into_iter()
+        .nth((course_number.get() - 1) as usize))
+}
+
+#[tracing::instrument(skip(cx), err(level = "debug"))]
 pub async fn get_course_info_by_name(
     cx: &Context,
     map_name: &str,

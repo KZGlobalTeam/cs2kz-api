@@ -29,6 +29,9 @@ use crate::steam;
 mod map_identifier;
 pub use map_identifier::MapIdentifier;
 
+mod course_identifier;
+pub use course_identifier::CourseIdentifier;
+
 #[derive(Clone)]
 struct ApproveMapState {
     cx: Context,

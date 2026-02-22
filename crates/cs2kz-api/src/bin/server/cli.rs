@@ -33,6 +33,10 @@ pub struct Args {
     /// Path to the `DepotDownloader` executable the API should use.
     #[arg(long)]
     pub depot_downloader_path: Option<PathBuf>,
+
+    /// Path to a directory containing the `calc_filter.py` and `calc_run.py` scripts.
+    #[arg(long)]
+    pub scripts_path: Option<PathBuf>,
 }
 
 impl Args {
@@ -48,6 +52,11 @@ impl Args {
 
         if let Some(ref path) = self.depot_downloader_path {
             config.depot_downloader.exe_path = path.clone();
+        }
+
+        if let Some(ref path) = self.scripts_path {
+            config.cs2kz.points.calc_filter_path = Some(path.join("calc_filter.py"));
+            config.cs2kz.points.calc_run_path = Some(path.join("calc_run.py"));
         }
     }
 }

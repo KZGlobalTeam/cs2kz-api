@@ -1,0 +1,34 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT\n                               COUNT(r.id) AS size,\n                               MIN(r.time) AS top_time\n                             FROM Records AS r\n                             JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id\n                             WHERE r.filter_id = ?\n                             GROUP BY r.filter_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "size",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | BINARY",
+          "max_size": 21
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "top_time",
+        "type_info": {
+          "type": "Double",
+          "flags": "BINARY",
+          "max_size": 23
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "75e8ab66b42b9c4b864d9782a50d1c346f3d1a651c9aa2d16ec64fb7e956a9bf"
+}

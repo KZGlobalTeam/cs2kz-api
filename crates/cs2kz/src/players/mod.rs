@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::future;
 use std::net::Ipv4Addr;
 
-use futures_util::{Stream, StreamExt, TryStreamExt, stream};
+use futures_util::{Stream, StreamExt, TryFutureExt as _, TryStreamExt, stream};
 use sqlx::types::Json as SqlJson;
 
 use crate::Context;
@@ -22,11 +22,12 @@ pub use player_id::PlayerId;
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Preferences(serde_json::Map<String, serde_json::Value>);
 
-#[derive(Debug)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct Player {
     pub id: PlayerId,
     pub name: String,
-    pub ip_address: Option<Ipv4Addr>,
+    pub vnl_rating: f64,
+    pub ckz_rating: f64,
     pub is_banned: bool,
     pub first_joined_at: Timestamp,
     pub last_joined_at: Timestamp,
@@ -45,18 +46,28 @@ pub struct PlayerInfoWithIsBanned {
     pub is_banned: bool,
 }
 
-#[derive(Debug)]
-pub struct Profile {
-    pub id: PlayerId,
-    pub name: String,
-    pub rating: f64,
-    pub first_joined_at: Timestamp,
-}
 #[derive(Debug, Default)]
 pub struct GetPlayersParams<'a> {
     pub name: Option<&'a str>,
+    pub sort_by: SortBy,
     pub limit: Limit<1000, 250>,
     pub offset: Offset,
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+pub enum SortBy {
+    /// Sort by most recent players.
+    #[default]
+    #[serde(rename = "join-date")]
+    JoinDate,
+
+    /// Sort by VNL rating.
+    #[serde(rename = "vnl-rating")]
+    RatingVNL,
+
+    /// Sort by CKZ rating.
+    #[serde(rename = "ckz-rating")]
+    RatingCKZ,
 }
 
 #[derive(Debug)]
@@ -93,6 +104,16 @@ pub enum CreatePlayerError {
 #[display("failed to get players")]
 #[from(forward)]
 pub struct GetPlayersError(database::Error);
+
+#[derive(Debug, Display, Error, From)]
+#[display("failed to calculate rating")]
+#[from(forward)]
+pub struct CalculateRatingError(database::Error);
+
+#[derive(Debug, Display, Error, From)]
+#[display("failed to update ratings")]
+#[from(forward)]
+pub struct UpdateRatingsError(database::Error);
 
 #[derive(Debug, Display, Error, From)]
 #[display("failed to set player preferences")]
@@ -172,21 +193,55 @@ pub async fn create_many<'a>(
 #[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]
 pub async fn get(
     cx: &Context,
-    GetPlayersParams { name, limit, offset }: GetPlayersParams<'_>,
+    GetPlayersParams { name, sort_by, limit, offset }: GetPlayersParams<'_>,
 ) -> Result<Paginated<impl Stream<Item = Result<Player, GetPlayersError>>>, GetPlayersError> {
-    let total = database::count!(cx.database().as_ref(), "Players").await?;
-    let servers = self::macros::select!(
-        "WHERE p.name LIKE COALESCE(?, p.name)
-         LIMIT ?
-         OFFSET ?",
+    let total = database::count!(
+        cx.database().as_ref(),
+        "Players WHERE name LIKE COALESCE(?, name)",
         name.map(|name| format!("%{name}%")),
-        limit.value(),
-        offset.value()
     )
-    .fetch(cx.database().as_ref())
-    .map_err(GetPlayersError::from);
+    .await?;
 
-    Ok(Paginated::new(total, servers))
+    let mut query = QueryBuilder::new(
+        "WITH BanCounts AS (
+           SELECT b.player_id, COUNT(*) AS count
+            FROM Bans AS b
+            RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id
+            WHERE (b.id IS NULL OR b.expires_at > NOW())
+         )
+         SELECT
+           p.id,
+           p.name,
+           p.vnl_rating,
+           p.ckz_rating,
+           (COALESCE(BanCounts.count, 0) > 0) AS is_banned,
+           p.first_joined_at,
+           p.last_joined_at
+         FROM Players AS p
+         LEFT JOIN BanCounts ON BanCounts.player_id = p.id
+         WHERE p.name LIKE COALESCE(?, p.name)",
+    );
+
+    query.push(" ORDER BY ");
+    query.push(match sort_by {
+        SortBy::JoinDate => " p.first_joined_at DESC ",
+        SortBy::RatingVNL => " p.vnl_rating DESC ",
+        SortBy::RatingCKZ => " p.ckz_rating DESC ",
+    });
+    query.push(" LIMIT ? OFFSET ? ");
+
+    let players = query
+        .build_query_as::<Player>()
+        .bind(name.map(|name| format!("%{name}%")))
+        .bind(limit.value())
+        .bind(offset.value())
+        .fetch(cx.database().as_ref())
+        .map_err(GetPlayersError::from)
+        .try_collect::<Vec<_>>()
+        .map_ok(stream::iter)
+        .await?;
+
+    Ok(Paginated::new(total, players.map(Ok)))
 }
 
 #[tracing::instrument(skip(cx), err(level = "debug"))]
@@ -212,121 +267,165 @@ pub async fn get_by_name(
 }
 
 #[tracing::instrument(skip(cx), err(level = "debug"))]
-pub async fn get_profile(
+pub async fn calculate_rating(
     cx: &Context,
     player_id: PlayerId,
     mode: Mode,
-) -> Result<Option<Profile>, GetPlayersError> {
-    sqlx::query!(
-        r#"WITH RankedPoints AS (
-             SELECT
-               source,
-               record_id,
-               ROW_NUMBER() OVER (
-                 PARTITION BY player_id
-                 ORDER BY points DESC, source DESC
-               ) AS n
-             FROM ((
-               SELECT "pro" AS source, record_id, player_id, points
-               FROM BestProRecords
-               WHERE player_id = ?
-             ) UNION ALL (
-               SELECT "nub" AS source, record_id, player_id, points
-               FROM BestNubRecords
-               WHERE player_id = ?
-             )) AS _
-           ),
-           NubRecords AS (
-             SELECT
-               r.id AS record_id,
-               r.player_id,
-               cf.nub_tier AS tier,
-               BestNubRecords.points,
-               RANK() OVER (
-                 PARTITION BY r.filter_id
-                 ORDER BY
-                   r.time ASC,
-                   r.submitted_at ASC
-               ) AS rank
-             FROM Records AS r
-             JOIN BestNubRecords ON BestNubRecords.record_id = r.id
-             JOIN CourseFilters AS cf ON cf.id = r.filter_id
-             WHERE r.player_id = ?
-             AND cf.mode = ?
-           ),
-           ProRecords AS (
-             SELECT
-               r.id AS record_id,
-               r.player_id,
-               cf.pro_tier AS tier,
-               BestProRecords.points,
-               RANK() OVER (
-                 PARTITION BY r.filter_id
-                 ORDER BY
-                   r.time ASC,
-                   r.submitted_at ASC
-               ) AS rank
-             FROM Records AS r
-             JOIN BestProRecords ON BestProRecords.record_id = r.id
-             JOIN CourseFilters AS cf ON cf.id = r.filter_id
-             WHERE r.player_id = ?
-             AND cf.mode = ?
-           ),
-           NubRatings AS (
-             SELECT
-               player_id,
-               SUM(KZ_POINTS(tier, false, rank - 1, points) * POWER(0.975, n - 1)) AS rating
-             FROM NubRecords
-             JOIN RankedPoints
-               ON RankedPoints.record_id = NubRecords.record_id
-               AND RankedPoints.source = "nub"
-             GROUP BY player_id
-           ),
-           ProRatings AS (
-             SELECT
-               player_id,
-               SUM(KZ_POINTS(tier, true, rank - 1, points) * POWER(0.975, n - 1)) AS rating
-             FROM ProRecords
-             JOIN RankedPoints
-               ON RankedPoints.record_id = ProRecords.record_id
-               AND RankedPoints.source = "pro"
-             GROUP BY ProRecords.player_id
-           )
-           SELECT
-             p.id AS `player_id: PlayerId`,
-             p.name AS player_name,
-             NubRatings.rating AS nub_rating,
-             ProRatings.rating AS pro_rating,
-             p.first_joined_at
-           FROM Players AS p
-           LEFT JOIN NubRatings ON NubRatings.player_id = p.id
-           LEFT JOIN ProRatings ON ProRatings.player_id = p.id
-           WHERE p.id = ?"#,
-        player_id,
-        player_id,
-        player_id,
+) -> Result<f64, CalculateRatingError> {
+    let rating = sqlx::query_scalar!(
+        "with RelevantRecords as (
+           select
+             row_number() over (
+               partition by filter_id, is_pro_leaderboard
+               order by time asc, record_id asc, is_pro_leaderboard asc
+             ) as leaderboard_rank,
+             points,
+             player_id,
+             record_id,
+             tier,
+             is_pro_leaderboard
+           from
+             ((
+               select
+                 br.*,
+                 cf.nub_tier as tier,
+                 false as is_pro_leaderboard
+               from
+                 BestNubRecords as br
+                 inner join CourseFilters as cf on cf.id = br.filter_id
+               where
+                 cf.state = 1
+                 and cf.mode = ?
+             ) union all (
+               select
+                 br.*,
+                 cf.pro_tier as tier,
+                 true as is_pro_leaderboard
+               from
+                 BestProRecords as br
+                 inner join CourseFilters as cf on cf.id = br.filter_id
+               where
+                 cf.state = 1
+                 and cf.mode = ?
+             )) as _
+         ),
+         RanksWithPoints as (
+           select
+             rr.*,
+             KZ_POINTS(
+               rr.tier,
+               rr.is_pro_leaderboard,
+               rr.leaderboard_rank - 1,
+               rr.points
+             ) as points2
+           from RelevantRecords as rr
+         ),
+         RankedRecords as (
+           select
+             row_number() over (
+               partition BY rr.player_id
+               order by rr.points2 desc, rr.record_id asc, rr.is_pro_leaderboard asc
+             ) as overall_rank,
+             rr.*
+           from RanksWithPoints as rr
+         )
+         select
+           sum(points2 * power(0.975, overall_rank - 1) * 0.1) as rating
+         from (select * from RankedRecords where player_id = ?) as _",
         mode,
-        player_id,
         mode,
         player_id,
     )
-    .fetch_optional(cx.database().as_ref())
-    .await
-    .map_err(GetPlayersError::from)
-    .map(|row| {
-        row.map(|row| Profile {
-            id: row.player_id,
-            name: row.player_name,
-            rating: match (row.nub_rating, row.pro_rating) {
-                (None, Some(_)) => unreachable!(),
-                (None, None) => 0.0,
-                (Some(nub_rating), None) => nub_rating,
-                // ?
-                (Some(nub_rating), Some(pro_rating)) => nub_rating + pro_rating,
-            },
-            first_joined_at: row.first_joined_at.into(),
-        })
-    })
+    .fetch_one(cx.database().as_ref())
+    .await?;
+
+    Ok(rating.unwrap_or(0.0))
+}
+
+#[tracing::instrument(skip(cx), err(level = "debug"))]
+pub async fn update_ratings(cx: &Context, mode: Mode) -> Result<(), UpdateRatingsError> {
+    let query = format!(
+        "insert into Players (id, name, vnl_rating, ckz_rating)
+         select
+           player_id,
+           '',
+           rating,
+           rating
+         from (
+           with RelevantRecords as (
+             select
+               row_number() over (
+                 partition by filter_id, is_pro_leaderboard
+                 order by time asc, record_id asc, is_pro_leaderboard asc
+               ) as leaderboard_rank,
+               points,
+               player_id,
+               record_id,
+               tier,
+               is_pro_leaderboard
+             from
+               ((
+                 select
+                   br.*,
+                   cf.nub_tier as tier,
+                   false as is_pro_leaderboard
+                 from
+                   BestNubRecords as br
+                   inner join CourseFilters as cf on cf.id = br.filter_id
+                 where cf.state = 1
+                 and cf.mode = ?
+               ) union all (
+                 select
+                   br.*,
+                   cf.pro_tier as tier,
+                   true as is_pro_leaderboard
+                 from
+                   BestProRecords as br
+                   inner join CourseFilters as cf on cf.id = br.filter_id
+                 where cf.state = 1
+                 and cf.mode = ?
+               )) as _
+           ),
+           RanksWithPoints as (
+             select
+               rr.*,
+               KZ_POINTS(
+                 rr.tier,
+                 rr.is_pro_leaderboard,
+                 rr.leaderboard_rank - 1,
+                 rr.points
+               ) as points2
+             from RelevantRecords as rr
+           ),
+           RankedRecords as (
+             select
+               row_number() over (
+                 partition BY rr.player_id
+                 order by rr.points2 desc, rr.record_id asc, rr.is_pro_leaderboard asc
+               ) as overall_rank,
+               rr.*
+             from RanksWithPoints as rr
+           )
+           select
+             player_id,
+             sum(points2 * power(0.975, overall_rank - 1) * 0.1) as rating
+           from RankedRecords
+           group by player_id
+         ) as _
+         on duplicate key update {col_to_update}=values({col_to_update})",
+        col_to_update = match mode {
+            Mode::Vanilla => "vnl_rating",
+            Mode::Classic => "ckz_rating",
+        },
+    );
+
+    sqlx::query(&query)
+        .bind(mode)
+        .bind(mode)
+        .execute(cx.database().as_ref())
+        .await?;
+
+    Ok(())
 }
 
 #[tracing::instrument(skip(cx), err(level = "debug"))]
@@ -427,7 +526,8 @@ mod macros {
                  SELECT
                    p.id AS `id: PlayerId`,
                    p.name,
-                   p.ip_address AS `ip_address: Ipv4Addr`,
+                   p.vnl_rating,
+                   p.ckz_rating,
                    (COALESCE(BanCounts.count, 0) > 0) AS `is_banned!: bool`,
                    p.first_joined_at,
                    p.last_joined_at

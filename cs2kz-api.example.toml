@@ -106,3 +106,7 @@ min-connections = 1
 #
 # 0 will let the API choose an amount
 max-connections = 0
+
+[points]
+calc-filter-path = "scripts/calc_filter.py"
+calc-run-path = "scripts/calc_run.py"

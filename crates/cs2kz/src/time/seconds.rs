@@ -11,7 +11,7 @@ use crate::num::AsF64;
 pub struct Seconds(
     #[cfg_attr(
         feature = "fake",
-        dummy(expr = "Duration::from_secs_f64(fake::Fake::fake(&(0.0..=69420.0)))")
+        dummy(expr = "Duration::from_secs_f64(fake::Fake::fake(&(15.0..=69420.0)))")
     )]
     pub Duration,
 );

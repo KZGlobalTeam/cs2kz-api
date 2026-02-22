@@ -135,7 +135,7 @@ async fn cs2_server_auth(
                 let mut socket = socket;
                 let result = ws::handle_connection(cx, shutdown_signal, server_id, &mut socket)
                     .instrument(
-                        tracing::debug_span!("cs2_server_{server_id}", connection.id = %Ulid::new()),
+                        tracing::debug_span!("cs2_server", %server_id, connection.id = %Ulid::new()),
                     )
                     .await;
 

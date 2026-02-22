@@ -1,20 +1,20 @@
 use std::collections::HashMap;
 use std::fmt;
 use std::net::Ipv4Addr;
-use std::time::Duration;
 
 use axum::extract::ws::Message as RawMessage;
+use bytes::Bytes;
 use cs2kz::announcements::Announcement;
 use cs2kz::checksum::Checksum;
 use cs2kz::maps::{CourseFilterId, Map, MapId};
 use cs2kz::mode::{Mode, ModeInfo};
 use cs2kz::pagination::{Limit, Offset};
 use cs2kz::players::{PlayerId, PlayerInfo, PlayerInfoWithIsBanned, Preferences};
-use cs2kz::records::{Record, RecordId, StylesForNewRecord, SubmittedPB};
-use cs2kz::styles::{StyleInfo, Styles};
+use cs2kz::records::{Record, RecordId, SubmittedPB};
+use cs2kz::styles::{ClientStyleInfo, StyleInfo, Styles};
 use cs2kz::time::Seconds;
 
-use crate::maps::{CourseInfo, MapIdentifier, MapInfo};
+use crate::maps::{CourseIdentifier, CourseInfo, MapIdentifier, MapInfo};
 use crate::players::PlayerIdentifier;
 
 /// A WebSocket message.
@@ -51,9 +51,6 @@ pub struct Hello {
 /// The API's response to a [`Hello`] message.
 #[derive(Debug, serde::Serialize)]
 pub struct HelloAck {
-    /// The interval at which the client should send ping messages (in seconds).
-    pub heartbeat_interval: Seconds,
-
     /// Detailed information about the map the server is currently hosting.
     pub map: Option<Map>,
 
@@ -64,12 +61,6 @@ pub struct HelloAck {
     pub styles: Vec<StyleInfo>,
 
     pub announcements: Vec<Announcement>,
-}
-
-/// An error occurred on the side of the API.
-#[derive(Debug, serde::Serialize)]
-pub struct Error {
-    message: String,
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -126,7 +117,7 @@ pub enum Incoming {
     WantPersonalBest {
         player: PlayerIdentifier,
         map: MapIdentifier,
-        course: String,
+        course: CourseIdentifier,
         mode: Mode,
 
         #[expect(dead_code, reason = "TODO")]
@@ -135,7 +126,7 @@ pub enum Incoming {
 
     WantWorldRecords {
         map: MapIdentifier,
-        course: String,
+        course: CourseIdentifier,
         mode: Mode,
     },
 
@@ -144,7 +135,7 @@ pub enum Incoming {
         player_id: PlayerId,
         filter_id: CourseFilterId,
         mode_md5: Checksum,
-        styles: StylesForNewRecord,
+        styles: Vec<ClientStyleInfo>,
         teleports: u32,
         time: Seconds,
     },
@@ -153,9 +144,10 @@ pub enum Incoming {
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "kebab-case", tag = "event", content = "data")]
 pub enum Outgoing {
-    MapInfo {
-        map: Option<Map>,
+    Error {
+        message: String,
     },
+    MapInfo(Option<Map>),
     PlayerJoinAck {
         is_banned: bool,
         preferences: Preferences,
@@ -195,8 +187,18 @@ pub enum Outgoing {
 }
 
 #[derive(Debug, Display, Error, From)]
-#[display("failed to decode incoming message: {_0}")]
-pub struct DecodeMessageError(serde_json::Error);
+#[display("failed to decode incoming message: {_variant}")]
+pub enum DecodeMessageError {
+    #[display("missing `id` field")]
+    MissingId(serde_json::Error),
+
+    #[display("invalid payload: {error}")]
+    InvalidPayload {
+        id: u32,
+        #[error(source)]
+        error: serde_json::Error,
+    },
+}
 
 #[derive(Debug, Display, Error, From)]
 #[display("failed to encode outgoing message: {_0}")]
@@ -206,19 +208,37 @@ impl<T> Message<T> {
     pub fn payload(&self) -> &T {
         &self.payload
     }
+}
 
-    pub fn into_payload(self) -> T {
-        self.payload
+impl Message<Hello> {
+    /// Decodes an incoming message.
+    #[tracing::instrument(skip(payload), err(level = "debug"))]
+    pub fn decode(payload: &[u8]) -> Result<Self, serde_json::Error> {
+        serde_json::from_slice(payload)
+            .inspect_err(|_| debug!(payload = ?String::from_utf8_lossy(payload)))
     }
 }
 
-impl<T: for<'de> serde::Deserialize<'de>> Message<T> {
+impl Message<Incoming> {
     /// Decodes an incoming message.
     #[tracing::instrument(skip(payload), err(level = "debug"))]
-    pub fn decode(payload: &[u8]) -> Result<Self, DecodeMessageError> {
-        serde_json::from_slice(payload)
+    pub fn decode(payload: &Bytes) -> Result<Self, DecodeMessageError> {
+        #[derive(serde::Deserialize)]
+        struct Id {
+            id: u32,
+        }
+
+        let Id { id } = serde_json::from_slice(payload).map_err(DecodeMessageError::MissingId)?;
+        let mut deserializer =
+            serde_json::Deserializer::from_slice(payload).into_iter::<Incoming>();
+        let decoded_payload = deserializer
+            .next()
+            .ok_or_else(|| serde_json::from_slice::<Incoming>(&[]).unwrap_err())
+            .flatten()
             .inspect_err(|_| debug!(payload = ?String::from_utf8_lossy(payload)))
-            .map_err(DecodeMessageError)
+            .map_err(|err| DecodeMessageError::InvalidPayload { id, error: err })?;
+
+        Ok(Self { id, payload: decoded_payload })
     }
 }
 
@@ -231,42 +251,22 @@ impl<T: serde::Serialize> Message<T> {
     }
 }
 
-impl Message<HelloAck> {
-    /// Acknowledges a [`Hello`] message with a [`HelloAck`].
-    pub fn ack_hello(
-        hello: &Message<Hello>,
-        heartbeat_interval: Duration,
-        map: Option<Map>,
-        modes: Vec<ModeInfo>,
-        styles: Vec<StyleInfo>,
-        announcements: Vec<Announcement>,
-    ) -> Self {
-        Self {
-            id: hello.id,
-            payload: HelloAck {
-                heartbeat_interval: heartbeat_interval.into(),
-                map,
-                modes,
-                styles,
-                announcements,
-            },
-        }
-    }
-}
-
-impl Message<Error> {
-    /// Sends an error message to the client.
-    pub fn error(error: impl fmt::Display) -> Self {
-        Self {
-            id: 0,
-            payload: Error { message: error.to_string() },
-        }
-    }
-}
-
 impl Message<Outgoing> {
     /// Creates a reply to an incoming message with the given payload.
     pub fn reply(to: &Message<Incoming>, payload: Outgoing) -> Self {
         Self { id: to.id, payload }
+    }
+
+    /// Sends an error message to the client.
+    pub fn error(error: impl fmt::Display) -> Self {
+        Self::error_reply(0, error)
+    }
+
+    /// Sends an error message to the client.
+    pub fn error_reply(to: u32, error: impl fmt::Display) -> Self {
+        Self {
+            id: to,
+            payload: Outgoing::Error { message: error.to_string() },
+        }
     }
 }

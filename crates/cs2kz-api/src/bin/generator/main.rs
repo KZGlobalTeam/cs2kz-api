@@ -10,6 +10,7 @@ use std::num::NonZero;
 use std::{cmp, env, future};
 
 use anyhow::Context as _;
+use cs2kz::Context;
 use cs2kz::config::{Config, DatabaseConfig};
 use cs2kz::git::GitRevision;
 use cs2kz::maps::courses::filters::{
@@ -33,19 +34,11 @@ use cs2kz::mode::Mode;
 use cs2kz::pagination::Limit;
 use cs2kz::players::{self, CreatePlayerError, GetPlayersParams, NewPlayer, PlayerId};
 use cs2kz::plugin::{self, NewMode, NewPluginVersion, NewStyle};
-use cs2kz::records::{
-    self,
-    NewRecord,
-    RecordId,
-    StylesForNewRecord,
-    SubmitRecordError,
-    SubmittedRecord,
-};
+use cs2kz::records::{self, NewRecord, RecordId, SubmitRecordError, SubmittedRecord};
 use cs2kz::servers::{self, ApproveServerError, GetServersParams, NewServer, ServerHost, ServerId};
 use cs2kz::steam::WorkshopId;
 use cs2kz::styles::Style;
 use cs2kz::users::{self, CreateUserError, NewUser, UserId};
-use cs2kz::{Context, points};
 use fake::faker::lorem::en::{Paragraph, Word};
 use fake::faker::name::en::{FirstName, LastName};
 use fake::rand::rngs::ThreadRng;
@@ -87,6 +80,7 @@ async fn main() -> anyhow::Result<()> {
                 min_connections: 1,
                 max_connections: Some(NonZero::<u32>::MIN),
             },
+            points: Default::default(),
         })?;
 
     let cx = Context::new(cfg).await?;
@@ -135,11 +129,6 @@ async fn main() -> anyhow::Result<()> {
         } => delete_records(&cx, filter_id, starting_at, count)
             .await
             .context("failed to delete records"),
-        Resource::Records {
-            action: RecordAction::RecalcFilters { start, end },
-        } => recalc_filters(&cx, start, end)
-            .await
-            .context("failed to recalc filters"),
         Resource::Maps { action: MapAction::Create { mappers, count } } => {
             create_maps(&cx, mappers, count)
                 .await
@@ -379,7 +368,7 @@ async fn create_records(
                 .choose(&mut rng)
                 .copied()
                 .context("there are no filters in the database")?,
-            styles: StylesForNewRecord { count: 0, known_styles: Vec::new() },
+            styles: Vec::new(),
             teleports: if rng.gen_range(0..100) > 33 {
                 rng.r#gen()
             } else {
@@ -392,6 +381,7 @@ async fn create_records(
         match records::submit(cx, record).await {
             Ok(SubmittedRecord { record_id: id, .. }) => info!(%id, "created record"),
             Err(SubmitRecordError::CalculatePoints(error)) => return Err(error.into()),
+            Err(SubmitRecordError::CalculateRating(error)) => return Err(error.into()),
             Err(SubmitRecordError::Database(error)) => return Err(error.into()),
         }
     }
@@ -409,24 +399,6 @@ async fn delete_records(
         info!(amount, "deleted records");
     } else {
         anyhow::bail!("there are no records in the database");
-    }
-
-    Ok(())
-}
-
-async fn recalc_filters(
-    cx: &Context,
-    start: CourseFilterId,
-    end: CourseFilterId,
-) -> anyhow::Result<()> {
-    for filter_id in (start.into_inner().get()..=end.into_inner().get())
-        .map(|filter_id| CourseFilterId::from_inner(NonZero::new(filter_id).unwrap()))
-    {
-        points::daemon::process_filter(cx, filter_id, 0)
-            .await
-            .with_context(|| format!("failed to recalc filter {filter_id}"))?;
-
-        info!(%filter_id, "recalculated filter");
     }
 
     Ok(())
