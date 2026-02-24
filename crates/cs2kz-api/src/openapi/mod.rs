@@ -59,6 +59,7 @@ static CONFIG: LazyLock<Arc<utoipa_swagger_ui::Config<'static>>> = LazyLock::new
             shims::GitRevision,
             shims::Checksum,
             shims::Permissions,
+            shims::Players_SortBy,
             shims::ServerHost,
             shims::AccessKey,
             shims::MapState,
