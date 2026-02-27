@@ -84,7 +84,6 @@
           inherit src;
           strictDeps = true;
           env = {
-            PYO3_PYTHON = "${python}/bin/python";
             SQLX_OFFLINE = true;
           };
         };
@@ -158,7 +157,12 @@
         };
 
         packages = {
-          inherit cs2kz-api generator openapi-schema python;
+          inherit
+            cs2kz-api
+            generator
+            openapi-schema
+            python
+            ;
 
           dockerImage = pkgs.dockerTools.buildLayeredImage {
             name = cs2kz-api.pname;
@@ -192,7 +196,6 @@
           ]);
 
           KZ_API_ENVIRONMENT = "local";
-          PYO3_PYTHON = "${python}/bin/python";
         };
       }
     );

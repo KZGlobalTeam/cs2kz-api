@@ -14,10 +14,12 @@ use tokio::task;
 use tokio_util::task::AbortOnDropHandle;
 use tokio_util::time::FutureExt as _;
 use tracing::Instrument as _;
+use url::Url;
 
 #[derive(Debug)]
 pub struct Python<Request, Response> {
     script_path: PathBuf,
+    database_url: Url,
     process: Child,
     process_stdout: BufReader<ChildStdout>,
     process_stderr_reader_task: AbortOnDropHandle<io::Result<()>>,
@@ -36,8 +38,10 @@ enum PythonResponse<T> {
 }
 
 impl<Request, Response> Python<Request, Response> {
-    pub async fn new(script_path: PathBuf) -> io::Result<Self> {
-        let (mut process, process_stderr_reader_task) = spawn_script(&script_path).await?;
+    pub async fn new(script_path: PathBuf, database_url: Url) -> io::Result<Self> {
+        let (mut process, process_stderr_reader_task) =
+            spawn_script(&script_path, &database_url).await?;
+
         let process_stdout = process
             .stdout
             .take()
@@ -46,6 +50,7 @@ impl<Request, Response> Python<Request, Response> {
 
         Ok(Self {
             script_path,
+            database_url,
             process,
             process_stdout,
             process_stderr_reader_task: AbortOnDropHandle::new(process_stderr_reader_task),
@@ -123,7 +128,8 @@ impl<Request, Response> Python<Request, Response> {
     }
 
     pub async fn reset(&mut self) -> io::Result<()> {
-        let (process, process_stderr_reader_task) = spawn_script(&self.script_path).await?;
+        let (process, process_stderr_reader_task) =
+            spawn_script(&self.script_path, &self.database_url).await?;
         self.process = process;
         self.process_stdout = self
             .process
@@ -145,11 +151,15 @@ impl<Request, Response> Python<Request, Response> {
     }
 }
 
-async fn spawn_script(path: &Path) -> io::Result<(Child, task::JoinHandle<io::Result<()>>)> {
+async fn spawn_script(
+    path: &Path,
+    database_url: &Url,
+) -> io::Result<(Child, task::JoinHandle<io::Result<()>>)> {
     let span = tracing::debug_span!("python", script_path = %path.display());
     let executable_name = resolve_executable_name().await?;
     let mut child = Command::new(executable_name)
         .arg(path)
+        .env("DATABASE_URL", database_url.as_str())
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

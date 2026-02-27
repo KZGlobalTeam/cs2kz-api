@@ -68,7 +68,7 @@ impl PointsCalculator {
             return Ok(None);
         };
 
-        let python = Python::new(script_path.to_owned()).await?;
+        let python = Python::new(script_path.to_owned(), config.database.url.clone()).await?;
         let chan = mpsc::channel(128);
 
         Ok(Some(Self { python, chan }))

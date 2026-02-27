@@ -93,7 +93,11 @@ pub async fn run(cx: Context, cancellation_token: CancellationToken) -> Result<(
         return Ok(());
     };
 
-    let mut python = Python::<PythonRequest, PythonResponse>::new(script_path.to_owned()).await?;
+    let mut python = Python::<PythonRequest, PythonResponse>::new(
+        script_path.to_owned(),
+        cx.config().database.url.clone(),
+    )
+    .await?;
     let mut recalc_ratings_interval = interval(Duration::from_secs(10));
 
     loop {
