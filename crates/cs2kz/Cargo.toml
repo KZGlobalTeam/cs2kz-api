@@ -45,7 +45,6 @@ tokio.workspace = true
 tokio-util.workspace = true
 futures-util.workspace = true
 lettre.workspace = true
-pyo3.workspace = true
 sqlx.workspace = true
 
 [dependencies.steam-id]

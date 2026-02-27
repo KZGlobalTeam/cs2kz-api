@@ -60,7 +60,6 @@ http.workspace = true
 http-body-util.workspace = true
 mime.workspace = true
 lettre.workspace = true
-pyo3.workspace = true
 sqlx.workspace = true
 clap.workspace = true
 

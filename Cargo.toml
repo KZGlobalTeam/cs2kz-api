@@ -119,11 +119,6 @@ version = "0.11.11"
 default-features = false
 features = ["serde"]
 
-[workspace.dependencies.pyo3]
-version = "0.23.3"
-default-features = false
-features = ["auto-initialize"]
-
 [workspace.dependencies.sqlx]
 version = "0.8.2"
 default-features = false
