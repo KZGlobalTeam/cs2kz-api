@@ -136,7 +136,7 @@ features = [
 ]
 
 [dependencies.utoipa-swagger-ui]
-version = "8.1.0"
+version = "9.0.2"
 features = ["vendored"]
 
 [dependencies.reqwest]
