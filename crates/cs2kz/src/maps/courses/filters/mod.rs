@@ -34,6 +34,15 @@ pub enum Tier {
     Impossible = 10,
 }
 
+impl Tier {
+    pub fn serialize_as_integer<S: serde::Serializer>(
+        &self,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        <u8 as serde::Serialize>::serialize(&(*self as u8), serializer)
+    }
+}
+
 #[repr(i8)]
 #[derive(Debug, Clone, Copy, sqlx::Type, serde::Serialize)]
 #[serde(rename_all = "kebab-case")]

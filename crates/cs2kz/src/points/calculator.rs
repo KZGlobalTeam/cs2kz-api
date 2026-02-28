@@ -53,6 +53,7 @@ pub enum CalculatePointsError {
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct LeaderboardData {
     pub dist_params: Option<DistributionParameters>,
+    #[serde(serialize_with = "Tier::serialize_as_integer")]
     pub tier: Tier,
     pub leaderboard_size: u64,
     #[serde(rename = "wr")]
