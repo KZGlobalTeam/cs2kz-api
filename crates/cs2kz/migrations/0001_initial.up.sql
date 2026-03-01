@@ -218,18 +218,6 @@ CREATE TABLE IF NOT EXISTS FiltersToRecalculate (
   INDEX IDX_FiltersToRecalculate_priority (priority)
 );
 
-CREATE OR REPLACE TRIGGER schedule_filter_recalc_nub
-  AFTER INSERT ON BestNubRecords FOR EACH ROW
-  INSERT INTO FiltersToRecalculate
-  VALUES (NEW.filter_id, 1)
-  ON DUPLICATE KEY UPDATE priority = priority + 1;
-
-CREATE OR REPLACE TRIGGER schedule_filter_recalc_pro
-  AFTER INSERT ON BestProRecords FOR EACH ROW
-  INSERT INTO FiltersToRecalculate
-  VALUES (NEW.filter_id, 1)
-  ON DUPLICATE KEY UPDATE priority = priority + 1;
-
 CREATE TABLE IF NOT EXISTS Bans (
   id INT4 UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
   player_id INT8 UNSIGNED NOT NULL REFERENCES Players(id),

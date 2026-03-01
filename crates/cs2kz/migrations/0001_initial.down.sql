@@ -1,8 +1,6 @@
 DROP FUNCTION IF EXISTS KZ_POINTS;
 DROP TABLE IF EXISTS Unbans;
 DROP TABLE IF EXISTS Bans;
-DROP TRIGGER IF EXISTS schedule_filter_recalc_pro;
-DROP TRIGGER IF EXISTS schedule_filter_recalc_nub;
 DROP TABLE IF EXISTS FiltersToRecalculate;
 DROP TABLE IF EXISTS PointDistributionData;
 DROP TABLE IF EXISTS BestProRecords;

@@ -427,10 +427,9 @@ pub async fn submit(
                 })?;
             }
 
-            let is_pro_run = teleports == 0;
-            let is_pro_pb = pro_pb_time.is_none_or(|pro_pb_time| pro_pb_time > time.as_f64());
+            let is_pro_pb =  teleports == 0 && pro_pb_time.is_none_or(|pro_pb_time| pro_pb_time > time.as_f64());
 
-            if is_pro_run && is_pro_pb {
+            if is_pro_pb {
                 sqlx::query!(
                     "INSERT INTO BestProRecords (
                        filter_id,
@@ -469,7 +468,7 @@ pub async fn submit(
             let pro_rank = ranks.pro_rank.map(|rank| rank as u32);
             let pro_leaderboard_size = ranks.pro_leaderboard_size.map_or(0, |size| size as u32);
 
-            Ok(SubmittedRecord {
+	    let record = SubmittedRecord {
                 record_id,
                 pb_data: Some(SubmittedPB {
                     nub_rank,
@@ -486,9 +485,28 @@ pub async fn submit(
                     }),
                     pro_leaderboard_size,
                 }),
-            })
+            };
+
+            Ok(record)
         })
         .await?;
+
+    #[expect(clippy::collapsible_if)]
+    if let Some(ref pb_data) = record.pb_data
+        && (pb_data.nub_rank.is_some() || pb_data.pro_rank.is_some())
+    {
+        if let Err(err) = sqlx::query!(
+            "INSERT INTO FiltersToRecalculate (filter_id, priority)
+             VALUES (?, 1)
+             ON DUPLICATE KEY UPDATE priority = priority + 1",
+            filter_id,
+        )
+        .execute(cx.database().as_ref())
+        .await
+        {
+            tracing::warn!(%err, record.id = %record.record_id, "failed to update FiltersToRecalculate");
+        }
+    }
 
     cx.points_daemon().notify_record_submitted();
 

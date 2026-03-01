@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO FiltersToRecalculate (filter_id, priority)\n             VALUES (?, 1)\n             ON DUPLICATE KEY UPDATE priority = priority + 1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "c280acf21c9171885c1a9bcca5c1a6c27df7551d48f9ec9c4162c186bb76a14c"
+}
