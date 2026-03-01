@@ -474,7 +474,7 @@ pub async fn submit(
                 pb_data: Some(SubmittedPB {
                     nub_rank,
                     nub_points: nub_rank.map(|rank| {
-                        points::complete(nub_tier, false, rank, points.nub_fraction)
+                        points::complete(nub_tier, false, rank - 1, points.nub_fraction)
                     }),
                     nub_leaderboard_size,
                     pro_rank: pro_rank.filter(|_| teleports == 0),
@@ -482,7 +482,7 @@ pub async fn submit(
                         .zip(request.pro_data.as_ref())
                         .zip(points.pro_fraction)
                         .map(|((rank, data), dist_points)| {
-                        points::complete(data.tier, true, rank, dist_points)
+                        points::complete(data.tier, true, rank - 1, dist_points)
                     }),
                     pro_leaderboard_size,
                 }),
