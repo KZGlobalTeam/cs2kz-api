@@ -19,6 +19,7 @@
 #![feature(bstr)]
 #![feature(decl_macro)]
 #![feature(future_join)]
+#![feature(iter_array_chunks)]
 #![feature(trait_alias)]
 #![feature(try_blocks)]
 

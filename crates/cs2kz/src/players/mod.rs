@@ -344,13 +344,10 @@ pub async fn calculate_rating(
 
 #[tracing::instrument(skip(cx), err(level = "debug"))]
 pub async fn update_ratings(cx: &Context, mode: Mode) -> Result<(), UpdateRatingsError> {
-    let query = format!(
-        "insert into Players (id, name, vnl_rating, ckz_rating)
-         select
-           player_id,
-           '',
-           rating,
-           rating
+    let ratings = sqlx::query!(
+        "select
+           player_id as `player_id!: PlayerId`,
+           rating as `rating!: f64`
          from (
            with RelevantRecords as (
              select
@@ -411,19 +408,52 @@ pub async fn update_ratings(cx: &Context, mode: Mode) -> Result<(), UpdateRating
              sum(points2 * power(0.975, overall_rank - 1) * 0.1) as rating
            from RankedRecords
            group by player_id
-         ) as _
-         on duplicate key update {col_to_update}=values({col_to_update})",
-        col_to_update = match mode {
-            Mode::Vanilla => "vnl_rating",
-            Mode::Classic => "ckz_rating",
-        },
-    );
+         ) as _",
+        mode,
+        mode,
+    )
+    .fetch(cx.database().as_ref())
+    .map_ok(|row| (row.player_id, row.rating))
+    .try_collect::<Vec<_>>()
+    .await?;
 
-    sqlx::query(&query)
-        .bind(mode)
-        .bind(mode)
-        .execute(cx.database().as_ref())
+    let mut ratings_to_insert = ratings.chunks(5000);
+
+    cx.database()
+        .in_transaction(async |conn| -> Result<_, UpdateRatingsError> {
+            for ratings in ratings_to_insert.by_ref() {
+                insert_ratings(conn, mode, ratings.iter().copied()).await?;
+            }
+
+            Ok(())
+        })
         .await?;
+
+    Ok(())
+}
+
+#[tracing::instrument(skip(conn, ratings), err(level = "debug"))]
+pub async fn insert_ratings(
+    conn: &mut database::Connection,
+    mode: Mode,
+    ratings: impl IntoIterator<Item = (PlayerId, f64)>,
+) -> Result<(), UpdateRatingsError> {
+    let mut query = QueryBuilder::new("INSERT INTO Players (id, name, vnl_rating, ckz_rating)");
+
+    query.push_values(ratings, |mut query, (player_id, rating)| {
+        query.push_bind(player_id);
+        query.push_bind("");
+        query.push_bind(rating);
+        query.push_bind(rating);
+    });
+
+    query.push(" ON DUPLICATE KEY UPDATE ");
+    query.push(match mode {
+        Mode::Vanilla => "vnl_rating=VALUES(vnl_rating)",
+        Mode::Classic => "ckz_rating=VALUES(ckz_rating)",
+    });
+
+    query.build().execute(conn).await?;
 
     Ok(())
 }
