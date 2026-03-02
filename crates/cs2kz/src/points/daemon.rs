@@ -1,6 +1,6 @@
+use std::io;
 use std::sync::Arc;
 use std::time::Duration;
-use std::{future, io};
 
 use futures_util::TryFutureExt as _;
 use tokio::sync::Notify;
@@ -125,15 +125,10 @@ pub async fn run(cx: Context, cancellation_token: CancellationToken) -> Result<(
 async fn recalculate_ratings(cx: &Context) {
     use players::update_ratings;
 
-    let (res1, res2) =
-        future::join!(update_ratings(cx, Mode::Vanilla), update_ratings(cx, Mode::Classic)).await;
-
-    if let Err(err) = res1 {
-        tracing::error!(%err, mode = ?Mode::Vanilla, "failed to recalculate ratings");
-    }
-
-    if let Err(err) = res2 {
-        tracing::error!(%err, mode = ?Mode::Classic, "failed to recalculate ratings");
+    for mode in [Mode::Vanilla, Mode::Classic] {
+        if let Err(err) = update_ratings(cx, mode).await {
+            tracing::error!(%err, ?mode, "failed to recalculate ratings");
+        }
     }
 }
 
