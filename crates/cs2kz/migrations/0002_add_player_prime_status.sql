@@ -1,0 +1,2 @@
+ALTER TABLE Players
+ADD COLUMN prime_verified BOOLEAN NOT NULL DEFAULT FALSE AFTER ip_address;

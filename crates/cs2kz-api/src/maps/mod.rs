@@ -650,6 +650,7 @@ async fn create_missing_mappers(
                         id: PlayerId::new(user.id),
                         name: Cow::Owned(user.name),
                         ip_address: None,
+                        has_prime: false,
                     }),
                     Ok(None) => Err(ErrorResponse::mapper_does_not_exist()),
                     Err(error) => Err(ErrorResponse::from(error)),

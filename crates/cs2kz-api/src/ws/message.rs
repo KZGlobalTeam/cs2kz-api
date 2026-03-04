@@ -81,6 +81,9 @@ pub enum Incoming {
         id: PlayerId,
         name: String,
         ip_address: Ipv4Addr,
+
+        #[serde(default)] // backwards compat
+        has_prime: bool,
     },
 
     /// A player left the server.
@@ -151,6 +154,7 @@ pub enum Outgoing {
     PlayerJoinAck {
         is_banned: bool,
         preferences: Preferences,
+        has_prime: bool,
     },
     PlayerPreferences {
         preferences: Option<Preferences>,

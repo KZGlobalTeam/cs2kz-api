@@ -3,6 +3,7 @@ use std::future;
 use std::net::Ipv4Addr;
 
 use futures_util::{Stream, StreamExt, TryFutureExt as _, TryStreamExt, stream};
+use sqlx::Row as _;
 use sqlx::types::Json as SqlJson;
 
 use crate::Context;
@@ -80,6 +81,7 @@ pub struct NewPlayer<'a> {
     )]
     pub name: Cow<'a, str>,
     pub ip_address: Option<Ipv4Addr>,
+    pub has_prime: bool,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -88,6 +90,8 @@ pub struct RegisterPlayerInfo {
 
     #[sqlx(json)]
     pub preferences: Preferences,
+
+    pub has_prime: bool,
 }
 
 #[derive(Debug, Display, Error, From)]
@@ -123,20 +127,24 @@ pub struct SetPlayerPreferencesError(database::Error);
 #[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]
 pub async fn register(
     cx: &Context,
-    NewPlayer { id, name, ip_address }: NewPlayer<'_>,
+    NewPlayer { id, name, ip_address, has_prime }: NewPlayer<'_>,
 ) -> Result<RegisterPlayerInfo, CreatePlayerError> {
-    sqlx::query!(
-        "INSERT INTO Players (id, name, ip_address)
-         VALUES (?, ?, ?)
+    let has_prime = sqlx::query!(
+        "INSERT INTO Players (id, name, ip_address, prime_verified)
+         VALUES (?, ?, ?, ?)
          ON DUPLICATE KEY
          UPDATE name = VALUES(name),
-                ip_address = VALUES(ip_address)",
+                ip_address = VALUES(ip_address),
+                prime_verified = (prime_verified | VALUES(prime_verified))
+         RETURNING prime_verified",
         id,
         name,
         ip_address,
+        has_prime,
     )
-    .execute(cx.database().as_ref())
-    .await?;
+    .fetch_one(cx.database().as_ref())
+    .await
+    .and_then(|row| row.try_get(0))?;
 
     let is_banned = sqlx::query_scalar!(
         "SELECT (COUNT(*) > 0) AS `is_banned: bool`
@@ -158,7 +166,7 @@ pub async fn register(
     .fetch_one(cx.database().as_ref())
     .await?;
 
-    Ok(RegisterPlayerInfo { is_banned, preferences })
+    Ok(RegisterPlayerInfo { is_banned, preferences, has_prime })
 }
 
 #[tracing::instrument(skip(cx, players), err(level = "debug"))]
@@ -166,12 +174,14 @@ pub async fn create_many<'a>(
     cx: &Context,
     players: impl IntoIterator<Item = NewPlayer<'a>>,
 ) -> Result<(), CreatePlayerError> {
-    let mut query = QueryBuilder::new("INSERT IGNORE INTO Players (id, name, ip_address)");
+    let mut query =
+        QueryBuilder::new("INSERT IGNORE INTO Players (id, name, ip_address, prime_verified)");
 
-    query.push_values(players, |mut query, NewPlayer { id, name, ip_address }| {
+    query.push_values(players, |mut query, NewPlayer { id, name, ip_address, has_prime }| {
         query.push_bind(id);
         query.push_bind(name);
         query.push_bind(ip_address);
+        query.push_bind(has_prime);
     });
 
     query

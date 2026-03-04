@@ -331,7 +331,7 @@ where
             conn.send(reply).await.map_err(Into::into)
         },
 
-        P::PlayerJoin { id, ref name, ip_address } => {
+        P::PlayerJoin { id, ref name, ip_address, has_prime } => {
             if let Some(player) = state
                 .players
                 .insert(id, PlayerInfo { id, name: name.clone() })
@@ -345,12 +345,14 @@ where
                 id,
                 name: Cow::Borrowed(name),
                 ip_address: Some(ip_address),
+                has_prime,
             })
             .await?;
 
             let reply = Message::reply(&message, message::Outgoing::PlayerJoinAck {
                 is_banned: player_info.is_banned,
                 preferences: player_info.preferences,
+                has_prime: player_info.has_prime,
             })
             .encode()?;
 
