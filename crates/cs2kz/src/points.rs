@@ -7,7 +7,7 @@ pub mod calculator;
 pub const MAX: f64 = 10_000.0;
 
 /// Threshold for what counts as a "small" leaderboard.
-pub const SMALL_LEADERBOARD_THRESHOLD: usize = 50;
+pub const SMALL_LEADERBOARD_THRESHOLD: u64 = 50;
 
 /// [Normal-inverse Gaussian distribution][norminvgauss] parameters.
 ///

@@ -317,85 +317,94 @@ pub async fn submit(
             .await
             .map(|row| row.map_or((0, None), |row| (row.size as u64, row.top_time)))?;
 
-            let request = CalculatePointsRequest {
-                time: time.0.as_secs_f64(),
-                nub_data: points::calculator::LeaderboardData {
-                    dist_params: nub_dist,
-                    tier: nub_tier,
-                    leaderboard_size: nub_leaderboard_size,
-                    top_time: nub_top_time.unwrap_or(if let Some(nub_pb_time) = nub_pb_time {
-                        time.as_f64().min(nub_pb_time)
-                    } else {
-                        time.as_f64()
-                    }),
-                },
-                pro_data: {
-                    if teleports == 0 {
-                        let pro_dist = sqlx::query_as!(
-                            DistributionParameters,
-                            "SELECT a, b, loc, scale, top_scale
-                             FROM PointDistributionData
-                             WHERE filter_id = ?
-                             AND (NOT is_pro_leaderboard)",
-                            filter_id,
-                        )
-                        .fetch_optional(&mut *conn)
-                        .await?;
-
-                        let pro_tier = sqlx::query_scalar!(
-                            "SELECT pro_tier AS `tier: Tier`
-                             FROM CourseFilters
-                             WHERE id = ?",
-                            filter_id,
-                        )
-                        .fetch_one(&mut *conn)
-                        .await?;
-
-                        let (pro_leaderboard_size, pro_top_time) = sqlx::query!(
-                            "SELECT
-                               COUNT(r.id) AS size,
-                               MIN(r.time) AS top_time
-                             FROM Records AS r
-                             JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id
-                             WHERE r.filter_id = ?
-                             GROUP BY r.filter_id",
-                            filter_id,
-                        )
-                        .fetch_optional(&mut *conn)
-                        .await
-                        .map(|row| {
-                            row.map_or((0, None), |row| (row.size as u64, row.top_time))
-                        })?;
-
-                        Some(points::calculator::LeaderboardData {
-                            dist_params: pro_dist,
-                            tier: pro_tier,
-                            leaderboard_size: pro_leaderboard_size + u64::from(pro_pb_time.is_none()),
-                            top_time: pro_top_time.unwrap_or(time.as_f64()),
-                        })
-                    } else {
-                        None
-                    }
-                },
+            let nub_data = points::calculator::LeaderboardData {
+                dist_params: nub_dist,
+                tier: nub_tier,
+                leaderboard_size: nub_leaderboard_size,
+                top_time: nub_top_time.unwrap_or(if let Some(nub_pb_time) = nub_pb_time {
+                    time.as_f64().min(nub_pb_time)
+                } else {
+                    time.as_f64()
+                }),
             };
 
-            let points = if let Some(calc) = cx.points_calculator() {
-                calc.calculate(request.clone()).await?
+            let pro_data = if teleports == 0 {
+                let pro_dist = sqlx::query_as!(
+                    DistributionParameters,
+                    "SELECT a, b, loc, scale, top_scale
+                     FROM PointDistributionData
+                     WHERE filter_id = ?
+                     AND (NOT is_pro_leaderboard)",
+                    filter_id,
+                )
+                .fetch_optional(&mut *conn)
+                .await?;
+
+                let pro_tier = sqlx::query_scalar!(
+                    "SELECT pro_tier AS `tier: Tier`
+                     FROM CourseFilters
+                     WHERE id = ?",
+                    filter_id,
+                )
+                .fetch_one(&mut *conn)
+                .await?;
+
+                let (pro_leaderboard_size, pro_top_time) = sqlx::query!(
+                    "SELECT
+                       COUNT(r.id) AS size,
+                       MIN(r.time) AS top_time
+                     FROM Records AS r
+                     JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id
+                     WHERE r.filter_id = ?
+                     GROUP BY r.filter_id",
+                    filter_id,
+                )
+                .fetch_optional(&mut *conn)
+                .await
+                .map(|row| {
+                    row.map_or((0, None), |row| (row.size as u64, row.top_time))
+                })?;
+
+                Some(points::calculator::LeaderboardData {
+                    dist_params: pro_dist,
+                    tier: pro_tier,
+                    leaderboard_size: pro_leaderboard_size + u64::from(pro_pb_time.is_none()),
+                    top_time: pro_top_time.unwrap_or(time.as_f64()),
+                })
             } else {
-                CalculatePointsResponse {
-                    nub_fraction: points::for_small_leaderboard(
-                        request.nub_data.tier,
-                        request.nub_data.top_time,
-                        request.time
-                    ),
-                    pro_fraction: request.pro_data.as_ref().map(|pro_data| {
-                        points::for_small_leaderboard(
-                            pro_data.tier,
-                            pro_data.top_time,
-                            request.time,
-                        )
-                    }),
+                None
+            };
+
+            let points = if nub_leaderboard_size > points::SMALL_LEADERBOARD_THRESHOLD
+                && nub_data.dist_params.is_some()
+                && let Some(calc) = cx.points_calculator()
+            {
+                let request = CalculatePointsRequest {
+                    time: time.as_f64(),
+                    nub_data,
+                    pro_data: pro_data.clone().filter(|data| data.dist_params.is_some()),
+                };
+
+                let mut response = calc.calculate(request.clone()).await?;
+
+                if let Some(ref pro_data) = pro_data && request.pro_data.is_none() {
+                    response.pro_fraction = Some(points::for_small_leaderboard(
+                        pro_data.tier,
+                        pro_data.top_time,
+                        time.as_f64(),
+                    ));
                 }
+
+                response
+            } else {
+                let nub_fraction =
+                    points::for_small_leaderboard(nub_data.tier, nub_data.top_time, time.as_f64());
+
+                let pro_fraction = pro_data.clone().map(|pro_data| {
+                    points::for_small_leaderboard(pro_data.tier, pro_data.top_time, time.as_f64())
+                });
+
+                CalculatePointsResponse { nub_fraction, pro_fraction }
             };
 
             let is_nub_pb = nub_pb_time.is_none_or(|nub_pb_time| nub_pb_time > time.as_f64());
@@ -418,7 +427,7 @@ pub async fn submit(
                     player_id,
                     record_id,
                     points.nub_fraction,
-                    request.time,
+                    time.as_f64(),
                 )
                 .execute(&mut *conn)
                 .await
@@ -450,7 +459,7 @@ pub async fn submit(
                         tracing::warn!("no pro points for pro run?");
                         points.nub_fraction
                     }),
-                    request.time,
+                    time.as_f64(),
                 )
                 .execute(&mut *conn)
                 .await
@@ -478,7 +487,7 @@ pub async fn submit(
                     nub_leaderboard_size,
                     pro_rank: pro_rank.filter(|_| teleports == 0),
                     pro_points: pro_rank
-                        .zip(request.pro_data.as_ref())
+                        .zip(pro_data.as_ref())
                         .zip(points.pro_fraction)
                         .map(|((rank, data), dist_points)| {
                         points::complete(data.tier, true, rank - 1, dist_points)
