@@ -89,18 +89,29 @@ impl PointsCalculator {
                 },
 
                 Some((request, response_tx)) = self.chan.1.recv() => {
-                    loop {
+                    let mut attempts = 0;
+
+                    if let Err(_err) = loop {
                         match self.python.send_request(&request).await {
                             Ok(response) => {
                                 _ = response_tx.send(response);
-                                break;
+                                break Ok(());
                             },
                             Err(err) => {
                                 tracing::error!(%err, "failed to execute python request");
                                 self.python.reset().map_err(Error::Python).await?;
+
+                                attempts += 1;
+
+                                if attempts == 3 {
+                                    break Err(err);
+                                }
+
                                 sleep(Duration::from_secs(1)).await;
                             },
                         }
+                    } {
+                        tracing::error!("giving up after 3 failed attempts");
                     }
                 },
             };
