@@ -369,7 +369,11 @@ pub async fn submit(
                     dist_params: pro_dist,
                     tier: pro_tier,
                     leaderboard_size: pro_leaderboard_size + u64::from(pro_pb_time.is_none()),
-                    top_time: pro_top_time.unwrap_or(time.as_f64()),
+                    top_time: pro_top_time.unwrap_or(if let Some(pro_pb_time) = pro_pb_time {
+                        time.as_f64().min(pro_pb_time)
+                    } else {
+                        time.as_f64()
+                    }),
                 })
             } else {
                 None
