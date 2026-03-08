@@ -317,15 +317,22 @@ pub async fn submit(
             .await
             .map(|row| row.map_or((0, None), |row| (row.size as u64, row.top_time)))?;
 
+            let top_time = |top_time: Option<f64>, pb_time: Option<f64>| match (top_time, pb_time) {
+                // first completion
+                (None, None) => time.as_f64(),
+
+                // PB is either WR or slower, so ignore it
+                (Some(top_time), None | Some(_)) => top_time.min(time.as_f64()),
+
+                // if there is a PB, there's at least one completion, so there should be a WR
+                (None, Some(_)) => unreachable!(),
+            };
+
             let nub_data = points::calculator::LeaderboardData {
                 dist_params: nub_dist,
                 tier: nub_tier,
                 leaderboard_size: nub_leaderboard_size,
-                top_time: nub_top_time.unwrap_or(if let Some(nub_pb_time) = nub_pb_time {
-                    time.as_f64().min(nub_pb_time)
-                } else {
-                    time.as_f64()
-                }),
+                top_time: top_time(nub_top_time, nub_pb_time),
             };
 
             let pro_data = if teleports == 0 {
@@ -369,11 +376,7 @@ pub async fn submit(
                     dist_params: pro_dist,
                     tier: pro_tier,
                     leaderboard_size: pro_leaderboard_size + u64::from(pro_pb_time.is_none()),
-                    top_time: pro_top_time.unwrap_or(if let Some(pro_pb_time) = pro_pb_time {
-                        time.as_f64().min(pro_pb_time)
-                    } else {
-                        time.as_f64()
-                    }),
+                    top_time: top_time(pro_top_time, pro_pb_time),
                 })
             } else {
                 None
