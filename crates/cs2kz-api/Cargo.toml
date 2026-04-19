@@ -114,7 +114,7 @@ version = "0.26.1"
 default-features = false
 
 [dependencies.axum]
-version = "0.8.1"
+version = "0.8.6"
 default-features = false
 features = ["macros", "tokio", "http1", "http2", "ws"]
 
