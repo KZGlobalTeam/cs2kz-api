@@ -4,3 +4,7 @@
 !0001_initial.down.sql
 !0001_initial.up.sql
 !0002_add_player_prime_status.sql
+!0003_add_replay_cleaner_data.down.sql
+!0003_add_replay_cleaner_data.up.sql
+!0004_add_world_records.down.sql
+!0004_add_world_records.up.sql

@@ -21,8 +21,6 @@
 //!
 //! [rfc]: https://www.rfc-editor.org/rfc/rfc9457.html
 
-#![feature(debug_closure_helpers)]
-
 use std::any::type_name;
 use std::borrow::Cow;
 use std::fmt;

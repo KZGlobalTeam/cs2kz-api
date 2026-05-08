@@ -34,6 +34,10 @@ impl RecordId {
     pub fn new() -> Self {
         Self(Uuid::now_v7())
     }
+
+    pub(crate) fn from_uuid(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
 }
 
 crate::database::impl_traits!(RecordId as [u8] => {
@@ -1173,5 +1177,7 @@ mod macros {
         };
     }
 
-    pub(super) use {parse_row, select, select_ranks_after_submit};
+    pub(super) use parse_row;
+    pub(super) use select;
+    pub(super) use select_ranks_after_submit;
 }

@@ -766,6 +766,27 @@ where
 
             conn.send(reply).await.map_err(Into::into)
         },
+
+        P::NewReplay { id, ref data } => {
+            if let Some(ref cfg) = cx.config().replay_storage {
+                if let Err(error) = cx
+                    .s3_client()
+                    .put_object()
+                    .bucket(&cfg.bucket_name)
+                    .key(id.to_string())
+                    .body(data.clone().into())
+                    .if_none_match("*")
+                    .send()
+                    .await
+                {
+                    error!(%error, "failed to upload replay");
+                }
+            } else {
+                warn!("replay storage is not configured");
+            }
+
+            Ok(())
+        },
     }
 }
 

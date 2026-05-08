@@ -142,6 +142,13 @@ pub enum Incoming {
         teleports: u32,
         time: Seconds,
     },
+
+    NewReplay {
+        id: RecordId,
+
+        #[serde(skip)]
+        data: Bytes,
+    },
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -214,15 +221,6 @@ impl<T> Message<T> {
     }
 }
 
-impl Message<Hello> {
-    /// Decodes an incoming message.
-    #[tracing::instrument(skip(payload), err(level = "debug"))]
-    pub fn decode(payload: &[u8]) -> Result<Self, serde_json::Error> {
-        serde_json::from_slice(payload)
-            .inspect_err(|_| debug!(payload = ?String::from_utf8_lossy(payload)))
-    }
-}
-
 impl Message<Incoming> {
     /// Decodes an incoming message.
     #[tracing::instrument(skip(payload), err(level = "debug"))]
@@ -232,26 +230,43 @@ impl Message<Incoming> {
             id: u32,
         }
 
-        let Id { id } = serde_json::from_slice(payload).map_err(DecodeMessageError::MissingId)?;
-        let mut deserializer =
-            serde_json::Deserializer::from_slice(payload).into_iter::<Incoming>();
-        let decoded_payload = deserializer
-            .next()
-            .ok_or_else(|| serde_json::from_slice::<Incoming>(&[]).unwrap_err())
-            .flatten()
-            .inspect_err(|_| debug!(payload = ?String::from_utf8_lossy(payload)))
-            .map_err(|err| DecodeMessageError::InvalidPayload { id, error: err })?;
+        let (header, trailer) = payload
+            .split_once(|&byte| byte == b'\n')
+            .map_or((&payload[..], None), |(header, trailer)| (header, Some(trailer)));
+
+        let Id { id } = serde_json::from_slice(header).map_err(DecodeMessageError::MissingId)?;
+
+        let mut decoded_payload = serde_json::from_slice::<Incoming>(header)
+            .map_err(|error| DecodeMessageError::InvalidPayload { id, error })?;
+
+        match (&mut decoded_payload, trailer) {
+            (Incoming::NewReplay { data, .. }, Some(trailer)) => {
+                *data = payload.slice_ref(trailer);
+            },
+            (Incoming::NewReplay { .. }, None) => {
+                todo!("return error")
+            },
+            (_, None) => {},
+            (_, Some(_)) => {
+                todo!("return error")
+            },
+        }
 
         Ok(Self { id, payload: decoded_payload })
     }
 }
 
-impl<T: serde::Serialize> Message<T> {
+impl Message<Outgoing> {
     /// Encodes an outgoing message.
     pub fn encode(&self) -> Result<RawMessage, EncodeMessageError> {
-        serde_json::to_string(self)
-            .map(|text| RawMessage::Text(text.into()))
-            .map_err(EncodeMessageError)
+        let raw_message = serde_json::to_vec(self).map_err(EncodeMessageError)?;
+
+        // if let Outgoing::ReplayData { ref data } = self.payload {
+        //     raw_message.push(b'\n');
+        //     raw_message.extend_from_slice(data);
+        // }
+
+        Ok(raw_message.into())
     }
 }
 

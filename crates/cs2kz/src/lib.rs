@@ -15,12 +15,8 @@
  */
 
 #![feature(array_try_from_fn)]
-#![feature(assert_matches)]
 #![feature(bstr)]
 #![feature(decl_macro)]
-#![feature(future_join)]
-#![feature(iter_array_chunks)]
-#![feature(trait_alias)]
 #![feature(try_blocks)]
 
 #[macro_use]
@@ -47,18 +43,18 @@ pub use context::Context;
 
 pub mod database;
 
-pub mod announcements;
-pub mod plugin;
 pub mod access_keys;
-pub mod users;
-pub mod servers;
-pub mod players;
-pub mod maps;
-pub mod jumpstats;
-pub mod records;
+pub mod announcements;
 pub mod bans;
-// pub mod points;
+pub mod jumpstats;
+pub mod maps;
+pub mod players;
+pub mod plugin;
 pub mod points;
+pub mod records;
+pub mod replays;
+pub mod servers;
+pub mod users;
 
 pub mod checksum;
 pub mod email;
@@ -70,7 +66,6 @@ pub mod steam;
 pub mod styles;
 pub mod time;
 
-// mod python;
 mod python;
 
 mod fmt;

@@ -91,3 +91,19 @@ impl ops::Add<Timestamp> for std::time::Duration {
         timestamp + self
     }
 }
+
+impl From<Timestamp> for uuid::Timestamp {
+    fn from(ts: Timestamp) -> Self {
+        let nanos = ts.0.unix_timestamp_nanos();
+
+        let seconds = (nanos / 1_000_000_000_i128)
+            .try_into()
+            .expect("should be positive");
+
+        let subsec_nanos = (nanos % 1_000_000_i128)
+            .try_into()
+            .expect("should be positive");
+
+        Self::from_unix_time(seconds, subsec_nanos, 0, 0)
+    }
+}

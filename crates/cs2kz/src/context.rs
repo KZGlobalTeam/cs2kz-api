@@ -27,6 +27,7 @@ mod inner {
         pub(super) tasks: TaskTracker,
         pub(super) points_calculator: Option<points::calculator::PointsCalculatorHandle>,
         pub(super) points_daemon: points::daemon::PointsDaemonHandle,
+        pub(super) s3_client: Option<aws_sdk_s3::Client>,
     }
 }
 
@@ -87,6 +88,25 @@ impl Context {
             });
         let points_daemon = points::daemon::PointsDaemonHandle::new();
 
+        let s3_client = if let Some(ref cfg) = config.replay_storage {
+            let config = aws_config::defaults(aws_config::BehaviorVersion::v2026_01_12())
+                .endpoint_url(format!("https://{}.r2.cloudflarestorage.com", cfg.account_id))
+                .credentials_provider(aws_sdk_s3::config::Credentials::new(
+                    &cfg.access_key_id,
+                    &cfg.access_key_secret,
+                    None, // session token is not used with R2
+                    None,
+                    "R2",
+                ))
+                .region("auto") // Required by SDK but not used by R2
+                .load()
+                .await;
+
+            Some(aws_sdk_s3::Client::new(&config))
+        } else {
+            None
+        };
+
         Ok(Self(Arc::new(inner::Context {
             config,
             database,
@@ -94,6 +114,7 @@ impl Context {
             tasks,
             points_calculator,
             points_daemon,
+            s3_client,
         })))
     }
 
@@ -111,6 +132,13 @@ impl Context {
 
     pub fn points_daemon(&self) -> &points::daemon::PointsDaemonHandle {
         &self.0.points_daemon
+    }
+
+    pub fn s3_client(&self) -> &aws_sdk_s3::Client {
+        self.0
+            .s3_client
+            .as_ref()
+            .unwrap_or_else(|| panic!("replay storage is not configured"))
     }
 
     /// Executes an `async` closure in the context of a database transaction.

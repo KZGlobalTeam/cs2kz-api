@@ -59,10 +59,21 @@ features = ["async"]
 version = "0.1.17"
 features = ["sync"]
 
-[dependencies.rust-s3]
-version = "0.37.1"
-default-features = false
-features = ["fail-on-err", "tags", "tokio-rustls-tls"]
+# NOTE: keep this in sync with `rust-s3`'s dep
+# [dependencies.aws-region]
+# version = "0.28"
+# features = ["serde"]
+
+# [dependencies.rust-s3]
+# version = "0.37.1"
+# default-features = false
+# features = ["fail-on-err", "tags", "tokio-rustls-tls"]
+
+[dependencies.aws-config]
+version = "1.8.16"
+
+[dependencies.aws-sdk-s3]
+version = "1.132.0"
 
 [dependencies.md-5]
 version = "0.10.6"

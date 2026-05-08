@@ -18,6 +18,7 @@
 #![feature(future_join)]
 #![feature(panic_update_hook)]
 #![feature(return_type_notation)]
+#![feature(slice_split_once)]
 
 #[macro_use]
 extern crate derive_more;
