@@ -80,7 +80,7 @@ pub enum Incoming {
     PlayerJoin {
         id: PlayerId,
         name: String,
-        ip_address: Ipv4Addr,
+        ip_address: Option<Ipv4Addr>,
 
         #[serde(default)] // backwards compat
         has_prime: bool,

@@ -344,7 +344,7 @@ where
             let player_info = cs2kz::players::register(cx, NewPlayer {
                 id,
                 name: Cow::Borrowed(name),
-                ip_address: Some(ip_address),
+                ip_address,
                 has_prime,
             })
             .await?;

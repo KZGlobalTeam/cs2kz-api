@@ -134,7 +134,7 @@ pub async fn register(
          VALUES (?, ?, ?, ?)
          ON DUPLICATE KEY
          UPDATE name = VALUES(name),
-                ip_address = VALUES(ip_address),
+                ip_address = COALESCE(VALUES(ip_address), ip_address),
                 prime_verified = (prime_verified | VALUES(prime_verified))
          RETURNING prime_verified",
         id,
