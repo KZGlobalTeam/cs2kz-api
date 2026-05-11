@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "WITH NubRecordsWithRanks AS (\n               SELECT\n                 record_id AS id,\n                 ROW_NUMBER() OVER (\n                   PARTITION BY filter_id\n                   ORDER BY time ASC, id ASC\n                 ) AS rank\n               FROM\n                 BestNubRecords\n             ),\n             ProRecordsWithRanks AS (\n               SELECT\n                 record_id AS id,\n                 ROW_NUMBER() OVER (\n                   PARTITION BY filter_id\n                   ORDER BY time ASC, id ASC\n                 ) AS rank\n               FROM\n                 BestProRecords\n             )\n             SELECT r.id AS `id: RecordId`\n             FROM Records AS r\n             INNER JOIN CourseFilters AS cf ON cf.id = r.filter_id\n             LEFT OUTER JOIN NubRecordsWithRanks AS bnr ON bnr.id = r.id\n             LEFT OUTER JOIN NubRecordsWithRanks AS bpr ON bpr.id = r.id\n             LEFT OUTER JOIN WorldRecords AS wr ON wr.id = r.id\n\n             -- too old?\n             WHERE r.id < ?\n             AND (? OR r.id < ?)\n\n             -- not T8?\n             AND (cf.nub_tier < 8 AND cf.pro_tier < 8)\n\n             AND (\n               -- not ranked?\n               cf.state != ?\n\n               -- not top 10?\n               AND (bnr.id IS NULL\n                OR bnr.rank > 10)\n               AND (bpr.id IS NULL\n                OR bpr.rank > 10)\n             )\n\n             -- not a WR?\n             AND wr.id IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: RecordId",
+        "type_info": {
+          "type": "String",
+          "flags": "NOT_NULL | PRIMARY_KEY | BINARY | NO_DEFAULT_VALUE",
+          "max_size": 16
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "c8dd0a0955291d6c584396ffbecf50e79f691257b0085502c1783c25a719bdb2"
+}

@@ -1,0 +1,54 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT\n           id AS `id: RecordId`,\n           filter_id AS `filter_id: CourseFilterId`,\n           teleports,\n           time\n         FROM Records\n         ORDER BY id ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: RecordId",
+        "type_info": {
+          "type": "String",
+          "flags": "NOT_NULL | PRIMARY_KEY | BINARY | NO_DEFAULT_VALUE",
+          "max_size": 16
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "filter_id: CourseFilterId",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | MULTIPLE_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "teleports",
+        "type_info": {
+          "type": "Long",
+          "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 10
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "time",
+        "type_info": {
+          "type": "Double",
+          "flags": "NOT_NULL | MULTIPLE_KEY | NO_DEFAULT_VALUE",
+          "max_size": 22
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4595026373508021f009b6f78ef1819c228e4aff2f65c3ff9670291aa2e8be1d"
+}

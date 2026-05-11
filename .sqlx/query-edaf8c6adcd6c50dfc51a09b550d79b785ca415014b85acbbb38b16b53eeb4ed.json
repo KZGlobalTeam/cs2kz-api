@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM ReplayCleanerData",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "edaf8c6adcd6c50dfc51a09b550d79b785ca415014b85acbbb38b16b53eeb4ed"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO Players (id, name, ip_address, prime_verified)\n         VALUES (?, ?, ?, ?)\n         ON DUPLICATE KEY\n         UPDATE name = VALUES(name),\n                ip_address = COALESCE(VALUES(ip_address), ip_address),\n                prime_verified = (prime_verified | VALUES(prime_verified))\n         RETURNING prime_verified",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "7d64935955d5d52aa3fc7da672f31decec15648b1fa2eb010caf91fbbedb9d19"
+}

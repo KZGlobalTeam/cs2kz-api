@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO ReplayCleanerData VALUES (?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "8ce48b5e426984d6ab19dd193fa6ea53d33f10808ffc16bfde0c7f2df845ccdd"
+}

@@ -1,0 +1,24 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT last_cleaned_at AS `last_cleaned_at: Timestamp`\n             FROM ReplayCleanerData",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "last_cleaned_at: Timestamp",
+        "type_info": {
+          "type": "Timestamp",
+          "flags": "UNSIGNED | BINARY",
+          "max_size": 19
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "b09d7f0d24a1f671808e0b45fae0aaed9a09dc19fbccf35fb62fb1cfb1767553"
+}
