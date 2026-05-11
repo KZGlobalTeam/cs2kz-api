@@ -81,6 +81,7 @@ async fn main() -> anyhow::Result<()> {
                 max_connections: Some(NonZero::<u32>::MIN),
             },
             points: Default::default(),
+            replay_storage: None,
         })?;
 
     let cx = Context::new(cfg).await?;
