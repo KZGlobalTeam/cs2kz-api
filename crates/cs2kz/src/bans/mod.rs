@@ -301,5 +301,6 @@ mod macros {
         };
     }
 
-    pub(super) use {parse_row, select};
+    pub(super) use parse_row;
+    pub(super) use select;
 }
