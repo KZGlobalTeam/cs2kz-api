@@ -80,7 +80,7 @@ fn init_tracing(config: &TracingConfig) -> anyhow::Result<Option<WorkerGuard>> {
                 .with_file(true)
                 .with_level(true)
                 .with_line_number(true)
-                .with_span_events(FmtSpan::FULL)
+                .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
                 .with_target(true)
                 .with_thread_ids(true)
                 .with_thread_names(true)
