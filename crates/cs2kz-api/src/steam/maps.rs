@@ -3,7 +3,7 @@ use std::fs::{self, File};
 use std::path::Path;
 use std::process::Stdio;
 use std::time::Duration;
-use std::{fmt, io};
+use std::{cmp, fmt, io};
 
 use cs2kz::checksum::Checksum;
 use cs2kz::steam::WorkshopId;
@@ -118,54 +118,89 @@ pub async fn download_map(
 #[tracing::instrument(ret(level = "debug"), err)]
 pub async fn compute_checksum<P>(workshop_id: WorkshopId, out_dir: P) -> io::Result<Checksum>
 where
-    P: AsRef<Path> + fmt::Debug + Send + 'static,
+    P: AsRef<Path> + fmt::Debug,
 {
+    let out_dir = out_dir.as_ref().join(workshop_id.to_string());
+
     task::spawn_blocking(move || {
+        let mut out_dir_entries = fs::read_dir(&out_dir)
+            .inspect_err(|err| error!(error = err as &dyn Error, "failed to read directory"))?
+            .filter_map(|entry| {
+                let entry = match entry {
+                    Ok(entry) => entry,
+                    Err(err) => {
+                        error!(error = &err as &dyn Error, "failed to read directory entry");
+                        return Some(Err(err));
+                    },
+                };
+
+                let filename = entry
+                    .file_name()
+                    .into_string()
+                    .inspect_err(|name| warn!("entry {name:?} is not valid UTF-8?"))
+                    .ok()?;
+
+                let (prefix, rest) = filename.split_once('_')?;
+
+                let (_, "vpk") = rest.split_once('.')? else {
+                    return None;
+                };
+
+                if !prefix
+                    .parse::<WorkshopId>()
+                    .is_ok_and(|prefix| prefix == workshop_id)
+                {
+                    return None;
+                }
+
+                Some(Ok(filename))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        out_dir_entries.sort_by(cmp_filenames);
+
         let mut checksum = Checksum::builder();
-        let out_dir_entries = fs::read_dir(out_dir.as_ref())
-            .inspect_err(|err| error!(error = err as &dyn Error, "failed to read directory"))?;
 
         for entry in out_dir_entries {
-            let entry = entry.inspect_err(|err| {
-                error!(error = err as &dyn Error, "failed to read directory entry");
-            })?;
-
-            let filename = match entry.file_name().into_string() {
-                Ok(name) => name,
-                Err(name) => {
-                    warn!("entry {name:?} is not valid UTF-8?");
-                    continue;
-                },
-            };
-
-            let Some((prefix, rest)) = filename.split_once('_') else {
-                continue;
-            };
-
-            let Some((_, "vpk")) = rest.split_once('.') else {
-                continue;
-            };
-
-            if !prefix
-                .parse::<WorkshopId>()
-                .is_ok_and(|prefix| prefix == workshop_id)
-            {
-                continue;
-            }
-
-            let path = entry.path();
-            let mut file = File::open(&path)
-                .inspect_err(|err| error!(error = err as &dyn Error, "failed to open {path:?}"))?;
+            let mut file = File::open(out_dir.join(&entry))
+                .inspect_err(|err| error!(error = err as &dyn Error, "failed to open {entry:?}"))?;
 
             checksum
                 .read_from(&mut file)
-                .inspect_err(|err| error!(error = err as &dyn Error, "failed to read {path:?}"))?;
+                .inspect_err(|err| error!(error = err as &dyn Error, "failed to read {entry:?}"))?;
         }
 
         Ok(checksum.build())
     })
     .await
     .expect("task does not panic")
+}
+
+fn cmp_filenames(a: &(impl ?Sized + AsRef<str>), b: &(impl ?Sized + AsRef<str>)) -> cmp::Ordering {
+    let a = a.as_ref();
+    let b = b.as_ref();
+
+    match (a.ends_with("_dir.vpk"), b.ends_with("_dir.vpk")) {
+        (true, true) | (false, false) => a.cmp(b),
+        (true, false) => cmp::Ordering::Less,
+        (false, true) => cmp::Ordering::Greater,
+    }
+}
+
+#[test]
+fn test_filename_sorting() {
+    let mut filenames = vec!["foo.vpk"];
+    filenames.sort_by(cmp_filenames);
+    assert_eq!(filenames, vec!["foo.vpk"]);
+
+    let mut filenames = vec![
+        "foo_003.vpk",
+        "foo_dir.vpk",
+        "foo_002.vpk",
+        "foo_001.vpk",
+    ];
+    filenames.sort_by(cmp_filenames);
+    assert_eq!(filenames, vec!["foo_dir.vpk", "foo_001.vpk", "foo_002.vpk", "foo_003.vpk"]);
 }
 
 #[derive(Debug, serde::Deserialize)]
