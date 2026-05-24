@@ -118,10 +118,12 @@ pub async fn download_map(
 #[tracing::instrument(ret(level = "debug"), err)]
 pub async fn compute_checksum<P>(workshop_id: WorkshopId, out_dir: P) -> io::Result<Checksum>
 where
-    P: AsRef<Path> + fmt::Debug + Send + 'static,
+    P: AsRef<Path> + fmt::Debug,
 {
+    let out_dir = out_dir.as_ref().join(workshop_id.to_string());
+
     task::spawn_blocking(move || {
-        let mut out_dir_entries = fs::read_dir(out_dir.as_ref())
+        let mut out_dir_entries = fs::read_dir(&out_dir)
             .inspect_err(|err| error!(error = err as &dyn Error, "failed to read directory"))?
             .filter_map(|entry| {
                 let entry = match entry {
@@ -160,7 +162,7 @@ where
         let mut checksum = Checksum::builder();
 
         for entry in out_dir_entries {
-            let mut file = File::open(out_dir.as_ref().join(&entry))
+            let mut file = File::open(out_dir.join(&entry))
                 .inspect_err(|err| error!(error = err as &dyn Error, "failed to open {entry:?}"))?;
 
             checksum
