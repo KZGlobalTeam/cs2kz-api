@@ -3,7 +3,22 @@ use crate::records::RecordId;
 
 pub mod daemon;
 
-pub use nig::{NigData, NigParams};
+pub use nig::NigParams;
+
+#[derive(Debug, Clone, Copy, serde::Serialize)]
+pub struct NigData {
+    pub a: f64,
+    pub b: f64,
+    pub loc: f64,
+    pub scale: f64,
+    pub top_scale: f64,
+}
+
+impl NigData {
+    pub fn params(&self) -> NigParams {
+        NigParams { a: self.a, b: self.b, loc: self.loc, scale: self.scale }
+    }
+}
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct LeaderboardData {
@@ -110,8 +125,7 @@ pub fn calculate_fraction(time: f64, leaderboard: &LeaderboardData) -> f64 {
         return for_small_leaderboard(leaderboard.tier, leaderboard.top_time, time);
     };
 
-    let top_scale = if dist.top_scale > 0.0 { dist.top_scale } else { 1.0 };
-    (nig::nig_survival(&dist.params(), time) / top_scale).clamp(0.0, 1.0)
+    nig::nig_survival(&dist.params(), time) / dist.top_scale
 }
 
 /// Recompute point fractions for a single leaderboard.
@@ -146,7 +160,11 @@ fn fit_distribution(times: &[f64], prev_params: Option<NigParams>) -> Option<Nig
         return None;
     }
 
-    Some(nig::fit_nig(times, prev_params))
+    let p = nig::fit_nig(times, prev_params);
+    let sf = nig::nig_survival(&p, times[0]);
+    let top_scale = if sf <= 0.0 { 1.0 } else { sf };
+
+    Some(NigData { a: p.a, b: p.b, loc: p.loc, scale: p.scale, top_scale })
 }
 
 #[cfg(test)]

@@ -5,4 +5,4 @@ mod params;
 
 pub use distribution::nig_survival;
 pub use fitting::fit_nig;
-pub use params::{NigData, NigParams};
+pub use params::NigParams;

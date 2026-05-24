@@ -1,6 +1,5 @@
 use crate::bessel::bessel_k1e;
-use crate::distribution::nig_survival;
-use crate::params::{NigData, NigParams, NigParamsReparametrized};
+use crate::params::{NigParams, NigParamsReparametrized};
 
 /// ln(f64::MAX): upper bound to avoid exp() overflow during optimization.
 const MAX_LOG_VALUE: f64 = 709.782_712_893_384;
@@ -284,7 +283,7 @@ fn optimize_nig(times: &[f64], p: &NigParams) -> Result<(NigParams, usize), ()> 
     Ok((decode_nig_params(&pr), nfev))
 }
 
-pub fn fit_nig(times: &[f64], params: Option<NigParams>) -> NigData {
+pub fn fit_nig(times: &[f64], params: Option<NigParams>) -> NigParams {
     let mut p = match params {
         Some(p) if p.a > 0.0 => p,
         _ => estimate_nig_start(times),
@@ -300,10 +299,7 @@ pub fn fit_nig(times: &[f64], params: Option<NigParams>) -> NigData {
         }
     }
 
-    let sf = nig_survival(&p, times[0]);
-    let top_scale = if sf <= 0.0 { 1.0 } else { sf };
-
-    NigData { a: p.a, b: p.b, loc: p.loc, scale: p.scale, top_scale }
+    p
 }
 
 #[cfg(test)]
@@ -456,9 +452,9 @@ mod tests {
         let times: Vec<f64> =
             (0..200).map(|i: i32| 7.0 + (i as f64).powf(1.5) * 0.005).collect();
         let cold = fit_nig(&times, None);
-        let warm = fit_nig(&times, Some(cold.params()));
-        let cold_nll = neg_log_likelihood(&times, &cold.params());
-        let warm_nll = neg_log_likelihood(&times, &warm.params());
+        let warm = fit_nig(&times, Some(cold));
+        let cold_nll = neg_log_likelihood(&times, &cold);
+        let warm_nll = neg_log_likelihood(&times, &warm);
         // Warm start should reach same or better NLL.
         assert!(
             warm_nll <= cold_nll + 1e-4,
