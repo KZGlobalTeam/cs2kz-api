@@ -183,14 +183,18 @@ async fn resolve_executable_name() -> io::Result<&'static OsStr> {
     EXECUTABLE_NAME
         .get_or_try_init(async || {
             for name in EXECUTABLE_NAMES {
-                if Command::new(name)
-                    .arg("--version")
-                    .output()
-                    .await?
-                    .status
-                    .success()
-                {
-                    return Ok(OsStr::new(name));
+                match Command::new(name).arg("--version").output().await {
+                    Ok(output) => {
+                        if output.status.success() {
+                            return Ok(OsStr::new(name));
+                        }
+                    },
+
+                    Err(err) if err.kind() == io::ErrorKind::NotFound => {
+                        continue;
+                    },
+
+                    Err(err) => return Err(err),
                 }
             }
 
