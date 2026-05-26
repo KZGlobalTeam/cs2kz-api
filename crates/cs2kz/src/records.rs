@@ -572,6 +572,8 @@ pub async fn get(
         query.push_bind(map_id);
         query.push(", m.id) ");
 
+        query.push(" AND m.state != -1 ");
+
         query.push(" AND c.id = COALESCE(");
         query.push_bind(course_id);
         query.push(", c.id) ");
@@ -714,6 +716,8 @@ pub async fn get(
     query.push(" AND m.id = COALESCE(");
     query.push_bind(map_id);
     query.push(", m.id) ");
+
+    query.push(" AND m.state != -1 ");
 
     query.push(" AND c.id = COALESCE(");
     query.push_bind(course_id);
