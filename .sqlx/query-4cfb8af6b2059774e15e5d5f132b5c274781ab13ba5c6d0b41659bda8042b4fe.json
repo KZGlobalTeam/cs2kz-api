@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE Records SET replay_available = true WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "4cfb8af6b2059774e15e5d5f132b5c274781ab13ba5c6d0b41659bda8042b4fe"
+}

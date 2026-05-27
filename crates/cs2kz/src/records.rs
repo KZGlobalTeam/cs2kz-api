@@ -71,6 +71,7 @@ pub struct Record {
     pub pro_rank: Option<u32>,
     pub pro_max_rank: u32,
     pub pro_points: Option<f64>,
+    pub replay_available: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -694,7 +695,8 @@ pub async fn get(
            NubLeaderboard.points AS nub_points,
            ProLeaderboard.rank AS pro_rank,
            COALESCE((SELECT COUNT(*) FROM ProLeaderboard), 0) AS pro_max_rank,
-           ProLeaderboard.points AS pro_points
+           ProLeaderboard.points AS pro_points,
+           r.replay_available
          FROM Records AS r
          LEFT JOIN NubLeaderboard ON NubLeaderboard.record_id = r.id
          LEFT JOIN ProLeaderboard ON ProLeaderboard.record_id = r.id
@@ -946,6 +948,28 @@ pub async fn delete(
     .map_err(database::Error::from)
 }
 
+#[tracing::instrument(skip(cx), err(level = "debug"))]
+pub async fn mark_replay_as_available(cx: &Context, id: RecordId) -> database::Result<()> {
+    sqlx::query!("UPDATE Records SET replay_available = true WHERE id = ?", id)
+        .execute(cx.database().as_ref())
+        .await
+        .map(drop)
+        .map_err(database::Error::from)
+}
+
+#[tracing::instrument(skip(cx), err(level = "debug"))]
+pub async fn mark_replays_as_unavailable(cx: &Context, ids: &[RecordId]) -> database::Result<()> {
+    let mut query = QueryBuilder::new("UPDATE Records SET replay_available = false WHERE id IN");
+    query.push_tuples(ids, |mut query, &id| _ = query.push_bind(id));
+    query
+        .build()
+        .persistent(false)
+        .execute(cx.database().as_ref())
+        .await
+        .map(drop)
+        .map_err(database::Error::from)
+}
+
 impl<'r> sqlx::FromRow<'r, database::Row> for Record {
     fn from_row(row: &'r database::Row) -> sqlx::Result<Self> {
         let teleports = row.try_get("teleports")?;
@@ -1012,6 +1036,7 @@ impl<'r> sqlx::FromRow<'r, database::Row> for Record {
                 Err(error) => return Err(error),
             },
             pro_points: row.try_get("pro_points")?,
+            replay_available: row.try_get("replay_available")?,
         })
     }
 }
@@ -1079,7 +1104,8 @@ mod macros {
                      NubLeaderboard.points AS nub_points,
                      ProLeaderboard.rank AS pro_rank,
                      COALESCE((SELECT COUNT(*) FROM ProLeaderboard), 0) AS pro_max_rank,
-                     ProLeaderboard.points AS pro_points
+                     ProLeaderboard.points AS pro_points,
+                     r.replay_available AS `replay_available: bool`
                    FROM Records AS r
                    LEFT JOIN NubLeaderboard ON NubLeaderboard.record_id = r.id
                    LEFT JOIN ProLeaderboard ON ProLeaderboard.record_id = r.id
@@ -1184,6 +1210,7 @@ mod macros {
                     .map(|rank| rank.try_into().expect("rank should fit into u32"))
                     .unwrap_or_default(),
                 pro_points: $row.pro_points,
+                replay_available: $row.replay_available,
             }
         };
     }

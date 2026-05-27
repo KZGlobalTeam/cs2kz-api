@@ -52,6 +52,8 @@ pub struct Record {
     nub_points: Option<f64>,
     pro_rank: Option<u32>,
     pro_points: Option<f64>,
+
+    replay_available: bool,
 }
 
 #[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
@@ -259,6 +261,7 @@ impl From<cs2kz::records::Record> for Record {
             pro_rank: record.pro_rank,
             nub_points: record.nub_points,
             pro_points: record.pro_points,
+            replay_available: record.replay_available,
         }
     }
 }

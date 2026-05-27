@@ -780,6 +780,8 @@ where
                     .await
                 {
                     error!(%error, "failed to upload replay");
+                } else {
+                    cs2kz::records::mark_replay_as_available(cx, id).await?;
                 }
             } else {
                 warn!("replay storage is not configured");

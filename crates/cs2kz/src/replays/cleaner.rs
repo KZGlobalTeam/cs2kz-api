@@ -145,6 +145,8 @@ pub async fn periodically_clean(cx: Context, cancellation_token: CancellationTok
                 .await
             {
                 error!(%error, "failed to delete objects");
+            } else if let Err(error) = crate::records::mark_replays_as_unavailable(&cx, ids).await {
+                error!(%error, "failed to mark replays as unavailable");
             }
         }
 
