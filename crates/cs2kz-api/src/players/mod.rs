@@ -9,6 +9,7 @@ use cs2kz::pagination::{Limit, Offset, Paginated};
 use cs2kz::players::{PlayerId, Preferences, SortBy};
 use cs2kz::time::Timestamp;
 use futures_util::TryFutureExt;
+use steam_id::SteamId;
 
 use crate::config::{CookieConfig, SteamAuthConfig};
 use crate::extract::{Json, Path, Query};
@@ -43,8 +44,8 @@ where
         .route("/", routing::get(get_players))
         .route("/{player}", routing::get(get_player))
         .route(
-            "/{player}/steam-profile",
-            routing::get(get_player_steam_profile).with_state(GetSteamProfileState {
+            "/steam-profile",
+            routing::get(get_steam_profiles).with_state(GetSteamProfileState {
                 http_client: reqwest::Client::new(),
                 auth_config: auth_config.into(),
             }),
@@ -76,6 +77,14 @@ pub struct GetPlayersQuery {
     #[serde(default)]
     #[param(value_type = crate::openapi::shims::Offset)]
     offset: Offset,
+}
+
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
+struct GetSteamProfilesQuery {
+    /// SteamIDs of the players to look up (repeat for multiple, max 100).
+    #[param(value_type = Vec<crate::openapi::shims::SteamId>)]
+    player_ids: Vec<PlayerId>,
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
@@ -164,29 +173,37 @@ async fn get_player(
     Ok(Json(player.into()))
 }
 
-/// Returns a player's Steam profile.
+/// Returns Steam profiles for one or more players.
 #[tracing::instrument(skip(http_client))]
 #[utoipa::path(
     get,
-    path = "/players/{player_id}/steam-profile",
+    path = "/players/steam-profile",
     tag = "Players",
-    params(("player_id" = crate::openapi::shims::SteamId, Path, description = "the player's SteamID")),
+    params(GetSteamProfilesQuery),
     responses(
-        (status = 200, body = SteamUser),
-        (status = 400, description = "invalid path parameters"),
-        (status = 404,),
+        (status = 200, body = Vec<SteamUser>),
+        (status = 400, description = "invalid query parameters"),
         (status = 502, description = "Steam returned an error"),
     ),
 )]
-async fn get_player_steam_profile(
+async fn get_steam_profiles(
     State(GetSteamProfileState { http_client, auth_config }): State<GetSteamProfileState>,
-    Path(player_id): Path<PlayerId>,
-) -> Result<Json<SteamUser>, ErrorResponse> {
-    let user = steam::fetch_user(&http_client, &auth_config.web_api_key, player_id.into())
-        .await?
-        .ok_or_else(ErrorResponse::not_found)?;
+    Query(GetSteamProfilesQuery { player_ids }): Query<GetSteamProfilesQuery>,
+) -> Result<Json<Vec<SteamUser>>, ErrorResponse> {
+    if player_ids.is_empty() || player_ids.len() > 100 {
+        return Err(ErrorResponse::invalid_query_string(|details| {
+            details.set_detail("`player_ids` must contain between 1 and 100 SteamIDs");
+        }));
+    }
 
-    Ok(Json(user))
+    let steam_ids = player_ids
+        .into_iter()
+        .map(Into::into)
+        .collect::<Vec<SteamId>>();
+
+    let users = steam::fetch_users(&http_client, &auth_config.web_api_key, &steam_ids).await?;
+
+    Ok(Json(users))
 }
 
 /// Returns a player's cs2kz-metamod preferences.

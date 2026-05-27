@@ -20,39 +20,42 @@ pub struct SteamUser {
 }
 
 #[tracing::instrument(skip(http_client), ret(level = "debug"), err(level = "debug"))]
-pub async fn fetch_user(
+pub async fn fetch_users(
     http_client: &reqwest::Client,
     web_api_key: &str,
-    steam_id: SteamId,
-) -> Result<Option<SteamUser>, steam::ApiError> {
+    steam_ids: &[SteamId],
+) -> Result<Vec<SteamUser>, steam::ApiError> {
     #[derive(serde::Serialize)]
     struct Query<'a> {
         #[serde(rename = "key")]
         api_key: &'a str,
 
-        #[serde(rename = "steamids", serialize_with = "SteamId::serialize_u64")]
-        steam_id: SteamId,
+        #[serde(rename = "steamids")]
+        steam_ids: &'a str,
     }
+
+    let ids = steam_ids
+        .iter()
+        .map(|id| id.as_u64().to_string())
+        .collect::<Vec<_>>()
+        .join(",");
 
     steam::request(
         http_client
             .get(USER_URL)
-            .query(&Query { api_key: web_api_key, steam_id }),
+            .query(&Query { api_key: web_api_key, steam_ids: &ids }),
     )
     .await
-    .map(|FetchPlayerResponse { mut players }| {
-        let player = if players.is_empty() {
-            return None;
-        } else {
-            players.remove(0)
-        };
-
-        Some(SteamUser {
-            id: player.steamid,
-            name: player.personaname,
-            profile_url: player.profileurl,
-            avatar_url: player.avatarmedium,
-        })
+    .map(|FetchPlayerResponse { players }| {
+        players
+            .into_iter()
+            .map(|player| SteamUser {
+                id: player.steamid,
+                name: player.personaname,
+                profile_url: player.profileurl,
+                avatar_url: player.avatarmedium,
+            })
+            .collect()
     })
 }
 
