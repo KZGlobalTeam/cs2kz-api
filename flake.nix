@@ -103,7 +103,8 @@
             nativeBuildInputs = [ pkgs.makeWrapper ];
             preFixup = ''
               wrapProgram $out/bin/cs2kz-api \
-                --prefix PATH : ${python}/bin
+                --prefix PATH : ${python}/bin \
+                --prefix PATH : ${pkgs.geoipWithDatabase}/bin
             '';
           }
         );
