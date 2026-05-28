@@ -193,6 +193,7 @@
             tokio-console
             depotdownloader
             oha
+            geoipWithDatabase
           ]);
 
           KZ_API_ENVIRONMENT = "local";

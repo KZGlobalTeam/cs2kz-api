@@ -20,7 +20,14 @@ static INFOS: LazyLock<RwLock<HashMap<ServerId, ServerInfo>>> = LazyLock::new(De
 #[derive(Debug)]
 pub struct ServerInfo {
     pub a2s: a2s::info::Info,
+    pub geo_info: Option<GeoInfo>,
     pub map_info: Option<MapInfo>,
+}
+
+#[derive(Debug)]
+pub struct GeoInfo {
+    pub country_code: String,
+    pub region: String,
 }
 
 #[derive(Debug)]
@@ -63,7 +70,7 @@ pub async fn periodically_query_servers(cx: Context, cancellation_token: Cancell
                     .and_then(async |client| client.info(addr).await)
                     .await;
 
-                (row.id, info)
+                (row.id, row.host, info)
             });
         }
 
@@ -85,17 +92,49 @@ pub async fn periodically_query_servers(cx: Context, cancellation_token: Cancell
         };
 
         while let Some(join_result) = tasks.join_next().await {
-            if let Ok((server_id, a2s_info)) = join_result {
+            if let Ok((server_id, host, a2s_info)) = join_result {
                 if let Ok(a2s_info) = a2s_info {
                     let map_info = maps.get(&a2s_info.map).map(|map| MapInfo {
                         workshop_id: map.workshop_id,
                         state: map.state,
                     });
 
+                    let geoiplookup_output = tokio::process::Command::new("geoiplookup")
+                        .arg(&host)
+                        .output()
+                        .await
+                        .inspect_err(|error| error!(%error, "failed to lookup ip for {host:?}"))
+                        .ok();
+
+                    let geo_info = geoiplookup_output.and_then(|output| {
+                        if !output.status.success() {
+                            return None;
+                        }
+
+                        // GeoIP Country Edition: FI, Finland
+                        // GeoIP City Edition, Rev 1: FI, 18, N/A, Helsinki, 00191, 60.179699, 24.934401, 0, 0
+                        // GeoIP ASNum Edition: AS24940 Hetzner Online GmbH
+
+                        let stdout = str::from_utf8(&output.stdout).ok()?;
+                        let mut parts = stdout.lines();
+
+                        let country_line = parts.next().unwrap();
+                        let (_, rest) = country_line.split_once("GeoIP Country Edition: ").unwrap();
+                        let (country_code, _) = rest.split_once(", ").unwrap();
+
+                        let city_line = parts.next().unwrap();
+                        let city = city_line.split(", ").nth(4).unwrap();
+
+                        Some(GeoInfo {
+                            country_code: country_code.into(),
+                            region: city.into(),
+                        })
+                    });
+
                     INFOS
                         .write()
                         .unwrap_or_else(std::sync::PoisonError::into_inner)
-                        .insert(server_id, ServerInfo { a2s: a2s_info, map_info });
+                        .insert(server_id, ServerInfo { a2s: a2s_info, geo_info, map_info });
                 } else {
                     INFOS
                         .write()

@@ -110,6 +110,11 @@ pub struct Server {
     ///
     /// If this is not available, the server is either offline or came online very recently.
     a2s_info: Option<A2SInfo>,
+
+    /// Geographical information about the server.
+    ///
+    /// Provided on a best-effort basis.
+    geo_info: Option<GeoInfo>,
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
@@ -125,6 +130,14 @@ pub struct A2SInfo {
 
     /// The maximum number of players that can join the server.
     max_players: u8,
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct GeoInfo {
+    country_code: String,
+
+    /// More specific region within the country, such as a city.
+    region: String,
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
@@ -424,14 +437,8 @@ async fn delete_server_access_key(
 
 impl From<cs2kz::servers::Server> for Server {
     fn from(server: cs2kz::servers::Server) -> Self {
-        Server {
-            id: server.id,
-            name: server.name,
-            host: server.host,
-            port: server.port,
-            owner: UserInfo { id: server.owner.id, name: server.owner.name },
-            approved_at: server.approved_at,
-            a2s_info: cs2kz::steam::servers::with_info(server.id, |info| A2SInfo {
+        let (a2s_info, geo_info) = cs2kz::steam::servers::with_info(server.id, |info| {
+            let a2s_info = A2SInfo {
                 current_map: info.a2s.map.clone(),
                 current_map_info: info.map_info.as_ref().map(|info| ServerMapInfo {
                     workshop_id: info.workshop_id,
@@ -439,7 +446,26 @@ impl From<cs2kz::servers::Server> for Server {
                 }),
                 num_players: info.a2s.players,
                 max_players: info.a2s.max_players,
-            }),
+            };
+
+            let geo_info = info.geo_info.as_ref().map(|geo_info| GeoInfo {
+                country_code: geo_info.country_code.clone(),
+                region: geo_info.region.clone(),
+            });
+
+            (a2s_info, geo_info)
+        })
+        .unzip();
+
+        Server {
+            id: server.id,
+            name: server.name,
+            host: server.host,
+            port: server.port,
+            owner: UserInfo { id: server.owner.id, name: server.owner.name },
+            approved_at: server.approved_at,
+            a2s_info,
+            geo_info: geo_info.flatten(),
         }
     }
 }
