@@ -140,11 +140,13 @@ where
                     .inspect_err(|name| warn!("entry {name:?} is not valid UTF-8?"))
                     .ok()?;
 
-                let (prefix, rest) = filename.split_once('_')?;
-
-                let (_, "vpk") = rest.split_once('.')? else {
+                let (mut prefix, "vpk") = filename.rsplit_once('.')? else {
                     return None;
                 };
+
+                if let Some(underscore_offset) = prefix.find('_') {
+                    prefix = &prefix[..underscore_offset];
+                }
 
                 if !prefix
                     .parse::<WorkshopId>()
