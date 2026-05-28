@@ -63,6 +63,10 @@ pub struct GetRecordsQuery {
     #[serde(default)]
     top: bool,
 
+    /// Only include records set on ranked filters.
+    #[serde(default)]
+    ranked: bool,
+
     /// Only include records set by this player.
     player: Option<PlayerIdentifier>,
 
@@ -125,6 +129,7 @@ async fn get_records(
     State(cx): State<Context>,
     Query(GetRecordsQuery {
         top,
+        ranked,
         player,
         server,
         map,
@@ -199,6 +204,7 @@ async fn get_records(
 
     let params = cs2kz::records::GetRecordsParams {
         top,
+        ranked,
         player_id,
         server_id,
         map_id,

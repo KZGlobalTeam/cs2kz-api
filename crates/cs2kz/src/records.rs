@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::Context;
 use crate::database::{self, QueryBuilder};
 use crate::events::{self, Event};
-use crate::maps::courses::filters::Tier;
+use crate::maps::courses::filters::{CourseFilterState, Tier};
 use crate::maps::{CourseFilterId, CourseId, CourseInfo, MapId, MapInfo};
 use crate::mode::Mode;
 use crate::num::AsF64;
@@ -103,6 +103,9 @@ pub struct NewRecord {
 pub struct GetRecordsParams {
     /// Only include PBs.
     pub top: bool,
+
+    /// Only include records set on ranked filters.
+    pub ranked: bool,
 
     /// Only include records set by this player.
     pub player_id: Option<PlayerId>,
@@ -550,6 +553,7 @@ pub async fn get(
     cx: &Context,
     GetRecordsParams {
         top,
+        ranked,
         player_id,
         server_id,
         map_id,
@@ -568,6 +572,7 @@ pub async fn get(
         map_id: Option<MapId>,
         course_id: Option<CourseId>,
         mode: Option<Mode>,
+        ranked: bool,
     ) {
         query.push(" WHERE m.id = COALESCE(");
         query.push_bind(map_id);
@@ -582,6 +587,11 @@ pub async fn get(
         query.push(" AND cf.mode = COALESCE(");
         query.push_bind(mode);
         query.push(", cf.mode) ");
+
+        if ranked {
+            query.push(" AND cf.state = ");
+            query.push_bind(CourseFilterState::Ranked);
+        }
     }
 
     fn base_query(
@@ -589,8 +599,9 @@ pub async fn get(
         map_id: Option<MapId>,
         course_id: Option<CourseId>,
         mode: Option<Mode>,
+        ranked: bool,
     ) {
-        base_filters(query, map_id, course_id, mode);
+        base_filters(query, map_id, course_id, mode, ranked);
 
         query.push("), ");
         query.push(
@@ -613,7 +624,7 @@ pub async fn get(
                JOIN Maps AS m ON m.id = c.map_id",
         );
 
-        base_filters(query, map_id, course_id, mode);
+        base_filters(query, map_id, course_id, mode, ranked);
 
         query.push(") ");
     }
@@ -630,7 +641,7 @@ pub async fn get(
              JOIN Maps AS m ON m.id = c.map_id",
         );
 
-        base_filters(&mut query, map_id, course_id, mode);
+        base_filters(&mut query, map_id, course_id, mode, ranked);
 
         query.push(" AND r.player_id = COALESCE(");
         query.push_bind(player_id);
@@ -671,7 +682,7 @@ pub async fn get(
            JOIN Maps AS m ON m.id = c.map_id",
     );
 
-    base_query(&mut query, map_id, course_id, mode);
+    base_query(&mut query, map_id, course_id, mode, ranked);
 
     query.push(
         "SELECT
@@ -728,6 +739,11 @@ pub async fn get(
     query.push(" AND cf.mode = COALESCE(");
     query.push_bind(mode);
     query.push(", cf.mode) ");
+
+    if ranked {
+        query.push(" AND cf.state = ");
+        query.push_bind(CourseFilterState::Ranked);
+    }
 
     if let Some(has_teleports) = has_teleports {
         query.push(" AND r.teleports ");

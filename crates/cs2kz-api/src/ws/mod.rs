@@ -441,6 +441,7 @@ where
 
             let overall = cs2kz::records::get(cx, GetRecordsParams {
                 top: true,
+                ranked: false,
                 player_id: None,
                 server_id: None,
                 map_id: None,
@@ -457,6 +458,7 @@ where
 
             let pro = cs2kz::records::get(cx, GetRecordsParams {
                 top: true,
+                ranked: false,
                 player_id: None,
                 server_id: None,
                 map_id: None,
@@ -561,6 +563,7 @@ where
                 Some(&PlayerInfoWithIsBanned { id, .. }) => {
                     cs2kz::records::get(cx, GetRecordsParams {
                         top: true,
+                        ranked: false,
                         player_id: Some(id),
                         server_id: None,
                         map_id: Some(map_info.id),
@@ -585,6 +588,7 @@ where
                 Some(&PlayerInfoWithIsBanned { id, .. }) => {
                     cs2kz::records::get(cx, GetRecordsParams {
                         top: true,
+                        ranked: false,
                         player_id: Some(id),
                         server_id: None,
                         map_id: Some(map_info.id),
@@ -662,6 +666,7 @@ where
 
             let overall = cs2kz::records::get(cx, GetRecordsParams {
                 top: true,
+                ranked: false,
                 player_id: None,
                 server_id: None,
                 map_id: Some(map_info.id),
@@ -681,6 +686,7 @@ where
 
             let pro = cs2kz::records::get(cx, GetRecordsParams {
                 top: true,
+                ranked: false,
                 player_id: None,
                 server_id: None,
                 map_id: Some(map_info.id),
