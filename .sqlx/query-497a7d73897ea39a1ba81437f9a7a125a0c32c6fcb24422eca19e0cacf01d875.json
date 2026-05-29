@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT\n           c.id AS `id: CourseId`,\n           c.name,\n           cf.nub_tier AS `nub_tier: Tier`,\n           cf.pro_tier AS `pro_tier: Tier`\n         FROM Courses AS c\n         JOIN CourseFilters AS cf ON cf.course_id = c.id\n         JOIN Maps AS m ON m.id = c.map_id\n         WHERE m.id = ?\n         AND cf.mode = ?\n         ORDER BY c.id ASC",
+  "query": "SELECT\n           c.id AS `id: CourseId`,\n           c.name,\n           cf.nub_tier AS `nub_tier: Tier`,\n           cf.pro_tier AS `pro_tier: Tier`,\n           cf.state AS `state: CourseFilterState`\n         FROM Courses AS c\n         JOIN CourseFilters AS cf ON cf.course_id = c.id\n         JOIN Maps AS m ON m.id = c.map_id\n         WHERE c.name LIKE ?\n         AND cf.mode = ?\n         AND m.name LIKE COALESCE(?, m.name)",
   "describe": {
     "columns": [
       {
@@ -38,17 +38,27 @@
           "flags": "NOT_NULL | UNSIGNED | NO_DEFAULT_VALUE",
           "max_size": 3
         }
+      },
+      {
+        "ordinal": 4,
+        "name": "state: CourseFilterState",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "max_size": 4
+        }
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 3
     },
     "nullable": [
+      false,
       false,
       false,
       false,
       false
     ]
   },
-  "hash": "1bb1af60c2de66db9131f4063aba21fc621631b859083e75c5988b652eeb8996"
+  "hash": "497a7d73897ea39a1ba81437f9a7a125a0c32c6fcb24422eca19e0cacf01d875"
 }

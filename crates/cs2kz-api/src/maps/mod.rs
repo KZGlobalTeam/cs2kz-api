@@ -151,6 +151,9 @@ pub struct CourseInfo {
 
     #[schema(value_type = crate::openapi::shims::CourseFilterTier)]
     pub(crate) pro_tier: Tier,
+
+    #[schema(value_type = crate::openapi::shims::CourseFilterState)]
+    pub(crate) state: CourseFilterState,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
@@ -695,6 +698,7 @@ impl From<cs2kz::maps::CourseInfo> for CourseInfo {
             name: course.name,
             nub_tier: course.nub_tier,
             pro_tier: course.pro_tier,
+            state: course.state,
         }
     }
 }

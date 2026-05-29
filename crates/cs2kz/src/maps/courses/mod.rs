@@ -1,5 +1,7 @@
 use std::num::NonZero;
 
+use crate::maps::courses::filters::CourseFilterState;
+
 pub mod filters;
 pub use filters::{CourseFilterId, Tier};
 
@@ -16,4 +18,5 @@ pub struct CourseInfo {
     pub name: String,
     pub nub_tier: Tier,
     pub pro_tier: Tier,
+    pub state: CourseFilterState,
 }

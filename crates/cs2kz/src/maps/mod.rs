@@ -265,7 +265,8 @@ pub async fn get_course_info_by_number(
            c.id AS `id: CourseId`,
            c.name,
            cf.nub_tier AS `nub_tier: Tier`,
-           cf.pro_tier AS `pro_tier: Tier`
+           cf.pro_tier AS `pro_tier: Tier`,
+           cf.state AS `state: CourseFilterState`
          FROM Courses AS c
          JOIN CourseFilters AS cf ON cf.course_id = c.id
          JOIN Maps AS m ON m.id = c.map_id
@@ -297,7 +298,8 @@ pub async fn get_course_info_by_name(
            c.id AS `id: CourseId`,
            c.name,
            cf.nub_tier AS `nub_tier: Tier`,
-           cf.pro_tier AS `pro_tier: Tier`
+           cf.pro_tier AS `pro_tier: Tier`,
+           cf.state AS `state: CourseFilterState`
          FROM Courses AS c
          JOIN CourseFilters AS cf ON cf.course_id = c.id
          JOIN Maps AS m ON m.id = c.map_id
