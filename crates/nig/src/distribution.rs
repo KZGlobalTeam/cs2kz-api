@@ -29,61 +29,105 @@ pub(crate) fn nig_pdf(p: &NigParams, x: f64) -> f64 {
     log_pdf.exp()
 }
 
-// Adapted from C code from https://en.wikipedia.org/wiki/Adaptive_Simpson%27s_method
-pub(crate) fn adaptive_simpson(
-    mut f: impl FnMut(f64) -> f64,
+fn exp_sinh_g(
+    m: i64,
+    h_fine: f64,
     a: f64,
-    b: f64,
-    eps: f64,
-    max_depth: u32,
-) -> Option<f64> {
-    if a == b {
-        return Some(0.0);
+    half_pi: f64,
+    cache: &mut std::collections::HashMap<i64, f64>,
+    f: &mut impl FnMut(f64) -> f64,
+) -> f64 {
+    if let Some(&v) = cache.get(&m) {
+        return v;
     }
-
-    let h = b - a;
-    let fa = f(a);
-    let fb = f(b);
-    let fm = f((a + b) / 2.0);
-    let whole = (h / 6.0) * (fa + 4.0 * fm + fb);
-    adaptive_simpson_rec(&mut f, a, b, eps, whole, fa, fb, fm, max_depth)
+    let t = (m as f64) * h_fine;
+    let arg = half_pi * t.sinh();
+    let v = if arg > 690.0 {
+        0.0
+    } else {
+        let e = arg.exp(); // = x - a
+        let x = a + e;
+        let w = half_pi * t.cosh() * e; // Jacobian dx/dt
+        let fv = f(x);
+        if fv.is_finite() { w * fv } else { 0.0 }
+    };
+    cache.insert(m, v);
+    v
 }
 
-fn adaptive_simpson_rec(
+// Integrate f over [a, +∞) using exp-sinh (double-exponential) quadrature
+// with global step-halving (level doubling) and node reuse.
+pub(crate) fn exp_sinh(
     f: &mut impl FnMut(f64) -> f64,
     a: f64,
-    b: f64,
-    eps: f64,
-    whole: f64,
-    fa: f64,
-    fb: f64,
-    fm: f64,
-    depth: u32,
-) -> Option<f64> {
-    let m = (a + b) / 2.0;
-    let lm = (a + m) / 2.0;
-    let rm = (m + b) / 2.0;
+    tol: f64,
+    h0: f64,
+    max_level: u32,
+) -> f64 {
+    let half_pi = std::f64::consts::PI / 2.0;
+    let stride0 = 1i64 << max_level;
+    let h_fine = h0 / (stride0 as f64);
+    let cut = 1e-17_f64;
+    let mut cache = std::collections::HashMap::<i64, f64>::new();
 
-    // Numerical trouble: epsilon underflow or interval collapsed
-    if eps / 2.0 == eps || a == lm {
-        return None;
+    let fmax0 = exp_sinh_g(0, h_fine, a, half_pi, &mut cache, f).abs();
+
+    let ml = {
+        let mut k = 0i64;
+        loop {
+            k -= 1;
+            let m = k * stride0;
+            let v = exp_sinh_g(m, h_fine, a, half_pi, &mut cache, f).abs();
+            if k.abs() >= 2 && v <= cut * fmax0.max(v).max(1e-300) {
+                break m;
+            }
+            if k.abs() > 64 {
+                break m;
+            }
+        }
+    };
+
+    let mr = {
+        let mut k = 0i64;
+        loop {
+            k += 1;
+            let m = k * stride0;
+            let v = exp_sinh_g(m, h_fine, a, half_pi, &mut cache, f).abs();
+            if k.abs() >= 2 && v <= cut * fmax0.max(v).max(1e-300) {
+                break m;
+            }
+            if k.abs() > 64 {
+                break m;
+            }
+        }
+    };
+
+    let mut s = 0.0_f64;
+    let mut m = ml;
+    while m <= mr {
+        s += exp_sinh_g(m, h_fine, a, half_pi, &mut cache, f);
+        m += stride0;
+    }
+    let mut i_prev = h0 * s;
+    let mut i = i_prev;
+
+    for level in 1..=max_level {
+        let stride = 1i64 << (max_level - level);
+        let h = h0 / ((1u64 << level) as f64);
+        let mut m = ml + stride;
+        while m < mr {
+            s += exp_sinh_g(m, h_fine, a, half_pi, &mut cache, f);
+            m += 2 * stride;
+        }
+        i = h * s;
+        let err = (i - i_prev).abs();
+        if level >= 2 && err <= tol + tol * i.abs() {
+            break;
+        }
+        i_prev = i;
     }
 
-    let flm = f(lm);
-    let frm = f(rm);
-    let h = (b - a) / 2.0;
-    let left = (h / 6.0) * (fa + 4.0 * flm + fm);
-    let right = (h / 6.0) * (fm + 4.0 * frm + fb);
-    let delta = left + right - whole;
-
-    if depth == 0 || delta.abs() <= 15.0 * eps {
-        return Some(left + right + delta / 15.0);
-    }
-
-    Some(
-        adaptive_simpson_rec(&mut *f, a, m, eps / 2.0, left, fa, fm, flm, depth - 1)?
-            + adaptive_simpson_rec(&mut *f, m, b, eps / 2.0, right, fm, fb, frm, depth - 1)?,
-    )
+    i
 }
 
 pub fn nig_survival(p: &NigParams, x: f64) -> f64 {
@@ -91,18 +135,7 @@ pub fn nig_survival(p: &NigParams, x: f64) -> f64 {
         return 0.0;
     }
 
-    let gamma = (p.a * p.a - p.b * p.b).sqrt().max(1e-10);
-    let mean = p.loc + p.scale * p.b / gamma;
-    let stddev = (p.scale * p.a * p.a / (gamma * gamma * gamma)).sqrt();
-
-    let mut upper = mean + 20.0 * stddev;
-    if upper < x + p.scale {
-        upper = x + 10.0 * p.scale;
-    }
-
-    adaptive_simpson(|t| nig_pdf(p, t), x, upper, 1e-12, 64)
-        .unwrap_or(0.0)
-        .clamp(0.0, 1.0)
+    exp_sinh(&mut |t| nig_pdf(p, t), x, 1e-10, 0.5, 12).clamp(0.0, 1.0)
 }
 
 #[cfg(test)]
@@ -164,7 +197,7 @@ mod tests {
             (10.0, 8.873317615160712e-01),
             (20.0, 3.429376452167427e-01),
         ] {
-            assert_abs_close(nig_survival(&p, x), expected, 1e-4);
+            assert_abs_close(nig_survival(&p, x), expected, 1e-5);
         }
     }
 }
