@@ -8,7 +8,7 @@ use crate::maps::CourseFilterId;
 use crate::maps::courses::Tier;
 use crate::mode::Mode;
 use crate::players::PlayerId;
-use crate::points::{self, NigParams};
+use crate::points::{self};
 use crate::records::RecordId;
 use crate::{Context, database, players};
 
@@ -318,16 +318,13 @@ async fn upsert_best_records(
     {
         let mut query = database::QueryBuilder::new(insert_prefix);
 
-        query.push_values(
-            row_chunk.iter().zip(points_chunk.iter()),
-            |mut query, (row, points)| {
-                query.push_bind(row.filter_id);
-                query.push_bind(row.player_id);
-                query.push_bind(row.record_id);
-                query.push_bind(points);
-                query.push_bind(row.time);
-            },
-        );
+        query.push_values(row_chunk.iter().zip(points_chunk.iter()), |mut query, (row, points)| {
+            query.push_bind(row.filter_id);
+            query.push_bind(row.player_id);
+            query.push_bind(row.record_id);
+            query.push_bind(points);
+            query.push_bind(row.time);
+        });
 
         query.push(" ON DUPLICATE KEY UPDATE points = VALUES(points)");
         query.build().persistent(false).execute(&mut *conn).await?;
