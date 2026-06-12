@@ -1,7 +1,7 @@
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
-/// Differential Evolution optimizer (DE/rand/1/bin with dithered mutation scaling).
+/// Differential Evolution optimizer
 ///
 /// Storn, R. and Price, K. Differential Evolution - A Simple and Efficient
 /// Heuristic for Global Optimization over Continuous Spaces. Journal of

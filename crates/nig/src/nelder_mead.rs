@@ -1,6 +1,3 @@
-/// Nelder-Mead downhill simplex minimizer, used to polish the result of the
-/// differential evolution global search.
-///
 /// Nelder, J. A. and Mead, R. A Simplex Method for Function Minimization.
 /// The Computer Journal 7, 308-313 (1965).
 pub fn nelder_mead<const N: usize>(
