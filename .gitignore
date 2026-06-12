@@ -17,5 +17,4 @@
 # config
 /cs2kz-api.toml
 
-testdata/
 examples/
