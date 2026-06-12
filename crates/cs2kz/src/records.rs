@@ -342,7 +342,7 @@ pub async fn submit(
                     "SELECT a, b, loc, scale, top_scale
                      FROM PointDistributionData
                      WHERE filter_id = ?
-                     AND (NOT is_pro_leaderboard)",
+                     AND is_pro_leaderboard",
                     filter_id,
                 )
                 .fetch_optional(&mut *conn)

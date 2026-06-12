@@ -2,6 +2,7 @@ use serde::Serialize;
 
 use crate::bessel::bessel_k1e;
 use crate::differential_evo::differential_evolution;
+use crate::nelder_mead::nelder_mead;
 use crate::quad;
 
 /// NIG distribution parameters (scipy loc-scale parameterization).
@@ -54,7 +55,19 @@ pub fn cdf(p: &NigParams, x: f64) -> f64 {
         return 0.0;
     }
 
-    quad::quad(&mut |t| pdf(p, t), f64::NEG_INFINITY, x, 6, 1e-10, None).clamp(0.0, 1.0)
+    // The exp-sinh quadrature clusters its nodes near the finite endpoint, so
+    // always integrate the side of the distribution whose mass lies closest to
+    // `x`.
+    // `loc + scale * b / a` is a cheap proxy for the mode: exact for b = 0 and
+    // bounded by `loc ± scale`, unlike the mean which diverges as |b| -> a.
+    let peak = p.loc + p.scale * p.b / p.a;
+
+    if x <= peak {
+        quad::quad(&mut |t| pdf(p, t), f64::NEG_INFINITY, x, 7, 1e-10, None).clamp(0.0, 1.0)
+    } else {
+        let tail = quad::quad(&mut |t| pdf(p, t), x, f64::INFINITY, 7, 1e-10, None);
+        (1.0 - tail.clamp(0.0, 1.0)).clamp(0.0, 1.0)
+    }
 }
 
 pub fn sf(p: &NigParams, x: f64) -> f64 {
@@ -160,9 +173,11 @@ fn de_bounds(times: &[f64]) -> [(f64, f64); 4] {
     ]
 }
 
-fn optimize(times: &[f64]) -> Result<(NigParams, usize), ()> {
+fn optimize(times: &[f64], inits: &[NigParams]) -> Result<(NigParams, usize), ()> {
     const MAX_ITER: usize = 1000;
     const TOL: f64 = 1e-4;
+    const POLISH_MAX_ITER: usize = 2000;
+    const POLISH_TOL: f64 = 1e-10;
 
     let bounds = de_bounds(times);
 
@@ -176,11 +191,36 @@ fn optimize(times: &[f64]) -> Result<(NigParams, usize), ()> {
         neg_log_likelihood(times, &decode_nig_params(&pr))
     };
 
-    let (optimum, best_ll, nfev) =
-        differential_evolution(objective, &bounds, TOL, MAX_ITER, 15, (0.5, 1.0), 0.7, 0);
+    let init_points: Vec<[f64; 4]> = inits
+        .iter()
+        .map(|p| {
+            let pr = encode_nig_params(p);
+            [pr.log_a, pr.skew_raw, pr.loc, pr.log_scale]
+        })
+        .collect();
+
+    let (mut optimum, best_ll, mut nfev) = differential_evolution(
+        objective,
+        &bounds,
+        TOL,
+        MAX_ITER,
+        15,
+        (0.5, 1.0),
+        0.7,
+        0,
+        &init_points,
+    );
 
     if !best_ll.is_finite() {
         return Err(());
+    }
+
+    let (polished, polished_ll, polish_nfev) =
+        nelder_mead(objective, &optimum, POLISH_MAX_ITER, POLISH_TOL);
+    nfev += polish_nfev;
+
+    if polished_ll.is_finite() && polished_ll < best_ll {
+        optimum = polished;
     }
 
     let pr = NigParamsReparametrized {
@@ -194,22 +234,31 @@ fn optimize(times: &[f64]) -> Result<(NigParams, usize), ()> {
 }
 
 pub fn fit(times: &[f64], params: Option<NigParams>) -> NigParams {
-    let mut p = match params {
-        Some(p) if p.a > 0.0 => p,
-        _ => estimate_nig_start(times),
-    };
+    fit_with_stats(times, params).0
+}
 
-    match optimize(times) {
-        Ok((optimized, _nfev)) => p = optimized,
+pub fn fit_with_stats(times: &[f64], params: Option<NigParams>) -> (NigParams, usize) {
+    let moment_estimate = estimate_nig_start(times);
+
+    let mut inits = vec![moment_estimate];
+    if let Some(prev) = params
+        && prev.a > 0.0
+        && prev.scale > 0.0
+        && prev.b.abs() < prev.a
+    {
+        inits.push(prev);
+    }
+
+    match optimize(times, &inits) {
+        Ok((optimized, nfev)) => (optimized, nfev),
         Err(()) => {
             tracing::warn!(
                 samples = times.len(),
                 "NIG optimization failed; using initial estimates",
             );
+            (moment_estimate, 0)
         },
     }
-
-    p
 }
 
 #[cfg(test)]

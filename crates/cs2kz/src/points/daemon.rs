@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use futures_util::TryFutureExt as _;
+use nig::nig::NigParams;
 use tokio::time::interval;
 use tokio_util::sync::CancellationToken;
 
@@ -205,11 +206,9 @@ async fn process_filter(cx: &Context, filter_id: CourseFilterId) -> Result<(), d
     .await?;
 
     let (nub_result, pro_result) = tokio::task::spawn_blocking(move || {
-        let nub_result =
-            points::recalculate_leaderboard(&nub_recs, nub_tier, prev_nub_params);
+        let nub_result = points::recalculate_leaderboard(&nub_recs, nub_tier, prev_nub_params);
 
-        let mut pro_result =
-            points::recalculate_leaderboard(&pro_recs, pro_tier, prev_pro_params);
+        let mut pro_result = points::recalculate_leaderboard(&pro_recs, pro_tier, prev_pro_params);
 
         for (record, recalculated_points) in pro_recs.iter().zip(pro_result.records.iter_mut()) {
             let nub_fraction = points::calculate_fraction(record.time, &nub_result.leaderboard);
