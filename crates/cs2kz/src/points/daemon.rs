@@ -138,10 +138,7 @@ async fn process_filter(cx: &Context, filter_id: CourseFilterId) -> Result<(), d
     .fetch_all(db)
     .await?;
 
-    let nub_recs = nub_rows
-        .iter()
-        .map(|row| points::RecordTime { record_id: row.record_id, time: row.time })
-        .collect::<Vec<_>>();
+    let nub_times = nub_rows.iter().map(|row| row.time).collect::<Vec<_>>();
 
     // Pro records (sorted by time ASC)
     let pro_rows = sqlx::query_as!(
@@ -159,10 +156,7 @@ async fn process_filter(cx: &Context, filter_id: CourseFilterId) -> Result<(), d
     .fetch_all(db)
     .await?;
 
-    let pro_recs = pro_rows
-        .iter()
-        .map(|row| points::RecordTime { record_id: row.record_id, time: row.time })
-        .collect::<Vec<_>>();
+    let pro_times = pro_rows.iter().map(|row| row.time).collect::<Vec<_>>();
 
     // Filter tiers
     let tiers_row = sqlx::query!(
@@ -206,12 +200,12 @@ async fn process_filter(cx: &Context, filter_id: CourseFilterId) -> Result<(), d
     .await?;
 
     let (nub_result, pro_result) = tokio::task::spawn_blocking(move || {
-        let nub_result = points::recalculate_leaderboard(&nub_recs, nub_tier, prev_nub_params);
+        let nub_result = points::recalculate_leaderboard(&nub_times, nub_tier, prev_nub_params);
 
-        let mut pro_result = points::recalculate_leaderboard(&pro_recs, pro_tier, prev_pro_params);
+        let mut pro_result = points::recalculate_leaderboard(&pro_times, pro_tier, prev_pro_params);
 
-        for (record, recalculated_points) in pro_recs.iter().zip(pro_result.records.iter_mut()) {
-            let nub_fraction = points::calculate_fraction(record.time, &nub_result.leaderboard);
+        for (time, recalculated_points) in pro_times.iter().zip(pro_result.records.iter_mut()) {
+            let nub_fraction = points::calculate_fraction(*time, &nub_result.leaderboard);
             *recalculated_points = (*recalculated_points).max(nub_fraction);
         }
 

@@ -65,8 +65,7 @@ pub fn cdf(p: &NigParams, x: f64) -> f64 {
     if x <= peak {
         quad::quad(&mut |t| pdf(p, t), f64::NEG_INFINITY, x, 7, 1e-10, None).clamp(0.0, 1.0)
     } else {
-        let tail = quad::quad(&mut |t| pdf(p, t), x, f64::INFINITY, 7, 1e-10, None);
-        (1.0 - tail.clamp(0.0, 1.0)).clamp(0.0, 1.0)
+        1.0 - quad::quad(&mut |t| pdf(p, t), x, f64::INFINITY, 7, 1e-10, None).clamp(0.0, 1.0)
     }
 }
 
