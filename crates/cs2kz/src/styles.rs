@@ -90,7 +90,7 @@ impl FromStr for Style {
         match value {
             "autobhop" | "auto-bhop" => Ok(Self::AutoBhop),
             "legacyjump" | "legacy-jump" => Ok(Self::LegacyJump),
-            "autoduck" | "auto-unduck" => Ok(Self::AutoUnduck),
+            "autounduck" | "auto-unduck" => Ok(Self::AutoUnduck),
             _ => Err(UnknownStyle { _priv: () }),
         }
     }
