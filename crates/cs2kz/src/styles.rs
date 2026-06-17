@@ -11,6 +11,7 @@ use crate::{Context, database};
 
 const AUTO_BHOP: u32 = 0b_0001;
 const LEGACY_JUMP: u32 = 0b_0010;
+const AUTO_UNDUCK: u32 = 0b_0011;
 
 #[repr(u32)]
 #[derive(Debug, Display, Clone, Copy, sqlx::Type)]
@@ -20,6 +21,9 @@ pub enum Style {
 
     #[display("legacy-jump")]
     LegacyJump = LEGACY_JUMP,
+
+    #[display("auto-unduck")]
+    AutoUnduck = AUTO_UNDUCK,
 }
 
 #[derive(Debug, Default, Clone, Copy, sqlx::Type)]
@@ -74,6 +78,7 @@ impl Style {
         match self {
             Self::AutoBhop => "auto-bhop",
             Self::LegacyJump => "legacy-jump",
+            Self::AutoUnduck => "auto-unduck",
         }
     }
 }
@@ -85,6 +90,7 @@ impl FromStr for Style {
         match value {
             "autobhop" | "auto-bhop" => Ok(Self::AutoBhop),
             "legacyjump" | "legacy-jump" => Ok(Self::LegacyJump),
+            "autoduck" | "auto-unduck" => Ok(Self::AutoUnduck),
             _ => Err(UnknownStyle { _priv: () }),
         }
     }
@@ -97,6 +103,7 @@ impl TryFrom<u32> for Style {
         match value {
             AUTO_BHOP => Ok(Self::AutoBhop),
             LEGACY_JUMP => Ok(Self::LegacyJump),
+            AUTO_UNDUCK => Ok(Self::AutoUnduck),
             _ => Err(UnknownStyle { _priv: () }),
         }
     }
