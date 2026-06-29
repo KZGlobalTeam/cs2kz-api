@@ -130,6 +130,11 @@ pub struct A2SInfo {
 
     /// The maximum number of players that can join the server.
     max_players: u8,
+
+    /// When this information was last updated.
+    #[serde(rename = "_updated_at")]
+    #[schema(value_type = crate::openapi::shims::Timestamp)]
+    updated_at: Timestamp,
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
@@ -138,6 +143,11 @@ pub struct GeoInfo {
 
     /// More specific region within the country, such as a city.
     region: String,
+
+    /// When this information was last updated.
+    #[serde(rename = "_updated_at")]
+    #[schema(value_type = crate::openapi::shims::Timestamp)]
+    updated_at: Timestamp,
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
@@ -446,11 +456,13 @@ impl From<cs2kz::servers::Server> for Server {
                 }),
                 num_players: info.a2s.players,
                 max_players: info.a2s.max_players,
+                updated_at: info.updated_at,
             };
 
             let geo_info = info.geo_info.as_ref().map(|geo_info| GeoInfo {
                 country_code: geo_info.country_code.clone(),
                 region: geo_info.region.clone(),
+                updated_at: info.updated_at,
             });
 
             (a2s_info, geo_info)

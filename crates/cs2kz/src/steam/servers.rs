@@ -14,6 +14,7 @@ use crate::maps::{GetMapsParams, MapState};
 use crate::pagination::{Limit, Offset, Paginated};
 use crate::servers::ServerId;
 use crate::steam::WorkshopId;
+use crate::time::Timestamp;
 
 static INFOS: LazyLock<RwLock<HashMap<ServerId, ServerInfo>>> = LazyLock::new(Default::default);
 
@@ -22,6 +23,7 @@ pub struct ServerInfo {
     pub a2s: a2s::info::Info,
     pub geo_info: Option<GeoInfo>,
     pub map_info: Option<MapInfo>,
+    pub updated_at: Timestamp,
 }
 
 #[derive(Debug)]
@@ -134,7 +136,12 @@ pub async fn periodically_query_servers(cx: Context, cancellation_token: Cancell
                     INFOS
                         .write()
                         .unwrap_or_else(std::sync::PoisonError::into_inner)
-                        .insert(server_id, ServerInfo { a2s: a2s_info, geo_info, map_info });
+                        .insert(server_id, ServerInfo {
+                            a2s: a2s_info,
+                            geo_info,
+                            map_info,
+                            updated_at: Timestamp::now(),
+                        });
                 } else {
                     INFOS
                         .write()
