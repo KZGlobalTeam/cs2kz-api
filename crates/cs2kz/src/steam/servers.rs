@@ -120,12 +120,12 @@ pub async fn periodically_query_servers(cx: Context, cancellation_token: Cancell
                         let stdout = str::from_utf8(&output.stdout).ok()?;
                         let mut parts = stdout.lines();
 
-                        let country_line = parts.next().unwrap();
-                        let (_, rest) = country_line.split_once("GeoIP Country Edition: ").unwrap();
-                        let (country_code, _) = rest.split_once(", ").unwrap();
+                        let country_line = parts.next()?;
+                        let (_, rest) = country_line.split_once("GeoIP Country Edition: ")?;
+                        let (country_code, _) = rest.split_once(", ")?;
 
-                        let city_line = parts.next().unwrap();
-                        let city = city_line.split(", ").nth(4).unwrap();
+                        let city_line = parts.next()?;
+                        let city = city_line.split(", ").nth(4)?;
 
                         Some(GeoInfo {
                             country_code: country_code.into(),
