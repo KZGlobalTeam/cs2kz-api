@@ -359,6 +359,14 @@ where
             conn.send(reply).await.map_err(Into::into)
         },
 
+        P::PlayerPrimeConfirmed { id } => {
+            if state.players.contains_key(&id) {
+                cs2kz::players::update_prime_status(cx, id, true).await?;
+            }
+
+            Ok(())
+        },
+
         P::PlayerLeave { id, ref name, ref preferences } => {
             if let Some(player) = state.players.remove(&id) {
                 trace!("{} ({}) left the server as {}", player.name, player.id, name);

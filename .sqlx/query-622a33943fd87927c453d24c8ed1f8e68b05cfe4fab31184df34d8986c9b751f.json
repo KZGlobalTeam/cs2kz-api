@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "UPDATE Players SET prime_verified = (prime_verified | ?)\n         WHERE id = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "622a33943fd87927c453d24c8ed1f8e68b05cfe4fab31184df34d8986c9b751f"
+}

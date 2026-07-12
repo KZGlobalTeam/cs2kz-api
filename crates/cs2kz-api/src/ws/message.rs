@@ -86,6 +86,11 @@ pub enum Incoming {
         has_prime: bool,
     },
 
+    /// A player's prime status has been confirmed (but delayed).
+    PlayerPrimeConfirmed {
+        id: PlayerId,
+    },
+
     /// A player left the server.
     PlayerLeave {
         id: PlayerId,

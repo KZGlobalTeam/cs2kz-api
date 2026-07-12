@@ -106,6 +106,11 @@ pub enum CreatePlayerError {
 }
 
 #[derive(Debug, Display, Error, From)]
+#[display("failed to update player")]
+#[from(forward)]
+pub struct UpdatePlayerError(database::Error);
+
+#[derive(Debug, Display, Error, From)]
 #[display("failed to get players")]
 #[from(forward)]
 pub struct GetPlayersError(database::Error);
@@ -168,6 +173,24 @@ pub async fn register(
     .await?;
 
     Ok(RegisterPlayerInfo { is_banned, preferences, has_prime })
+}
+
+#[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]
+pub async fn update_prime_status(
+    cx: &Context,
+    player_id: PlayerId,
+    prime_verified: bool,
+) -> Result<(), UpdatePlayerError> {
+    sqlx::query!(
+        "UPDATE Players SET prime_verified = (prime_verified | ?)
+         WHERE id = ?",
+        prime_verified,
+        player_id,
+    )
+    .execute(cx.database().as_ref())
+    .await
+    .map(drop)
+    .map_err(UpdatePlayerError::from)
 }
 
 #[tracing::instrument(skip(cx, players), err(level = "debug"))]
