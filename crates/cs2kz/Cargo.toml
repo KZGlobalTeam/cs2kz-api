@@ -46,6 +46,9 @@ futures-util.workspace = true
 lettre.workspace = true
 sqlx.workspace = true
 
+[dependencies.nig]
+path = "../nig"
+
 [dependencies.steam-id]
 path = "../steam-id"
 features = ["serde"]

@@ -20,7 +20,7 @@ Questions and feedback are appreciated! Feel free to open an issue or join [our 
 The API uses a configuration file called `cs2kz-api.toml`.
 
 An example configuration file is provided with all the default values filled in,
-copy and modify it as you see fit. `.example.env` and `.docker.example.env`
+copy and modify it as you see fit. `.example.env` and `.example.docker.env`
 should be copied to `.env` and `.docker.env` respectively. Again, change the
 default values as you see fit.
 
@@ -32,6 +32,9 @@ Install docker and run the following command:
 
 ```sh
 docker compose up -d database
+
+# required for SQLx compile-time query checking
+sqlx migrate run --source crates/cs2kz/migrations
 ```
 
 To compile the API itself, you can use `cargo`:

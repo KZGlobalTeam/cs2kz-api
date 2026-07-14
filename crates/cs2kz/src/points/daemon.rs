@@ -1,48 +1,32 @@
-use std::io;
-use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::TryFutureExt as _;
-use tokio::sync::Notify;
-use tokio::time::{interval, sleep};
+use nig::nig::NigParams;
+use tokio::time::interval;
 use tokio_util::sync::CancellationToken;
 
 use crate::maps::CourseFilterId;
-use crate::maps::courses::filters::GetCourseFiltersError;
+use crate::maps::courses::Tier;
 use crate::mode::Mode;
-use crate::python::Python;
-use crate::records::GetRecordsError;
+use crate::players::PlayerId;
+use crate::points::{self};
+use crate::records::RecordId;
 use crate::{Context, database, players};
 
-#[derive(Debug, Clone)]
-pub struct PointsDaemonHandle {
-    notifications: Arc<Notifications>,
-}
+const UPSERT_CHUNK_SIZE: usize = 5_000; // should prob put this somewhe
 
-impl PointsDaemonHandle {
-    #[expect(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self {
-            notifications: Arc::new(Notifications { record_submitted: Notify::new() }),
-        }
-    }
-
-    pub fn notify_record_submitted(&self) {
-        self.notifications.record_submitted.notify_waiters();
-    }
-}
-
-#[derive(Debug)]
-struct Notifications {
-    record_submitted: Notify,
+#[derive(Debug, Clone, Copy)]
+struct BestRecordRow {
+    filter_id: CourseFilterId,
+    player_id: PlayerId,
+    record_id: RecordId,
+    time: f64,
 }
 
 #[derive(Debug, Display, Error, From)]
 pub enum Error {
-    GetCourseFilter(GetCourseFiltersError),
-    GetRecords(GetRecordsError),
     DetermineFilterToRecalculate(DetermineFilterToRecalculateError),
-    Python(io::Error),
+    ProcessFilter(database::Error),
 }
 
 #[derive(Debug, Display, Error, From)]
@@ -50,54 +34,8 @@ pub enum Error {
 #[from(forward)]
 pub struct DetermineFilterToRecalculateError(database::Error);
 
-#[derive(Debug, serde::Serialize)]
-struct PythonRequest {
-    filter_id: CourseFilterId,
-}
-
-#[derive(Debug, serde::Deserialize)]
-struct PythonResponse {
-    #[expect(dead_code, reason = "included in tracing events")]
-    filter_id: CourseFilterId,
-
-    #[expect(dead_code, reason = "included in tracing events")]
-    timings: PythonTimings,
-}
-
-#[derive(Debug, serde::Deserialize)]
-#[expect(dead_code, reason = "included in tracing events")]
-struct PythonTimings {
-    #[serde(rename = "db_query_ms", deserialize_with = "deserialize_millis")]
-    db_query: Duration,
-
-    #[serde(rename = "nub_fit_ms", deserialize_with = "deserialize_millis")]
-    nub_fit: Duration,
-
-    #[serde(rename = "nub_compute_ms", deserialize_with = "deserialize_millis")]
-    nub_compute: Duration,
-
-    #[serde(rename = "pro_fit_ms", deserialize_with = "deserialize_millis")]
-    pro_fit: Duration,
-
-    #[serde(rename = "pro_compute_ms", deserialize_with = "deserialize_millis")]
-    pro_compute: Duration,
-
-    #[serde(rename = "db_write_ms", deserialize_with = "deserialize_millis")]
-    db_write: Duration,
-}
-
 #[tracing::instrument(skip_all, err)]
 pub async fn run(cx: Context, cancellation_token: CancellationToken) -> Result<(), Error> {
-    let Some(script_path) = cx.config().points.calc_filter_path.as_deref() else {
-        tracing::warn!("no `points.calc-filter-path` configured; points daemon will be disabled");
-        return Ok(());
-    };
-
-    let mut python = Python::<PythonRequest, PythonResponse>::new(
-        script_path.to_owned(),
-        cx.config().database.url.clone(),
-    )
-    .await?;
     let mut recalc_ratings_interval = interval(Duration::from_secs(10));
 
     loop {
@@ -114,7 +52,7 @@ pub async fn run(cx: Context, cancellation_token: CancellationToken) -> Result<(
 
             res = determine_filter_to_recalculate(&cx) => {
                 let (filter_id, priority) = res?;
-                process_filter(&mut python, &cancellation_token, filter_id).await?;
+                process_filter(&cx, filter_id).await?;
                 update_filters_to_recalculate(&cx, filter_id, priority).await;
             },
         };
@@ -153,12 +91,7 @@ async fn determine_filter_to_recalculate(
             break Ok(data);
         }
 
-        () = cx
-            .points_daemon()
-            .notifications
-            .record_submitted
-            .notified()
-            .await;
+        cx.wait_for_points_recalculation().await;
 
         tracing::trace!("received notification about submitted record");
     }
@@ -184,42 +117,211 @@ async fn update_filters_to_recalculate(
     }
 }
 
-#[tracing::instrument(skip(python))]
-async fn process_filter(
-    python: &mut Python<PythonRequest, PythonResponse>,
-    cancellation_token: &CancellationToken,
-    filter_id: CourseFilterId,
-) -> Result<(), Error> {
-    let request = PythonRequest { filter_id };
+#[tracing::instrument(skip(cx))]
+async fn process_filter(cx: &Context, filter_id: CourseFilterId) -> Result<(), database::Error> {
+    tracing::debug!(%filter_id, "recalculating filter");
 
-    loop {
-        tracing::debug!(?request);
-        match cancellation_token
-            .run_until_cancelled(python.send_request(&request))
-            .await
-        {
-            None => {
-                tracing::debug!("cancelled");
-                break Ok(());
-            },
-            Some(Ok(response)) => {
-                tracing::debug!(?response);
-                break Ok(());
-            },
-            Some(Err(err)) => {
-                tracing::error!(%err, "failed to execute python request");
-                python.reset().map_err(Error::Python).await?;
-                sleep(Duration::from_secs(1)).await;
-            },
+    let db = cx.database().as_ref();
+
+    let nub_rows = sqlx::query_as!(
+        BestRecordRow,
+        "SELECT
+           filter_id AS `filter_id: CourseFilterId`,
+           player_id AS `player_id: PlayerId`,
+           record_id AS `record_id: RecordId`,
+           time
+         FROM BestNubRecords
+         WHERE filter_id = ?
+         ORDER BY time ASC",
+        filter_id,
+    )
+    .fetch_all(db)
+    .await?;
+
+    let nub_times = nub_rows.iter().map(|row| row.time).collect::<Vec<_>>();
+
+    // Pro records (sorted by time ASC)
+    let pro_rows = sqlx::query_as!(
+        BestRecordRow,
+        "SELECT
+           filter_id AS `filter_id: CourseFilterId`,
+           player_id AS `player_id: PlayerId`,
+           record_id AS `record_id: RecordId`,
+           time
+         FROM BestProRecords
+         WHERE filter_id = ?
+         ORDER BY time ASC",
+        filter_id,
+    )
+    .fetch_all(db)
+    .await?;
+
+    let pro_times = pro_rows.iter().map(|row| row.time).collect::<Vec<_>>();
+
+    // Filter tiers
+    let tiers_row = sqlx::query!(
+        "SELECT
+           nub_tier AS `nub_tier: Tier`,
+           pro_tier AS `pro_tier: Tier`
+         FROM CourseFilters
+         WHERE id = ?",
+        filter_id,
+    )
+    .fetch_optional(db)
+    .await?;
+
+    let Some(tiers_row) = tiers_row else {
+        tracing::warn!(%filter_id, "filter not found in CourseFilters");
+        return Ok(());
+    };
+
+    let nub_tier = tiers_row.nub_tier;
+    let pro_tier = tiers_row.pro_tier;
+
+    // Previous distribution parameters for warm start
+    let prev_nub_params = sqlx::query_as!(
+        NigParams,
+        "SELECT a, b, loc, scale
+         FROM PointDistributionData
+         WHERE filter_id = ? AND (NOT is_pro_leaderboard)",
+        filter_id,
+    )
+    .fetch_optional(db)
+    .await?;
+
+    let prev_pro_params = sqlx::query_as!(
+        NigParams,
+        "SELECT a, b, loc, scale
+         FROM PointDistributionData
+         WHERE filter_id = ? AND is_pro_leaderboard",
+        filter_id,
+    )
+    .fetch_optional(db)
+    .await?;
+
+    let (nub_result, pro_result) = tokio::task::spawn_blocking(move || {
+        let nub_result = points::recalculate_leaderboard(&nub_times, nub_tier, prev_nub_params);
+
+        let mut pro_result = points::recalculate_leaderboard(&pro_times, pro_tier, prev_pro_params);
+
+        for (time, recalculated_points) in pro_times.iter().zip(pro_result.records.iter_mut()) {
+            let nub_fraction = points::calculate_fraction(*time, &nub_result.leaderboard);
+            *recalculated_points = (*recalculated_points).max(nub_fraction);
         }
-    }
+
+        (nub_result, pro_result)
+    })
+    .await
+    .map_err(|_| {
+        database::Error::decode(std::io::Error::other("points recalculation task panicked"))
+    })?;
+
+    tracing::debug!(
+        %filter_id,
+        nub_fitted = nub_result.leaderboard.dist_params.is_some(),
+        pro_fitted = pro_result.leaderboard.dist_params.is_some(),
+        "recalculation complete, writing to DB"
+    );
+
+    cx.database_transaction(async move |conn| -> Result<_, database::Error> {
+        upsert_best_records(
+            conn,
+            "INSERT INTO BestNubRecords (filter_id, player_id, record_id, points, time)",
+            &nub_rows,
+            &nub_result.records,
+        )
+        .await?;
+
+        upsert_best_records(
+            conn,
+            "INSERT INTO BestProRecords (filter_id, player_id, record_id, points, time)",
+            &pro_rows,
+            &pro_result.records,
+        )
+        .await?;
+
+        if let Some(params) = nub_result.leaderboard.dist_params {
+            sqlx::query!(
+                "INSERT INTO PointDistributionData (
+                    filter_id, is_pro_leaderboard, a, b, loc, scale, top_scale
+                 )
+                 VALUES (?, FALSE, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                    a = VALUES(a),
+                    b = VALUES(b),
+                    loc = VALUES(loc),
+                    scale = VALUES(scale),
+                    top_scale = VALUES(top_scale)",
+                filter_id,
+                params.a,
+                params.b,
+                params.loc,
+                params.scale,
+                params.top_scale,
+            )
+            .execute(&mut *conn)
+            .await?;
+        }
+
+        if let Some(params) = pro_result.leaderboard.dist_params {
+            sqlx::query!(
+                "INSERT INTO PointDistributionData (
+                    filter_id, is_pro_leaderboard, a, b, loc, scale, top_scale
+                 )
+                 VALUES (?, TRUE, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE
+                    a = VALUES(a),
+                    b = VALUES(b),
+                    loc = VALUES(loc),
+                    scale = VALUES(scale),
+                    top_scale = VALUES(top_scale)",
+                filter_id,
+                params.a,
+                params.b,
+                params.loc,
+                params.scale,
+                params.top_scale,
+            )
+            .execute(&mut *conn)
+            .await?;
+        }
+
+        Ok(())
+    })
+    .await?;
+
+    Ok(())
 }
 
-fn deserialize_millis<'de, D>(deserializer: D) -> Result<Duration, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    <f64 as serde::Deserialize<'de>>::deserialize(deserializer)
-        .map(|millis| millis / 1000.0)
-        .map(Duration::from_secs_f64)
+async fn upsert_best_records(
+    conn: &mut database::Connection,
+    insert_prefix: &'static str,
+    rows: &[BestRecordRow],
+    recalculated_points: &[f64],
+) -> Result<(), database::Error> {
+    if rows.len() != recalculated_points.len() {
+        return Err(database::Error::decode(std::io::Error::other(
+            "recalculated record count does not match fetched best record rows",
+        )));
+    }
+
+    for (row_chunk, points_chunk) in rows
+        .chunks(UPSERT_CHUNK_SIZE)
+        .zip(recalculated_points.chunks(UPSERT_CHUNK_SIZE))
+    {
+        let mut query = database::QueryBuilder::new(insert_prefix);
+
+        query.push_values(row_chunk.iter().zip(points_chunk.iter()), |mut query, (row, points)| {
+            query.push_bind(row.filter_id);
+            query.push_bind(row.player_id);
+            query.push_bind(row.record_id);
+            query.push_bind(points);
+            query.push_bind(row.time);
+        });
+
+        query.push(" ON DUPLICATE KEY UPDATE points = VALUES(points)");
+        query.build().persistent(false).execute(&mut *conn).await?;
+    }
+
+    Ok(())
 }
