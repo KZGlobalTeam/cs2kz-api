@@ -151,6 +151,7 @@ pub enum Incoming {
     NewReplay {
         id: RecordId,
 
+        #[debug(skip)]
         #[serde(skip)]
         data: Bytes,
     },
