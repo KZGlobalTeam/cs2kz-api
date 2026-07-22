@@ -783,6 +783,8 @@ where
 
         P::NewReplay { id, ref data } => {
             if let Some(ref cfg) = cx.config().replay_storage {
+                info!(replay.id = %id, "uploading replay");
+
                 if let Err(error) = cx
                     .s3_client()
                     .put_object()
@@ -793,8 +795,9 @@ where
                     .send()
                     .await
                 {
-                    error!(%error, "failed to upload replay");
+                    error!(%error, replay.id = %id, "failed to upload replay");
                 } else {
+                    info!(replay.id = %id, "uploaded replay");
                     cs2kz::records::mark_replay_as_available(cx, id).await?;
                 }
             } else {
