@@ -795,7 +795,7 @@ where
                     .send()
                     .await
                 {
-                    error!(%error, replay.id = %id, "failed to upload replay");
+                    error!(error = &error as &dyn std::error::Error, replay.id = %id, "failed to upload replay");
                 } else {
                     info!(replay.id = %id, "uploaded replay");
                     cs2kz::records::mark_replay_as_available(cx, id).await?;
