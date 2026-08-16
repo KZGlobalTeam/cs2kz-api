@@ -188,16 +188,14 @@ pub fn run(config: Config) -> Result<(), Error> {
                 let cx = cx.clone();
 
                 async move {
-                    loop {
-                        if let Err(err) =
-                            cs2kz::points::daemon::run(cx.clone(), cancellation_token.child_token())
-                                .await
-                        {
-                            tracing::error!(
-                                error = &err as &dyn std::error::Error,
-                                "points daemon encountered an error"
-                            );
-                        }
+                    while let Err(err) =
+                        cs2kz::points::daemon::run(cx.clone(), cancellation_token.child_token())
+                            .await
+                    {
+                        tracing::error!(
+                            error = &err as &dyn std::error::Error,
+                            "points daemon encountered an error"
+                        );
                     }
                 }
             });
