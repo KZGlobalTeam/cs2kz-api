@@ -17,7 +17,6 @@ enum ErrorKind {
     FailedToBufferBody,
     InternalServerError,
     BadGateway,
-    ServiceUnavailable,
 
     #[debug("{:?}", _0.problem_type())]
     Detailed(ProblemDetails),
@@ -63,10 +62,6 @@ impl ErrorResponse {
         );
 
         Self(ErrorKind::BadGateway)
-    }
-
-    pub(crate) fn service_unavailable() -> Self {
-        Self(ErrorKind::ServiceUnavailable)
     }
 
     pub(crate) fn missing_header<H: Header>() -> Self {
@@ -185,7 +180,6 @@ impl IntoResponse for ErrorResponse {
                 http::StatusCode::INTERNAL_SERVER_ERROR.into_response()
             },
             ErrorKind::BadGateway => http::StatusCode::BAD_GATEWAY.into_response(),
-            ErrorKind::ServiceUnavailable => http::StatusCode::SERVICE_UNAVAILABLE.into_response(),
             ErrorKind::Detailed(details) => details.into(),
         }
     }

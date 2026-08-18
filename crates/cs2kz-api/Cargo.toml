@@ -57,7 +57,6 @@ bytes.workspace = true
 uuid.workspace = true
 tokio-util.workspace = true
 http.workspace = true
-http-body.workspace = true
 http-body-util.workspace = true
 mime.workspace = true
 lettre.workspace = true
@@ -88,10 +87,6 @@ version = "0.4.1"
 [dependencies.tokio]
 workspace = true
 features = ["signal", "taskdump"]
-
-[dependencies.sync_wrapper]
-workspace = true
-features = ["futures"]
 
 [dependencies.headers]
 version = "0.4.0"
@@ -154,9 +149,6 @@ version = "0.2.6"
 
 [dependencies.toml]
 version = "0.8.19"
-
-[dependencies.aws-smithy-types]
-version = "1.6.1"
 
 [dependencies.fake]
 workspace = true

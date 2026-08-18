@@ -583,9 +583,9 @@ dependencies = [
 
 [[package]]
 name = "aws-smithy-types"
-version = "1.6.1"
+version = "1.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d6dc683efb34b9e755675b37fedbe0103141e5b6df7bdc9eb6967756a8c167d8"
+checksum = "9d73dbfbaa8e4bc57b9045137680b958d274823509a360abfd8e1d514d40c95c"
 dependencies = [
  "base64-simd",
  "bytes",
@@ -1245,7 +1245,6 @@ name = "cs2kz-api"
 version = "0.0.0"
 dependencies = [
  "anyhow",
- "aws-smithy-types",
  "axum 0.8.1",
  "axum-extra",
  "bytes",
@@ -1258,7 +1257,6 @@ dependencies = [
  "futures-util",
  "headers",
  "http 1.4.0",
- "http-body 1.0.1",
  "http-body-util",
  "lettre",
  "mime",
@@ -1271,7 +1269,6 @@ dependencies = [
  "sqlx",
  "steam-id",
  "steam-openid",
- "sync_wrapper",
  "time",
  "tokio",
  "tokio-util",
