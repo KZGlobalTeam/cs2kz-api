@@ -225,7 +225,7 @@ pub async fn get_by_id(cx: &Context, map_id: MapId) -> Result<Option<Map>, GetMa
 pub fn get_by_name(cx: &Context, map_name: &str) -> impl Stream<Item = Result<Map, GetMapsError>> {
     self::macros::select!(
         cx.database().as_ref(),
-        "WHERE m.name LIKE ? AND m.state = ?",
+        "WHERE m.id = (SELECT id FROM Maps WHERE name LIKE ? AND state = ? ORDER BY length(name) ASC LIMIT 1)",
         format!("%{map_name}%"),
         MapState::Approved,
     )
