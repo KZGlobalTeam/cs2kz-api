@@ -14,15 +14,16 @@ use crate::num::AsF64;
 use crate::pagination::{Limit, Offset, Paginated};
 use crate::players::{CalculateRatingError, PlayerId, PlayerInfo};
 use crate::plugin::PluginVersionId;
-use crate::points::calculator::{
-    CalculatePointsError,
-    Request as CalculatePointsRequest,
-    Response as CalculatePointsResponse,
-};
-use crate::points::{self, DistributionParameters};
+use crate::points::{self, NigData};
 use crate::servers::{ServerId, ServerInfo};
 use crate::styles::{ClientStyleInfo, Styles};
 use crate::time::Seconds;
+
+#[derive(Debug, Clone, Copy)]
+struct CalculatedPoints {
+    nub_fraction: f64,
+    pro_fraction: Option<f64>,
+}
 
 define_id_type! {
     /// A unique identifier for records.
@@ -203,10 +204,6 @@ pub struct SubmittedPB {
 pub enum SubmitRecordError {
     #[display("{_0}")]
     #[from]
-    CalculatePoints(CalculatePointsError),
-
-    #[display("{_0}")]
-    #[from]
     CalculateRating(CalculateRatingError),
 
     #[display("{_0}")]
@@ -292,7 +289,7 @@ pub async fn submit(
             .await?;
 
             let nub_dist = sqlx::query_as!(
-                DistributionParameters,
+                NigData,
                 "SELECT a, b, loc, scale, top_scale
                  FROM PointDistributionData
                  WHERE filter_id = ?
@@ -336,7 +333,7 @@ pub async fn submit(
                 (None, Some(_)) => unreachable!(),
             };
 
-            let nub_data = points::calculator::LeaderboardData {
+            let nub_data = points::LeaderboardData {
                 dist_params: nub_dist,
                 tier: nub_tier,
                 leaderboard_size: nub_leaderboard_size,
@@ -345,11 +342,11 @@ pub async fn submit(
 
             let pro_data = if teleports == 0 {
                 let pro_dist = sqlx::query_as!(
-                    DistributionParameters,
+                    NigData,
                     "SELECT a, b, loc, scale, top_scale
                      FROM PointDistributionData
                      WHERE filter_id = ?
-                     AND (NOT is_pro_leaderboard)",
+                     AND is_pro_leaderboard",
                     filter_id,
                 )
                 .fetch_optional(&mut *conn)
@@ -380,7 +377,7 @@ pub async fn submit(
                     row.map_or((0, None), |row| (row.size as u64, row.top_time))
                 })?;
 
-                Some(points::calculator::LeaderboardData {
+                Some(points::LeaderboardData {
                     dist_params: pro_dist,
                     tier: pro_tier,
                     leaderboard_size: pro_leaderboard_size + u64::from(pro_pb_time.is_none()),
@@ -390,37 +387,12 @@ pub async fn submit(
                 None
             };
 
-            let points = if nub_leaderboard_size > points::SMALL_LEADERBOARD_THRESHOLD
-                && nub_data.dist_params.is_some()
-                && let Some(calc) = cx.points_calculator()
-            {
-                let request = CalculatePointsRequest {
-                    time: time.as_f64(),
-                    nub_data,
-                    pro_data: pro_data.clone().filter(|data| data.dist_params.is_some()),
-                };
-
-                let mut response = calc.calculate(request.clone()).await?;
-
-                if let Some(ref pro_data) = pro_data && request.pro_data.is_none() {
-                    response.pro_fraction = Some(points::for_small_leaderboard(
-                        pro_data.tier,
-                        pro_data.top_time,
-                        time.as_f64(),
-                    ));
-                }
-
-                response
-            } else {
-                let nub_fraction =
-                    points::for_small_leaderboard(nub_data.tier, nub_data.top_time, time.as_f64());
-
-                let pro_fraction = pro_data.clone().map(|pro_data| {
-                    points::for_small_leaderboard(pro_data.tier, pro_data.top_time, time.as_f64())
-                });
-
-                CalculatePointsResponse { nub_fraction, pro_fraction }
-            };
+            let nub_fraction = points::calculate_fraction(time.as_f64(), &nub_data);
+            let pro_fraction = pro_data
+                .as_ref()
+                .map(|leaderboard| points::calculate_fraction(time.as_f64(), leaderboard))
+                .map(|fraction| fraction.max(nub_fraction));
+            let points = CalculatedPoints { nub_fraction, pro_fraction };
 
             let is_nub_pb = nub_pb_time.is_none_or(|nub_pb_time| nub_pb_time > time.as_f64());
 
@@ -532,7 +504,7 @@ pub async fn submit(
         }
     }
 
-    cx.points_daemon().notify_record_submitted();
+    cx.notify_points_recalculation();
 
     events::dispatch(Event::NewRecord {
         player_id,
