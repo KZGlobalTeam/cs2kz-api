@@ -11,7 +11,7 @@ use cs2kz::Context;
 use cs2kz::pagination::{Limit, Offset};
 use cs2kz::players::{NewPlayer, PlayerId, PlayerInfo, PlayerInfoWithIsBanned};
 use cs2kz::plugin::PluginVersionId;
-use cs2kz::records::{GetRecordsParams, NewRecord};
+use cs2kz::records::{GetRecordsParams, NewRecord, SubmittedRecord};
 use cs2kz::servers::ServerId;
 use futures_util::{Sink, SinkExt, Stream, TryStreamExt};
 use tokio::time::{MissedTickBehavior, interval, sleep};
@@ -29,6 +29,8 @@ type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
 const DEBOUNCE: Duration = Duration::from_millis(100);
+
+const REPLAY_UPLOAD_TTL: Duration = Duration::from_secs(10);
 
 struct State {
     server_id: ServerId,
@@ -761,7 +763,7 @@ where
                 return conn.send(reply).await.map_err(Into::into);
             }
 
-            let record = cs2kz::records::submit(cx, NewRecord {
+            let SubmittedRecord { record_id, pb_data } = cs2kz::records::submit(cx, NewRecord {
                 player_id,
                 server_id: state.server_id,
                 filter_id,
@@ -773,39 +775,39 @@ where
             .await?;
 
             let reply = Message::reply(&message, message::Outgoing::NewRecordAck {
-                record_id: record.record_id,
-                pb_data: record.pb_data,
+                record_id,
+                replay_upload_key: cs2kz::replays::create_upload_key(record_id, REPLAY_UPLOAD_TTL),
+                pb_data,
             })
             .encode()?;
 
             conn.send(reply).await.map_err(Into::into)
         },
-
-        P::NewReplay { id, ref data } => {
-            if let Some(ref cfg) = cx.config().replay_storage {
-                info!(replay.id = %id, "uploading replay");
-
-                if let Err(error) = cx
-                    .s3_client()
-                    .put_object()
-                    .bucket(&cfg.bucket_name)
-                    .key(id.to_string())
-                    .body(data.clone().into())
-                    .if_none_match("*")
-                    .send()
-                    .await
-                {
-                    error!(error = &error as &dyn std::error::Error, replay.id = %id, "failed to upload replay");
-                } else {
-                    info!(replay.id = %id, "uploaded replay");
-                    cs2kz::records::mark_replay_as_available(cx, id).await?;
-                }
-            } else {
-                warn!("replay storage is not configured");
-            }
-
-            Ok(())
-        },
+        // P::NewReplay { id, ref data } => {
+        //     if let Some(ref cfg) = cx.config().replay_storage {
+        //         info!(replay.id = %id, "uploading replay");
+        //
+        //         if let Err(error) = cx
+        //             .s3_client()
+        //             .put_object()
+        //             .bucket(&cfg.bucket_name)
+        //             .key(id.to_string())
+        //             .body(data.clone().into())
+        //             .if_none_match("*")
+        //             .send()
+        //             .await
+        //         {
+        //             error!(error = &error as &dyn std::error::Error, replay.id = %id, "failed to upload replay");
+        //         } else {
+        //             info!(replay.id = %id, "uploaded replay");
+        //             cs2kz::records::mark_replay_as_available(cx, id).await?;
+        //         }
+        //     } else {
+        //         warn!("replay storage is not configured");
+        //     }
+        //
+        //     Ok(())
+        // },
     }
 }
 

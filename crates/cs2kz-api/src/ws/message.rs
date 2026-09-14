@@ -13,6 +13,7 @@ use cs2kz::players::{PlayerId, PlayerInfo, PlayerInfoWithIsBanned, Preferences};
 use cs2kz::records::{Record, RecordId, SubmittedPB};
 use cs2kz::styles::{ClientStyleInfo, StyleInfo, Styles};
 use cs2kz::time::Seconds;
+use uuid::Uuid;
 
 use crate::maps::{CourseIdentifier, CourseInfo, MapIdentifier, MapInfo};
 use crate::players::PlayerIdentifier;
@@ -147,14 +148,13 @@ pub enum Incoming {
         teleports: u32,
         time: Seconds,
     },
-
-    NewReplay {
-        id: RecordId,
-
-        #[debug(skip)]
-        #[serde(skip)]
-        data: Bytes,
-    },
+    // NewReplay {
+    //     id: RecordId,
+    //
+    //     #[debug(skip)]
+    //     #[serde(skip)]
+    //     data: Bytes,
+    // },
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -199,6 +199,7 @@ pub enum Outgoing {
     },
     NewRecordAck {
         record_id: RecordId,
+        replay_upload_key: Uuid,
         pb_data: Option<SubmittedPB>,
     },
 }
@@ -236,27 +237,27 @@ impl Message<Incoming> {
             id: u32,
         }
 
-        let (header, trailer) = payload
+        let (header, _trailer) = payload
             .split_once(|&byte| byte == b'\n')
             .map_or((&payload[..], None), |(header, trailer)| (header, Some(trailer)));
 
         let Id { id } = serde_json::from_slice(header).map_err(DecodeMessageError::MissingId)?;
 
-        let mut decoded_payload = serde_json::from_slice::<Incoming>(header)
+        let decoded_payload = serde_json::from_slice::<Incoming>(header)
             .map_err(|error| DecodeMessageError::InvalidPayload { id, error })?;
 
-        match (&mut decoded_payload, trailer) {
-            (Incoming::NewReplay { data, .. }, Some(trailer)) => {
-                *data = payload.slice_ref(trailer);
-            },
-            (Incoming::NewReplay { .. }, None) => {
-                todo!("return error")
-            },
-            (_, None) => {},
-            (_, Some(_)) => {
-                todo!("return error")
-            },
-        }
+        // match (&mut decoded_payload, trailer) {
+        //     (Incoming::NewReplay { data, .. }, Some(trailer)) => {
+        //         *data = payload.slice_ref(trailer);
+        //     },
+        //     (Incoming::NewReplay { .. }, None) => {
+        //         todo!("return error")
+        //     },
+        //     (_, None) => {},
+        //     (_, Some(_)) => {
+        //         todo!("return error")
+        //     },
+        // }
 
         Ok(Self { id, payload: decoded_payload })
     }

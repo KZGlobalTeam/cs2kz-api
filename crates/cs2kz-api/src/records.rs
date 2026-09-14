@@ -1,5 +1,6 @@
 use std::num::NonZero;
 
+use axum::body::Body;
 use axum::extract::{FromRef, State};
 use axum::routing::{self, Router};
 use cs2kz::Context;
@@ -8,13 +9,20 @@ use cs2kz::pagination::{Limit, Offset, Paginated};
 use cs2kz::records::RecordId;
 use cs2kz::styles::Styles;
 use cs2kz::time::Seconds;
-use futures_util::TryStreamExt;
+use futures_util::TryStreamExt as _;
+use headers::authorization::Bearer;
+use headers::{Authorization, ContentLength};
+use http_body_util::BodyExt as _;
+use sync_wrapper::SyncStream;
+use uuid::Uuid;
 
-use crate::extract::{Json, Path, Query};
+use crate::extract::{Header, Json, Path, Query};
 use crate::maps::{CourseInfo, MapIdentifier, MapInfo};
 use crate::players::{PlayerIdentifier, PlayerInfo};
-use crate::response::ErrorResponse;
+use crate::response::{Created, ErrorResponse};
 use crate::servers::{ServerIdentifier, ServerInfo};
+
+const REPLAY_SIZE_LIMIT: usize = 1024 * 1024 * 250;
 
 pub fn router<S>() -> Router<S>
 where
@@ -24,6 +32,7 @@ where
     Router::new()
         .route("/", routing::get(get_records))
         .route("/{record_id}", routing::get(get_record))
+        .route("/{record_id}/replay", routing::post(upload_replay))
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
@@ -269,5 +278,64 @@ impl From<cs2kz::records::Record> for Record {
             pro_points: record.pro_points,
             replay_available: record.replay_available,
         }
+    }
+}
+
+#[tracing::instrument(skip(cx))]
+async fn upload_replay(
+    State(cx): State<Context>,
+    Header(Authorization(bearer)): Header<Authorization<Bearer>>,
+    Header(ContentLength(content_length)): Header<ContentLength>,
+    Path(record_id): Path<RecordId>,
+    body: Body,
+) -> Result<Created<()>, ErrorResponse> {
+    if content_length > (REPLAY_SIZE_LIMIT as u64) {
+        return Err(ErrorResponse::unauthorized());
+    }
+
+    let replay_storage_cfg = cx.config().replay_storage.as_ref().ok_or_else(|| {
+        warn!("replay storage is not configured");
+        ErrorResponse::service_unavailable()
+    })?;
+
+    let key = dbg!(bearer.token()).parse::<Uuid>().map_err(|err| {
+        debug!(%err, "failed to parse access key");
+        ErrorResponse::unauthorized()
+    })?;
+
+    let claimed_record_id =
+        cs2kz::replays::claim_upload_key(key).ok_or_else(|| ErrorResponse::unauthorized())?;
+
+    if claimed_record_id != record_id {
+        return Err(ErrorResponse::unauthorized());
+    }
+
+    info!(replay.id = %record_id, "uploading replay");
+
+    let body = http_body_util::Limited::new(body, REPLAY_SIZE_LIMIT);
+    let stream = SyncStream::new(body.into_data_stream().map_ok(http_body::Frame::data));
+    let body = http_body_util::StreamBody::new(stream);
+    let body = aws_smithy_types::byte_stream::ByteStream::from_body_1_x(body);
+
+    if let Err(error) = cx
+        .s3_client()
+        .put_object()
+        .bucket(&replay_storage_cfg.bucket_name)
+        .key(record_id.to_string())
+        .content_length(content_length as i64)
+        .body(body)
+        .if_none_match("*")
+        .send()
+        .await
+    {
+        error!(error = &error as &dyn std::error::Error, replay.id = %record_id, "failed to upload replay");
+        Err(ErrorResponse::internal_server_error(error))
+    } else {
+        info!(replay.id = %record_id, "uploaded replay");
+        cs2kz::records::mark_replay_as_available(&cx, record_id)
+            .await
+            .map_err(|err| ErrorResponse::internal_server_error(err))?;
+
+        Ok(Created(()))
     }
 }
