@@ -5,6 +5,7 @@ use std::net::Ipv4Addr;
 use axum::extract::ws::Message as RawMessage;
 use bytes::Bytes;
 use cs2kz::announcements::Announcement;
+use cs2kz::bans::{BanId, BanReason};
 use cs2kz::checksum::Checksum;
 use cs2kz::maps::{CourseFilterId, Map, MapId};
 use cs2kz::mode::{Mode, ModeInfo};
@@ -156,6 +157,11 @@ pub enum Incoming {
         #[serde(skip)]
         data: Bytes,
     },
+
+    NewBan {
+        player_id: PlayerId,
+        reason: BanReason,
+    },
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -202,6 +208,9 @@ pub enum Outgoing {
         record_id: RecordId,
         replay_upload_key: ReplayUploadKey,
         pb_data: Option<SubmittedPB>,
+    },
+    NewBanAck {
+        ban_id: BanId,
     },
 }
 
