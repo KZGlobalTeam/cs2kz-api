@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use crate::time::DurationExt;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, sqlx::Type)]
 #[serde(rename_all = "kebab-case")]
 #[sqlx(rename_all = "kebab-case")]
 pub enum BanReason {
