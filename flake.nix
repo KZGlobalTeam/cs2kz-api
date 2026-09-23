@@ -1,7 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
-    nixpkgs-depotdownloader.url = "github:nixos/nixpkgs/nixos-unstable";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
@@ -13,7 +13,7 @@
   outputs =
     {
       nixpkgs,
-      nixpkgs-depotdownloader,
+      nixpkgs-unstable,
       flake-utils,
       rust-overlay,
       crane,
@@ -30,8 +30,10 @@
           overlays = [
             (import rust-overlay)
             (self: super: {
-              depotdownloader =
-                nixpkgs-depotdownloader.legacyPackages.${super.stdenv.hostPlatform.system}.depotdownloader;
+              inherit (nixpkgs-unstable.legacyPackages.${super.stdenv.hostPlatform.system})
+                depotdownloader
+                geoipWithDatabase
+                ;
             })
           ];
         };
