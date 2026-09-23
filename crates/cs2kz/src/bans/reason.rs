@@ -35,9 +35,6 @@ impl BanReason {
     /// `total_ban_duration` is the total duration the player has been banned for in the past.
     pub fn duration(&self, total_ban_duration: Duration) -> Duration {
         let mut duration = match self {
-            // Self::Macro => Duration::week() * 2,
-            // Self::AutoBhop => Duration::month(),
-            // Self::AutoStrafe => Duration::month() * 2,
             Self::AHK => Duration::week(),
             Self::StrafeHack => Duration::year(),
 
