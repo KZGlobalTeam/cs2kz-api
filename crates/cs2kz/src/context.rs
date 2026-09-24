@@ -1,7 +1,8 @@
+use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
-use std::{fmt, io};
 
+use tokio::sync::Notify;
 use tokio::task;
 use tokio_util::sync::CancellationToken;
 use tokio_util::task::TaskTracker;
@@ -14,7 +15,6 @@ use crate::database::{
     DatabaseConnectionOptions,
     EstablishDatabaseConnectionError,
 };
-use crate::points;
 
 mod inner {
     use super::*;
@@ -25,8 +25,7 @@ mod inner {
         pub(super) database: Database,
         pub(super) shutdown_token: CancellationToken,
         pub(super) tasks: TaskTracker,
-        pub(super) points_calculator: Option<points::calculator::PointsCalculatorHandle>,
-        pub(super) points_daemon: points::daemon::PointsDaemonHandle,
+        pub(super) points_recalculation_notify: Notify,
         pub(super) s3_client: Option<aws_sdk_s3::Client>,
     }
 }
@@ -42,9 +41,6 @@ pub enum InitializeContextError {
 
     #[display("failed to run database migrations: {_0}")]
     RunDatabaseMigrations(sqlx::migrate::MigrateError),
-
-    #[display("failed to initialize points calculator: {_0}")]
-    InitializePointsCalculator(io::Error),
 }
 
 impl Context {
@@ -72,21 +68,6 @@ impl Context {
         database::MIGRATIONS.run(database.as_ref()).await?;
 
         let tasks = TaskTracker::new();
-        let points_calculator = points::calculator::PointsCalculator::new(&config)
-            .await?
-            .map(|calc| {
-                let handle = calc.handle();
-                let cancellation_token = shutdown_token.child_token();
-                let task = tasks.track_future(calc.run(cancellation_token));
-
-                task::Builder::new()
-                    .name("cs2kz::points_calculator")
-                    .spawn(task)
-                    .expect("failed to spawn tokio task");
-
-                handle
-            });
-        let points_daemon = points::daemon::PointsDaemonHandle::new();
 
         let s3_client = if let Some(ref cfg) = config.replay_storage {
             let config = aws_config::defaults(aws_config::BehaviorVersion::v2026_01_12())
@@ -112,8 +93,7 @@ impl Context {
             database,
             shutdown_token,
             tasks,
-            points_calculator,
-            points_daemon,
+            points_recalculation_notify: Notify::new(),
             s3_client,
         })))
     }
@@ -126,12 +106,12 @@ impl Context {
         &self.0.database
     }
 
-    pub fn points_calculator(&self) -> Option<&points::calculator::PointsCalculatorHandle> {
-        self.0.points_calculator.as_ref()
+    pub(crate) fn notify_points_recalculation(&self) {
+        self.0.points_recalculation_notify.notify_waiters();
     }
 
-    pub fn points_daemon(&self) -> &points::daemon::PointsDaemonHandle {
-        &self.0.points_daemon
+    pub(crate) async fn wait_for_points_recalculation(&self) {
+        self.0.points_recalculation_notify.notified().await;
     }
 
     pub fn s3_client(&self) -> &aws_sdk_s3::Client {

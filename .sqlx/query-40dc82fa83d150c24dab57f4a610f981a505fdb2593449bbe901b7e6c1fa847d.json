@@ -1,0 +1,54 @@
+{
+  "db_name": "MySQL",
+  "query": "SELECT\n           filter_id AS `filter_id: CourseFilterId`,\n           player_id AS `player_id: PlayerId`,\n           record_id AS `record_id: RecordId`,\n           time\n         FROM BestNubRecords\n         WHERE filter_id = ?\n         ORDER BY time ASC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "filter_id: CourseFilterId",
+        "type_info": {
+          "type": "Short",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 5
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "player_id: PlayerId",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | MULTIPLE_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 20
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "record_id: RecordId",
+        "type_info": {
+          "type": "String",
+          "flags": "NOT_NULL | MULTIPLE_KEY | BINARY | NO_DEFAULT_VALUE",
+          "max_size": 16
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "time",
+        "type_info": {
+          "type": "Double",
+          "flags": "NOT_NULL | MULTIPLE_KEY | NO_DEFAULT_VALUE",
+          "max_size": 22
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "40dc82fa83d150c24dab57f4a610f981a505fdb2593449bbe901b7e6c1fa847d"
+}

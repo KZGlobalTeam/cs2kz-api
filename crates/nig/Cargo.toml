@@ -1,0 +1,13 @@
+[package]
+name = "nig"
+version = "0.1.0"
+authors = ["Praetor"]
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license = "AGPL-3.0-only"
+
+[dependencies]
+rand = { version = "0.8", features = ["small_rng"] }
+serde = { workspace = true, features = ["derive"] }
+tracing.workspace = true

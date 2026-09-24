@@ -80,7 +80,6 @@ async fn main() -> anyhow::Result<()> {
                 min_connections: 1,
                 max_connections: Some(NonZero::<u32>::MIN),
             },
-            points: Default::default(),
             replay_storage: None,
         })?;
 
@@ -381,7 +380,6 @@ async fn create_records(
 
         match records::submit(cx, record).await {
             Ok(SubmittedRecord { record_id: id, .. }) => info!(%id, "created record"),
-            Err(SubmitRecordError::CalculatePoints(error)) => return Err(error.into()),
             Err(SubmitRecordError::CalculateRating(error)) => return Err(error.into()),
             Err(SubmitRecordError::Database(error)) => return Err(error.into()),
         }
