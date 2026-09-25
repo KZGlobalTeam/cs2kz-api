@@ -22,7 +22,7 @@ use crate::players::{PlayerIdentifier, PlayerInfo};
 use crate::response::{Created, ErrorResponse};
 use crate::servers::{ServerIdentifier, ServerInfo};
 
-const REPLAY_SIZE_LIMIT: usize = 1024 * 1024 * 250;
+const REPLAY_SIZE_LIMIT: usize = 1024 * 1024 * 1024;
 
 pub fn router<S>() -> Router<S>
 where
