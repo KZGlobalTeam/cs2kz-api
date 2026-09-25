@@ -298,7 +298,7 @@ async fn upload_replay(
         ErrorResponse::service_unavailable()
     })?;
 
-    let key = dbg!(bearer.token()).parse::<Uuid>().map_err(|err| {
+    let key = bearer.token().parse::<Uuid>().map_err(|err| {
         debug!(%err, "failed to parse access key");
         ErrorResponse::unauthorized()
     })?;
