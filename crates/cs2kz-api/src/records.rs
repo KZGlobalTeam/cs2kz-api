@@ -290,7 +290,7 @@ async fn upload_replay(
     body: Body,
 ) -> Result<Created<()>, ErrorResponse> {
     if content_length > (REPLAY_SIZE_LIMIT as u64) {
-        return Err(ErrorResponse::unauthorized());
+        return Err(ErrorResponse::failed_to_buffer_body());
     }
 
     let replay_storage_cfg = cx.config().replay_storage.as_ref().ok_or_else(|| {
