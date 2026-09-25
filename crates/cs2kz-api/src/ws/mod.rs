@@ -30,7 +30,7 @@ type BoxError = Box<dyn std::error::Error + Send + Sync>;
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(30);
 const DEBOUNCE: Duration = Duration::from_millis(100);
 
-const REPLAY_UPLOAD_TTL: Duration = Duration::from_secs(10);
+const REPLAY_UPLOAD_TTL: Duration = Duration::from_secs(30);
 
 struct State {
     server_id: ServerId,
