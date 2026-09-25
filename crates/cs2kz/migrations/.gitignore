@@ -9,3 +9,5 @@
 !0004_add_world_records.down.sql
 !0004_add_world_records.up.sql
 !0005_add_replay_available_flag.sql
+!0006_add_replay_upload_keys.down.sql
+!0006_add_replay_upload_keys.up.sql

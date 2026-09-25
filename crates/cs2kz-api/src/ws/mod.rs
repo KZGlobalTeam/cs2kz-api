@@ -774,9 +774,12 @@ where
             })
             .await?;
 
+            let replay_upload_key =
+                cs2kz::replays::create_upload_key(cx, record_id, REPLAY_UPLOAD_TTL).await?;
+
             let reply = Message::reply(&message, message::Outgoing::NewRecordAck {
                 record_id,
-                replay_upload_key: cs2kz::replays::create_upload_key(record_id, REPLAY_UPLOAD_TTL),
+                replay_upload_key,
                 pb_data,
             })
             .encode()?;

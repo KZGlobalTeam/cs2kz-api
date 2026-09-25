@@ -1,60 +1,94 @@
-use std::collections::hash_map::{self, HashMap};
-use std::sync::{LazyLock, Mutex};
-
-use tokio::time::{Duration, interval};
+use futures_util::TryFutureExt as _;
+use tokio::time::Duration;
 use uuid::Uuid;
 
 use crate::records::RecordId;
 use crate::time::Timestamp;
+use crate::{Context, database};
 
 pub mod cleaner;
 
-type UploadKeys = HashMap<Uuid, PendingReplayUploadInfo>;
+define_id_type! {
+    pub struct ReplayUploadKey(Uuid);
+}
 
-static UPLOAD_KEYS: LazyLock<Mutex<UploadKeys>> = LazyLock::new(|| {
-    tokio::spawn(async {
-        let mut interval = interval(Duration::from_secs(30));
+impl ReplayUploadKey {
+    #[expect(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self(Uuid::new_v4())
+    }
+}
 
-        loop {
-            interval.tick().await;
-            with_upload_keys(purge_expired_keys);
-        }
-    });
-    Default::default()
+crate::database::impl_traits!(ReplayUploadKey as [u8] => {
+    fn encode<'a>(self, out: &'a [u8]) {
+        let bytes = self.0.as_bytes();
+        out = &bytes[..];
+    }
+
+    fn decode<'a>(bytes: &'a [u8]) -> Result<Self, BoxError> {
+        uuid::Bytes::try_from(bytes)
+            .map(Uuid::from_bytes)
+            .map(Self)
+            .map_err(Into::into)
+    }
 });
 
-#[derive(Debug)]
-struct PendingReplayUploadInfo {
+pub async fn create_upload_key(
+    cx: &Context,
     record_id: RecordId,
-    expires_at: Timestamp,
+    ttl: Duration,
+) -> Result<ReplayUploadKey, database::Error> {
+    let key = ReplayUploadKey::new();
+
+    sqlx::query!(
+        "INSERT INTO ReplayUploadKeys VALUES (?, ?, ?)",
+        record_id,
+        key,
+        Timestamp::now() + ttl
+    )
+    .execute(cx.database().as_ref())
+    .await?;
+
+    Ok(key)
 }
 
-fn with_upload_keys<R>(f: impl FnOnce(&mut UploadKeys) -> R) -> R {
-    f(&mut UPLOAD_KEYS
-        .lock()
-        .unwrap_or_else(std::sync::PoisonError::into_inner))
-}
+pub async fn claim_upload_key<T, E>(
+    cx: &Context,
+    key: ReplayUploadKey,
+    f: impl AsyncFnOnce(RecordId) -> Result<T, E>,
+) -> Result<Option<T>, E>
+where
+    E: From<database::Error>,
+{
+    cx.database_transaction(async |conn| {
+        let Some(row) = sqlx::query!(
+            "SELECT
+               record_id `record_id: RecordId`,
+               expires_at `expires_at: Timestamp`
+             FROM ReplayUploadKeys
+             WHERE upload_key = ?
+             FOR UPDATE",
+            key,
+        )
+        .fetch_optional(&mut *conn)
+        .map_err(database::Error::from)
+        .await?
+        else {
+            return Ok(None);
+        };
 
-fn purge_expired_keys(keys: &mut UploadKeys) {
-    keys.retain(|_, info| info.expires_at > Timestamp::now());
-}
-
-pub fn create_upload_key(record_id: RecordId, ttl: Duration) -> Uuid {
-    let key = Uuid::new_v4();
-    with_upload_keys(|keys| {
-        keys.insert(key, PendingReplayUploadInfo { record_id, expires_at: Timestamp::now() + ttl });
-    });
-    key
-}
-
-pub fn claim_upload_key(key: Uuid) -> Option<RecordId> {
-    with_upload_keys(|keys| {
-        if let hash_map::Entry::Occupied(entry) = keys.entry(key)
-            && entry.get().expires_at > Timestamp::now()
-        {
-            Some(entry.remove().record_id)
-        } else {
-            None
+        if row.expires_at <= Timestamp::now() {
+            return Ok(None);
         }
+
+        let result = f(row.record_id).await?;
+
+        sqlx::query!("DELETE FROM ReplayUploadKeys WHERE upload_key = ?", key)
+            .execute(&mut *conn)
+            .map_err(database::Error::from)
+            .await?;
+
+        Ok(Some(result))
     })
+    .await
 }

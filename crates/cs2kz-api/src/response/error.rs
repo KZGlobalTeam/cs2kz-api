@@ -148,6 +148,13 @@ fn problem_details(
     problem_details
 }
 
+impl From<cs2kz::database::Error> for ErrorResponse {
+    #[track_caller]
+    fn from(error: cs2kz::database::Error) -> Self {
+        Self::internal_server_error(error)
+    }
+}
+
 impl From<steam::ApiError> for ErrorResponse {
     #[track_caller]
     fn from(error: steam::ApiError) -> Self {
