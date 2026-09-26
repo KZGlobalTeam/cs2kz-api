@@ -81,6 +81,9 @@ version = "1.132.0"
 [dependencies.md-5]
 version = "0.10.6"
 
+[dependencies.maxminddb]
+version = "0.32.0"
+
 [dependencies.fake]
 workspace = true
 optional = true

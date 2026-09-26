@@ -32,8 +32,29 @@
             (self: super: {
               inherit (nixpkgs-unstable.legacyPackages.${super.stdenv.hostPlatform.system})
                 depotdownloader
-                geoipWithDatabase
                 ;
+
+              geolite2-city =
+                let
+                  filename = "GeoLite2-City.mmdb";
+                  version = "1.0.102";
+                in
+                super.stdenv.mkDerivation {
+                  pname = "geolite2-city";
+                  inherit version;
+                  src = super.fetchurl {
+                    url = "https://cdn.jsdelivr.net/npm/geolite2-city@${version}/${filename}.gz";
+                    hash = "sha256-IRa/wcXhrPVu6gkz/OQWwdghyu0QfMGoP1/roAuQ24Q=";
+                  };
+
+                  buildCommand = ''
+                    mkdir -p $out/share
+                    cp $src $out/share/${filename}.gz
+                    gzip -d $out/share/${filename}.gz
+                  '';
+
+                  nativeBuildInputs = [ super.gzip ];
+                };
             })
           ];
         };
@@ -106,7 +127,8 @@
             preFixup = ''
               wrapProgram $out/bin/cs2kz-api \
                 --prefix PATH : ${python}/bin \
-                --prefix PATH : ${pkgs.geoipWithDatabase}/bin
+                --prefix PATH : ${pkgs.geoipWithDatabase}/bin \
+                --set GEOLITE_CITY_MMDB "${pkgs.geolite2-city}/share/GeoLite2-City.mmdb"
             '';
           }
         );
@@ -188,18 +210,18 @@
             python
           ]
           ++ (with pkgs; [
+            depotdownloader
             docker-client
             lazydocker
             mariadb
             mycli
+            oha
             sqlx-cli
             tokio-console
-            depotdownloader
-            oha
-            geoipWithDatabase
           ]);
 
           KZ_API_ENVIRONMENT = "local";
+          GEOLITE_CITY_MMDB = "${pkgs.geolite2-city}/share/GeoLite2-City.mmdb";
         };
       }
     );
