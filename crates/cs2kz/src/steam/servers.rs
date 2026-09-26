@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::env;
 use std::error::Error;
 use std::sync::{LazyLock, RwLock};
 use std::time::Duration;
@@ -15,6 +16,14 @@ use crate::pagination::{Limit, Offset, Paginated};
 use crate::servers::ServerId;
 use crate::steam::WorkshopId;
 use crate::time::Timestamp;
+
+static MMDB: LazyLock<maxminddb::Reader<Vec<u8>>> = LazyLock::new(|| {
+    let path = env::var("GEOLITE_CITY_MMDB")
+        .unwrap_or_else(|err| panic!("failed to locate geolite database: {err}"));
+
+    maxminddb::Reader::open_readfile(path)
+        .unwrap_or_else(|err| panic!("failed to initialize mmdb: {err}"))
+});
 
 static INFOS: LazyLock<RwLock<HashMap<ServerId, ServerInfo>>> = LazyLock::new(Default::default);
 
@@ -68,11 +77,16 @@ pub async fn periodically_query_servers(cx: Context, cancellation_token: Cancell
 
             tasks.spawn(async move {
                 let addr = (row.host.as_str(), row.port);
+
+                let resolved_host_ip = tokio::net::lookup_host(addr)
+                    .and_then(async |mut addrs| Ok(addrs.next().map(|addr| addr.ip())))
+                    .await;
+
                 let info = A2SClient::new()
                     .and_then(async |client| client.info(addr).await)
                     .await;
 
-                (row.id, row.host, info)
+                (row.id, row.host, resolved_host_ip, info)
             });
         }
 
@@ -94,44 +108,31 @@ pub async fn periodically_query_servers(cx: Context, cancellation_token: Cancell
         };
 
         while let Some(join_result) = tasks.join_next().await {
-            if let Ok((server_id, host, a2s_info)) = join_result {
+            if let Ok((server_id, host, resolved_host_ip, a2s_info)) = join_result {
                 if let Ok(a2s_info) = a2s_info {
                     let map_info = maps.get(&a2s_info.map).map(|map| MapInfo {
                         workshop_id: map.workshop_id,
                         state: map.state,
                     });
 
-                    let geoiplookup_output = tokio::process::Command::new("geoiplookup")
-                        .arg(&host)
-                        .output()
-                        .await
+                    let geo_info = resolved_host_ip
                         .inspect_err(|error| error!(%error, "failed to lookup ip for {host:?}"))
-                        .ok();
-
-                    let geo_info = geoiplookup_output.and_then(|output| {
-                        if !output.status.success() {
-                            return None;
-                        }
-
-                        // GeoIP Country Edition: FI, Finland
-                        // GeoIP City Edition, Rev 1: FI, 18, N/A, Helsinki, 00191, 60.179699, 24.934401, 0, 0
-                        // GeoIP ASNum Edition: AS24940 Hetzner Online GmbH
-
-                        let stdout = str::from_utf8(&output.stdout).ok()?;
-                        let mut parts = stdout.lines();
-
-                        let country_line = parts.next()?;
-                        let (_, rest) = country_line.split_once("GeoIP Country Edition: ")?;
-                        let (country_code, _) = rest.split_once(", ")?;
-
-                        let city_line = parts.next()?;
-                        let city = city_line.split(", ").nth(4)?;
-
-                        Some(GeoInfo {
-                            country_code: country_code.into(),
-                            region: city.into(),
+                        .ok()
+                        .flatten()
+                        .and_then(|host| {
+                            MMDB
+                                .lookup(host)
+                                .inspect_err(
+                                    |error| error!(%error, "failed to lookup geo data for {host:?}"),
+                                )
+                                .ok()
                         })
-                    });
+                        .and_then(|lookup_result| {
+                            Some(GeoInfo {
+                                country_code: lookup_result.decode_path(&maxminddb::path!["country", "iso_code"]).unwrap()?,
+                                region: lookup_result.decode_path(&maxminddb::path!["continent", "code"]).unwrap()?,
+                            })
+                        });
 
                     INFOS
                         .write()
