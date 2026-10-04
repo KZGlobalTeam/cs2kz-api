@@ -92,3 +92,39 @@ where
     })
     .await
 }
+
+pub async fn claim_upload_key_by_record_id(
+    cx: &Context,
+    record_id: RecordId,
+) -> Result<bool, database::Error> {
+    cx.database_transaction(async |conn| {
+        let Some(row) = sqlx::query!(
+            "SELECT
+               record_id `record_id: RecordId`,
+               upload_key `upload_key: ReplayUploadKey`,
+               expires_at `expires_at: Timestamp`
+             FROM ReplayUploadKeys
+             WHERE record_id = ?
+             FOR UPDATE",
+            record_id,
+        )
+        .fetch_optional(&mut *conn)
+        .map_err(database::Error::from)
+        .await?
+        else {
+            return Ok(false);
+        };
+
+        if row.expires_at <= Timestamp::now() {
+            return Ok(false);
+        }
+
+        sqlx::query!("DELETE FROM ReplayUploadKeys WHERE upload_key = ?", row.upload_key)
+            .execute(&mut *conn)
+            .map_err(database::Error::from)
+            .await?;
+
+        Ok(true)
+    })
+    .await
+}

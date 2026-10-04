@@ -786,31 +786,33 @@ where
 
             conn.send(reply).await.map_err(Into::into)
         },
-        // P::NewReplay { id, ref data } => {
-        //     if let Some(ref cfg) = cx.config().replay_storage {
-        //         info!(replay.id = %id, "uploading replay");
-        //
-        //         if let Err(error) = cx
-        //             .s3_client()
-        //             .put_object()
-        //             .bucket(&cfg.bucket_name)
-        //             .key(id.to_string())
-        //             .body(data.clone().into())
-        //             .if_none_match("*")
-        //             .send()
-        //             .await
-        //         {
-        //             error!(error = &error as &dyn std::error::Error, replay.id = %id, "failed to upload replay");
-        //         } else {
-        //             info!(replay.id = %id, "uploaded replay");
-        //             cs2kz::records::mark_replay_as_available(cx, id).await?;
-        //         }
-        //     } else {
-        //         warn!("replay storage is not configured");
-        //     }
-        //
-        //     Ok(())
-        // },
+        P::NewReplay { id, ref data } => {
+            if cs2kz::replays::claim_upload_key_by_record_id(cx, id).await?
+                && let Some(ref cfg) = cx.config().replay_storage
+            {
+                info!(replay.id = %id, "uploading replay");
+
+                if let Err(error) = cx
+                    .s3_client()
+                    .put_object()
+                    .bucket(&cfg.bucket_name)
+                    .key(id.to_string())
+                    .body(data.clone().into())
+                    .if_none_match("*")
+                    .send()
+                    .await
+                {
+                    error!(error = &error as &dyn std::error::Error, replay.id = %id, "failed to upload replay");
+                } else {
+                    info!(replay.id = %id, "uploaded replay");
+                    cs2kz::records::mark_replay_as_available(cx, id).await?;
+                }
+            } else {
+                warn!("replay storage is not configured");
+            }
+
+            Ok(())
+        },
     }
 }
 
