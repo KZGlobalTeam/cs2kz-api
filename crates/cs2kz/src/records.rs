@@ -594,37 +594,21 @@ pub async fn get(
         }
     }
 
-    fn base_query(
-        query: &mut QueryBuilder<'_>,
-        map_id: Option<MapId>,
-        course_id: Option<CourseId>,
-        mode: Option<Mode>,
-        ranked: bool,
-    ) {
-        base_filters(query, map_id, course_id, mode, ranked);
-
+    fn base_query(query: &mut QueryBuilder<'_>) {
         query.push("), ");
         query.push(
             "ProLeaderboard AS (
                SELECT
-                 r.id AS record_id,
+                 ProRecords.record_id,
                  ProRecords.points,
                  RANK() OVER (
-                   PARTITION BY r.filter_id
+                   PARTITION BY ProRecords.filter_id
                    ORDER BY
-                     r.time ASC,
-                     r.id ASC
+                     ProRecords.time ASC,
+                     ProRecords.record_id ASC
                  ) AS rank
-               FROM Records AS r
-               JOIN BestProRecords AS ProRecords ON ProRecords.record_id = r.id
-               JOIN Players AS p ON p.id = r.player_id
-               JOIN Servers AS s ON s.id = r.server_id
-               JOIN CourseFilters AS cf ON cf.id = r.filter_id
-               JOIN Courses AS c ON c.id = cf.course_id
-               JOIN Maps AS m ON m.id = c.map_id",
+               FROM BestProRecords AS ProRecords",
         );
-
-        base_filters(query, map_id, course_id, mode, ranked);
 
         query.push(") ");
     }
@@ -665,24 +649,18 @@ pub async fn get(
     let mut query = QueryBuilder::new(
         "WITH NubLeaderboard AS (
            SELECT
-             r.id AS record_id,
+             NubRecords.record_id,
              NubRecords.points,
              RANK() OVER (
-               PARTITION BY r.filter_id
+               PARTITION BY NubRecords.filter_id
                ORDER BY
-                 r.time ASC,
-                 r.id ASC
+                 NubRecords.time ASC,
+                 NubRecords.record_id ASC
              ) AS rank
-           FROM Records AS r
-           JOIN BestNubRecords AS NubRecords ON NubRecords.record_id = r.id
-           JOIN Players AS p ON p.id = r.player_id
-           JOIN Servers AS s ON s.id = r.server_id
-           JOIN CourseFilters AS cf ON cf.id = r.filter_id
-           JOIN Courses AS c ON c.id = cf.course_id
-           JOIN Maps AS m ON m.id = c.map_id",
+           FROM BestNubRecords AS NubRecords",
     );
 
-    base_query(&mut query, map_id, course_id, mode, ranked);
+    base_query(&mut query);
 
     query.push(
         "SELECT
