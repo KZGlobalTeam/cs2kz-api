@@ -825,8 +825,14 @@ where
                 })
                 .await?;
 
-                let reply =
-                    Message::reply(&message, message::Outgoing::NewBanAck { ban_id }).encode()?;
+                let replay_upload_key =
+                    cs2kz::replays::create_upload_key(cx, ban_id, REPLAY_UPLOAD_TTL).await?;
+
+                let reply = Message::reply(&message, message::Outgoing::NewBanAck {
+                    ban_id,
+                    replay_upload_key,
+                })
+                .encode()?;
 
                 conn.send(reply).await.map_err(Into::into)?;
             } else {

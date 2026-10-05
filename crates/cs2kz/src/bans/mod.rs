@@ -1,8 +1,8 @@
 use std::net::Ipv4Addr;
-use std::num::NonZero;
 
 use futures_util::{Stream, TryStreamExt};
 use sqlx::Row;
+use uuid::Uuid;
 
 use crate::pagination::{Limit, Offset, Paginated};
 use crate::players::{PlayerId, PlayerInfo};
@@ -18,10 +18,35 @@ pub use reason::BanReason;
 
 define_id_type! {
     /// A unique identifier for player bans.
-    #[derive(sqlx::Type)]
-    #[sqlx(transparent)]
-    pub struct BanId(NonZero<u32>);
+    pub struct BanId(Uuid);
 }
+
+impl BanId {
+    #[expect(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self(Uuid::now_v7())
+    }
+}
+
+impl From<BanId> for Uuid {
+    fn from(BanId(uuid): BanId) -> Self {
+        uuid
+    }
+}
+
+crate::database::impl_traits!(BanId as [u8] => {
+    fn encode<'a>(self, out: &'a [u8]) {
+        let bytes = self.0.as_bytes();
+        out = &bytes[..];
+    }
+
+    fn decode<'a>(bytes: &'a [u8]) -> Result<Self, BoxError> {
+        uuid::Bytes::try_from(bytes)
+            .map(Uuid::from_bytes)
+            .map(Self)
+            .map_err(Into::into)
+    }
+});
 
 #[derive(Debug)]
 pub struct Ban {

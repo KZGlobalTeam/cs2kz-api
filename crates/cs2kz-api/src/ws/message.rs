@@ -211,6 +211,7 @@ pub enum Outgoing {
     },
     NewBanAck {
         ban_id: BanId,
+        replay_upload_key: ReplayUploadKey,
     },
 }
 
