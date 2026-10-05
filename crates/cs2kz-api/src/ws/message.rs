@@ -11,6 +11,7 @@ use cs2kz::mode::{Mode, ModeInfo};
 use cs2kz::pagination::{Limit, Offset};
 use cs2kz::players::{PlayerId, PlayerInfo, PlayerInfoWithIsBanned, Preferences};
 use cs2kz::records::{Record, RecordId, SubmittedPB};
+use cs2kz::replays::ReplayUploadKey;
 use cs2kz::styles::{ClientStyleInfo, StyleInfo, Styles};
 use cs2kz::time::Seconds;
 
@@ -199,6 +200,7 @@ pub enum Outgoing {
     },
     NewRecordAck {
         record_id: RecordId,
+        replay_upload_key: ReplayUploadKey,
         pb_data: Option<SubmittedPB>,
     },
 }
@@ -266,11 +268,6 @@ impl Message<Outgoing> {
     /// Encodes an outgoing message.
     pub fn encode(&self) -> Result<RawMessage, EncodeMessageError> {
         let raw_message = serde_json::to_vec(self).map_err(EncodeMessageError)?;
-
-        // if let Outgoing::ReplayData { ref data } = self.payload {
-        //     raw_message.push(b'\n');
-        //     raw_message.extend_from_slice(data);
-        // }
 
         Ok(raw_message.into())
     }

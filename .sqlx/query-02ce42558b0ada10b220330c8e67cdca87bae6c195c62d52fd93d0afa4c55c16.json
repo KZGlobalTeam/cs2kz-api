@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "INSERT INTO ReplayUploadKeys VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "02ce42558b0ada10b220330c8e67cdca87bae6c195c62d52fd93d0afa4c55c16"
+}

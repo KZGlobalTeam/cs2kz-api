@@ -1,0 +1,12 @@
+{
+  "db_name": "MySQL",
+  "query": "DELETE FROM ReplayUploadKeys WHERE upload_key = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "564bb3cf78afce8a1ca30b1b2197f8861f66ed488c73c116ca1694ea9a5f636f"
+}

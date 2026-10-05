@@ -102,6 +102,9 @@ features = ["macros", "rt-multi-thread", "time", "net", "process", "tracing"]
 version = "0.7.12"
 features = ["rt", "time", "codec"]
 
+[workspace.dependencies.sync_wrapper]
+version = "1.0.2"
+
 [workspace.dependencies.http]
 version = "1.2.0"
 
