@@ -47,6 +47,18 @@ macro_rules! define_id_type {
             }
         }
 
+        impl std::cmp::PartialEq<$inner> for $name {
+            fn eq(&self, rhs: &$inner) -> bool {
+                self.0 == *rhs
+            }
+        }
+
+        impl std::cmp::PartialEq<$name> for $inner {
+            fn eq(&self, rhs: &$name) -> bool {
+                *self == rhs.0
+            }
+        }
+
         impl std::str::FromStr for $name {
             type Err = <$inner as std::str::FromStr>::Err;
 
