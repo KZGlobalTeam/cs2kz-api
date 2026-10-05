@@ -813,6 +813,34 @@ where
 
             Ok(())
         },
+
+        P::NewBan { player_id, reason } => {
+            if let Some(player) = state.players.get(&player_id) {
+                info!(?reason, "banning {}", player.id);
+                let ban_id = cs2kz::bans::create(cx, cs2kz::bans::NewBan {
+                    player_id: player.id,
+                    player_ip: None,
+                    banned_by: cs2kz::bans::BannedBy::Server(state.server_id),
+                    reason,
+                })
+                .await?;
+
+                let replay_upload_key =
+                    cs2kz::replays::create_upload_key(cx, ban_id, REPLAY_UPLOAD_TTL).await?;
+
+                let reply = Message::reply(&message, message::Outgoing::NewBanAck {
+                    ban_id,
+                    replay_upload_key,
+                })
+                .encode()?;
+
+                conn.send(reply).await.map_err(Into::into)?;
+            } else {
+                warn!(%player_id, ?reason, "tried to ban unknown player?");
+            }
+
+            Ok(())
+        },
     }
 }
 

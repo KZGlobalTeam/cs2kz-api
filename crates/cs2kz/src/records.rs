@@ -40,6 +40,12 @@ impl RecordId {
     }
 }
 
+impl From<RecordId> for Uuid {
+    fn from(RecordId(uuid): RecordId) -> Self {
+        uuid
+    }
+}
+
 crate::database::impl_traits!(RecordId as [u8] => {
     fn encode<'a>(self, out: &'a [u8]) {
         let bytes = self.0.as_bytes();

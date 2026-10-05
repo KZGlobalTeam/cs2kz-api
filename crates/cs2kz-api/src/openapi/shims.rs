@@ -228,7 +228,18 @@ schema_type!(BanReason => {
     Schema::Object(
         Object::builder()
             .schema_type(SchemaType::Type(schema::Type::String))
-            .enum_values(Some(["macro", "auto-bhop", "auto-strafe"]))
+            .enum_values(Some([
+                "ahk",
+                "strafe-hack",
+                "bhop-macro",
+                "bhop-hack",
+                "hyperscroll",
+                "injected-cvar",
+                "injected-input",
+                "nulls",
+                "subtick-spam",
+                "desubtick",
+            ]))
             .build(),
     )
 });

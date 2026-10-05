@@ -1,25 +1,33 @@
 use std::net::Ipv4Addr;
 use std::sync::Arc;
 
+use axum::body::Body;
 use axum::extract::{FromRef, State};
 use axum::handler::Handler;
 use axum::response::NoContent;
-use axum::routing::{MethodRouter, Router};
+use axum::routing::{self, MethodRouter, Router};
 use cs2kz::Context;
 use cs2kz::bans::{BanId, BanReason, BannedBy, CreateBanError};
 use cs2kz::pagination::{Limit, Offset, Paginated};
 use cs2kz::players::PlayerId;
+use cs2kz::replays::ReplayUploadKey;
 use cs2kz::time::Timestamp;
 use cs2kz::users::{Permission, UserId};
-use futures_util::TryFutureExt;
+use futures_util::{TryFutureExt as _, TryStreamExt as _};
+use headers::authorization::Bearer;
+use headers::{Authorization, ContentLength};
+use http_body_util::BodyExt as _;
+use sync_wrapper::SyncStream;
 
 use crate::config::CookieConfig;
-use crate::extract::{Json, Path, Query};
+use crate::extract::{Header, Json, Path, Query};
 use crate::middleware::auth::session_auth;
 use crate::middleware::auth::session_auth::Session;
 use crate::middleware::auth::session_auth::authorization::HasPermissions;
 use crate::players::{PlayerIdentifier, PlayerInfo};
 use crate::response::{Created, ErrorResponse};
+
+const REPLAY_SIZE_LIMIT: usize = 64 * 1024 * 1024;
 
 pub fn router<S>(cx: Context, cookie_config: impl Into<Arc<CookieConfig>>) -> Router<S>
 where
@@ -45,6 +53,7 @@ where
                 .delete(delete_ban.layer(is_admin.clone()))
                 .get(get_ban),
         )
+        .route("/{ban_id}/replay", routing::post(upload_replay))
 }
 
 #[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
@@ -332,4 +341,60 @@ impl From<cs2kz::bans::Unban> for Unban {
             created_at: unban.created_at,
         }
     }
+}
+
+#[tracing::instrument(skip(cx))]
+async fn upload_replay(
+    State(cx): State<Context>,
+    Header(Authorization(bearer)): Header<Authorization<Bearer>>,
+    Header(ContentLength(content_length)): Header<ContentLength>,
+    Path(ban_id): Path<BanId>,
+    body: Body,
+) -> Result<Created<()>, ErrorResponse> {
+    if content_length > (REPLAY_SIZE_LIMIT as u64) {
+        return Err(ErrorResponse::failed_to_buffer_body());
+    }
+
+    let replay_storage_cfg = cx.config().replay_storage.as_ref().ok_or_else(|| {
+        warn!("replay storage is not configured");
+        ErrorResponse::service_unavailable()
+    })?;
+
+    let key = bearer.token().parse::<ReplayUploadKey>().map_err(|err| {
+        debug!(%err, "failed to parse access key");
+        ErrorResponse::unauthorized()
+    })?;
+
+    cs2kz::replays::claim_upload_key(&cx, key, async |claimed_record_id| {
+        if claimed_record_id != ban_id {
+            return Err(ErrorResponse::unauthorized());
+        }
+
+        info!(replay.id = %ban_id, "uploading replay");
+
+        let body = http_body_util::Limited::new(body, REPLAY_SIZE_LIMIT);
+        let stream = SyncStream::new(body.into_data_stream().map_ok(http_body::Frame::data));
+        let body = http_body_util::StreamBody::new(stream);
+        let body = aws_smithy_types::byte_stream::ByteStream::from_body_1_x(body);
+
+        if let Err(error) = cx
+            .s3_client()
+            .put_object()
+            .bucket(&replay_storage_cfg.bucket_name)
+            .key(ban_id.to_string())
+            .content_length(content_length as i64)
+            .body(body)
+            .if_none_match("*")
+            .send()
+            .await
+        {
+            error!(error = &error as &dyn std::error::Error, replay.id = %ban_id, "failed to upload replay");
+            Err(ErrorResponse::internal_server_error(error))
+        } else {
+            info!(replay.id = %ban_id, "uploaded replay");
+            Ok(Created(()))
+        }
+    })
+    .await?
+    .ok_or_else(|| ErrorResponse::unauthorized())
 }
