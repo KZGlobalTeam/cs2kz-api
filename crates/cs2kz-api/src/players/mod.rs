@@ -93,8 +93,14 @@ pub struct Player {
     /// The player's VNL rating.
     vnl_rating: f64,
 
+    /// The player's rank on the VNL rating leaderboard.
+    vnl_rank: u64,
+
     /// The player's CKZ rating.
     ckz_rating: f64,
+
+    /// The player's rank on the CKZ rating leaderboard.
+    ckz_rank: u64,
 
     /// When this player first joined an approved CS2 server.
     #[schema(value_type = crate::openapi::shims::Timestamp)]
@@ -246,7 +252,9 @@ impl From<cs2kz::players::Player> for Player {
             name: player.name,
             is_prime_verified: player.prime_verified,
             vnl_rating: player.vnl_rating,
+            vnl_rank: player.vnl_rank,
             ckz_rating: player.ckz_rating,
+            ckz_rank: player.ckz_rank,
             first_joined_at: player.first_joined_at,
         }
     }

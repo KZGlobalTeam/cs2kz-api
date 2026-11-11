@@ -8,7 +8,7 @@
         "name": "record_id: RecordId",
         "type_info": {
           "type": "String",
-          "flags": "NOT_NULL | PRIMARY_KEY | BINARY | NO_DEFAULT_VALUE",
+          "flags": "NOT_NULL | BINARY | NO_DEFAULT_VALUE",
           "max_size": 16
         }
       },

@@ -1,0 +1,114 @@
+{
+  "db_name": "MySQL",
+  "query": "WITH BanCounts AS (\n                   SELECT b.player_id, COUNT(*) AS count\n                    FROM Bans AS b\n                    RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id\n                    WHERE (b.id IS NULL OR b.expires_at > NOW())\n                 ),\n                 VanillaRatings AS (\n                   SELECT\n                     id,\n                     RANK() OVER (\n                       ORDER BY\n                         vnl_rating DESC,\n                         first_joined_at ASC\n                     ) AS rank\n                   FROM\n                     Players\n                 ),\n                 ClassicRatings AS (\n                   SELECT\n                     id,\n                     RANK() OVER (\n                       ORDER BY\n                         ckz_rating DESC,\n                         first_joined_at ASC\n                     ) AS rank\n                   FROM\n                     Players\n                 )\n                 SELECT\n                   p.id AS `id!: PlayerId`,\n                   p.name AS `name!: String`,\n                   p.prime_verified AS `prime_verified!: bool`,\n                   p.vnl_rating AS `vnl_rating!: f64`,\n                   (SELECT rank FROM VanillaRatings WHERE id = p.id) AS `vnl_rank!: u64`,\n                   p.ckz_rating AS `ckz_rating!: f64`,\n                   (SELECT rank FROM ClassicRatings WHERE id = p.id) AS `ckz_rank!: u64`,\n                   (COALESCE(BanCounts.count, 0) > 0) AS `is_banned!: bool`,\n                   p.first_joined_at AS `first_joined_at!: Timestamp`,\n                   p.last_joined_at AS `last_joined_at!: Timestamp`\n                 FROM Players AS p\n                 LEFT JOIN BanCounts ON BanCounts.player_id = p.id WHERE p.id = ?",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!: PlayerId",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "NOT_NULL | PRIMARY_KEY | UNSIGNED | NO_DEFAULT_VALUE",
+          "max_size": 20
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name!: String",
+        "type_info": {
+          "type": "VarString",
+          "flags": "NOT_NULL | MULTIPLE_KEY | NO_DEFAULT_VALUE",
+          "max_size": 1020
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "prime_verified!: bool",
+        "type_info": {
+          "type": "Tiny",
+          "flags": "NOT_NULL",
+          "max_size": 1
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "vnl_rating!: f64",
+        "type_info": {
+          "type": "Double",
+          "flags": "NOT_NULL",
+          "max_size": 22
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "vnl_rank!: u64",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "BINARY",
+          "max_size": 21
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "ckz_rating!: f64",
+        "type_info": {
+          "type": "Double",
+          "flags": "NOT_NULL",
+          "max_size": 22
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "ckz_rank!: u64",
+        "type_info": {
+          "type": "LongLong",
+          "flags": "BINARY",
+          "max_size": 21
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "is_banned!: bool",
+        "type_info": {
+          "type": "Long",
+          "flags": "BINARY",
+          "max_size": 1
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "first_joined_at!: Timestamp",
+        "type_info": {
+          "type": "Timestamp",
+          "flags": "NOT_NULL | UNSIGNED | BINARY | TIMESTAMP",
+          "max_size": 19
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "last_joined_at!: Timestamp",
+        "type_info": {
+          "type": "Timestamp",
+          "flags": "NOT_NULL | UNSIGNED | BINARY | TIMESTAMP",
+          "max_size": 19
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "76fbcf0318c342921548896f2ad8297c5da59e9635e69edc77f6fdc58e2a85e6"
+}

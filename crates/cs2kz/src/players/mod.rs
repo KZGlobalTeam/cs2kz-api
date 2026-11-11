@@ -29,7 +29,9 @@ pub struct Player {
     pub name: String,
     pub prime_verified: bool,
     pub vnl_rating: f64,
+    pub vnl_rank: u64,
     pub ckz_rating: f64,
+    pub ckz_rank: u64,
     pub is_banned: bool,
     pub first_joined_at: Timestamp,
     pub last_joined_at: Timestamp,
@@ -587,16 +589,40 @@ mod macros {
                     FROM Bans AS b
                     RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id
                     WHERE (b.id IS NULL OR b.expires_at > NOW())
+                 ),
+                 VanillaRatings AS (
+                   SELECT
+                     id,
+                     RANK() OVER (
+                       ORDER BY
+                         vnl_rating DESC,
+                         first_joined_at ASC
+                     ) AS rank
+                   FROM
+                     Players
+                 ),
+                 ClassicRatings AS (
+                   SELECT
+                     id,
+                     RANK() OVER (
+                       ORDER BY
+                         ckz_rating DESC,
+                         first_joined_at ASC
+                     ) AS rank
+                   FROM
+                     Players
                  )
                  SELECT
-                   p.id AS `id: PlayerId`,
-                   p.name,
-                   p.prime_verified AS `prime_verified: bool`,
-                   p.vnl_rating,
-                   p.ckz_rating,
+                   p.id AS `id!: PlayerId`,
+                   p.name AS `name!: String`,
+                   p.prime_verified AS `prime_verified!: bool`,
+                   p.vnl_rating AS `vnl_rating!: f64`,
+                   (SELECT rank FROM VanillaRatings WHERE id = p.id) AS `vnl_rank!: u64`,
+                   p.ckz_rating AS `ckz_rating!: f64`,
+                   (SELECT rank FROM ClassicRatings WHERE id = p.id) AS `ckz_rank!: u64`,
                    (COALESCE(BanCounts.count, 0) > 0) AS `is_banned!: bool`,
-                   p.first_joined_at,
-                   p.last_joined_at
+                   p.first_joined_at AS `first_joined_at!: Timestamp`,
+                   p.last_joined_at AS `last_joined_at!: Timestamp`
                  FROM Players AS p
                  LEFT JOIN BanCounts ON BanCounts.player_id = p.id "
                 + $($extra)*
