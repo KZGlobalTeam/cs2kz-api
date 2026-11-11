@@ -274,14 +274,16 @@ pub async fn get(
            p.name,
            p.prime_verified,
            p.vnl_rating,
-           (SELECT rank FROM VanillaRatings WHERE id = p.id) AS vnl_rank,
+           vr.rank AS vnl_rank,
            p.ckz_rating,
-           (SELECT rank FROM ClassicRatings WHERE id = p.id) AS ckz_rank,
+           cr.rank AS ckz_rank,
            (COALESCE(BanCounts.count, 0) > 0) AS is_banned,
            p.first_joined_at,
            p.last_joined_at
          FROM Players AS p
          LEFT JOIN BanCounts ON BanCounts.player_id = p.id
+         LEFT JOIN VanillaRatings AS vr ON vr.id = p.id
+         LEFT JOIN ClassicRatings AS cr ON cr.id = p.id
          WHERE p.name LIKE COALESCE(?, p.name)",
     );
 
@@ -643,14 +645,16 @@ mod macros {
                    p.name AS `name!: String`,
                    p.prime_verified AS `prime_verified!: bool`,
                    p.vnl_rating AS `vnl_rating!: f64`,
-                   (SELECT rank FROM VanillaRatings WHERE id = p.id) AS `vnl_rank!: u64`,
+                   vr.rank AS `vnl_rank!: u64`,
                    p.ckz_rating AS `ckz_rating!: f64`,
-                   (SELECT rank FROM ClassicRatings WHERE id = p.id) AS `ckz_rank!: u64`,
+                   cr.rank AS `ckz_rank!: u64`,
                    (COALESCE(BanCounts.count, 0) > 0) AS `is_banned!: bool`,
                    p.first_joined_at AS `first_joined_at!: Timestamp`,
                    p.last_joined_at AS `last_joined_at!: Timestamp`
                  FROM Players AS p
-                 LEFT JOIN BanCounts ON BanCounts.player_id = p.id "
+                 LEFT JOIN BanCounts ON BanCounts.player_id = p.id
+                 LEFT JOIN VanillaRatings AS vr ON vr.id = p.id
+                 LEFT JOIN ClassicRatings AS cr ON cr.id = p.id "
                 + $($extra)*
             )
         };

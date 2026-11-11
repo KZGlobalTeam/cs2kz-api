@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "WITH BanCounts AS (\n                   SELECT b.player_id, COUNT(*) AS count\n                    FROM Bans AS b\n                    RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id\n                    WHERE (b.id IS NULL OR b.expires_at > NOW())\n                 ),\n                 VanillaRatings AS (\n                   SELECT\n                     id,\n                     DENSE_RANK() OVER (\n                       ORDER BY\n                         vnl_rating DESC,\n                         first_joined_at ASC\n                     ) AS rank\n                   FROM\n                     Players\n                 ),\n                 ClassicRatings AS (\n                   SELECT\n                     id,\n                     DENSE_RANK() OVER (\n                       ORDER BY\n                         ckz_rating DESC,\n                         first_joined_at ASC\n                     ) AS rank\n                   FROM\n                     Players\n                 )\n                 SELECT\n                   p.id AS `id!: PlayerId`,\n                   p.name AS `name!: String`,\n                   p.prime_verified AS `prime_verified!: bool`,\n                   p.vnl_rating AS `vnl_rating!: f64`,\n                   (SELECT rank FROM VanillaRatings WHERE id = p.id) AS `vnl_rank!: u64`,\n                   p.ckz_rating AS `ckz_rating!: f64`,\n                   (SELECT rank FROM ClassicRatings WHERE id = p.id) AS `ckz_rank!: u64`,\n                   (COALESCE(BanCounts.count, 0) > 0) AS `is_banned!: bool`,\n                   p.first_joined_at AS `first_joined_at!: Timestamp`,\n                   p.last_joined_at AS `last_joined_at!: Timestamp`\n                 FROM Players AS p\n                 LEFT JOIN BanCounts ON BanCounts.player_id = p.id WHERE p.name LIKE ?",
+  "query": "WITH BanCounts AS (\n                   SELECT b.player_id, COUNT(*) AS count\n                    FROM Bans AS b\n                    RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id\n                    WHERE (b.id IS NULL OR b.expires_at > NOW())\n                 ),\n                 VanillaRatings AS (\n                   SELECT\n                     id,\n                     DENSE_RANK() OVER (\n                       ORDER BY\n                         vnl_rating DESC,\n                         first_joined_at ASC\n                     ) AS rank\n                   FROM\n                     Players\n                 ),\n                 ClassicRatings AS (\n                   SELECT\n                     id,\n                     DENSE_RANK() OVER (\n                       ORDER BY\n                         ckz_rating DESC,\n                         first_joined_at ASC\n                     ) AS rank\n                   FROM\n                     Players\n                 )\n                 SELECT\n                   p.id AS `id!: PlayerId`,\n                   p.name AS `name!: String`,\n                   p.prime_verified AS `prime_verified!: bool`,\n                   p.vnl_rating AS `vnl_rating!: f64`,\n                   vr.rank AS `vnl_rank!: u64`,\n                   p.ckz_rating AS `ckz_rating!: f64`,\n                   cr.rank AS `ckz_rank!: u64`,\n                   (COALESCE(BanCounts.count, 0) > 0) AS `is_banned!: bool`,\n                   p.first_joined_at AS `first_joined_at!: Timestamp`,\n                   p.last_joined_at AS `last_joined_at!: Timestamp`\n                 FROM Players AS p\n                 LEFT JOIN BanCounts ON BanCounts.player_id = p.id\n                 LEFT JOIN VanillaRatings AS vr ON vr.id = p.id\n                 LEFT JOIN ClassicRatings AS cr ON cr.id = p.id WHERE p.name LIKE ?",
   "describe": {
     "columns": [
       {
@@ -44,7 +44,7 @@
         "name": "vnl_rank!: u64",
         "type_info": {
           "type": "LongLong",
-          "flags": "BINARY",
+          "flags": "",
           "max_size": 21
         }
       },
@@ -62,7 +62,7 @@
         "name": "ckz_rank!: u64",
         "type_info": {
           "type": "LongLong",
-          "flags": "BINARY",
+          "flags": "",
           "max_size": 21
         }
       },
@@ -110,5 +110,5 @@
       false
     ]
   },
-  "hash": "4189e3948bf9f56225196b5b8067e8cab5871da0b600dcbf8a2e745fe4f10df5"
+  "hash": "78266f53bfca19f810d148304866671a93e5d4d30d031c4ef4e33558a5128717"
 }

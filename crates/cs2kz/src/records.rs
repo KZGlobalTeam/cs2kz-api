@@ -66,10 +66,10 @@ pub struct Record {
     pub teleports: u32,
     pub time: Seconds,
     pub nub_rank: Option<u32>,
-    pub nub_max_rank: u32,
+    pub nub_max_rank: Option<u32>,
     pub nub_points: Option<f64>,
     pub pro_rank: Option<u32>,
-    pub pro_max_rank: u32,
+    pub pro_max_rank: Option<u32>,
     pub pro_points: Option<f64>,
     pub replay_available: bool,
 }
@@ -594,26 +594,6 @@ pub async fn get(
         }
     }
 
-    fn base_query(query: &mut QueryBuilder<'_>) {
-        query.push("), ");
-        query.push(
-            "ProLeaderboard AS (
-               SELECT
-                 ProRecords.record_id,
-                 ProRecords.filter_id,
-                 ProRecords.points,
-                 RANK() OVER (
-                   PARTITION BY ProRecords.filter_id
-                   ORDER BY
-                     ProRecords.time ASC,
-                     ProRecords.record_id ASC
-                 ) AS rank
-               FROM BestProRecords AS ProRecords",
-        );
-
-        query.push(") ");
-    }
-
     let total = {
         let mut query = QueryBuilder::new(
             "SELECT COUNT(r.id) AS total
@@ -659,10 +639,36 @@ pub async fn get(
                  NubRecords.time ASC,
                  NubRecords.record_id ASC
              ) AS rank
-           FROM BestNubRecords AS NubRecords",
+           FROM BestNubRecords AS NubRecords
+         ),
+         ProLeaderboard AS (
+           SELECT
+             ProRecords.record_id,
+             ProRecords.filter_id,
+             ProRecords.points,
+             RANK() OVER (
+               PARTITION BY ProRecords.filter_id
+               ORDER BY
+                 ProRecords.time ASC,
+                 ProRecords.record_id ASC
+             ) AS rank
+           FROM BestProRecords AS ProRecords
+         ),
+         NubMaxRanks AS (
+           SELECT
+             filter_id,
+             MAX(rank) max_rank
+           FROM NubLeaderboard
+           GROUP BY filter_id
+         ),
+         ProMaxRanks AS (
+           SELECT
+             filter_id,
+             MAX(rank) max_rank
+           FROM ProLeaderboard
+           GROUP BY filter_id
+         )",
     );
-
-    base_query(&mut query);
 
     query.push(
         "SELECT
@@ -683,17 +689,17 @@ pub async fn get(
            r.teleports,
            r.time AS time,
            NubLeaderboard.rank AS nub_rank,
-           COALESCE((SELECT COUNT(*) FROM NubLeaderboard WHERE filter_id = r.filter_id),
-                    0) AS nub_max_rank,
+           NubMaxRanks.max_rank as nub_max_rank,
            NubLeaderboard.points AS nub_points,
            ProLeaderboard.rank AS pro_rank,
-           COALESCE((SELECT COUNT(*) FROM ProLeaderboard WHERE filter_id = r.filter_id),
-                    0) AS pro_max_rank,
+           ProMaxRanks.max_rank as pro_max_rank,
            ProLeaderboard.points AS pro_points,
            r.replay_available
          FROM Records AS r
          LEFT JOIN NubLeaderboard ON NubLeaderboard.record_id = r.id
          LEFT JOIN ProLeaderboard ON ProLeaderboard.record_id = r.id
+         LEFT JOIN NubMaxRanks ON NubMaxRanks.filter_id = r.filter_id
+         LEFT JOIN ProMaxRanks ON ProMaxRanks.filter_id = r.filter_id
          JOIN Players AS p ON p.id = r.player_id
          JOIN Servers AS s ON s.id = r.server_id
          JOIN CourseFilters AS cf ON cf.id = r.filter_id
@@ -1009,11 +1015,13 @@ impl<'r> sqlx::FromRow<'r, database::Row> for Record {
                 Err(error) => return Err(error),
             },
             nub_max_rank: match row.try_get::<Option<i64>, _>("nub_max_rank") {
-                Ok(None) => 0,
-                Ok(Some(rank)) => rank.try_into().map_err(|err| sqlx::Error::ColumnDecode {
-                    index: String::from("nub_max_rank"),
-                    source: Box::new(err),
-                })?,
+                Ok(None) => None,
+                Ok(Some(rank)) => {
+                    Some(rank.try_into().map_err(|err| sqlx::Error::ColumnDecode {
+                        index: String::from("nub_max_rank"),
+                        source: Box::new(err),
+                    })?)
+                },
                 Err(error) => return Err(error),
             },
             nub_points: row.try_get("nub_points")?,
@@ -1028,11 +1036,13 @@ impl<'r> sqlx::FromRow<'r, database::Row> for Record {
                 Err(error) => return Err(error),
             },
             pro_max_rank: match row.try_get::<Option<i64>, _>("pro_max_rank") {
-                Ok(None) => 0,
-                Ok(Some(rank)) => rank.try_into().map_err(|err| sqlx::Error::ColumnDecode {
-                    index: String::from("pro_max_rank"),
-                    source: Box::new(err),
-                })?,
+                Ok(None) => None,
+                Ok(Some(rank)) => {
+                    Some(rank.try_into().map_err(|err| sqlx::Error::ColumnDecode {
+                        index: String::from("pro_max_rank"),
+                        source: Box::new(err),
+                    })?)
+                },
                 Err(error) => return Err(error),
             },
             pro_points: row.try_get("pro_points")?,
@@ -1048,6 +1058,7 @@ mod macros {
                 "WITH NubLeaderboard AS (
                    SELECT
                      r.id AS record_id,
+                     r.filter_id,
                      NubRecords.points,
                      RANK() OVER (
                        PARTITION BY r.filter_id
@@ -1067,6 +1078,7 @@ mod macros {
                 + "ProLeaderboard AS (
                    SELECT
                      r.id AS record_id,
+                     r.filter_id,
                      ProRecords.points,
                      RANK() OVER (
                        PARTITION BY r.filter_id
@@ -1082,7 +1094,21 @@ mod macros {
                    JOIN Courses AS c ON c.id = cf.course_id
                    JOIN Maps AS m ON m.id = c.map_id "
                 + $inner
-                + ")
+                + "),
+                   NubMaxRanks AS (
+                     SELECT
+                       filter_id,
+                       MAX(rank) max_rank
+                     FROM NubLeaderboard
+                     GROUP BY filter_id
+                   ),
+                   ProMaxRanks AS (
+                     SELECT
+                       filter_id,
+                       MAX(rank) max_rank
+                     FROM ProLeaderboard
+                     GROUP BY filter_id
+                   )
                    SELECT
                      r.id AS `id: RecordId`,
                      p.id AS `player_id: PlayerId`,
@@ -1101,15 +1127,17 @@ mod macros {
                      r.teleports,
                      r.time AS `time: Seconds`,
                      NubLeaderboard.rank AS nub_rank,
-                     COALESCE((SELECT COUNT(*) FROM NubLeaderboard), 0) AS nub_max_rank,
+                     NubMaxRanks.max_rank AS `nub_max_rank: u32`,
                      NubLeaderboard.points AS nub_points,
                      ProLeaderboard.rank AS pro_rank,
-                     COALESCE((SELECT COUNT(*) FROM ProLeaderboard), 0) AS pro_max_rank,
+                     ProMaxRanks.max_rank AS `pro_max_rank: u32`,
                      ProLeaderboard.points AS pro_points,
                      r.replay_available AS `replay_available: bool`
                    FROM Records AS r
                    LEFT JOIN NubLeaderboard ON NubLeaderboard.record_id = r.id
                    LEFT JOIN ProLeaderboard ON ProLeaderboard.record_id = r.id
+                   LEFT JOIN NubMaxRanks ON NubMaxRanks.filter_id = r.filter_id
+                   LEFT JOIN ProMaxRanks ON ProMaxRanks.filter_id = r.filter_id
                    JOIN Players AS p ON p.id = r.player_id
                    JOIN Servers AS s ON s.id = r.server_id
                    JOIN CourseFilters AS cf ON cf.id = r.filter_id
