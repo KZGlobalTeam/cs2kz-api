@@ -600,6 +600,7 @@ pub async fn get(
             "ProLeaderboard AS (
                SELECT
                  ProRecords.record_id,
+                 ProRecords.filter_id,
                  ProRecords.points,
                  RANK() OVER (
                    PARTITION BY ProRecords.filter_id
@@ -650,6 +651,7 @@ pub async fn get(
         "WITH NubLeaderboard AS (
            SELECT
              NubRecords.record_id,
+             NubRecords.filter_id,
              NubRecords.points,
              RANK() OVER (
                PARTITION BY NubRecords.filter_id
@@ -681,10 +683,12 @@ pub async fn get(
            r.teleports,
            r.time AS time,
            NubLeaderboard.rank AS nub_rank,
-           COALESCE((SELECT COUNT(*) FROM NubLeaderboard), 0) AS nub_max_rank,
+           COALESCE((SELECT COUNT(*) FROM NubLeaderboard WHERE filter_id = r.filter_id),
+                    0) AS nub_max_rank,
            NubLeaderboard.points AS nub_points,
            ProLeaderboard.rank AS pro_rank,
-           COALESCE((SELECT COUNT(*) FROM ProLeaderboard), 0) AS pro_max_rank,
+           COALESCE((SELECT COUNT(*) FROM ProLeaderboard WHERE filter_id = r.filter_id),
+                    0) AS pro_max_rank,
            ProLeaderboard.points AS pro_points,
            r.replay_available
          FROM Records AS r
