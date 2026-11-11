@@ -29,8 +29,10 @@ pub struct Player {
     pub name: String,
     pub prime_verified: bool,
     pub vnl_rating: f64,
+    #[sqlx(try_from = "i64")]
     pub vnl_rank: u64,
     pub ckz_rating: f64,
+    #[sqlx(try_from = "i64")]
     pub ckz_rank: u64,
     pub is_banned: bool,
     pub first_joined_at: Timestamp,
@@ -244,13 +246,37 @@ pub async fn get(
             FROM Bans AS b
             RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id
             WHERE (b.id IS NULL OR b.expires_at > NOW())
+         ),
+         VanillaRatings AS (
+           SELECT
+             id,
+             DENSE_RANK() OVER (
+               ORDER BY
+                 vnl_rating DESC,
+                 first_joined_at ASC
+             ) AS rank
+           FROM
+             Players
+         ),
+         ClassicRatings AS (
+           SELECT
+             id,
+             DENSE_RANK() OVER (
+               ORDER BY
+                 ckz_rating DESC,
+                 first_joined_at ASC
+             ) AS rank
+           FROM
+             Players
          )
          SELECT
            p.id,
            p.name,
            p.prime_verified,
            p.vnl_rating,
+           (SELECT rank FROM VanillaRatings WHERE id = p.id) AS vnl_rank,
            p.ckz_rating,
+           (SELECT rank FROM ClassicRatings WHERE id = p.id) AS ckz_rank,
            (COALESCE(BanCounts.count, 0) > 0) AS is_banned,
            p.first_joined_at,
            p.last_joined_at
@@ -593,7 +619,7 @@ mod macros {
                  VanillaRatings AS (
                    SELECT
                      id,
-                     RANK() OVER (
+                     DENSE_RANK() OVER (
                        ORDER BY
                          vnl_rating DESC,
                          first_joined_at ASC
@@ -604,7 +630,7 @@ mod macros {
                  ClassicRatings AS (
                    SELECT
                      id,
-                     RANK() OVER (
+                     DENSE_RANK() OVER (
                        ORDER BY
                          ckz_rating DESC,
                          first_joined_at ASC
