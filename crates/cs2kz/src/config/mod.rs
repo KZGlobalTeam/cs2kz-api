@@ -1,9 +1,6 @@
 mod database;
 pub use database::DatabaseConfig;
 
-mod points;
-pub use points::PointsConfig;
-
 mod replays;
 pub use replays::ReplayStorageConfig;
 
@@ -12,9 +9,6 @@ pub use replays::ReplayStorageConfig;
 pub struct Config {
     #[serde(default)]
     pub database: DatabaseConfig,
-
-    #[serde(default)]
-    pub points: PointsConfig,
 
     #[serde(default)]
     pub replay_storage: Option<ReplayStorageConfig>,
