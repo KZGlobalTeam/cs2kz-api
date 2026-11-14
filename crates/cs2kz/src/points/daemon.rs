@@ -94,7 +94,7 @@ pub async fn run(cx: Context, cancellation_token: CancellationToken) -> Result<(
         cx.config().database.url.clone(),
     )
     .await?;
-    let mut recalc_ratings_interval = interval(Duration::from_secs(10));
+    let mut recalc_ratings_interval = interval(Duration::from_secs(60));
 
     loop {
         select! {
