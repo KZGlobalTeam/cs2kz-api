@@ -554,19 +554,77 @@ pub async fn get(
     cx: &Context,
     params: GetRecordsParams,
 ) -> Result<Paginated<Vec<Record>>, GetRecordsError> {
-    let total = {
-        let mut query = QueryBuilder::new(
-            "SELECT COUNT(r.id) AS total
-             FROM Records AS r
-             LEFT JOIN BestNubRecords AS bnr ON bnr.record_id = r.id
-             LEFT JOIN BestProRecords AS bpr ON bpr.record_id = r.id
-             JOIN Servers AS s ON s.id = r.server_id
-             JOIN CourseFilters AS cf ON cf.id = r.filter_id
-             JOIN Courses AS c ON c.id = cf.course_id
-             JOIN Maps AS m ON m.id = c.map_id",
-        );
+    let pb_joins = " LEFT JOIN BestNubRecords AS bnr ON bnr.record_id = r.id
+                     LEFT JOIN BestProRecords AS bpr ON bpr.record_id = r.id ";
 
-        filter_records(&mut query, &params, "r.player_id", iter::empty());
+    let filter_joins = " JOIN CourseFilters AS cf ON cf.id = r.filter_id
+                         JOIN Courses AS c ON c.id = cf.course_id
+                         JOIN Maps AS m ON m.id = c.map_id ";
+
+    let total = {
+        let mut query = QueryBuilder::new("SELECT COUNT(*) AS total FROM ");
+
+        if params.top || params.max_rank.is_some() {
+            query.push("(");
+
+            match (params.top, params.max_rank) {
+                (true, None) => {
+                    let table = match params.has_teleports {
+                        None | Some(true) => RankTable::BestNubRecords,
+                        Some(false) => RankTable::BestProRecords,
+                    };
+                    select_best_record_ids(
+                        &mut query,
+                        table,
+                        SelectBestRecordIdsMode::Single,
+                        &params,
+                    );
+                },
+
+                (true, Some(_max_rank)) => {
+                    let table = match params.has_teleports {
+                        None | Some(true) => RankTable::BestNubRecords,
+                        Some(false) => RankTable::BestProRecords,
+                    };
+
+                    select_best_record_ids(
+                        &mut query,
+                        table,
+                        SelectBestRecordIdsMode::Single,
+                        &params,
+                    );
+                    query.push(" UNION ");
+                    select_best_record_ids(
+                        &mut query,
+                        table.inverted(),
+                        SelectBestRecordIdsMode::Both,
+                        &params,
+                    );
+                },
+
+                (false, _) => {
+                    select_best_record_ids(
+                        &mut query,
+                        RankTable::BestNubRecords,
+                        SelectBestRecordIdsMode::Single,
+                        &params,
+                    );
+                    query.push(" UNION ");
+                    select_best_record_ids(
+                        &mut query,
+                        RankTable::BestProRecords,
+                        SelectBestRecordIdsMode::Single,
+                        &params,
+                    );
+                },
+            }
+
+            query.push(") AS pbs");
+        } else {
+            query.push("Records AS r ");
+            query.push(filter_joins);
+            filter_records(&mut query, &params, "r.player_id", RankTable::all());
+        }
 
         query
             .build_query_scalar::<i64>()
@@ -575,13 +633,6 @@ pub async fn get(
             .try_into()
             .expect("`COUNT(…)` should not return a negative value")
     };
-
-    let pb_joins = " LEFT JOIN BestNubRecords AS bnr ON bnr.record_id = r.id
-                     LEFT JOIN BestProRecords AS bpr ON bpr.record_id = r.id ";
-
-    let filter_joins = " JOIN CourseFilters AS cf ON cf.id = r.filter_id
-                         JOIN Courses AS c ON c.id = cf.course_id
-                         JOIN Maps AS m ON m.id = c.map_id ";
 
     let sort_column = params.sort_by.sql();
     let sort_order = params
@@ -622,8 +673,8 @@ pub async fn get(
 
         if params.top {
             let table = match params.has_teleports {
-                Some(false) => RankTable::BestProRecords,
                 None | Some(true) => RankTable::BestNubRecords,
+                Some(false) => RankTable::BestProRecords,
             };
 
             select_best_record_ids(&mut query, table, SelectBestRecordIdsMode::Single, &params);
