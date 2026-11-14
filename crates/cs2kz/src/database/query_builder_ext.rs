@@ -1,4 +1,4 @@
-use std::{fmt, mem};
+use std::{fmt, mem, ops};
 
 use super::QueryBuilder;
 
@@ -44,6 +44,24 @@ impl<'query_builder, 'query_builder_args, Driver: sqlx::Database>
         self.query_builder.push(sql);
 
         self
+    }
+}
+
+impl<'query_builder, 'query_builder_args, Driver: sqlx::Database> ops::Deref
+    for FilterState<'query_builder, 'query_builder_args, Driver>
+{
+    type Target = QueryBuilder<'query_builder_args, Driver>;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.query_builder
+    }
+}
+
+impl<'query_builder, 'query_builder_args, Driver: sqlx::Database> ops::DerefMut
+    for FilterState<'query_builder, 'query_builder_args, Driver>
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut *self.query_builder
     }
 }
 

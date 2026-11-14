@@ -11,7 +11,7 @@ mod error;
 pub use error::{Error, Result};
 
 mod query_builder_ext;
-pub use query_builder_ext::QueryBuilderExt;
+pub use query_builder_ext::{FilterState, QueryBuilderExt};
 
 pub type Driver = MySql;
 pub type Row = MySqlRow;

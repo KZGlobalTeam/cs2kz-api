@@ -1,11 +1,12 @@
 use std::num::NonZero;
+use std::{fmt, iter};
 
 use futures_util::{Stream, TryStreamExt};
 use sqlx::{FromRow as _, Row as _};
 use uuid::Uuid;
 
 use crate::Context;
-use crate::database::{self, QueryBuilder};
+use crate::database::{self, QueryBuilder, QueryBuilderExt as _};
 use crate::events::{self, Event};
 use crate::maps::courses::filters::{CourseFilterState, Tier};
 use crate::maps::{CourseFilterId, CourseId, CourseInfo, MapId, MapInfo};
@@ -551,73 +552,21 @@ pub async fn submit(
 #[tracing::instrument(skip(cx), ret(level = "debug"), err(level = "debug"))]
 pub async fn get(
     cx: &Context,
-    GetRecordsParams {
-        top,
-        ranked,
-        player_id,
-        server_id,
-        map_id,
-        course_id,
-        mode,
-        has_teleports,
-        max_rank,
-        sort_by,
-        sort_order,
-        limit,
-        offset,
-    }: GetRecordsParams,
+    params: GetRecordsParams,
 ) -> Result<Paginated<Vec<Record>>, GetRecordsError> {
-    fn base_filters(
-        query: &mut QueryBuilder<'_>,
-        map_id: Option<MapId>,
-        course_id: Option<CourseId>,
-        mode: Option<Mode>,
-        ranked: bool,
-    ) {
-        query.push(" WHERE m.id = COALESCE(");
-        query.push_bind(map_id);
-        query.push(", m.id) ");
-
-        query.push(" AND m.state != -1 ");
-
-        query.push(" AND c.id = COALESCE(");
-        query.push_bind(course_id);
-        query.push(", c.id) ");
-
-        query.push(" AND cf.mode = COALESCE(");
-        query.push_bind(mode);
-        query.push(", cf.mode) ");
-
-        if ranked {
-            query.push(" AND cf.state = ");
-            query.push_bind(CourseFilterState::Ranked);
-        }
-    }
-
     let total = {
         let mut query = QueryBuilder::new(
             "SELECT COUNT(r.id) AS total
              FROM Records AS r
-             LEFT JOIN BestNubRecords ON BestNubRecords.record_id = r.id
-             LEFT JOIN BestProRecords ON BestProRecords.record_id = r.id
+             LEFT JOIN BestNubRecords AS bnr ON bnr.record_id = r.id
+             LEFT JOIN BestProRecords AS bpr ON bpr.record_id = r.id
              JOIN Servers AS s ON s.id = r.server_id
              JOIN CourseFilters AS cf ON cf.id = r.filter_id
              JOIN Courses AS c ON c.id = cf.course_id
              JOIN Maps AS m ON m.id = c.map_id",
         );
 
-        base_filters(&mut query, map_id, course_id, mode, ranked);
-
-        query.push(" AND r.player_id = COALESCE(");
-        query.push_bind(player_id);
-        query.push(", r.player_id) ");
-
-        if top {
-            match has_teleports {
-                None | Some(true) => query.push(" AND (BestNubRecords.record_id IS NOT NULL) "),
-                Some(false) => query.push(" AND (BestProRecords.record_id IS NOT NULL) "),
-            };
-        }
+        filter_records(&mut query, &params, "r.player_id", iter::empty());
 
         query
             .build_query_scalar::<i64>()
@@ -627,147 +576,107 @@ pub async fn get(
             .expect("`COUNT(…)` should not return a negative value")
     };
 
-    let mut query = QueryBuilder::new(
-        "WITH NubLeaderboard AS (
-           SELECT
-             NubRecords.record_id,
-             NubRecords.filter_id,
-             NubRecords.points,
-             RANK() OVER (
-               PARTITION BY NubRecords.filter_id
-               ORDER BY
-                 NubRecords.time ASC,
-                 NubRecords.record_id ASC
-             ) AS rank
-           FROM BestNubRecords AS NubRecords
-         ),
-         ProLeaderboard AS (
-           SELECT
-             ProRecords.record_id,
-             ProRecords.filter_id,
-             ProRecords.points,
-             RANK() OVER (
-               PARTITION BY ProRecords.filter_id
-               ORDER BY
-                 ProRecords.time ASC,
-                 ProRecords.record_id ASC
-             ) AS rank
-           FROM BestProRecords AS ProRecords
-         ),
-         NubMaxRanks AS (
-           SELECT
-             filter_id,
-             MAX(rank) max_rank
-           FROM NubLeaderboard
-           GROUP BY filter_id
-         ),
-         ProMaxRanks AS (
-           SELECT
-             filter_id,
-             MAX(rank) max_rank
-           FROM ProLeaderboard
-           GROUP BY filter_id
-         )",
-    );
+    let pb_joins = " LEFT JOIN BestNubRecords AS bnr ON bnr.record_id = r.id
+                     LEFT JOIN BestProRecords AS bpr ON bpr.record_id = r.id ";
 
-    query.push(
-        "SELECT
-           r.id AS id,
-           p.id AS player_id,
-           p.name AS player_name,
-           s.id AS server_id,
-           s.name AS server_name,
-           m.id AS map_id,
-           m.name AS map_name,
-           c.id AS course_id,
-           c.name AS course_name,
-           cf.mode AS mode,
-           cf.nub_tier AS nub_tier,
-           cf.pro_tier AS pro_tier,
-           cf.state AS filter_state,
-           r.styles AS styles,
-           r.teleports,
-           r.time AS time,
-           NubLeaderboard.rank AS nub_rank,
-           NubMaxRanks.max_rank as nub_max_rank,
-           NubLeaderboard.points AS nub_points,
-           ProLeaderboard.rank AS pro_rank,
-           ProMaxRanks.max_rank as pro_max_rank,
-           ProLeaderboard.points AS pro_points,
-           r.replay_available
-         FROM Records AS r
-         LEFT JOIN NubLeaderboard ON NubLeaderboard.record_id = r.id
-         LEFT JOIN ProLeaderboard ON ProLeaderboard.record_id = r.id
-         LEFT JOIN NubMaxRanks ON NubMaxRanks.filter_id = r.filter_id
-         LEFT JOIN ProMaxRanks ON ProMaxRanks.filter_id = r.filter_id
-         JOIN Players AS p ON p.id = r.player_id
-         JOIN Servers AS s ON s.id = r.server_id
-         JOIN CourseFilters AS cf ON cf.id = r.filter_id
-         JOIN Courses AS c ON c.id = cf.course_id
-         JOIN Maps AS m ON m.id = c.map_id",
-    );
+    let filter_joins = " JOIN CourseFilters AS cf ON cf.id = r.filter_id
+                         JOIN Courses AS c ON c.id = cf.course_id
+                         JOIN Maps AS m ON m.id = c.map_id ";
 
-    query.push(" AND p.id = COALESCE(");
-    query.push_bind(player_id);
-    query.push(", p.id) ");
+    let sort_column = params.sort_by.sql();
+    let sort_order = params
+        .sort_order
+        .unwrap_or_else(|| SortOrder::from_sort_by(params.sort_by))
+        .sql();
 
-    query.push(" AND s.id = COALESCE(");
-    query.push_bind(server_id);
-    query.push(", s.id) ");
+    let mut query = QueryBuilder::new(format! { "
+      SELECT
+         r.id AS id,
+         p.id AS player_id,
+         p.name AS player_name,
+         s.id AS server_id,
+         s.name AS server_name,
+         m.id AS map_id,
+         m.name AS map_name,
+         c.id AS course_id,
+         c.name AS course_name,
+         cf.mode AS mode,
+         cf.nub_tier AS nub_tier,
+         cf.pro_tier AS pro_tier,
+         cf.state AS filter_state,
+         r.styles AS styles,
+         r.teleports,
+         r.time AS time,
+         {nub_rank} AS nub_rank,
+         (SELECT COUNT(*) FROM BestNubRecords WHERE filter_id = r.filter_id) AS nub_max_rank,
+         bnr.points AS nub_points,
+         {pro_rank} AS pro_rank,
+         (SELECT COUNT(*) FROM BestProRecords WHERE filter_id = r.filter_id) AS pro_max_rank,
+         bpr.points AS pro_points,
+         r.replay_available
+       FROM (SELECT
+    ", nub_rank = rank_of("bnr", "BestNubRecords"), pro_rank = rank_of("bpr", "BestProRecords") });
 
-    query.push(" AND m.id = COALESCE(");
-    query.push_bind(map_id);
-    query.push(", m.id) ");
+    if let Some(_max_rank) = params.max_rank {
+        query.push(" r.id, r.time FROM (");
 
-    query.push(" AND m.state != -1 ");
+        if params.top {
+            let table = match params.has_teleports {
+                Some(false) => RankTable::BestProRecords,
+                None | Some(true) => RankTable::BestNubRecords,
+            };
 
-    query.push(" AND c.id = COALESCE(");
-    query.push_bind(course_id);
-    query.push(", c.id) ");
+            select_best_record_ids(&mut query, table, SelectBestRecordIdsMode::Single, &params);
+            query.push(" UNION ");
+            select_best_record_ids(
+                &mut query,
+                table.inverted(),
+                SelectBestRecordIdsMode::Both,
+                &params,
+            );
+        } else {
+            let table = RankTable::BestNubRecords;
+            let mode = SelectBestRecordIdsMode::Single;
 
-    query.push(" AND cf.mode = COALESCE(");
-    query.push_bind(mode);
-    query.push(", cf.mode) ");
+            select_best_record_ids(&mut query, table, mode, &params);
+            query.push(" UNION ");
+            select_best_record_ids(&mut query, table.inverted(), mode, &params);
+        }
 
-    if ranked {
-        query.push(" AND cf.state = ");
-        query.push_bind(CourseFilterState::Ranked);
-    }
+        query.push(") AS candidates JOIN Records AS r ON r.id = candidates.record_id ");
+    } else {
+        if params.map_id.is_none() && params.course_id.is_none() {
+            query.push(" STRAIGHT_JOIN ");
+        }
 
-    if let Some(has_teleports) = has_teleports {
-        query.push(" AND r.teleports ");
-        query.push(if has_teleports { ">" } else { "=" });
-        query.push(" 0");
-    }
-
-    if let Some(max_rank) = max_rank {
-        query.push(" AND (NubLeaderboard.rank <= ");
-        query.push_bind(max_rank.get());
-        query.push(" OR ProLeaderboard.rank <= ");
-        query.push_bind(max_rank.get());
-        query.push(")");
-    }
-
-    if top {
-        match has_teleports {
-            None | Some(true) => query.push(" AND NubLeaderboard.rank >= 1 "),
-            Some(false) => query.push(" AND ProLeaderboard.rank >= 1 "),
-        };
+        query.push(" r.id, r.time FROM Records AS r ");
+        query.push(pb_joins);
+        query.push(filter_joins);
+        filter_records(&mut query, &params, "r.player_id", RankTable::all());
     }
 
     query
         .push(" ORDER BY ")
-        .push(sort_by.sql())
-        .push(
-            sort_order
-                .unwrap_or_else(|| SortOrder::from_sort_by(sort_by))
-                .sql(),
-        )
+        .push(sort_column)
+        .push(sort_order)
         .push(", r.id ASC ")
         .push(" LIMIT ")
-        .push_bind(limit.value())
+        .push_bind(params.limit.value())
         .push(" OFFSET ")
-        .push_bind(offset.value());
+        .push_bind(params.offset.value());
+
+    query.push(") AS page JOIN Records AS r ON r.id = page.id ");
+    query.push(pb_joins);
+    query.push(
+        " JOIN Players AS p ON p.id = r.player_id
+          JOIN Servers AS s ON s.id = r.server_id ",
+    );
+    query.push(filter_joins);
+    query
+        .push(" ORDER BY page.")
+        .push(sort_column.trim().trim_start_matches("r."))
+        .push(sort_order)
+        .push(", page.id ASC ");
 
     let records = query
         .build()
@@ -973,6 +882,211 @@ pub async fn mark_replays_as_unavailable(cx: &Context, ids: &[RecordId]) -> data
         .await
         .map(drop)
         .map_err(database::Error::from)
+}
+
+#[derive(Debug, Display, Clone, Copy)]
+enum RankTable {
+    BestNubRecords,
+    BestProRecords,
+}
+
+impl RankTable {
+    fn all() -> impl Iterator<Item = Self> {
+        [
+            RankTable::BestNubRecords,
+            RankTable::BestProRecords,
+        ]
+        .into_iter()
+    }
+
+    fn inverted(self) -> Self {
+        match self {
+            Self::BestNubRecords => Self::BestProRecords,
+            Self::BestProRecords => Self::BestNubRecords,
+        }
+    }
+
+    fn to_alias(self) -> &'static str {
+        match self {
+            Self::BestNubRecords => "bnr",
+            Self::BestProRecords => "bpr",
+        }
+    }
+}
+
+fn filter_records(
+    query: &mut QueryBuilder<'_>,
+    params: &GetRecordsParams,
+    player_id_ref: impl fmt::Display,
+    rank_tables: impl IntoIterator<Item = RankTable>,
+) {
+    query.with_filter(|mut query| {
+        query.filter(" m.state != -1 ");
+
+        if let Some(player_id) = params.player_id {
+            query.filter(format_args!("{player_id_ref} = "));
+            query.push_bind(player_id);
+        }
+
+        if let Some(server_id) = params.server_id {
+            query.filter("r.server_id = ");
+            query.push_bind(server_id);
+        }
+
+        if let Some(map_id) = params.map_id {
+            query.filter("m.id = ");
+            query.push_bind(map_id);
+        }
+
+        if let Some(course_id) = params.course_id {
+            query.filter("c.id = ");
+            query.push_bind(course_id);
+        }
+
+        if let Some(mode) = params.mode {
+            query.filter("cf.mode = ");
+            query.push_bind(mode);
+        }
+
+        if params.ranked {
+            query.filter("cf.state = ");
+            query.push_bind(CourseFilterState::Ranked);
+        }
+
+        if let Some(has_teleports) = params.has_teleports {
+            query.filter(if has_teleports {
+                "r.teleports > 0"
+            } else {
+                "r.teleports = 0"
+            });
+        }
+
+        if let Some(max_rank) = params.max_rank {
+            query.filter("(");
+
+            for (idx, rank_table) in rank_tables.into_iter().enumerate() {
+                if idx > 0 {
+                    query.push(" OR ");
+                }
+
+                query.push(within_top(rank_table.to_alias(), max_rank.get(), rank_table));
+            }
+
+            query.filter(")");
+        }
+
+        if params.top {
+            query.filter(match params.has_teleports {
+                None | Some(true) => "bnr.record_id IS NOT NULL",
+                Some(false) => "bpr.record_id IS NOT NULL",
+            });
+        }
+    });
+}
+
+#[derive(Debug, Clone, Copy)]
+enum SelectBestRecordIdsMode {
+    Single,
+    Both,
+}
+
+fn select_best_record_ids<'args>(
+    query: &mut QueryBuilder<'args>,
+    table: RankTable,
+    mode: SelectBestRecordIdsMode,
+    params: &'args GetRecordsParams,
+) {
+    let alias = table.to_alias();
+
+    query.push(format_args!("SELECT {alias}.record_id FROM {table} AS {alias}"));
+
+    if matches!(mode, SelectBestRecordIdsMode::Both) {
+        let other_table = table.inverted();
+        let other_alias = other_table.to_alias();
+
+        query.push(format_args! { "
+          JOIN {other_table} AS {other_alias}
+          ON {other_alias}.record_id = {alias}.record_id
+        " });
+    }
+
+    // Applying these filters requires columns from the `Records` table, not just
+    // `Best{Nub,Pro}Records`
+    let need_records_table_join = params.server_id.is_some() || params.has_teleports.is_some();
+
+    if need_records_table_join {
+        query.push(format_args!(" JOIN Records AS r ON r.id = {alias}.record_id "));
+    }
+
+    query.push(format_args! { "
+      JOIN CourseFilters AS cf ON cf.id = {alias}.filter_id
+      JOIN Courses AS c ON c.id = cf.course_id
+      JOIN Maps AS m ON m.id = c.map_id
+    " });
+
+    filter_records(query, params, format_args!("{alias}.player_id"), iter::once(table))
+}
+
+/// Produces a SQL expression that computes the rank of the given `subject` row in the table
+/// `table`.
+fn rank_of(subject: impl fmt::Display, table: impl fmt::Display) -> impl fmt::Display {
+    fmt::from_fn(move |f| {
+        write! { f, "
+          IF(
+            {subject}.record_id IS NULL,
+            NULL,
+            (
+              SELECT COUNT(*) + 1
+              FROM {table} AS ahead
+              WHERE ahead.filter_id = {subject}.filter_id
+              AND (
+                ahead.time < {subject}.time
+                OR (
+                  ahead.time = {subject}.time
+                  AND ahead.record_id < {subject}.record_id
+                )
+              )
+            )
+          )
+        " }
+    })
+}
+
+/// Produces a SQL expression that evaluates to `TRUE` if the given `subject` row is at or below
+/// (better than) the given `max_rank` in the table `table`.
+fn within_top(
+    subject: impl fmt::Display,
+    max_rank: u32,
+    table: impl fmt::Display,
+) -> impl fmt::Display {
+    fmt::from_fn(move |f| {
+        let nth = |column| {
+            let subject = &subject;
+            let table = &table;
+            fmt::from_fn(move |f| {
+                write! { f, "
+              (SELECT nth.{column} FROM {table} AS nth
+               WHERE nth.filter_id = {subject}.filter_id
+               ORDER BY nth.time ASC, nth.record_id ASC
+               LIMIT 1 OFFSET {max_rank_minus_one})
+            ", max_rank_minus_one = max_rank - 1 }
+            })
+        };
+
+        write! { f, "
+          (
+            {subject}.record_id IS NOT NULL
+            AND (
+              {nth_time} IS NULL
+              OR {subject}.time < {nth_time}
+              OR (
+                {subject}.time = {nth_time}
+                AND {subject}.record_id <= {nth_record_id}
+              )
+            )
+          )
+        ", nth_time = nth("time"), nth_record_id = nth("record_id") }
+    })
 }
 
 impl<'r> sqlx::FromRow<'r, database::Row> for Record {
