@@ -244,7 +244,7 @@ pub async fn get(
     .await?;
 
     let mut query = QueryBuilder::new(
-        "VanillaRatings AS (
+        "WITH VanillaRatings AS (
            SELECT
              id,
              DENSE_RANK() OVER (
