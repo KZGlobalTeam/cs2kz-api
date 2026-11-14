@@ -19,6 +19,7 @@ pub struct SteamUser {
     pub avatar_url: Url,
 }
 
+#[expect(clippy::result_large_err)]
 #[tracing::instrument(skip(http_client), ret(level = "debug"), err(level = "debug"))]
 pub async fn fetch_user(
     http_client: &reqwest::Client,

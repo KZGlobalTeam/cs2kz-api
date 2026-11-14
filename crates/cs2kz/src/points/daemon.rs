@@ -57,15 +57,11 @@ struct PythonRequest {
 
 #[derive(Debug, serde::Deserialize)]
 struct PythonResponse {
-    #[expect(dead_code, reason = "included in tracing events")]
     filter_id: CourseFilterId,
-
-    #[expect(dead_code, reason = "included in tracing events")]
     timings: PythonTimings,
 }
 
 #[derive(Debug, serde::Deserialize)]
-#[expect(dead_code, reason = "included in tracing events")]
 struct PythonTimings {
     #[serde(rename = "db_query_ms", deserialize_with = "deserialize_millis")]
     db_query: Duration,

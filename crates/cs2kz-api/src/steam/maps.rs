@@ -20,6 +20,7 @@ use crate::steam;
 /// Steam Web API URL for fetching map information.
 const MAP_URL: &str = "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1";
 
+#[expect(clippy::result_large_err)]
 #[tracing::instrument(skip(http_client), ret(level = "debug"), err(level = "debug"))]
 pub async fn fetch_map_name(
     http_client: &reqwest::Client,

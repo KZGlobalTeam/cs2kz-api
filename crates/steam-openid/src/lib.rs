@@ -16,8 +16,6 @@
 
 //! Helper functions & types for using Steam as an OpenID 2.0 provider.
 
-#![feature(substr_range)]
-
 #[macro_use]
 extern crate derive_more;
 

@@ -1,4 +1,4 @@
-use std::bstr::ByteStr;
+use std::byte_str::ByteStr;
 use std::ffi::OsStr;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};

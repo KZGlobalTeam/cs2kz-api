@@ -128,8 +128,6 @@ pub enum Incoming {
         map: MapIdentifier,
         course: CourseIdentifier,
         mode: Mode,
-
-        #[expect(dead_code, reason = "TODO")]
         styles: Styles,
     },
 

@@ -29,6 +29,7 @@ repository = "https://github.com/KZGlobalTeam/cs2kz-api"
 name = "cs2kz-api"
 
 [workspace.lints.clippy]
+nonstandard_macro_braces = "allow"
 redundant_pattern_matching = "allow"
 # `Result::map_err()` messes up caller location if the function passed to it is
 # annotated with `#[track_caller]`

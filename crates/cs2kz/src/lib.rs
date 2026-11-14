@@ -15,7 +15,7 @@
  */
 
 #![feature(array_try_from_fn)]
-#![feature(bstr)]
+#![feature(byte_str)]
 #![feature(decl_macro)]
 #![feature(try_blocks)]
 

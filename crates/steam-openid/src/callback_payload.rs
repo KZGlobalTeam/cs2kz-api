@@ -84,6 +84,7 @@ where
 }
 
 impl CallbackPayload {
+    #[expect(clippy::result_large_err)]
     #[tracing::instrument(skip(self, http_client), ret(level = "debug"), err(level = "debug"))]
     pub async fn verify<S, ResponseBody>(
         &mut self,

@@ -53,7 +53,6 @@ impl State {
 
 #[derive(Debug, From)]
 pub enum Rejection {
-    #[expect(dead_code, reason = "this is information is captured in logs")]
     ParseAuthorizationHeader(ParseAccessKeyError),
     KeyNotFound,
     GetKey(GetAccessKeyInfoError),

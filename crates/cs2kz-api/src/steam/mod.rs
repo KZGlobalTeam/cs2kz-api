@@ -30,6 +30,7 @@ pub enum ApiError {
 }
 
 /// Makes a request to Steam's Web API.
+#[expect(clippy::result_large_err)]
 #[tracing::instrument(skip(request), err(level = "debug"))]
 async fn request<T>(request: reqwest::RequestBuilder) -> Result<T, ApiError>
 where
