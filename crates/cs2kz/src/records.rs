@@ -1023,7 +1023,7 @@ fn filter_records(
                 query.push(within_top(rank_table.to_alias(), max_rank.get(), rank_table));
             }
 
-            query.filter(")");
+            query.push(")");
         }
 
         if params.top {
