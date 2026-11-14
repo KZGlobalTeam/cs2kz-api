@@ -102,7 +102,18 @@ pub async fn get(
     cx: &Context,
     GetBansParams { player_id, banned_by, reason, limit, offset }: GetBansParams,
 ) -> Result<Paginated<impl Stream<Item = Result<Ban, GetBansError>>>, GetBansError> {
-    let total = database::count!(cx.database().as_ref(), "Bans").await?;
+    let total = database::count!(
+        cx.database().as_ref(),
+        "Bans AS b
+         WHERE b.player_id = COALESCE(?, b.player_id)
+         AND b.banned_by = COALESCE(?, b.banned_by)
+         AND b.reason = COALESCE(?, b.reason)",
+        player_id,
+        banned_by,
+        reason,
+    )
+    .await?;
+
     let bans = self::macros::select!(
         "WHERE b.player_id = COALESCE(?, b.player_id)
          AND b.banned_by = COALESCE(?, b.banned_by)

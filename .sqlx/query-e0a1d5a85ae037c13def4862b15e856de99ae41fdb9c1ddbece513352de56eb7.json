@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "SELECT COUNT(*) FROM Bans",
+  "query": "SELECT COUNT(*) FROM Bans AS b\n         WHERE b.player_id = COALESCE(?, b.player_id)\n         AND b.banned_by = COALESCE(?, b.banned_by)\n         AND b.reason = COALESCE(?, b.reason)",
   "describe": {
     "columns": [
       {
@@ -14,11 +14,11 @@
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 3
     },
     "nullable": [
       false
     ]
   },
-  "hash": "d5c35a62a225cb7943de8b9e37a88361388fc134f018cf2e4aaedb9e6d9e9ca7"
+  "hash": "e0a1d5a85ae037c13def4862b15e856de99ae41fdb9c1ddbece513352de56eb7"
 }
