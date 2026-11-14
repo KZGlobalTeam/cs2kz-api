@@ -1,6 +1,6 @@
 {
   "db_name": "MySQL",
-  "query": "WITH BanCounts AS (\n                   SELECT b.player_id, COUNT(*) AS count\n                    FROM Bans AS b\n                    RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id\n                    WHERE (b.id IS NULL OR b.expires_at > NOW())\n                 )\n                 SELECT\n                   p.id AS `id!: PlayerId`,\n                   p.name AS `name!: String`,\n                   p.prime_verified AS `prime_verified!: bool`,\n                   p.vnl_rating AS `vnl_rating!: f64`,\n                   (\n                     SELECT COUNT(*) + 1\n                     FROM Players AS wp\n                     WHERE wp.vnl_rating > p.vnl_rating\n                     OR (\n                       wp.vnl_rating = p.vnl_rating\n                       AND wp.first_joined_at < p.first_joined_at\n                     )\n                   ) AS `vnl_rank!: u64`,\n                   p.ckz_rating AS `ckz_rating!: f64`,\n                   (\n                     SELECT COUNT(*) + 1\n                     FROM Players AS wp\n                     WHERE wp.ckz_rating > p.ckz_rating\n                     OR (\n                       wp.ckz_rating = p.ckz_rating\n                       AND wp.first_joined_at < p.first_joined_at\n                     )\n                   ) AS `ckz_rank!: u64`,\n                   (COALESCE(BanCounts.count, 0) > 0) AS `is_banned!: bool`,\n                   p.first_joined_at AS `first_joined_at!: Timestamp`,\n                   p.last_joined_at AS `last_joined_at!: Timestamp`\n                 FROM Players AS p\n                 LEFT JOIN BanCounts ON BanCounts.player_id = p.id WHERE p.name LIKE ?",
+  "query": "SELECT\n                   p.id AS `id!: PlayerId`,\n                   p.name AS `name!: String`,\n                   p.prime_verified AS `prime_verified!: bool`,\n                   p.vnl_rating AS `vnl_rating!: f64`,\n                   (\n                     SELECT COUNT(*) + 1\n                     FROM Players AS wp\n                     WHERE wp.vnl_rating > p.vnl_rating\n                     OR (\n                       wp.vnl_rating = p.vnl_rating\n                       AND wp.first_joined_at < p.first_joined_at\n                     )\n                   ) AS `vnl_rank!: u64`,\n                   p.ckz_rating AS `ckz_rating!: f64`,\n                   (\n                     SELECT COUNT(*) + 1\n                     FROM Players AS wp\n                     WHERE wp.ckz_rating > p.ckz_rating\n                     OR (\n                       wp.ckz_rating = p.ckz_rating\n                       AND wp.first_joined_at < p.first_joined_at\n                     )\n                   ) AS `ckz_rank!: u64`,\n                   EXISTS (\n                     SELECT 1\n                     FROM Bans AS b\n                     LEFT JOIN Unbans AS ub ON ub.ban_id = b.id\n                     WHERE b.player_id = p.id\n                     AND b.expires_at > NOW()\n                     AND ub.ban_id IS NULL\n                   ) AS `is_banned: bool`,\n                   p.first_joined_at AS `first_joined_at!: Timestamp`,\n                   p.last_joined_at AS `last_joined_at!: Timestamp`\n                 FROM Players AS p WHERE p.name LIKE ?",
   "describe": {
     "columns": [
       {
@@ -68,10 +68,10 @@
       },
       {
         "ordinal": 7,
-        "name": "is_banned!: bool",
+        "name": "is_banned: bool",
         "type_info": {
           "type": "Long",
-          "flags": "BINARY",
+          "flags": "NOT_NULL | BINARY",
           "max_size": 1
         }
       },
@@ -105,10 +105,10 @@
       true,
       false,
       true,
-      true,
+      false,
       false,
       false
     ]
   },
-  "hash": "d4209fcfee43b757a223b43392858366eb312c356555187d4708e9ccd6e4b842"
+  "hash": "f281082a724b460a319dc7f958eca8ac32090b1d61b16830ab303a9a98bed7bb"
 }

@@ -157,11 +157,14 @@ pub async fn register(
     .and_then(|row| row.try_get(0))?;
 
     let is_banned = sqlx::query_scalar!(
-        "SELECT (COUNT(*) > 0) AS `is_banned: bool`
-         FROM Bans AS b
-         RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id
-         WHERE b.player_id = ?
-         AND (b.id IS NULL OR b.expires_at > NOW())",
+        "SELECT EXISTS (
+           SELECT 1
+           FROM Bans AS b
+           LEFT JOIN Unbans AS ub ON ub.ban_id = b.id
+           WHERE b.player_id = ?
+           AND b.expires_at > NOW()
+           AND ub.ban_id IS NULL
+         ) AS `is_banned: bool`",
         id,
     )
     .fetch_one(cx.database().as_ref())
@@ -241,13 +244,7 @@ pub async fn get(
     .await?;
 
     let mut query = QueryBuilder::new(
-        "WITH BanCounts AS (
-           SELECT b.player_id, COUNT(*) AS count
-            FROM Bans AS b
-            RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id
-            WHERE (b.id IS NULL OR b.expires_at > NOW())
-         ),
-         VanillaRatings AS (
+        "VanillaRatings AS (
            SELECT
              id,
              DENSE_RANK() OVER (
@@ -277,11 +274,17 @@ pub async fn get(
            vr.rank AS vnl_rank,
            p.ckz_rating,
            cr.rank AS ckz_rank,
-           (COALESCE(BanCounts.count, 0) > 0) AS is_banned,
+           EXISTS (
+             SELECT 1
+             FROM Bans AS b
+             LEFT JOIN Unbans AS ub ON ub.ban_id = b.id
+             WHERE b.player_id = p.id
+             AND b.expires_at > NOW()
+             AND ub.ban_id IS NULL
+           ) AS is_banned,
            p.first_joined_at,
            p.last_joined_at
          FROM Players AS p
-         LEFT JOIN BanCounts ON BanCounts.player_id = p.id
          LEFT JOIN VanillaRatings AS vr ON vr.id = p.id
          LEFT JOIN ClassicRatings AS cr ON cr.id = p.id
          WHERE p.name LIKE COALESCE(?, p.name)",
@@ -612,13 +615,7 @@ mod macros {
         ( $($extra:tt)* ) => {
             sqlx::query_as!(
                 Player,
-                "WITH BanCounts AS (
-                   SELECT b.player_id, COUNT(*) AS count
-                    FROM Bans AS b
-                    RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id
-                    WHERE (b.id IS NULL OR b.expires_at > NOW())
-                 )
-                 SELECT
+                "SELECT
                    p.id AS `id!: PlayerId`,
                    p.name AS `name!: String`,
                    p.prime_verified AS `prime_verified!: bool`,
@@ -642,11 +639,17 @@ mod macros {
                        AND wp.first_joined_at < p.first_joined_at
                      )
                    ) AS `ckz_rank!: u64`,
-                   (COALESCE(BanCounts.count, 0) > 0) AS `is_banned!: bool`,
+                   EXISTS (
+                     SELECT 1
+                     FROM Bans AS b
+                     LEFT JOIN Unbans AS ub ON ub.ban_id = b.id
+                     WHERE b.player_id = p.id
+                     AND b.expires_at > NOW()
+                     AND ub.ban_id IS NULL
+                   ) AS `is_banned: bool`,
                    p.first_joined_at AS `first_joined_at!: Timestamp`,
                    p.last_joined_at AS `last_joined_at!: Timestamp`
-                 FROM Players AS p
-                 LEFT JOIN BanCounts ON BanCounts.player_id = p.id "
+                 FROM Players AS p "
                 + $($extra)*
             )
         };
