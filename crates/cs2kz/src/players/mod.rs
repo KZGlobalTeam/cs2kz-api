@@ -617,44 +617,36 @@ mod macros {
                     FROM Bans AS b
                     RIGHT JOIN Unbans AS ub ON ub.ban_id = b.id
                     WHERE (b.id IS NULL OR b.expires_at > NOW())
-                 ),
-                 VanillaRatings AS (
-                   SELECT
-                     id,
-                     DENSE_RANK() OVER (
-                       ORDER BY
-                         vnl_rating DESC,
-                         first_joined_at ASC
-                     ) AS rank
-                   FROM
-                     Players
-                 ),
-                 ClassicRatings AS (
-                   SELECT
-                     id,
-                     DENSE_RANK() OVER (
-                       ORDER BY
-                         ckz_rating DESC,
-                         first_joined_at ASC
-                     ) AS rank
-                   FROM
-                     Players
                  )
                  SELECT
                    p.id AS `id!: PlayerId`,
                    p.name AS `name!: String`,
                    p.prime_verified AS `prime_verified!: bool`,
                    p.vnl_rating AS `vnl_rating!: f64`,
-                   vr.rank AS `vnl_rank!: u64`,
+                   (
+                     SELECT COUNT(*) + 1
+                     FROM Players AS wp
+                     WHERE wp.vnl_rating > p.vnl_rating
+                     OR (
+                       wp.vnl_rating = p.vnl_rating
+                       AND wp.first_joined_at < p.first_joined_at
+                     )
+                   ) AS `vnl_rank!: u64`,
                    p.ckz_rating AS `ckz_rating!: f64`,
-                   cr.rank AS `ckz_rank!: u64`,
+                   (
+                     SELECT COUNT(*) + 1
+                     FROM Players AS wp
+                     WHERE wp.ckz_rating > p.ckz_rating
+                     OR (
+                       wp.ckz_rating = p.ckz_rating
+                       AND wp.first_joined_at < p.first_joined_at
+                     )
+                   ) AS `ckz_rank!: u64`,
                    (COALESCE(BanCounts.count, 0) > 0) AS `is_banned!: bool`,
                    p.first_joined_at AS `first_joined_at!: Timestamp`,
                    p.last_joined_at AS `last_joined_at!: Timestamp`
                  FROM Players AS p
-                 LEFT JOIN BanCounts ON BanCounts.player_id = p.id
-                 LEFT JOIN VanillaRatings AS vr ON vr.id = p.id
-                 LEFT JOIN ClassicRatings AS cr ON cr.id = p.id "
+                 LEFT JOIN BanCounts ON BanCounts.player_id = p.id "
                 + $($extra)*
             )
         };
