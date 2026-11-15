@@ -118,6 +118,7 @@ pub async fn get(
         "WHERE b.player_id = COALESCE(?, b.player_id)
          AND b.banned_by = COALESCE(?, b.banned_by)
          AND b.reason = COALESCE(?, b.reason)
+         ORDER BY b.id DESC
          LIMIT ?
          OFFSET ?",
         player_id,
